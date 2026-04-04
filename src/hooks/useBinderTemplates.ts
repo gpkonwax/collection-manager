@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
-import { getGpkVariantRank, isGpkGoldVariant, normalizeGpkVariant } from '@/lib/gpkVariant';
+import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 
 export interface BinderTemplate {
   templateId: string;
