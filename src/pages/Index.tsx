@@ -383,8 +383,8 @@ export default function SimpleAssetsPage() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cheese" />
+                <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-cheese/50 text-cheese placeholder:text-cheese/50" />
               </div>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
                 <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Source" /></SelectTrigger>
