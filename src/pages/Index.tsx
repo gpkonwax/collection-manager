@@ -370,16 +370,18 @@ export default function SimpleAssetsPage() {
     <div className="min-h-screen">
       {/* Sticky header with account info */}
       {isConnected && accountName && (
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-cheese/20">
-          <div className="container flex items-center justify-between py-2">
+        <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
+          <div className="container flex h-12 items-center justify-end">
             <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-cheese" />
-              <span className="text-cheese font-medium text-sm">{accountName}</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-cheese/80 text-sm font-mono">{waxBalance.toFixed(4)} WAX</span>
-              <Button onClick={logout} variant="ghost" size="sm" className="text-cheese/60 hover:text-cheese hover:bg-cheese/10 h-7 px-2">
-                <LogOut className="h-3.5 w-3.5" />
+              <Button variant="outline" size="sm" className="border-cheese/30 hover:border-cheese hover:bg-cheese/10 h-8 gap-2">
+                <Wallet className="h-4 w-4 text-cheese" />
+                <span className="max-w-[120px] truncate text-sm">{accountName}</span>
+                <span className="ml-1 text-cheese font-semibold text-sm">
+                  {waxBalance.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} WAX
+                </span>
+              </Button>
+              <Button onClick={logout} variant="ghost" size="sm" className="text-muted-foreground hover:text-cheese hover:bg-cheese/10 h-8 w-8 p-0">
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
