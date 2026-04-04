@@ -1,3 +1,5 @@
+// Fallback fetch utility for AtomicAssets API reliability
+
 export async function fetchWithFallback(
   endpoints: string[],
   path: string,
@@ -7,6 +9,7 @@ export async function fetchWithFallback(
   let lastError: Error | null = null;
 
   for (const baseUrl of endpoints) {
+    // Attempt up to 2 tries per endpoint (retry once on timeout)
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const controller = new AbortController();
@@ -23,6 +26,7 @@ export async function fetchWithFallback(
           return response;
         }
         
+        // If response is not ok, don't retry same endpoint — try next
         console.warn(`Endpoint ${baseUrl} returned ${response.status}, trying next...`);
         break;
       } catch (error) {
@@ -42,4 +46,13 @@ export async function fetchWithFallback(
   }
 
   throw lastError || new Error('All API endpoints failed');
+}
+
+// Helper to build URL with query params
+export function buildApiUrl(path: string, params: Record<string, string>): string {
+  const url = new URL(path, 'https://placeholder.com');
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+  return url.pathname + url.search;
 }
