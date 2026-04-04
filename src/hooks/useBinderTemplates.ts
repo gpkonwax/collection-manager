@@ -10,6 +10,7 @@ export interface BinderTemplate {
   image: string;
   cardid: string;
   quality: string;
+  variant: string;
   schema: string;
 }
 
@@ -58,7 +59,8 @@ export function useBinderTemplates(schema: string | null) {
           name: data.name || t.name || `Template #${t.template_id}`,
           image: resolveImage(data.img || data.image || data.icon || ''),
           cardid: String(data.cardid ?? ''),
-          quality: normalizeGpkVariant(data.variant),
+          quality: String(data.quality ?? '').toLowerCase(),
+          variant: normalizeGpkVariant(data.variant),
           schema: t.schema?.schema_name || schema,
         };
       });
@@ -66,7 +68,7 @@ export function useBinderTemplates(schema: string | null) {
       const seen = new Map<string, BinderTemplate>();
       for (const t of parsed) {
         if (t.cardid) {
-          const dedupeKey = `${t.cardid}:${t.quality.toLowerCase()}`;
+          const dedupeKey = `${t.cardid}:${t.quality}:${t.variant}`;
           if (!seen.has(dedupeKey)) {
             seen.set(dedupeKey, t);
           }
@@ -77,13 +79,14 @@ export function useBinderTemplates(schema: string | null) {
       const deduped = Array.from(seen.values());
 
       deduped.sort((a, b) => {
-        const aGold = isGpkGoldVariant(a.quality);
-        const bGold = isGpkGoldVariant(b.quality);
+        const aGold = isGpkGoldVariant(a.variant);
+        const bGold = isGpkGoldVariant(b.variant);
         if (aGold !== bGold) return aGold ? 1 : -1;
         const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
         if (!isNaN(numA) && !isNaN(numB)) {
           if (numA !== numB) return numA - numB;
-          return getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
+          if (a.quality !== b.quality) return a.quality.localeCompare(b.quality);
+          return getGpkVariantRank(a.variant) - getGpkVariantRank(b.variant);
         }
         return a.templateId.localeCompare(b.templateId);
       });

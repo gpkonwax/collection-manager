@@ -35,9 +35,9 @@ export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps
         </div>
         <CardContent className="p-3 space-y-1">
           <p className="text-sm font-semibold text-foreground/50 truncate">{template.name}</p>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/50 text-accent-foreground/50">{template.quality || template.schema}</span>
-            <span className="text-[10px] text-muted-foreground/50">#{template.cardid || template.templateId}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/50 text-accent-foreground/50">{template.variant || template.schema}</span>
+            <span className="text-[10px] text-muted-foreground/50">#{template.cardid}{template.quality ? template.quality.toUpperCase() : ''}</span>
           </div>
         </CardContent>
       </a>
