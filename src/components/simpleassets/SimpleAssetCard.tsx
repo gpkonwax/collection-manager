@@ -86,6 +86,14 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, selectio
       onDrop={handleDrop}
       onDragEnd={handleDragEnd}
     >
+      {selectionMode && (
+        <div className="absolute top-2 left-2 z-10">
+          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+            ${selected ? 'bg-cheese border-cheese' : 'bg-background/80 border-muted-foreground/50'}`}>
+            {selected && <span className="text-xs text-primary-foreground font-bold">✓</span>}
+          </div>
+        </div>
+      )}
       <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none">
         <img src={displayUrl} alt={asset.name} className="w-full h-full object-contain" loading="lazy" onError={handleImgError} />
       </div>
