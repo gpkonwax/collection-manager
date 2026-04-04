@@ -700,6 +700,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
         isLoading,
         accountName,
         cheeseBalance,
+        waxBalance,
         login,
         logout,
         refreshBalance,
