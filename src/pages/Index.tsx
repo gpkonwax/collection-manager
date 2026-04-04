@@ -72,6 +72,27 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
+  // --- Selection mode state ---
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const selectedAssets = useMemo(() =>
+    assets.filter(a => selectedIds.has(a.id)), [assets, selectedIds]);
+
   // --- Deal animation state ---
   const preCollectIdsRef = useRef<Set<string>>(new Set());
   const pendingAnimationRef = useRef<{ txId: string | null } | null>(null);
