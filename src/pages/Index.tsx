@@ -33,6 +33,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   promo: 'Promo', originalart: 'Original Art',
 };
 
+const SERIES1_VARIANTS: { value: string; label: string }[] = [
+  { value: 'a', label: 'Base' },
+  { value: 'b', label: 'Prism' },
+  { value: 'c', label: 'Sketch' },
+  { value: 'd', label: 'Collectors' },
+  { value: 'e', label: 'Gold' },
+];
+
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
   GPKTWOA: 'series2', GPKTWOB: 'series2', GPKTWOC: 'series2',
