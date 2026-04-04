@@ -335,7 +335,7 @@ export default function SimpleAssetsPage() {
       <div className="container py-8 space-y-6">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
-          <p className="text-muted-foreground mt-1">View and organize your gpk.topps cards. Open packs and drag and reorder cards where you want them.</p>
+          <p className="text-cheese/70 mt-1">View and organize your gpk.topps cards. Open packs and drag and reorder cards where you want them.</p>
         </div>
 
         {!isConnected ? (
@@ -387,7 +387,7 @@ export default function SimpleAssetsPage() {
                 <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
               </div>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="simpleassets">Simple Assets</SelectItem>
@@ -395,20 +395,20 @@ export default function SimpleAssetsPage() {
                 </SelectContent>
               </Select>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap">
+              <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
                 <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                 {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
               </Button>
-              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap" title="Export card layout">
+              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10" title="Export card layout">
                 <Download className="h-4 w-4 mr-1" />Save Layout
               </Button>
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap" title="Import card layout">
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10" title="Import card layout">
                 <Upload className="h-4 w-4 mr-1" />Load Layout
               </Button>
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
