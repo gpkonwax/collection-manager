@@ -1,34 +1,50 @@
 
 
-## Persistent Card Ordering via localStorage + JSON Export/Import
+## Batch Transfer with Checkbox Selection
 
-### How it works now
-`customOrder` is held in React state — lost on every page reload or filter change.
+### How it works
 
-### What will change
+WAX supports multiple actions from different contracts in a single transaction, so **SimpleAssets and AtomicAssets can be sent together in one transaction**. Each contract gets its own action in the actions array — the blockchain processes them atomically.
 
-**Auto-save to localStorage:**
-- Whenever `customOrder` changes (drag reorder), persist it to `localStorage` keyed by `account + category + source filter` so each view has its own saved order.
-- On mount / filter change, load the saved order from `localStorage` instead of defaulting to `null`.
-- New cards not in the saved order get appended at the end in their default sorted position.
+### User flow
 
-**Export button ("Save Layout"):**
-- Adds a small button next to "Collect Unclaimed" that downloads a `.json` file containing all saved orderings (all categories/filters) for the current account.
-- Format: `{ "account": "...", "orders": { "series1__all": ["id1","id2",...], "series2__all": [...] } }`
+1. A "Select" toggle button appears in the toolbar (next to search/filters).
+2. When active, each card shows a checkbox overlay. Tapping a card toggles selection instead of opening the detail dialog.
+3. A floating bottom bar appears showing: selected count, a "Transfer" button, and a "Cancel" button.
+4. Clicking "Transfer" opens a modal with:
+   - List of selected cards (thumbnails + names)
+   - Recipient WAX account input (validated: 1-12 chars, a-z1-5.)
+   - Optional memo input
+   - Send button
+5. On submit: builds a single transaction with up to two actions:
+   - One `simpleassets::transfer` action (if any SimpleAssets selected)
+   - One `atomicassets::transfer` action (if any AtomicAssets selected)
+6. On success: show TransactionSuccessDialog, clear selection, refetch assets.
 
-**Import button ("Load Layout"):**
-- Hidden file input that accepts `.json`, parses it, validates structure, writes all orderings into localStorage, and applies the current view's order immediately.
-
-### Files changed
+### Files to change
 
 | File | Change |
 |------|--------|
-| `src/pages/Index.tsx` | Add localStorage read/write for `customOrder`, export/import buttons + handlers, merge logic for new cards not in saved order |
+| `src/pages/Index.tsx` | Add `selectionMode` toggle state, `selectedIds` Set state. When selection mode is on, card click toggles selection. Render floating selection bar. Render `TransferDialog`. Pass checkbox state to `SimpleAssetCard`. |
+| `src/components/simpleassets/SimpleAssetCard.tsx` | Add optional `selected` and `onSelect` props. When in selection mode, show a checkbox overlay on the card. |
+| `src/components/simpleassets/TransferDialog.tsx` | **New file.** Modal with selected cards summary, recipient input, memo input, send button. Builds combined transaction actions, calls `session.transact` directly. |
+| `src/context/WaxContext.tsx` | Add `transferSimpleAssets(to, assetIds, memo)` function using the `simpleassets` contract `transfer` action. Expose in context. |
 
 ### Technical details
-- Storage key pattern: `gpk-order-${accountName}-${categoryFilter}-${sourceFilter}`
-- On filter change: instead of `setCustomOrder(null)`, load from localStorage (fall back to null if none saved)
-- Export: `JSON.stringify` all matching `gpk-order-*` keys → `Blob` → download link
-- Import: `FileReader` → parse JSON → write each key to localStorage → reload current order
-- Stale IDs (sold/transferred cards) are silently filtered out during load
+
+**Combined transaction structure:**
+```text
+actions: [
+  { account: 'simpleassets', name: 'transfer',
+    data: { from, to, assetids: [...], memo } },   // only if SA selected
+  { account: 'atomicassets', name: 'transfer',
+    data: { from, to, asset_ids: [...], memo } },   // only if AA selected
+]
+```
+
+- Selection state: `Set<string>` of asset IDs, managed in Index.tsx
+- The `SimpleAsset` type already has a `source` field (`'simpleassets' | 'atomicassets'`) to partition selected IDs
+- Floating bar uses fixed positioning at bottom of viewport
+- Checkbox styled with cheese theme to match existing UI
+- WAX account validation regex: `/^[a-z1-5.]{1,12}$/`
 
