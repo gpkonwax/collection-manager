@@ -62,9 +62,28 @@ export function useBinderTemplates(schema: string | null) {
         };
       });
 
-      // Sort by cardid then quality
-      const variantOrder = ['base', 'prism', 'sketch', 'collector', 'golden'];
-      parsed.sort((a, b) => {
+      // Deduplicate by cardid:quality – keep only the first (newest) template per combo
+      const seen = new Map<string, BinderTemplate>();
+      for (const t of parsed) {
+        if (t.cardid) {
+          const dedupeKey = `${t.cardid}:${t.quality.toLowerCase()}`;
+          if (!seen.has(dedupeKey)) {
+            seen.set(dedupeKey, t);
+          }
+        } else {
+          // No cardid – keep by templateId
+          seen.set(`tid:${t.templateId}`, t);
+        }
+      }
+      const deduped = Array.from(seen.values());
+
+      // Sort by cardid then quality, gold always last
+      const variantOrder = ['base', 'prism', 'sketch', 'collector'];
+      const isGold = (q: string) => q === 'golden' || q === 'gold';
+      deduped.sort((a, b) => {
+        const aGold = isGold(a.quality.toLowerCase());
+        const bGold = isGold(b.quality.toLowerCase());
+        if (aGold !== bGold) return aGold ? 1 : -1;
         const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
         if (!isNaN(numA) && !isNaN(numB)) {
           if (numA !== numB) return numA - numB;
@@ -75,7 +94,7 @@ export function useBinderTemplates(schema: string | null) {
         return a.templateId.localeCompare(b.templateId);
       });
 
-      setTemplates(parsed);
+      setTemplates(deduped);
     } catch (err) {
       console.error('[BinderTemplates] Failed to fetch:', err);
     } finally {

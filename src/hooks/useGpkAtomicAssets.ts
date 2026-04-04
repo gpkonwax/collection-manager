@@ -77,7 +77,7 @@ export function useGpkAtomicAssets(account: string | null) {
           category: raw.schema?.schema_name || '',
           name, image: images[0], images,
           cardid: combined.cardid || '', quality: combined.quality || '',
-          idata: raw.immutable_data as Record<string, unknown>,
+          idata: { ...raw.immutable_data, _template_id: raw.template?.template_id || '' } as Record<string, unknown>,
           mdata: raw.mutable_data as Record<string, unknown>,
           container: [], containerf: [],
           source: 'atomicassets' as const,
