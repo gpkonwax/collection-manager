@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
+import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 
 export interface SimpleAsset {
   id: string;
@@ -96,8 +97,8 @@ export function useSimpleAssets(account: string | null) {
           return {
             id: row.id, owner: row.owner, author: row.author, category: row.category,
             name, image: images[0], images,
-            cardid: (combined.cardid as string) || '',
-            quality: (combined.quality as string) || '',
+            cardid: String(combined.cardid ?? ''),
+            quality: normalizeGpkVariant(combined.variant, combined.quality),
             idata, mdata,
             container: row.container || [], containerf: row.containerf || [],
             source: 'simpleassets' as const,
@@ -107,7 +108,7 @@ export function useSimpleAssets(account: string | null) {
         const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
         if (!isNaN(numA) && !isNaN(numB)) {
           if (numA !== numB) return numA - numB;
-          return a.quality.localeCompare(b.quality);
+          return getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
         }
         if (!isNaN(numA)) return -1;
         if (!isNaN(numB)) return 1;

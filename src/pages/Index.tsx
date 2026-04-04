@@ -26,6 +26,7 @@ import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import { getGpkVariantRank } from '@/lib/gpkVariant';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -41,8 +42,8 @@ const SERIES1_VARIANTS: { value: string; label: string }[] = [
   { value: 'base', label: 'Base' },
   { value: 'prism', label: 'Prism' },
   { value: 'sketch', label: 'Sketch' },
-  { value: 'collector', label: 'Collectors' },
-  { value: 'golden', label: 'Gold' },
+  { value: 'collectors', label: 'Collectors' },
+  { value: 'gold', label: 'Gold' },
 ];
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
@@ -123,13 +124,11 @@ export default function SimpleAssetsPage() {
 
   const assets = useMemo(() => {
     const combined = [...saAssets, ...aaAssets];
-    const variantOrder = ['base', 'prism', 'sketch', 'collector', 'golden'];
-    const getVariantRank = (q: string) => { const idx = variantOrder.indexOf(q.toLowerCase()); return idx === -1 ? variantOrder.length : idx; };
     combined.sort((a, b) => {
       const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
       if (!isNaN(numA) && !isNaN(numB)) {
         if (numA !== numB) return numA - numB;
-        const rankDiff = getVariantRank(a.quality) - getVariantRank(b.quality);
+        const rankDiff = getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
         return rankDiff !== 0 ? rankDiff : a.quality.localeCompare(b.quality);
       }
       if (!isNaN(numA)) return -1;

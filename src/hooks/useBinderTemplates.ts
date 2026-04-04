@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
+import { getGpkVariantRank, isGpkGoldVariant, normalizeGpkVariant } from '@/lib/gpkVariant';
 
 export interface BinderTemplate {
   templateId: string;
@@ -56,13 +57,12 @@ export function useBinderTemplates(schema: string | null) {
           templateId: t.template_id,
           name: data.name || t.name || `Template #${t.template_id}`,
           image: resolveImage(data.img || data.image || data.icon || ''),
-          cardid: data.cardid || '',
-          quality: data.quality || '',
+          cardid: String(data.cardid ?? ''),
+          quality: normalizeGpkVariant(data.variant, data.quality),
           schema: t.schema?.schema_name || schema,
         };
       });
 
-      // Deduplicate by cardid:quality – keep only the first (newest) template per combo
       const seen = new Map<string, BinderTemplate>();
       for (const t of parsed) {
         if (t.cardid) {
@@ -71,25 +71,19 @@ export function useBinderTemplates(schema: string | null) {
             seen.set(dedupeKey, t);
           }
         } else {
-          // No cardid – keep by templateId
           seen.set(`tid:${t.templateId}`, t);
         }
       }
       const deduped = Array.from(seen.values());
 
-      // Sort by cardid then quality, gold always last
-      const variantOrder = ['base', 'prism', 'sketch', 'collector'];
-      const isGold = (q: string) => q === 'golden' || q === 'gold';
       deduped.sort((a, b) => {
-        const aGold = isGold(a.quality.toLowerCase());
-        const bGold = isGold(b.quality.toLowerCase());
+        const aGold = isGpkGoldVariant(a.quality);
+        const bGold = isGpkGoldVariant(b.quality);
         if (aGold !== bGold) return aGold ? 1 : -1;
         const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
         if (!isNaN(numA) && !isNaN(numB)) {
           if (numA !== numB) return numA - numB;
-          const rankA = variantOrder.indexOf(a.quality.toLowerCase());
-          const rankB = variantOrder.indexOf(b.quality.toLowerCase());
-          return (rankA === -1 ? 99 : rankA) - (rankB === -1 ? 99 : rankB);
+          return getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
         }
         return a.templateId.localeCompare(b.templateId);
       });
