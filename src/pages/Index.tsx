@@ -238,6 +238,29 @@ export default function SimpleAssetsPage() {
     } catch { /* storage full */ }
   }, [customOrder, accountName, categoryFilter, sourceFilter, getStorageKey]);
 
+  const categories = useMemo(() => {
+    const fromAssets = new Set(assets.map((a) => a.category).filter((c) => c !== 'packs'));
+    for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
+    for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
+    return [...fromAssets].sort();
+  }, [assets, packs, atomicPacks]);
+
+  const filtered = useMemo(() => {
+    return assets.filter((a) => {
+      if (a.category === 'packs') return false;
+      if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
+      if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+      if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
+      return true;
+    });
+  }, [assets, search, categoryFilter, sourceFilter]);
+
+  // Load saved order from localStorage on filter change
+  useEffect(() => {
+    const saved = loadOrder(categoryFilter, sourceFilter, filtered);
+    setCustomOrder(saved);
+  }, [categoryFilter, sourceFilter, search, filtered, loadOrder]);
+
   const gridSlots = useMemo(() => {
     const base = customOrder ?? filtered.map((a) => a.id);
     const trimmed = [...base];
@@ -246,6 +269,52 @@ export default function SimpleAssetsPage() {
   }, [customOrder, filtered]);
 
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
+
+  // --- Export / Import handlers ---
+  const handleExportLayout = useCallback(() => {
+    if (!accountName) return;
+    const prefix = `gpk-order-${accountName}-`;
+    const orders: Record<string, string[]> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        try {
+          const val = JSON.parse(localStorage.getItem(key)!);
+          if (Array.isArray(val)) orders[key.slice(prefix.length)] = val;
+        } catch { /* skip */ }
+      }
+    }
+    const blob = new Blob([JSON.stringify({ account: accountName, orders }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `gpk-layout-${accountName}.json`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Layout exported');
+  }, [accountName]);
+
+  const handleImportLayout = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !accountName) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string);
+        if (!data || typeof data.orders !== 'object') { toast.error('Invalid layout file'); return; }
+        const prefix = `gpk-order-${accountName}-`;
+        for (const [suffix, order] of Object.entries(data.orders)) {
+          if (Array.isArray(order)) {
+            localStorage.setItem(`${prefix}${suffix}`, JSON.stringify(order));
+          }
+        }
+        // Reload current view's order
+        const saved = loadOrder(categoryFilter, sourceFilter, filtered);
+        setCustomOrder(saved);
+        toast.success('Layout imported');
+      } catch { toast.error('Failed to parse layout file'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, [accountName, categoryFilter, sourceFilter, filtered, loadOrder]);
 
   const handleDragStart = useCallback((idx: number) => (_e: DragEvent<HTMLDivElement>) => { dragSourceIdx.current = idx; }, []);
   const handleDragOver = useCallback((idx: number) => (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOverIdx(idx); }, []);
