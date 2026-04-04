@@ -178,6 +178,18 @@ export default function SimpleAssetsPage() {
     await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
 
+  // --- Check for pending unclaimed NFTs on login ---
+  useEffect(() => {
+    if (!accountName) { setShowCollectUnclaimed(false); return; }
+    (async () => {
+      try {
+        const rows = await fetchPendingNfts(accountName);
+        const unclaimed = rows.filter((r: any) => r.done === 0);
+        setShowCollectUnclaimed(unclaimed.length > 0);
+      } catch { /* ignore */ }
+    })();
+  }, [accountName]);
+
   // --- Fallback collect unclaimed ---
   const handleCollectUnclaimed = useCallback(async () => {
     if (!accountName || !session) return;
@@ -189,6 +201,7 @@ export default function SimpleAssetsPage() {
       const unclaimed = rows.filter((r: any) => r.done === 0);
       if (unclaimed.length === 0) {
         toast.info('No unclaimed cards found');
+        setShowCollectUnclaimed(false);
         setIsCollecting(false);
         return;
       }
@@ -211,6 +224,7 @@ export default function SimpleAssetsPage() {
         lastTxId = result.resolved?.transaction.id?.toString() || null;
       }
 
+      setShowCollectUnclaimed(false);
       // Trigger animation flow
       pendingAnimationRef.current = { txId: lastTxId };
       await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
