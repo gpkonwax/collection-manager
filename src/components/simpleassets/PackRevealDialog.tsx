@@ -5,6 +5,7 @@ import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playRandomFart } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
+import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 
