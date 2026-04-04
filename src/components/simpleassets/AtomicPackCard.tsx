@@ -11,7 +11,7 @@ interface AtomicPackCardProps {
   pack: AtomicPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: () => void;
+  onSuccess?: (txId?: string | null) => void;
 }
 
 export function AtomicPackCard({ pack, session, accountName, onSuccess }: AtomicPackCardProps) {
@@ -35,7 +35,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
     } finally { setIsOpening(false); }
   }, [session, pack, executeTransaction]);
 
-  const handleRevealComplete = useCallback(() => { onSuccess?.(); }, [onSuccess]);
+  const handleRevealComplete = useCallback((txId?: string | null) => { onSuccess?.(txId); }, [onSuccess]);
 
   return (
     <>

@@ -13,6 +13,7 @@ import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
+import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
@@ -61,10 +62,6 @@ export default function SimpleAssetsPage() {
 
   const { executeRawTransaction } = useWaxTransaction(session);
 
-  const handlePackOpened = useCallback(() => {
-    refetchPacks(); refetchAtomicPacks(); refetchSa(); refetchAa();
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
-
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -74,49 +71,14 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
-  const handleCollectUnclaimed = useCallback(async () => {
-    if (!accountName || !session) return;
-    setIsCollecting(true);
-    try {
-      const rows = await fetchPendingNfts(accountName);
-      const unclaimed = rows.filter((r: any) => r.done === 0);
-      if (unclaimed.length === 0) {
-        toast.info('No unclaimed cards found');
-        setIsCollecting(false);
-        return;
-      }
-      // Group by unboxingid
-      const groups = new Map<number, number[]>();
-      for (const row of unclaimed) {
-        const uid = (row as any).unboxingid;
-        if (!groups.has(uid)) groups.set(uid, []);
-        groups.get(uid)!.push((row as any).id);
-      }
-      const actor = String(session.actor);
-      const auth = [{ actor, permission: String(session.permission) }];
-      let lastTxId: string | null = null;
-      for (const [unboxingId, cardids] of groups) {
-        const result = await executeRawTransaction([{
-          account: 'gpk.topps',
-          name: 'getcards',
-          authorization: auth,
-          data: { from: actor, unboxing: unboxingId, cardids },
-        }], { errorTitle: 'Collect Failed', showErrorToast: true });
-        lastTxId = result.resolved?.transaction.id?.toString() || null;
-      }
-      setSuccessDialog({
-        open: true,
-        title: 'Cards Collected!',
-        description: `Successfully collected ${unclaimed.length} card(s) from ${groups.size} pack(s).`,
-        txId: lastTxId,
-      });
-      handlePackOpened();
-    } catch (e) {
-      console.error('Collect unclaimed failed:', e);
-    } finally {
-      setIsCollecting(false);
-    }
-  }, [accountName, session, executeRawTransaction, handlePackOpened]);
+  // --- Deal animation state ---
+  const preCollectIdsRef = useRef<Set<string>>(new Set());
+  const pendingAnimationRef = useRef<{ txId: string | null } | null>(null);
+  const assetsRef = useRef<SimpleAsset[]>([]);
+  const [dealingCards, setDealingCards] = useState<SimpleAsset[]>([]);
+  const [dealtIds, setDealtIds] = useState<Set<string>>(new Set());
+  const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);
+  const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
@@ -139,6 +101,111 @@ export default function SimpleAssetsPage() {
     return combined;
   }, [saAssets, aaAssets]);
 
+  // Keep assetsRef in sync
+  assetsRef.current = assets;
+
+  // Keep preCollectIds updated (but not during pending animation)
+  useEffect(() => {
+    if (!pendingAnimationRef.current && dealingCards.length === 0) {
+      preCollectIdsRef.current = new Set(assets.map(a => a.id));
+    }
+  }, [assets, dealingCards.length]);
+
+  // Detect new cards after refetch and trigger deal animation
+  useEffect(() => {
+    if (!pendingAnimationRef.current) return;
+    const newCards = assets.filter(a => !preCollectIdsRef.current.has(a.id) && a.category !== 'packs');
+    if (newCards.length > 0) {
+      const txInfo = pendingAnimationRef.current;
+      pendingAnimationRef.current = null;
+
+      // Auto-switch to the category of the new cards
+      const cat = newCards[0].category;
+      if (cat) setCategoryFilter(cat);
+      setSearch('');
+      setSourceFilter('all');
+      setCustomOrder(null);
+
+      setDealingCards(newCards);
+      setDealtIds(new Set());
+      setPendingSuccessInfo({ txId: txInfo.txId, count: newCards.length });
+    }
+  }, [assets]);
+
+  // --- Pack opened / collect success handler ---
+  const handlePackOpened = useCallback(async (txId?: string | null) => {
+    if (txId) {
+      preCollectIdsRef.current = new Set(assetsRef.current.map(a => a.id));
+      pendingAnimationRef.current = { txId };
+    }
+    await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
+
+  // --- Fallback collect unclaimed ---
+  const handleCollectUnclaimed = useCallback(async () => {
+    if (!accountName || !session) return;
+    setIsCollecting(true);
+    try {
+      preCollectIdsRef.current = new Set(assetsRef.current.map(a => a.id));
+
+      const rows = await fetchPendingNfts(accountName);
+      const unclaimed = rows.filter((r: any) => r.done === 0);
+      if (unclaimed.length === 0) {
+        toast.info('No unclaimed cards found');
+        setIsCollecting(false);
+        return;
+      }
+      const groups = new Map<number, number[]>();
+      for (const row of unclaimed) {
+        const uid = (row as any).unboxingid;
+        if (!groups.has(uid)) groups.set(uid, []);
+        groups.get(uid)!.push((row as any).id);
+      }
+      const actor = String(session.actor);
+      const auth = [{ actor, permission: String(session.permission) }];
+      let lastTxId: string | null = null;
+      for (const [unboxingId, cardids] of groups) {
+        const result = await executeRawTransaction([{
+          account: 'gpk.topps',
+          name: 'getcards',
+          authorization: auth,
+          data: { from: actor, unboxing: unboxingId, cardids },
+        }], { errorTitle: 'Collect Failed', showErrorToast: true });
+        lastTxId = result.resolved?.transaction.id?.toString() || null;
+      }
+
+      // Trigger animation flow
+      pendingAnimationRef.current = { txId: lastTxId };
+      await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
+    } catch (e) {
+      console.error('Collect unclaimed failed:', e);
+    } finally {
+      setIsCollecting(false);
+    }
+  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks]);
+
+  // --- Deal animation callbacks ---
+  const handleCardDealt = useCallback((id: string) => {
+    setDealtIds(prev => new Set([...prev, id]));
+  }, []);
+
+  const handleDealComplete = useCallback(() => {
+    setDealingCards([]);
+    setDealtIds(new Set());
+    if (pendingSuccessInfo) {
+      setSuccessDialog({
+        open: true,
+        title: 'Cards Collected!',
+        description: `Successfully collected ${pendingSuccessInfo.count} card(s).`,
+        txId: pendingSuccessInfo.txId,
+      });
+      setPendingSuccessInfo(null);
+    }
+  }, [pendingSuccessInfo]);
+
+  const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
+
+  // --- Grid / drag / filter state ---
   const [customOrder, setCustomOrder] = useState<string[] | null>(null);
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -275,8 +342,33 @@ export default function SimpleAssetsPage() {
                       if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
                       const asset = assetMap.get(slotId);
                       if (!asset) return null;
-                      return <SimpleAssetCard key={asset.id} asset={asset} onClick={() => setSelectedAsset(asset)} draggable
-                        onDragStart={handleDragStart(idx)} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} onDragEnd={handleDragEnd} />;
+
+                      // Card is being dealt — show reserved empty slot with ref
+                      const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
+                      if (isInFlight) {
+                        return (
+                          <div
+                            key={slotId}
+                            ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
+                            className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                          />
+                        );
+                      }
+
+                      const justLanded = dealtIds.has(slotId);
+                      return (
+                        <SimpleAssetCard
+                          key={asset.id}
+                          asset={asset}
+                          onClick={() => setSelectedAsset(asset)}
+                          className={justLanded ? 'animate-card-glow' : ''}
+                          draggable
+                          onDragStart={handleDragStart(idx)}
+                          onDragOver={handleDragOver(idx)}
+                          onDrop={handleDrop(idx)}
+                          onDragEnd={handleDragEnd}
+                        />
+                      );
                     })}
                   </div>
                 )}
@@ -285,6 +377,17 @@ export default function SimpleAssetsPage() {
           </>
         )}
       </div>
+
+      {/* Deal animation overlay */}
+      {dealingCards.length > 0 && (
+        <CardDealAnimation
+          cards={dealingCards}
+          gridCellRefs={gridCellRefs}
+          onCardDealt={handleCardDealt}
+          onComplete={handleDealComplete}
+        />
+      )}
+
       <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
       <TransactionSuccessDialog
         open={successDialog.open}

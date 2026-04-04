@@ -7,6 +7,7 @@ interface SimpleAssetCardProps {
   asset: SimpleAsset;
   onClick: () => void;
   draggable?: boolean;
+  className?: string;
   onDragStart?: (e: DragEvent<HTMLDivElement>) => void;
   onDragOver?: (e: DragEvent<HTMLDivElement>) => void;
   onDrop?: (e: DragEvent<HTMLDivElement>) => void;
@@ -29,7 +30,7 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
-export function SimpleAssetCard({ asset, onClick, draggable, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
+export function SimpleAssetCard({ asset, onClick, draggable, className, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [gatewayIdx, setGatewayIdx] = useState(0);
   const [imgError, setImgError] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -65,7 +66,8 @@ export function SimpleAssetCard({ asset, onClick, draggable, onDragStart, onDrag
     <Card
       className={`overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10 bg-card border-border
         ${isDragging ? 'opacity-50 scale-95' : ''}
-        ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}`}
+        ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
+        ${className || ''}`}
       onClick={handleClick}
       draggable={draggable}
       onDragStart={handleDragStart}

@@ -22,7 +22,7 @@ interface PackBrowserDialogProps {
   session: Session | null;
   accountName: string;
   snapshotUnboxingIds: (owner: string) => Promise<Set<number>>;
-  onSuccess?: () => void;
+  onSuccess?: (txId?: string | null) => void;
 }
 
 export function PackBrowserDialog({
@@ -67,8 +67,8 @@ export function PackBrowserDialog({
     } finally { setOpeningIdx(null); }
   }, [session, unboxType, pack, accountName, snapshotUnboxingIds, executeTransaction, visibleCount, page]);
 
-  const handleRevealComplete = useCallback(() => {
-    onSuccess?.();
+  const handleRevealComplete = useCallback((txId?: string | null) => {
+    onSuccess?.(txId);
     if (localCount <= 1) onOpenChange(false);
   }, [onSuccess, localCount, onOpenChange]);
 

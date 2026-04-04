@@ -44,7 +44,7 @@ interface PackRevealDialogProps {
   packImage?: string;
   accountName: string;
   preOpenUnboxingIds: Set<number>;
-  onComplete: () => void;
+  onComplete: (txId?: string | null) => void;
   demoCards?: RevealCard[];
   session?: Session | null;
 }
@@ -213,13 +213,14 @@ export function PackRevealDialog({
     const actor = String(session.actor);
     const auth = [{ actor, permission: String(session.permission) }];
     try {
-      await session.transact({
+      const result = await session.transact({
         actions: [{
           account: 'gpk.topps', name: 'getcards', authorization: auth,
           data: { from: actor, unboxing: unboxingId, cardids: pendingRowIds },
         }],
       }, { transactPlugins: getTransactPlugins(session) });
-      setPhase('done'); onComplete();
+      const txId = result?.resolved?.transaction?.id?.toString() || null;
+      setPhase('done'); onComplete(txId);
     } catch (e) {
       console.error('[pack-reveal] getcards failed', e);
       closeWharfkitModals(); setTimeout(() => closeWharfkitModals(), 100);

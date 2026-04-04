@@ -34,7 +34,7 @@ interface AtomicPackRevealDialogProps {
   expectedCards: number;
   accountName: string;
   session: Session | null;
-  onComplete: () => void;
+  onComplete: (txId?: string | null) => void;
 }
 
 function swapGateway(url: string, gatewayIndex: number): string | null {
@@ -176,11 +176,12 @@ export function AtomicPackRevealDialog({
     const actor = String(session.actor);
     const auth = [{ actor, permission: String(session.permission) }];
     try {
-      await session.transact({
+      const result = await session.transact({
         actions: [{ account: unpackContract, name: 'claimunboxed', authorization: auth,
           data: { pack_asset_id: parseInt(packAssetId, 10), origin_roll_ids: rollIds } }],
       }, { transactPlugins: getTransactPlugins(session) });
-      setPhase('done'); onComplete();
+      const txId = result?.resolved?.transaction?.id?.toString() || null;
+      setPhase('done'); onComplete(txId);
     } catch (e) {
       console.error('[AtomicReveal] claimunboxed failed', e);
       closeWharfkitModals(); setTimeout(() => closeWharfkitModals(), 100);

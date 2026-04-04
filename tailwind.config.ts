@@ -99,6 +99,11 @@ export default {
           "80%": { transform: "rotate(-1deg) scale(1.01)" },
           "90%": { transform: "rotate(1deg) scale(1)" },
         },
+        "card-glow": {
+          "0%": { boxShadow: "0 0 0 0 hsl(var(--cheese) / 0.7)" },
+          "50%": { boxShadow: "0 0 20px 5px hsl(var(--cheese) / 0.4)" },
+          "100%": { boxShadow: "0 0 0 0 hsl(var(--cheese) / 0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -106,6 +111,7 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
         "pack-shake": "pack-shake 1.2s ease-in-out infinite",
+        "card-glow": "card-glow 1s ease-out",
       },
     },
   },
