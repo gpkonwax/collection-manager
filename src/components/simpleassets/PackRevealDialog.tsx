@@ -1,0 +1,296 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Loader2, Sparkles, Download } from 'lucide-react';
+import { playRandomFart } from '@/lib/fartSounds';
+import { fetchTableRows } from '@/lib/waxRpcFallback';
+import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
+import { Session } from '@wharfkit/session';
+import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
+
+const EXPECTED_CARDS: Record<string, number> = {
+  GPKFIVE: 5, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
+};
+
+const SYMBOL_TO_BOXTYPE: Record<string, string> = {
+  GPKFIVE: 'five', GPKTWOA: 'gpktwoeight', GPKTWOB: 'gpktwo25', GPKTWOC: 'gpktwo55',
+};
+
+export interface RevealCard {
+  asset_id: string;
+  name: string;
+  image: string | null;
+  rarity: string;
+}
+
+interface PendingNftRow {
+  id: number;
+  unboxingid: number;
+  draw: number;
+  boxtype: string;
+  user: string;
+  variant: string;
+  quality: string;
+  done: number;
+  cardid: number;
+}
+
+interface PackRevealDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  packSymbol: string;
+  packLabel: string;
+  packImage?: string;
+  accountName: string;
+  preOpenUnboxingIds: Set<number>;
+  onComplete: () => void;
+  demoCards?: RevealCard[];
+  session?: Session | null;
+}
+
+const POLL_INTERVAL = 3000;
+
+async function fetchPendingNfts(owner: string): Promise<PendingNftRow[]> {
+  try {
+    const result = await fetchTableRows<PendingNftRow>({
+      code: 'gpk.topps', scope: owner, table: 'pendingnft.a', limit: 500,
+    });
+    return result.rows;
+  } catch (e) {
+    console.error('[pack-reveal] fetchPendingNfts error', e);
+    return [];
+  }
+}
+
+export function PackRevealDialog({
+  open, onOpenChange, packSymbol, packLabel, packImage,
+  accountName, preOpenUnboxingIds, onComplete, demoCards, session,
+}: PackRevealDialogProps) {
+  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
+  const [newCards, setNewCards] = useState<RevealCard[]>([]);
+  const [pendingRowIds, setPendingRowIds] = useState<number[]>([]);
+  const [unboxingId, setUnboxingId] = useState<number | null>(null);
+  const [revealedCount, setRevealedCount] = useState(0);
+  const [waitMessage, setWaitMessage] = useState('');
+  const [collectError, setCollectError] = useState<string | null>(null);
+  const pollStartRef = useRef<number>(0);
+
+  const expectedCount = EXPECTED_CARDS[packSymbol] ?? 5;
+  const boxtype = SYMBOL_TO_BOXTYPE[packSymbol];
+
+  useEffect(() => {
+    if (open) {
+      setPhase('waiting'); setNewCards([]); setPendingRowIds([]);
+      setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
+      setCollectError(null); pollStartRef.current = Date.now();
+    }
+  }, [open]);
+
+  // Demo mode
+  useEffect(() => {
+    if (!open || phase !== 'waiting' || !demoCards || demoCards.length === 0) return;
+    const timer = setTimeout(() => { setNewCards(demoCards); setPhase('revealing'); }, 4000);
+    return () => clearTimeout(timer);
+  }, [open, phase, demoCards]);
+
+  // Real polling
+  useEffect(() => {
+    if (!open || !accountName || (demoCards && demoCards.length > 0)) return;
+    if (phase !== 'waiting') return;
+
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+
+    const poll = async () => {
+      try {
+        const rows = await fetchPendingNfts(accountName);
+        if (cancelled) return;
+        const newRows = rows.filter((r) => r.done === 0 && !preOpenUnboxingIds.has(r.unboxingid));
+        const grouped = new Map<number, PendingNftRow[]>();
+        for (const r of newRows) {
+          const arr = grouped.get(r.unboxingid) || [];
+          arr.push(r);
+          grouped.set(r.unboxingid, arr);
+        }
+        const elapsed = Date.now() - pollStartRef.current;
+        if (elapsed > 60000) setWaitMessage('Taking longer than usual... still waiting for oracle');
+        else if (elapsed > 30000) setWaitMessage('Still waiting for the RNG oracle...');
+
+        let targetRows: PendingNftRow[] | null = null;
+        let targetUnboxingId: number | null = null;
+        for (const [uid, uRows] of grouped) {
+          if (boxtype && uRows[0]?.boxtype === boxtype && uRows.length >= expectedCount) {
+            targetRows = uRows; targetUnboxingId = uid; break;
+          }
+        }
+        if (!targetRows) {
+          for (const [uid, uRows] of grouped) {
+            if (uRows.length >= expectedCount) { targetRows = uRows; targetUnboxingId = uid; break; }
+          }
+        }
+        if (targetRows && targetUnboxingId !== null) {
+          clearInterval(interval);
+          const sorted = targetRows.sort((a, b) => a.draw - b.draw);
+          const cards: RevealCard[] = sorted.map((r) => ({
+            asset_id: String(r.id),
+            name: `Card #${r.cardid}${r.quality}`,
+            image: buildGpkCardImageUrl(r.boxtype, r.variant, r.cardid, r.quality),
+            rarity: `${r.variant} ${r.quality}`,
+          }));
+          setNewCards(cards);
+          setPendingRowIds(sorted.map((r) => r.id));
+          setUnboxingId(targetUnboxingId);
+          setPhase('revealing');
+        }
+      } catch (e) { console.error('[pack-reveal] poll error', e); }
+    };
+
+    const startDelay = setTimeout(() => {
+      if (cancelled) return;
+      poll();
+      interval = setInterval(poll, POLL_INTERVAL);
+    }, 4000);
+
+    return () => { cancelled = true; clearTimeout(startDelay); clearInterval(interval); };
+  }, [open, phase, accountName, preOpenUnboxingIds, expectedCount, boxtype, demoCards]);
+
+  // Staggered reveal
+  useEffect(() => {
+    if (phase !== 'revealing' || newCards.length === 0 || revealedCount >= newCards.length) return;
+    const timer = setTimeout(() => { playRandomFart(); setRevealedCount((c) => c + 1); }, 1600);
+    return () => clearTimeout(timer);
+  }, [phase, revealedCount, newCards.length]);
+
+  // Transition to collect
+  useEffect(() => {
+    if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
+      if (demoCards && demoCards.length > 0) return;
+      if (pendingRowIds.length > 0) setPhase('collect');
+    }
+  }, [phase, revealedCount, newCards.length, pendingRowIds, demoCards]);
+
+  const handleCollect = useCallback(async () => {
+    if (!session || unboxingId === null || pendingRowIds.length === 0) return;
+    setPhase('collecting'); setCollectError(null);
+    const actor = String(session.actor);
+    const auth = [{ actor, permission: String(session.permission) }];
+    try {
+      await session.transact({
+        actions: [{
+          account: 'gpk.topps', name: 'getcards', authorization: auth,
+          data: { from: actor, unboxing: unboxingId, card_ids: pendingRowIds },
+        }],
+      }, { transactPlugins: getTransactPlugins(session) });
+      setPhase('done'); onComplete();
+    } catch (e) {
+      console.error('[pack-reveal] getcards failed', e);
+      closeWharfkitModals(); setTimeout(() => closeWharfkitModals(), 100);
+      setCollectError(e instanceof Error ? e.message : 'Transaction failed');
+      setPhase('collect');
+    }
+  }, [session, unboxingId, pendingRowIds, onComplete]);
+
+  const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
+  const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
+  const isDemo = demoCards && demoCards.length > 0;
+
+  return (
+    <Dialog open={open} onOpenChange={(v: boolean) => { if (!v) handleClose(); }}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border">
+        <DialogTitle className="sr-only">Pack Reveal</DialogTitle>
+
+        {phase === 'waiting' && (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="animate-pack-shake">
+              {packImage ? (
+                <img src={packImage} alt={packLabel} className="w-32 h-auto rounded-lg shadow-lg shadow-primary/30" />
+              ) : (
+                <span className="text-7xl">📦</span>
+              )}
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-lg font-bold text-foreground">Opening {packLabel}...</p>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Waiting for cards to be minted...</span>
+              </div>
+              <p className="text-xs text-muted-foreground/60">{waitMessage || 'This usually takes 2-15 seconds'}</p>
+            </div>
+          </div>
+        )}
+
+        {(phase === 'revealing' || phase === 'collect' || phase === 'collecting' || phase === 'done') && (
+          <div className="space-y-6 py-4">
+            <div className="text-center space-y-1">
+              <div className="flex items-center justify-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-bold text-foreground">
+                  {phase === 'done' ? 'Cards Collected!' : allRevealed ? 'All Cards Revealed!' : 'Revealing Cards...'}
+                </h2>
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground">{newCards.length} card{newCards.length !== 1 ? 's' : ''} from {packLabel}</p>
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3" style={{ perspective: '1000px' }}>
+              {newCards.map((card, i) => {
+                const isRevealed = i < revealedCount;
+                return (
+                  <div key={card.asset_id} className="relative aspect-[2/3] rounded-lg"
+                    style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
+                    <div className="absolute inset-0 rounded-lg overflow-hidden border border-border bg-card shadow-md" style={{ backfaceVisibility: 'hidden' }}>
+                      {card.image ? (
+                        <img src={card.image} alt={card.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
+                      )}
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
+                        <p className="text-[10px] font-medium truncate" style={{ color: 'white' }}>{card.name}</p>
+                        {card.rarity && <p className="text-[9px] truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>{card.rarity}</p>}
+                      </div>
+                    </div>
+                    <div className="absolute inset-0 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/20 via-accent/20 to-primary/30 flex items-center justify-center shadow-md"
+                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                      <div className="text-center space-y-1">
+                        <span className="text-3xl">🧀</span>
+                        <p className="text-[10px] text-muted-foreground font-medium">GPK</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {allRevealed && isDemo && (
+              <div className="flex justify-center pt-2">
+                <Button onClick={handleClose} className="bg-primary hover:bg-primary/90 text-primary-foreground">Awesome! Close</Button>
+              </div>
+            )}
+
+            {phase === 'collect' && (
+              <div className="flex flex-col items-center gap-3 pt-2">
+                {collectError && <p className="text-xs text-destructive text-center">{collectError}</p>}
+                <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!session}>
+                  <Download className="h-4 w-4 mr-2" />Collect Assets
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">Sign a transaction to deliver these cards to your wallet</p>
+              </div>
+            )}
+
+            {phase === 'collecting' && (
+              <div className="flex justify-center pt-2">
+                <Button disabled className="bg-primary/70 text-primary-foreground"><Loader2 className="h-4 w-4 mr-2 animate-spin" />Collecting...</Button>
+              </div>
+            )}
+
+            {phase === 'done' && (
+              <div className="flex justify-center pt-2">
+                <Button onClick={handleClose} className="bg-primary hover:bg-primary/90 text-primary-foreground">Awesome! Close</Button>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
