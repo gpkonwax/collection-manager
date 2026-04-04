@@ -65,7 +65,7 @@ function EmptySlot({ onDragOver, onDrop, isOver }: {
 }
 
 export default function SimpleAssetsPage() {
-  const { accountName, isConnected, login, session } = useWax();
+  const { accountName, isConnected, login, logout, session, waxBalance } = useWax();
   const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
   const { assets: aaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(accountName);
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(accountName);
