@@ -322,19 +322,19 @@ export default function SimpleAssetsPage() {
   const binderGrid = useMemo(() => {
     if (!binderView || !binderTemplates.length) return null;
 
-    // Map owned assets by template_id (AtomicAssets) and cardid:quality
     const ownedByTemplateId = new Map<string, SimpleAsset[]>();
     const ownedByCardKey = new Map<string, SimpleAsset[]>();
 
     for (const a of filtered) {
-      // AtomicAssets store _template_id in idata
       const tid = (a.idata as any)?._template_id || '';
       if (tid) {
         if (!ownedByTemplateId.has(tid)) ownedByTemplateId.set(tid, []);
         ownedByTemplateId.get(tid)!.push(a);
-      } else if (a.cardid) {
-        // SimpleAssets: match by cardid:quality
-        const key = `${a.cardid}:${a.quality.toLowerCase()}`;
+      }
+
+      if (a.cardid) {
+        const side = String((a.idata as any)?.quality ?? '').toLowerCase();
+        const key = `${a.cardid}:${side}:${a.quality.toLowerCase()}`;
         if (!ownedByCardKey.has(key)) ownedByCardKey.set(key, []);
         ownedByCardKey.get(key)!.push(a);
       }
@@ -342,13 +342,12 @@ export default function SimpleAssetsPage() {
 
     let filteredTemplates = binderTemplates;
     if (categoryFilter === 'series1' && variantFilter !== 'all') {
-      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === variantFilter.toLowerCase());
+      filteredTemplates = binderTemplates.filter(t => t.variant.toLowerCase() === variantFilter.toLowerCase());
     }
 
     return filteredTemplates.map(template => {
-      // Prefer template_id match, fallback to cardid:quality
       const byTid = ownedByTemplateId.get(template.templateId);
-      const byKey = ownedByCardKey.get(`${template.cardid}:${template.quality.toLowerCase()}`);
+      const byKey = ownedByCardKey.get(`${template.cardid}:${template.quality.toLowerCase()}:${template.variant.toLowerCase()}`);
       const owned = byTid || byKey || null;
       return { template, owned };
     });
