@@ -124,7 +124,7 @@ export default function SimpleAssetsPage() {
       if (cat) setCategoryFilter(cat);
       setSearch('');
       setSourceFilter('all');
-      setCustomOrder(null);
+      // customOrder will be reloaded by the filter-change effect
 
       setDealingCards(newCards);
       setDealtIds(new Set());
