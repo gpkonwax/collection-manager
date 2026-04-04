@@ -11,7 +11,7 @@ interface AtomicPackCardProps {
   pack: AtomicPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: () => void;
+  onSuccess?: (txId?: string | null) => void;
 }
 
 export function AtomicPackCard({ pack, session, accountName, onSuccess }: AtomicPackCardProps) {
