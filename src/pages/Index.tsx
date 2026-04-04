@@ -523,10 +523,12 @@ export default function SimpleAssetsPage() {
                   </SelectContent>
                 </Select>
               )}
-              <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
-                <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
-                {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
-              </Button>
+              {showCollectUnclaimed && (
+                <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
+                  {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
+                </Button>
+              )}
               <Button
                 onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
                 variant="outline"
