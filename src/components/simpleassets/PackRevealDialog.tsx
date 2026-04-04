@@ -5,6 +5,7 @@ import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playRandomFart } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
+import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 
@@ -46,6 +47,43 @@ interface PackRevealDialogProps {
   onComplete: () => void;
   demoCards?: RevealCard[];
   session?: Session | null;
+}
+
+function swapGateway(url: string, gatewayIndex: number): string | null {
+  const hash = extractIpfsHash(url);
+  if (!hash) return null;
+  const gw = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
+  return `${gw}${hash}`;
+}
+
+function RevealCardImage({ card, isRevealed }: { card: RevealCard; isRevealed: boolean }) {
+  const [gwIdx, setGwIdx] = useState(0);
+  const currentSrc = card.image ? (gwIdx === 0 ? card.image : swapGateway(card.image, gwIdx)) : null;
+
+  return (
+    <div className="relative aspect-[2/3] rounded-lg"
+      style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
+      <div className="absolute inset-0 rounded-lg overflow-hidden border border-border bg-card shadow-md" style={{ backfaceVisibility: 'hidden' }}>
+        {currentSrc ? (
+          <img src={currentSrc} alt={card.name} className="w-full h-full object-cover" loading="lazy"
+            onError={() => { if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
+        )}
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
+          <p className="text-[10px] font-medium truncate" style={{ color: 'white' }}>{card.name}</p>
+          {card.rarity && <p className="text-[9px] truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>{card.rarity}</p>}
+        </div>
+      </div>
+      <div className="absolute inset-0 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/20 via-accent/20 to-primary/30 flex items-center justify-center shadow-md"
+        style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+        <div className="text-center space-y-1">
+          <span className="text-3xl">🧀</span>
+          <p className="text-[10px] text-muted-foreground font-medium">GPK</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const POLL_INTERVAL = 3000;
@@ -178,7 +216,7 @@ export function PackRevealDialog({
       await session.transact({
         actions: [{
           account: 'gpk.topps', name: 'getcards', authorization: auth,
-          data: { from: actor, unboxing: unboxingId, card_ids: pendingRowIds },
+          data: { from: actor, unboxing: unboxingId, cardids: pendingRowIds },
         }],
       }, { transactPlugins: getTransactPlugins(session) });
       setPhase('done'); onComplete();
@@ -236,27 +274,7 @@ export function PackRevealDialog({
               {newCards.map((card, i) => {
                 const isRevealed = i < revealedCount;
                 return (
-                  <div key={card.asset_id} className="relative aspect-[2/3] rounded-lg"
-                    style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
-                    <div className="absolute inset-0 rounded-lg overflow-hidden border border-border bg-card shadow-md" style={{ backfaceVisibility: 'hidden' }}>
-                      {card.image ? (
-                        <img src={card.image} alt={card.name} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
-                      )}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
-                        <p className="text-[10px] font-medium truncate" style={{ color: 'white' }}>{card.name}</p>
-                        {card.rarity && <p className="text-[9px] truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>{card.rarity}</p>}
-                      </div>
-                    </div>
-                    <div className="absolute inset-0 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/20 via-accent/20 to-primary/30 flex items-center justify-center shadow-md"
-                      style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                      <div className="text-center space-y-1">
-                        <span className="text-3xl">🧀</span>
-                        <p className="text-[10px] text-muted-foreground font-medium">GPK</p>
-                      </div>
-                    </div>
-                  </div>
+                  <RevealCardImage key={card.asset_id} card={card} isRevealed={isRevealed} />
                 );
               })}
             </div>
