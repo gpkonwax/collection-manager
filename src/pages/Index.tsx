@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
+import { Heart } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +19,7 @@ import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
+import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
@@ -76,6 +78,7 @@ export default function SimpleAssetsPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [donateDialogOpen, setDonateDialogOpen] = useState(false);
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -498,6 +501,22 @@ export default function SimpleAssetsPage() {
         )}
       </div>
 
+      {/* Footer */}
+      <footer className="border-t border-cheese/20 mt-12 py-8">
+        <div className="container text-center space-y-4">
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+            This Project was built by the $CHEESE team for the GPK and WAX Communities and is completely free to use. If you appreciate these efforts please consider a donation to help cover costs and time consumed. Any amount is appreciated.
+          </p>
+          <Button
+            onClick={() => setDonateDialogOpen(true)}
+            className="bg-cheese hover:bg-cheese/90 text-primary-foreground"
+          >
+            <Heart className="h-4 w-4 mr-2" />
+            Donate
+          </Button>
+        </div>
+      </footer>
+
       {/* Deal animation overlay */}
       {dealingCards.length > 0 && (
         <CardDealAnimation
@@ -525,6 +544,16 @@ export default function SimpleAssetsPage() {
           refetchSa();
           refetchAa();
           setSuccessDialog({ open: true, title: 'Transfer Complete!', description: `Successfully transferred ${selectedAssets.length} NFT(s).`, txId });
+        }}
+      />
+      <DonateDialog
+        open={donateDialogOpen}
+        onOpenChange={setDonateDialogOpen}
+        assets={assets}
+        onSuccess={(txId) => {
+          refetchSa();
+          refetchAa();
+          setSuccessDialog({ open: true, title: 'Donation Sent!', description: 'Thank you for your generous donation to the $CHEESE team!', txId });
         }}
       />
 
