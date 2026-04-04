@@ -13,6 +13,8 @@ import { useGpkAtomicAssets } from '@/hooks/useGpkAtomicAssets';
 import { useGpkPacks } from '@/hooks/useGpkPacks';
 import { useGpkAtomicPacks } from '@/hooks/useGpkAtomicPacks';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
+import { MissingCardPlaceholder } from '@/components/simpleassets/MissingCardPlaceholder';
+import { useBinderTemplates } from '@/hooks/useBinderTemplates';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
