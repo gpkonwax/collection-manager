@@ -30,7 +30,7 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
-export function SimpleAssetCard({ asset, onClick, draggable, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
+export function SimpleAssetCard({ asset, onClick, draggable, className, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [gatewayIdx, setGatewayIdx] = useState(0);
   const [imgError, setImgError] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
