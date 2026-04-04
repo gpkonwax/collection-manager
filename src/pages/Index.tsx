@@ -322,17 +322,22 @@ export default function SimpleAssetsPage() {
   // Build binder grid: all templates with owned cards filled in, missing as placeholders
   const binderGrid = useMemo(() => {
     if (!binderView || !binderTemplates.length) return null;
-    const ownedByTemplate = new Map<string, SimpleAsset[]>();
+
+    // Map owned assets by template_id (AtomicAssets) and cardid:quality
+    const ownedByTemplateId = new Map<string, SimpleAsset[]>();
+    const ownedByCardKey = new Map<string, SimpleAsset[]>();
+
     for (const a of filtered) {
-      const tid = (a.idata as any)?.template_id || '';
+      // AtomicAssets store _template_id in idata
+      const tid = (a.idata as any)?._template_id || '';
       if (tid) {
-        if (!ownedByTemplate.has(tid)) ownedByTemplate.set(tid, []);
-        ownedByTemplate.get(tid)!.push(a);
-      }
-      const key = `${a.cardid}:${a.quality.toLowerCase()}`;
-      if (a.cardid) {
-        if (!ownedByTemplate.has(key)) ownedByTemplate.set(key, []);
-        ownedByTemplate.get(key)!.push(a);
+        if (!ownedByTemplateId.has(tid)) ownedByTemplateId.set(tid, []);
+        ownedByTemplateId.get(tid)!.push(a);
+      } else if (a.cardid) {
+        // SimpleAssets: match by cardid:quality
+        const key = `${a.cardid}:${a.quality.toLowerCase()}`;
+        if (!ownedByCardKey.has(key)) ownedByCardKey.set(key, []);
+        ownedByCardKey.get(key)!.push(a);
       }
     }
 
@@ -344,8 +349,9 @@ export default function SimpleAssetsPage() {
     }
 
     return filteredTemplates.map(template => {
-      const byTid = ownedByTemplate.get(template.templateId);
-      const byKey = ownedByTemplate.get(`${template.cardid}:${template.quality.toLowerCase()}`);
+      // Prefer template_id match, fallback to cardid:quality
+      const byTid = ownedByTemplateId.get(template.templateId);
+      const byKey = ownedByCardKey.get(`${template.cardid}:${template.quality.toLowerCase()}`);
       const owned = byTid || byKey || null;
       return { template, owned };
     });
