@@ -333,7 +333,7 @@ export default function SimpleAssetsPage() {
   return (
     <div className="min-h-screen">
       <div className="container py-8 space-y-6">
-        <div className="text-center mb-4">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
           <p className="text-muted-foreground mt-1">View and organize your gpk.topps cards. Open packs and drag and reorder cards where you want them.</p>
         </div>
