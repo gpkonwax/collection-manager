@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent } from 'react';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +13,9 @@ import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
+import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
+import { useWaxTransaction } from '@/hooks/useWaxTransaction';
+import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 const EMPTY = '__empty__';
@@ -55,6 +58,8 @@ export default function SimpleAssetsPage() {
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(accountName);
   const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(accountName);
 
+  const { executeRawTransaction } = useWaxTransaction(session);
+
   const handlePackOpened = useCallback(() => {
     refetchPacks(); refetchAtomicPacks(); refetchSa(); refetchAa();
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
@@ -63,6 +68,44 @@ export default function SimpleAssetsPage() {
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
+  const [isCollecting, setIsCollecting] = useState(false);
+
+  const handleCollectUnclaimed = useCallback(async () => {
+    if (!accountName || !session) return;
+    setIsCollecting(true);
+    try {
+      const rows = await fetchPendingNfts(accountName);
+      const unclaimed = rows.filter((r: any) => r.done === 0);
+      if (unclaimed.length === 0) {
+        toast.info('No unclaimed cards found');
+        setIsCollecting(false);
+        return;
+      }
+      // Group by unboxingid
+      const groups = new Map<number, number[]>();
+      for (const row of unclaimed) {
+        const uid = (row as any).unboxingid;
+        if (!groups.has(uid)) groups.set(uid, []);
+        groups.get(uid)!.push((row as any).id);
+      }
+      const actor = String(session.actor);
+      const auth = [{ actor, permission: String(session.permission) }];
+      for (const [unboxingId, cardids] of groups) {
+        await executeRawTransaction([{
+          account: 'gpk.topps',
+          name: 'getcards',
+          authorization: auth,
+          data: { from: actor, unboxing: unboxingId, cardids },
+        }], { errorTitle: 'Collect Failed', showErrorToast: true });
+      }
+      toast.success(`Collected ${unclaimed.length} card(s)!`);
+      handlePackOpened();
+    } catch (e) {
+      console.error('Collect unclaimed failed:', e);
+    } finally {
+      setIsCollecting(false);
+    }
+  }, [accountName, session, executeRawTransaction, handlePackOpened]);
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
@@ -146,7 +189,7 @@ export default function SimpleAssetsPage() {
           </div>
         ) : (
           <>
-            <div className="flex flex-col sm:flex-row gap-3">
+             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -166,6 +209,10 @@ export default function SimpleAssetsPage() {
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap">
+                <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
+                {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
+              </Button>
             </div>
 
             {isLoading && (
