@@ -405,6 +405,13 @@ export default function SimpleAssetsPage() {
                 <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                 {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
               </Button>
+              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap" title="Export card layout">
+                <Download className="h-4 w-4 mr-1" />Save Layout
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap" title="Import card layout">
+                <Upload className="h-4 w-4 mr-1" />Load Layout
+              </Button>
+              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
             </div>
 
             {!isLoading && !error && (
