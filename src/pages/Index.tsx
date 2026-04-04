@@ -435,6 +435,15 @@ export default function SimpleAssetsPage() {
                 <Upload className="h-4 w-4 mr-1" />Load Layout
               </Button>
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
+              <Button
+                onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+                variant="outline"
+                size="sm"
+                className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+              >
+                <CheckSquare className="h-4 w-4 mr-1" />
+                {selectionMode ? 'Cancel Select' : 'Select'}
+              </Button>
             </div>
 
             {!isLoading && !error && (
@@ -470,7 +479,10 @@ export default function SimpleAssetsPage() {
                           asset={asset}
                           onClick={() => setSelectedAsset(asset)}
                           className={justLanded ? 'animate-card-glow' : ''}
-                          draggable
+                          draggable={!selectionMode}
+                          selectionMode={selectionMode}
+                          selected={selectedIds.has(asset.id)}
+                          onSelect={toggleSelection}
                           onDragStart={handleDragStart(idx)}
                           onDragOver={handleDragOver(idx)}
                           onDrop={handleDrop(idx)}
