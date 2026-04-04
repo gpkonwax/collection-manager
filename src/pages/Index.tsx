@@ -314,7 +314,11 @@ export default function SimpleAssetsPage() {
       if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
       if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if (categoryFilter === 'series1' && variantFilter !== 'all' && a.quality !== variantFilter) return false;
+      if (categoryFilter === 'series1' && variantFilter !== 'all') {
+        const variantMap: Record<string, string> = { a: 'base', b: 'prism', c: 'sketch', d: 'collector', e: 'golden' };
+        const expected = variantMap[variantFilter] || variantFilter;
+        if (a.quality.toLowerCase() !== expected) return false;
+      }
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
