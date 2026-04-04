@@ -72,7 +72,9 @@ export function useGpkAtomicAssets(account: string | null) {
         page++;
       }
       const parsed: SimpleAsset[] = allAssets.map((raw) => {
-        const combined = { ...raw.immutable_data, ...raw.mutable_data, ...raw.data };
+        // Merge template immutable_data first (base), then asset-level data on top
+        const templateData = raw.template?.immutable_data || {};
+        const combined = { ...templateData, ...raw.immutable_data, ...raw.mutable_data, ...raw.data };
         const name = combined.name || raw.name || `Asset #${raw.asset_id}`;
         const images = resolveAllImages(combined);
         return {
@@ -80,7 +82,7 @@ export function useGpkAtomicAssets(account: string | null) {
           category: raw.schema?.schema_name || '',
           name, image: images[0], images,
           cardid: combined.cardid || '', quality: combined.quality || '',
-          idata: { ...raw.immutable_data, _template_id: raw.template?.template_id || '' } as Record<string, unknown>,
+          idata: { ...templateData, ...raw.immutable_data, _template_id: raw.template?.template_id || '' } as Record<string, unknown>,
           mdata: raw.mutable_data as Record<string, unknown>,
           container: [], containerf: [],
           source: 'atomicassets' as const,
