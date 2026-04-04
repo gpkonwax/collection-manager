@@ -286,6 +286,13 @@ export default function SimpleAssetsPage() {
         )}
       </div>
       <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
+      <TransactionSuccessDialog
+        open={successDialog.open}
+        onOpenChange={(open) => setSuccessDialog(prev => ({ ...prev, open }))}
+        title={successDialog.title}
+        description={successDialog.description}
+        txId={successDialog.txId}
+      />
     </div>
   );
 }
