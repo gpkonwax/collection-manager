@@ -80,6 +80,7 @@ export default function SimpleAssetsPage() {
   const [variantFilter, setVariantFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
+  const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
