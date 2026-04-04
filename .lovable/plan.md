@@ -1,50 +1,47 @@
 
 
-## Batch Transfer with Checkbox Selection
+## Footer with Donate Button and Modal
 
-### How it works
+### What gets built
 
-WAX supports multiple actions from different contracts in a single transaction, so **SimpleAssets and AtomicAssets can be sent together in one transaction**. Each contract gets its own action in the actions array — the blockchain processes them atomically.
+A footer at the bottom of the page with the donation blurb and a "Donate" button. When clicked, a `DonateDialog` modal opens with two tabs: **Tokens** and **NFTs**.
 
-### User flow
+### Footer (`src/pages/Index.tsx`)
+- Add a footer section below all existing content (before the floating selection bar)
+- Centered text with the blurb: *"This Project was built by the $CHEESE team..."*
+- A cheese-themed "Donate" button that opens the modal
+- Styled to match the existing dark/cheese theme
 
-1. A "Select" toggle button appears in the toolbar (next to search/filters).
-2. When active, each card shows a checkbox overlay. Tapping a card toggles selection instead of opening the detail dialog.
-3. A floating bottom bar appears showing: selected count, a "Transfer" button, and a "Cancel" button.
-4. Clicking "Transfer" opens a modal with:
-   - List of selected cards (thumbnails + names)
-   - Recipient WAX account input (validated: 1-12 chars, a-z1-5.)
-   - Optional memo input
-   - Send button
-5. On submit: builds a single transaction with up to two actions:
-   - One `simpleassets::transfer` action (if any SimpleAssets selected)
-   - One `atomicassets::transfer` action (if any AtomicAssets selected)
-6. On success: show TransactionSuccessDialog, clear selection, refetch assets.
+### DonateDialog (`src/components/wallet/DonateDialog.tsx` — new file)
+- Header: "Donate WAX or unopened GPK packs to $CHEESE Team"
+- Recipient field pre-filled with `gpkcheesegpk` (read-only for now)
+- Two tabs using the existing `Tabs` component:
+
+**Token Tab:**
+- Token selector dropdown (WAX at 8 precision via `eosio.token`, CHEESE at 4 precision via `cheeseburger`)
+- Amount input (number)
+- Send button → calls `transferToken` from `WaxContext` with the selected token's contract/symbol/precision, recipient, amount, and memo `"donation"`
+
+**NFT Tab:**
+- Fetches user's AtomicAssets + SimpleAssets using existing hooks (`useSimpleAssets`, `useGpkAtomicAssets`)
+- Displays selectable card grid (thumbnails with checkboxes, similar to batch transfer)
+- Send button → builds combined transaction (same pattern as `TransferDialog.tsx`):
+  - `simpleassets::transfer` for SA assets
+  - `atomicassets::transfer` for AA assets
+- On success: show `TransactionSuccessDialog`
 
 ### Files to change
 
 | File | Change |
 |------|--------|
-| `src/pages/Index.tsx` | Add `selectionMode` toggle state, `selectedIds` Set state. When selection mode is on, card click toggles selection. Render floating selection bar. Render `TransferDialog`. Pass checkbox state to `SimpleAssetCard`. |
-| `src/components/simpleassets/SimpleAssetCard.tsx` | Add optional `selected` and `onSelect` props. When in selection mode, show a checkbox overlay on the card. |
-| `src/components/simpleassets/TransferDialog.tsx` | **New file.** Modal with selected cards summary, recipient input, memo input, send button. Builds combined transaction actions, calls `session.transact` directly. |
-| `src/context/WaxContext.tsx` | Add `transferSimpleAssets(to, assetIds, memo)` function using the `simpleassets` contract `transfer` action. Expose in context. |
+| `src/components/wallet/DonateDialog.tsx` | **New.** Modal with token/NFT tabs, sends to `gpkcheesegpk` |
+| `src/pages/Index.tsx` | Add footer section + render `DonateDialog` with open state |
 
-### Technical details
-
-**Combined transaction structure:**
-```text
-actions: [
-  { account: 'simpleassets', name: 'transfer',
-    data: { from, to, assetids: [...], memo } },   // only if SA selected
-  { account: 'atomicassets', name: 'transfer',
-    data: { from, to, asset_ids: [...], memo } },   // only if AA selected
-]
-```
-
-- Selection state: `Set<string>` of asset IDs, managed in Index.tsx
-- The `SimpleAsset` type already has a `source` field (`'simpleassets' | 'atomicassets'`) to partition selected IDs
-- Floating bar uses fixed positioning at bottom of viewport
-- Checkbox styled with cheese theme to match existing UI
-- WAX account validation regex: `/^[a-z1-5.]{1,12}$/`
+### Technical notes
+- Reuses `transferToken` from WaxContext for token donations
+- Reuses the same multi-action transaction pattern from `TransferDialog` for NFT donations
+- NFT grid in the modal shows small thumbnails with checkboxes (scrollable area)
+- WAX token: contract `eosio.token`, symbol `WAX`, precision 8
+- CHEESE token: contract `cheeseburger`, symbol `CHEESE`, precision 4
+- All buttons/inputs styled with cheese theme to match existing UI
 
