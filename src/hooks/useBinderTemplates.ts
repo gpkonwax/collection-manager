@@ -39,7 +39,7 @@ export function useBinderTemplates(schema: string | null) {
           limit: '100',
           page: String(page),
           order: 'asc',
-          sort: 'template_id',
+          sort: 'created',
         });
         const path = `${ATOMIC_API.paths.templates}?${params}`;
         const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
