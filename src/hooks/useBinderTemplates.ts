@@ -58,7 +58,7 @@ export function useBinderTemplates(schema: string | null) {
           name: data.name || t.name || `Template #${t.template_id}`,
           image: resolveImage(data.img || data.image || data.icon || ''),
           cardid: String(data.cardid ?? ''),
-          quality: normalizeGpkVariant(data.variant, data.quality),
+          quality: normalizeGpkVariant(data.variant),
           schema: t.schema?.schema_name || schema,
         };
       });
