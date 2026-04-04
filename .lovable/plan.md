@@ -1,35 +1,31 @@
 
 
-## Fix Pack Opening: Blank Images & Collect Failure
+## Add "Collect Unclaimed Cards" Button
 
-### Two bugs identified:
+### Problem
+After opening a pack, if the `getcards` transaction fails or the dialog is closed before collecting, the cards remain in the `pendingnft.a` table uncollected. There's currently no way to retry collection outside the reveal dialog.
 
-### Bug 1: Collect transaction fails — wrong field name
-The error says `Encoding error at root<getcards>.cardids<uint64[]>: Expected array for: uint64[]`.
+### Solution
+Add a "Collect Unclaimed Cards" button to the main page that:
+1. Scans the user's `pendingnft.a` table for any rows with `done === 0`
+2. Groups them by `unboxingid`
+3. For each group, calls `gpk.topps::getcards` with the correct `unboxingId` and `cardids`
+4. Shows success/error feedback via toast
 
-The smart contract expects the field `cardids`, but the code sends `card_ids` (with underscore). In `PackRevealDialog.tsx` line 181:
-```
-data: { from: actor, unboxing: unboxingId, card_ids: pendingRowIds }
-```
-Must change to:
-```
-data: { from: actor, unboxing: unboxingId, cardids: pendingRowIds }
-```
+### Changes
 
-The `pendingRowIds` is already a `number[]`, which serializes correctly as `uint64[]`. No special string formatting needed — the `[38477 , 35673 , 58474]` format the user described is just how arrays naturally serialize. The field name was the actual problem.
-
-### Bug 2: Blank card images during reveal
-The `buildGpkCardImageUrl` function only uses the first IPFS gateway (Pinata). If Pinata is down or rate-limited, every card shows blank. 
-
-Fix: Add IPFS gateway fallback to the card images in `PackRevealDialog.tsx`. When an `<img>` fails to load (`onError`), cycle to the next gateway. This matches the fallback pattern already used in `SimpleAssetCard.tsx` and `SimpleAssetDetailDialog.tsx`.
-
-### Changes:
+**File: `src/pages/Index.tsx`**
+- Import `fetchTableRows` from `waxRpcFallback` and `Session` type
+- Add a "Collect Unclaimed Cards" button in the packs section (visible only when connected)
+- On click: fetch `pendingnft.a` for the user, group by `unboxingid`, and call `getcards` for each group sequentially
+- Show loading state during collection, toast on success/failure
 
 **File: `src/components/simpleassets/PackRevealDialog.tsx`**
-1. Fix `card_ids` → `cardids` in the `getcards` action data (line 181)
-2. Add `onError` handler to card `<img>` tags that swaps the IPFS gateway domain to the next one in the `IPFS_GATEWAYS` list
-3. Track per-card gateway index in state so each card can independently retry
+- Export the `fetchPendingNfts` function so it can be reused from Index.tsx (currently module-private)
 
-**File: `src/components/simpleassets/AtomicPackRevealDialog.tsx`**
-1. Same IPFS fallback treatment for the card `<img>` tags (line 199)
+### Technical detail
+- Reuses the existing `fetchPendingNfts` helper (just needs to be exported)
+- Groups all `done === 0` rows by `unboxingid`, then fires one `getcards` transaction per group
+- Each transaction: `{ account: 'gpk.topps', name: 'getcards', authorization: auth, data: { from: actor, unboxing: unboxingId, cardids: rowIds } }`
+- Sequential execution to avoid nonce conflicts
 
