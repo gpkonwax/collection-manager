@@ -1,4 +1,4 @@
-import { useState, DragEvent } from 'react';
+import { memo, useMemo, useState, DragEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
@@ -33,7 +33,7 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
-export function SimpleAssetCard({ asset, onClick, draggable, className, selectionMode, selected, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [gatewayIdx, setGatewayIdx] = useState(0);
   const [imgError, setImgError] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -48,13 +48,14 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, selectio
     }
   };
 
-  const displayUrl = (() => {
+  const displayUrl = useMemo(() => {
     if (imgError) return '/placeholder.svg';
     const hash = extractIpfsHash(asset.image);
     if (hash && gatewayIdx > 0) return `${IPFS_GATEWAYS[gatewayIdx]}${hash}`;
     return asset.image;
-  })();
+  }, [asset.image, gatewayIdx, imgError]);
 
+  const isAnimatedGif = useMemo(() => displayUrl.toLowerCase().includes('.gif'), [displayUrl]);
   const mintInfo = getMintInfo(asset);
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
 
@@ -78,6 +79,7 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, selectio
         ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
         ${selected ? 'ring-2 ring-cheese shadow-lg shadow-cheese/20' : ''}
         ${className || ''}`}
+      style={isAnimatedGif ? { contentVisibility: 'auto', contain: 'layout paint style', containIntrinsicSize: '280px 360px' } : undefined}
       onClick={handleClick}
       draggable={draggable}
       onDragStart={handleDragStart}
@@ -94,8 +96,19 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, selectio
           </div>
         </div>
       )}
-      <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none" style={{ willChange: 'auto' }}>
-        <img src={displayUrl} alt={asset.name} className="w-full h-full object-contain" loading="lazy" onError={handleImgError} style={{ imageRendering: 'auto', willChange: 'auto' }} />
+      <div
+        className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none"
+        style={isAnimatedGif ? { contain: 'paint', transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : undefined}
+      >
+        <img
+          src={displayUrl}
+          alt={asset.name}
+          className="w-full h-full object-contain"
+          loading={isAnimatedGif ? 'eager' : 'lazy'}
+          decoding={isAnimatedGif ? 'sync' : 'async'}
+          onError={handleImgError}
+          style={isAnimatedGif ? { transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : {}}
+        />
       </div>
       <CardContent className="p-3 space-y-1">
         <p className="text-sm font-semibold text-foreground truncate">{asset.name}</p>
@@ -121,3 +134,19 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, selectio
     </Card>
   );
 }
+
+export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
+  return (
+    prev.asset.id === next.asset.id &&
+    prev.asset.image === next.asset.image &&
+    prev.asset.name === next.asset.name &&
+    prev.asset.author === next.asset.author &&
+    prev.asset.category === next.asset.category &&
+    prev.asset.quality === next.asset.quality &&
+    prev.asset.source === next.asset.source &&
+    prev.selectionMode === next.selectionMode &&
+    prev.selected === next.selected &&
+    prev.draggable === next.draggable &&
+    prev.className === next.className
+  );
+});
