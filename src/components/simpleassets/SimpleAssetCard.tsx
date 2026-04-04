@@ -7,6 +7,7 @@ interface SimpleAssetCardProps {
   asset: SimpleAsset;
   onClick: () => void;
   draggable?: boolean;
+  className?: string;
   onDragStart?: (e: DragEvent<HTMLDivElement>) => void;
   onDragOver?: (e: DragEvent<HTMLDivElement>) => void;
   onDrop?: (e: DragEvent<HTMLDivElement>) => void;
