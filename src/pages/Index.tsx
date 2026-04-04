@@ -70,6 +70,9 @@ export default function SimpleAssetsPage() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
+  const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
+    open: false, title: '', description: '', txId: null,
+  });
 
   const handleCollectUnclaimed = useCallback(async () => {
     if (!accountName || !session) return;
@@ -91,15 +94,22 @@ export default function SimpleAssetsPage() {
       }
       const actor = String(session.actor);
       const auth = [{ actor, permission: String(session.permission) }];
+      let lastTxId: string | null = null;
       for (const [unboxingId, cardids] of groups) {
-        await executeRawTransaction([{
+        const result = await executeRawTransaction([{
           account: 'gpk.topps',
           name: 'getcards',
           authorization: auth,
           data: { from: actor, unboxing: unboxingId, cardids },
         }], { errorTitle: 'Collect Failed', showErrorToast: true });
+        lastTxId = result.resolved?.transaction.id?.toString() || null;
       }
-      toast.success(`Collected ${unclaimed.length} card(s)!`);
+      setSuccessDialog({
+        open: true,
+        title: 'Cards Collected!',
+        description: `Successfully collected ${unclaimed.length} card(s) from ${groups.size} pack(s).`,
+        txId: lastTxId,
+      });
       handlePackOpened();
     } catch (e) {
       console.error('Collect unclaimed failed:', e);
