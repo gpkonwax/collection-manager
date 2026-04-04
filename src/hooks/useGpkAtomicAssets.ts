@@ -9,7 +9,10 @@ interface AtomicAssetRaw {
   owner: string;
   collection: { collection_name: string };
   schema: { schema_name: string };
-  template?: { template_id: string };
+  template?: {
+    template_id: string;
+    immutable_data?: Record<string, string>;
+  };
   immutable_data: Record<string, string>;
   mutable_data: Record<string, string>;
   data: Record<string, string>;
