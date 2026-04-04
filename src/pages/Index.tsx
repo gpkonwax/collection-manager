@@ -78,6 +78,7 @@ export default function SimpleAssetsPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [donateDialogOpen, setDonateDialogOpen] = useState(false);
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
