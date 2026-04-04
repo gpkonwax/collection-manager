@@ -38,11 +38,11 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const SERIES1_VARIANTS: { value: string; label: string }[] = [
-  { value: 'a', label: 'Base' },
-  { value: 'b', label: 'Prism' },
-  { value: 'c', label: 'Sketch' },
-  { value: 'd', label: 'Collectors' },
-  { value: 'e', label: 'Gold' },
+  { value: 'base', label: 'Base' },
+  { value: 'prism', label: 'Prism' },
+  { value: 'sketch', label: 'Sketch' },
+  { value: 'collector', label: 'Collectors' },
+  { value: 'golden', label: 'Gold' },
 ];
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
@@ -314,11 +314,7 @@ export default function SimpleAssetsPage() {
       if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
       if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if (categoryFilter === 'series1' && variantFilter !== 'all') {
-        const variantMap: Record<string, string> = { a: 'base', b: 'prism', c: 'sketch', d: 'collector', e: 'golden' };
-        const expected = variantMap[variantFilter] || variantFilter;
-        if (a.quality.toLowerCase() !== expected) return false;
-      }
+      if (categoryFilter === 'series1' && variantFilter !== 'all' && a.quality.toLowerCase() !== variantFilter.toLowerCase()) return false;
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
@@ -347,9 +343,7 @@ export default function SimpleAssetsPage() {
 
     let filteredTemplates = binderTemplates;
     if (categoryFilter === 'series1' && variantFilter !== 'all') {
-      const variantMap: Record<string, string> = { a: 'base', b: 'prism', c: 'sketch', d: 'collector', e: 'golden' };
-      const qualityName = variantMap[variantFilter] || '';
-      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === qualityName);
+      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === variantFilter.toLowerCase());
     }
 
     return filteredTemplates.map(template => {
