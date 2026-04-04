@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Wallet, LogOut } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -65,7 +65,7 @@ function EmptySlot({ onDragOver, onDrop, isOver }: {
 }
 
 export default function SimpleAssetsPage() {
-  const { accountName, isConnected, login, session } = useWax();
+  const { accountName, isConnected, login, logout, session, waxBalance } = useWax();
   const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
   const { assets: aaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(accountName);
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(accountName);
@@ -368,6 +368,23 @@ export default function SimpleAssetsPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Sticky header with account info */}
+      {isConnected && accountName && (
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-cheese/20">
+          <div className="container flex items-center justify-between py-2">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-cheese" />
+              <span className="text-cheese font-medium text-sm">{accountName}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-cheese/80 text-sm font-mono">{waxBalance.toFixed(4)} WAX</span>
+              <Button onClick={logout} variant="ghost" size="sm" className="text-cheese/60 hover:text-cheese hover:bg-cheese/10 h-7 px-2">
+                <LogOut className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="container py-8 space-y-6">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>

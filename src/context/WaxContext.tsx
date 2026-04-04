@@ -10,6 +10,7 @@ interface WaxContextType {
   isLoading: boolean;
   accountName: string | null;
   cheeseBalance: number;
+  waxBalance: number;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   refreshBalance: () => Promise<void>;
@@ -49,6 +50,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [cheeseBalance, setCheeseBalance] = useState(0);
+  const [waxBalance, setWaxBalance] = useState(0);
   const [allSessions, setAllSessions] = useState<SerializedSession[]>([]);
   const { toast } = useToast();
 
@@ -58,11 +60,13 @@ export function WaxProvider({ children }: { children: ReactNode }) {
   const refreshBalance = useCallback(async () => {
     if (!session) {
       setCheeseBalance(0);
+      setWaxBalance(0);
       return;
     }
 
     const endpoints = WAX_CHAIN.rpcUrls || [WAX_CHAIN.url];
     
+    // Fetch CHEESE balance
     for (const endpoint of endpoints) {
       try {
         const response = await fetch(
@@ -77,29 +81,46 @@ export function WaxProvider({ children }: { children: ReactNode }) {
             }),
           }
         );
-
-        if (!response.ok) {
-          continue; // Try next endpoint
-        }
-
+        if (!response.ok) continue;
         const balances = await response.json();
         if (balances && balances.length > 0) {
-          const balance = parseFloat(balances[0].split(' ')[0]);
-          setCheeseBalance(balance);
-          return; // Success, exit
+          setCheeseBalance(parseFloat(balances[0].split(' ')[0]));
         } else {
           setCheeseBalance(0);
-          return;
         }
+        break;
       } catch (error) {
         console.error(`Failed to fetch CHEESE balance from ${endpoint}:`, error);
-        // Continue to next endpoint
       }
     }
-    
-    // All endpoints failed
-    console.error('All RPC endpoints failed for CHEESE balance');
-    setCheeseBalance(0);
+
+    // Fetch WAX balance
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(
+          `${endpoint}/v1/chain/get_currency_balance`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: 'eosio.token',
+              account: session.actor.toString(),
+              symbol: 'WAX',
+            }),
+          }
+        );
+        if (!response.ok) continue;
+        const balances = await response.json();
+        if (balances && balances.length > 0) {
+          setWaxBalance(parseFloat(balances[0].split(' ')[0]));
+        } else {
+          setWaxBalance(0);
+        }
+        break;
+      } catch (error) {
+        console.error(`Failed to fetch WAX balance from ${endpoint}:`, error);
+      }
+    }
   }, [session]);
 
   // Refresh all stored sessions
@@ -175,6 +196,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
       // Just clear the active session state, keeping account in switch list
       setSession(null);
       setCheeseBalance(0);
+      setWaxBalance(0);
       toast({
         title: 'Wallet Disconnected',
         description: 'Your account is saved for quick switching.',
@@ -245,6 +267,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
         if (session?.actor?.toString() === serializedSession.actor) {
           setSession(null);
           setCheeseBalance(0);
+          setWaxBalance(0);
         }
         
         await refreshSessions();
@@ -678,6 +701,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
         isLoading,
         accountName,
         cheeseBalance,
+        waxBalance,
         login,
         logout,
         refreshBalance,
