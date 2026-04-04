@@ -596,6 +596,19 @@ export default function SimpleAssetsPage() {
                 <CheckSquare className="h-4 w-4 mr-1" />
                 {selectionMode ? 'Cancel Select' : 'Select'}
               </Button>
+              {categoryFilter !== 'all' && (
+                <label className="flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                  <Checkbox
+                    checked={binderView}
+                    onCheckedChange={(checked) => setBinderView(!!checked)}
+                    className="border-cheese/50 data-[state=checked]:bg-cheese data-[state=checked]:border-cheese"
+                  />
+                  <span className="text-sm text-cheese flex items-center gap-1">
+                    <BookOpen className="h-4 w-4" />
+                    Binder
+                  </span>
+                </label>
+              )}
             </div>
 
             {!isLoading && !error && (
