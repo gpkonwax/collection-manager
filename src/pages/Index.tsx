@@ -145,42 +145,7 @@ export default function SimpleAssetsPage() {
     binderSchema !== 'all' ? binderSchema : null
   );
 
-  // Build binder grid: all templates with owned cards filled in, missing as placeholders
-  const binderGrid = useMemo(() => {
-    if (!binderView || !binderTemplates.length) return null;
-    // Map owned assets by templateId (from idata) or by cardid+quality combo
-    const ownedByTemplate = new Map<string, SimpleAsset[]>();
-    for (const a of filtered) {
-      // AtomicAssets have template info in idata or we match by cardid+quality
-      const tid = (a.idata as any)?.template_id || '';
-      if (tid) {
-        if (!ownedByTemplate.has(tid)) ownedByTemplate.set(tid, []);
-        ownedByTemplate.get(tid)!.push(a);
-      }
-      // Also key by cardid+quality for SimpleAssets
-      const key = `${a.cardid}:${a.quality.toLowerCase()}`;
-      if (a.cardid) {
-        if (!ownedByTemplate.has(key)) ownedByTemplate.set(key, []);
-        ownedByTemplate.get(key)!.push(a);
-      }
-    }
 
-    // Apply variant filter for binder too
-    let filteredTemplates = binderTemplates;
-    if (categoryFilter === 'series1' && variantFilter !== 'all') {
-      // Map variant filter value to quality name
-      const variantMap: Record<string, string> = { a: 'base', b: 'prism', c: 'sketch', d: 'collector', e: 'golden' };
-      const qualityName = variantMap[variantFilter] || '';
-      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === qualityName);
-    }
-
-    return filteredTemplates.map(template => {
-      const byTid = ownedByTemplate.get(template.templateId);
-      const byKey = ownedByTemplate.get(`${template.cardid}:${template.quality.toLowerCase()}`);
-      const owned = byTid || byKey || null;
-      return { template, owned };
-    });
-  }, [binderView, binderTemplates, filtered, categoryFilter, variantFilter]);
 
   const selectedAssets = useMemo(() =>
     assets.filter(a => selectedIds.has(a.id)), [assets, selectedIds]);
