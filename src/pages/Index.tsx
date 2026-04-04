@@ -286,9 +286,10 @@ export default function SimpleAssetsPage() {
       if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
       if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
+      if (categoryFilter === 'series1' && variantFilter !== 'all' && a.quality !== variantFilter) return false;
       return true;
     });
-  }, [assets, search, categoryFilter, sourceFilter]);
+  }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
 
   // Load saved order from localStorage on filter change
   useEffect(() => {
