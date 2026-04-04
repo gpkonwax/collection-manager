@@ -267,6 +267,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
         if (session?.actor?.toString() === serializedSession.actor) {
           setSession(null);
           setCheeseBalance(0);
+          setWaxBalance(0);
         }
         
         await refreshSessions();
