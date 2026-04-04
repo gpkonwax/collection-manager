@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Heart, Wallet, LogOut } from 'lucide-react';
+import { Heart, Wallet, ChevronDown, Check } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useWax } from '@/context/WaxContext';
@@ -65,7 +66,7 @@ function EmptySlot({ onDragOver, onDrop, isOver }: {
 }
 
 export default function SimpleAssetsPage() {
-  const { accountName, isConnected, login, logout, session, waxBalance } = useWax();
+  const { accountName, isConnected, login, logout, session, waxBalance, allSessions, switchAccount, addAccount, removeAccount } = useWax();
   const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
   const { assets: aaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(accountName);
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(accountName);
@@ -373,16 +374,65 @@ export default function SimpleAssetsPage() {
         <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
           <div className="container flex h-12 items-center justify-end">
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="border-cheese/30 hover:border-cheese hover:bg-cheese/10 h-8 gap-2">
-                <Wallet className="h-4 w-4 text-cheese" />
-                <span className="max-w-[120px] truncate text-sm">{accountName}</span>
-                <span className="ml-1 text-cheese font-semibold text-sm">
-                  {waxBalance.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} WAX
-                </span>
-              </Button>
-              <Button onClick={logout} variant="ghost" size="sm" className="text-muted-foreground hover:text-cheese hover:bg-cheese/10 h-8 w-8 p-0">
-                <LogOut className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-cheese/30 hover:border-cheese hover:bg-cheese/10 h-8 gap-2">
+                    <Wallet className="h-4 w-4 text-cheese" />
+                    <span className="max-w-[120px] truncate text-sm">{accountName}</span>
+                    <span className="ml-1 text-cheese font-semibold text-sm">
+                      {waxBalance.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} WAX
+                    </span>
+                    <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {allSessions.length > 0 && (
+                    <>
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="cursor-pointer">
+                          <span className="mr-2 text-sm leading-none">👥</span>
+                          Switch Account
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent className="w-56">
+                            <DropdownMenuItem disabled className="opacity-100">
+                              <Check className="mr-2 h-4 w-4 text-cheese" />
+                              <span className="font-medium">{accountName}</span>
+                              <span className="ml-auto text-xs text-muted-foreground">(active)</span>
+                            </DropdownMenuItem>
+                            {allSessions.filter(s => String(s.actor) !== accountName).map((s) => (
+                              <DropdownMenuItem
+                                key={`${String(s.actor)}-${s.permission}`}
+                                className="cursor-pointer group"
+                                onClick={() => switchAccount(s)}
+                              >
+                                <div className="w-4 mr-2" />
+                                <span>{String(s.actor)}</span>
+                                <button
+                                  className="ml-auto opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity p-1"
+                                  onClick={(e) => { e.stopPropagation(); removeAccount(s); }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={addAccount} className="cursor-pointer">
+                              <span className="mr-2 text-sm leading-none">➕</span>
+                              Add Account
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                    <span className="mr-2 text-sm leading-none">🔌</span>
+                    Disconnect
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Export card layout">
                 <Download className="h-4 w-4 mr-1" />Save Layout
               </Button>
