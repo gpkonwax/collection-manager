@@ -1,31 +1,58 @@
 
+## Revised collect-animation plan
 
-## Add "Collect Unclaimed Cards" Button
+### Behavior to build
+After a successful card claim from either:
+- the normal `Collect Assets` button in `PackRevealDialog` / `AtomicPackRevealDialog`, or
+- the fallback `Collect Unclaimed` button,
 
-### Problem
-After opening a pack, if the `getcards` transaction fails or the dialog is closed before collecting, the cards remain in the `pendingnft.a` table uncollected. There's currently no way to retry collection outside the reveal dialog.
+the app should:
+1. Close the reveal flow and switch to the correct collection/category.
+2. Show empty landing spaces in the grid where the new cards belong.
+3. Show an upright, face-up stack at the top using the real card fronts.
+4. Draw the top card off that stack one-by-one, keeping it face-up the entire time so the user sees the card before it is placed.
+5. Fly each card into its exact sorted slot in the collection.
+6. Show the transaction success modal after the final card lands so it does not block the animation.
 
-### Solution
-Add a "Collect Unclaimed Cards" button to the main page that:
-1. Scans the user's `pendingnft.a` table for any rows with `done === 0`
-2. Groups them by `unboxingid`
-3. For each group, calls `gpk.topps::getcards` with the correct `unboxingId` and `cardids`
-4. Shows success/error feedback via toast
+### Important correction
+No face-down stack and no back-of-card dealing.  
+The moving cards must stay face-up from the start.
 
-### Changes
+### Implementation approach
+- Create a shared `CardDealAnimation` overlay component for the post-collect sequence.
+- Move all post-claim handling into one shared flow in `Index.tsx` so normal claim and fallback claim behave the same way.
+- Before a collect/open flow starts, snapshot the current asset IDs.
+- After a successful collect transaction, await the asset refetch, diff old vs new assets, and use the newly added assets as the cards to animate.
+- Clear search/source/custom ordering, switch to the relevant category, and scroll the collection grid into view before the deal starts.
+- In the grid, reserve the final positions for incoming cards with empty slots so layout stays stable while cards are still in flight.
+- Animate cards from the face-up stack to those exact target slots one by one.
 
-**File: `src/pages/Index.tsx`**
-- Import `fetchTableRows` from `waxRpcFallback` and `Session` type
-- Add a "Collect Unclaimed Cards" button in the packs section (visible only when connected)
-- On click: fetch `pendingnft.a` for the user, group by `unboxingid`, and call `getcards` for each group sequentially
-- Show loading state during collection, toast on success/failure
+### File changes
+- `src/pages/Index.tsx`
+  - Add shared post-collect coordinator
+  - Snapshot pre-collect assets
+  - Refetch + diff to detect newly collected cards
+  - Switch filters/category and start the deal animation
+  - Delay collect success modal until animation completion
+- `src/components/simpleassets/CardDealAnimation.tsx` (new)
+  - Fixed overlay stack using actual card fronts
+  - Per-card lift + flight animation to target slot refs
+- `src/components/simpleassets/PackRevealDialog.tsx`
+  - Replace generic `onComplete()` success handling with a richer collect-success callback carrying tx info
+- `src/components/simpleassets/AtomicPackRevealDialog.tsx`
+  - Same callback upgrade as above
+- `src/components/simpleassets/GpkPackCard.tsx`
+- `src/components/simpleassets/AtomicPackCard.tsx`
+- `src/components/simpleassets/PackBrowserDialog.tsx`
+  - Pass the new collect-success callback chain through to `Index`
+- `src/components/simpleassets/SimpleAssetCard.tsx`
+  - Allow reuse/styling for landing state if needed
+  - Reuse its image/fallback behavior for the moving face-up card so blank-image issues do not return
+- `tailwind.config.ts`
+  - Add deal/lift/landing keyframes
 
-**File: `src/components/simpleassets/PackRevealDialog.tsx`**
-- Export the `fetchPendingNfts` function so it can be reused from Index.tsx (currently module-private)
-
-### Technical detail
-- Reuses the existing `fetchPendingNfts` helper (just needs to be exported)
-- Groups all `done === 0` rows by `unboxingid`, then fires one `getcards` transaction per group
-- Each transaction: `{ account: 'gpk.topps', name: 'getcards', authorization: auth, data: { from: actor, unboxing: unboxingId, cardids: rowIds } }`
-- Sequential execution to avoid nonce conflicts
-
+### Technical details
+- The deal order should follow final collection order after refetch, so each card lands in the exact slot it belongs in.
+- The grid should show empty reserved spaces only; the card itself should not appear in-place before it flies in.
+- The fallback claim stays as a recovery tool, but it must reuse the exact same animation path as the normal claim flow.
+- I did not find a reusable deal-animation component in the accessible CHEESEHub files, so this should be implemented to match your described behavior exactly: face-up stack, real card art visible before placement, exact landing positions.
