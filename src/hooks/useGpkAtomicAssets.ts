@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
+import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface AtomicAssetRaw {
@@ -72,7 +73,6 @@ export function useGpkAtomicAssets(account: string | null) {
         page++;
       }
       const parsed: SimpleAsset[] = allAssets.map((raw) => {
-        // Merge template immutable_data first (base), then asset-level data on top
         const templateData = raw.template?.immutable_data || {};
         const combined = { ...templateData, ...raw.immutable_data, ...raw.mutable_data, ...raw.data };
         const name = combined.name || raw.name || `Asset #${raw.asset_id}`;
@@ -81,7 +81,8 @@ export function useGpkAtomicAssets(account: string | null) {
           id: raw.asset_id, owner: raw.owner, author: 'gpk.topps',
           category: raw.schema?.schema_name || '',
           name, image: images[0], images,
-          cardid: combined.cardid || '', quality: combined.quality || '',
+          cardid: String(combined.cardid ?? ''),
+          quality: normalizeGpkVariant(combined.variant, combined.quality),
           idata: { ...templateData, ...raw.immutable_data, _template_id: raw.template?.template_id || '' } as Record<string, unknown>,
           mdata: raw.mutable_data as Record<string, unknown>,
           container: [], containerf: [],
@@ -92,7 +93,7 @@ export function useGpkAtomicAssets(account: string | null) {
         const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
         if (!isNaN(numA) && !isNaN(numB)) {
           if (numA !== numB) return numA - numB;
-          return a.quality.localeCompare(b.quality);
+          return getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
         }
         if (!isNaN(numA)) return -1;
         if (!isNaN(numB)) return 1;
