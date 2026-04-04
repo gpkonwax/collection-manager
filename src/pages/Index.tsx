@@ -19,7 +19,9 @@ import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
+import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { toast } from 'sonner';
+import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 const EMPTY = '__empty__';
