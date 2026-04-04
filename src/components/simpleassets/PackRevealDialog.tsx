@@ -88,7 +88,7 @@ function RevealCardImage({ card, isRevealed }: { card: RevealCard; isRevealed: b
 
 const POLL_INTERVAL = 3000;
 
-async function fetchPendingNfts(owner: string): Promise<PendingNftRow[]> {
+export async function fetchPendingNfts(owner: string): Promise<PendingNftRow[]> {
   try {
     const result = await fetchTableRows<PendingNftRow>({
       code: 'gpk.topps', scope: owner, table: 'pendingnft.a', limit: 500,
