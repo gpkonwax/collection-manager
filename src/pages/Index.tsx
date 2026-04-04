@@ -80,6 +80,7 @@ export default function SimpleAssetsPage() {
   const [variantFilter, setVariantFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
+  const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
@@ -177,6 +178,18 @@ export default function SimpleAssetsPage() {
     await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
 
+  // --- Check for pending unclaimed NFTs on login ---
+  useEffect(() => {
+    if (!accountName) { setShowCollectUnclaimed(false); return; }
+    (async () => {
+      try {
+        const rows = await fetchPendingNfts(accountName);
+        const unclaimed = rows.filter((r: any) => r.done === 0);
+        setShowCollectUnclaimed(unclaimed.length > 0);
+      } catch { /* ignore */ }
+    })();
+  }, [accountName]);
+
   // --- Fallback collect unclaimed ---
   const handleCollectUnclaimed = useCallback(async () => {
     if (!accountName || !session) return;
@@ -188,6 +201,7 @@ export default function SimpleAssetsPage() {
       const unclaimed = rows.filter((r: any) => r.done === 0);
       if (unclaimed.length === 0) {
         toast.info('No unclaimed cards found');
+        setShowCollectUnclaimed(false);
         setIsCollecting(false);
         return;
       }
@@ -210,6 +224,7 @@ export default function SimpleAssetsPage() {
         lastTxId = result.resolved?.transaction.id?.toString() || null;
       }
 
+      setShowCollectUnclaimed(false);
       // Trigger animation flow
       pendingAnimationRef.current = { txId: lastTxId };
       await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
@@ -522,10 +537,12 @@ export default function SimpleAssetsPage() {
                   </SelectContent>
                 </Select>
               )}
-              <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
-                <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
-                {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
-              </Button>
+              {showCollectUnclaimed && (
+                <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
+                  {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
+                </Button>
+              )}
               <Button
                 onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
                 variant="outline"
