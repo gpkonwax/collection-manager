@@ -104,7 +104,7 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, selectio
           <div className="flex items-center gap-1">
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{asset.category}</span>
             <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
-              asset.source === 'atomicassets' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
+              asset.source === 'atomicassets' ? 'bg-primary/15 text-primary' : 'bg-emerald-500/15 text-emerald-400'
             }`}>
               {asset.source === 'atomicassets' ? 'AA' : 'SA'}
             </span>
