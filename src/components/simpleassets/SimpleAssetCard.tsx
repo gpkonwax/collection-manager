@@ -8,6 +8,9 @@ interface SimpleAssetCardProps {
   onClick: () => void;
   draggable?: boolean;
   className?: string;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
   onDragStart?: (e: DragEvent<HTMLDivElement>) => void;
   onDragOver?: (e: DragEvent<HTMLDivElement>) => void;
   onDrop?: (e: DragEvent<HTMLDivElement>) => void;
@@ -30,7 +33,7 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
-export function SimpleAssetCard({ asset, onClick, draggable, className, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
+export function SimpleAssetCard({ asset, onClick, draggable, className, selectionMode, selected, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [gatewayIdx, setGatewayIdx] = useState(0);
   const [imgError, setImgError] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -60,13 +63,20 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, onDragSt
   const handleDragLeave = () => { setIsDragOver(false); };
   const handleDrop = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(false); onDrop?.(e); };
   const handleDragEnd = (e: DragEvent<HTMLDivElement>) => { setIsDragging(false); setIsDragOver(false); onDragEnd?.(e); };
-  const handleClick = () => { if (!isDragging) onClick(); };
+  const handleClick = () => {
+    if (selectionMode && onSelect) {
+      onSelect(asset.id);
+      return;
+    }
+    if (!isDragging) onClick();
+  };
 
   return (
     <Card
-      className={`overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10 bg-card border-border
+      className={`overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10 bg-card border-border relative
         ${isDragging ? 'opacity-50 scale-95' : ''}
         ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
+        ${selected ? 'ring-2 ring-cheese shadow-lg shadow-cheese/20' : ''}
         ${className || ''}`}
       onClick={handleClick}
       draggable={draggable}
@@ -76,6 +86,14 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, onDragSt
       onDrop={handleDrop}
       onDragEnd={handleDragEnd}
     >
+      {selectionMode && (
+        <div className="absolute top-2 left-2 z-10">
+          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+            ${selected ? 'bg-cheese border-cheese' : 'bg-background/80 border-muted-foreground/50'}`}>
+            {selected && <span className="text-xs text-primary-foreground font-bold">✓</span>}
+          </div>
+        </div>
+      )}
       <div className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none">
         <img src={displayUrl} alt={asset.name} className="w-full h-full object-contain" loading="lazy" onError={handleImgError} />
       </div>

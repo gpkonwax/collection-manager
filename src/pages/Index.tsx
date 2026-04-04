@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Search, RefreshCw, Download, Upload } from 'lucide-react';
+import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,6 +17,7 @@ import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
+import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
@@ -71,6 +72,25 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
+  // --- Selection mode state ---
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+
   // --- Deal animation state ---
   const preCollectIdsRef = useRef<Set<string>>(new Set());
   const pendingAnimationRef = useRef<{ txId: string | null } | null>(null);
@@ -100,6 +120,9 @@ export default function SimpleAssetsPage() {
     });
     return combined;
   }, [saAssets, aaAssets]);
+
+  const selectedAssets = useMemo(() =>
+    assets.filter(a => selectedIds.has(a.id)), [assets, selectedIds]);
 
   // Keep assetsRef in sync
   assetsRef.current = assets;
@@ -412,6 +435,15 @@ export default function SimpleAssetsPage() {
                 <Upload className="h-4 w-4 mr-1" />Load Layout
               </Button>
               <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
+              <Button
+                onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+                variant="outline"
+                size="sm"
+                className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+              >
+                <CheckSquare className="h-4 w-4 mr-1" />
+                {selectionMode ? 'Cancel Select' : 'Select'}
+              </Button>
             </div>
 
             {!isLoading && !error && (
@@ -447,7 +479,10 @@ export default function SimpleAssetsPage() {
                           asset={asset}
                           onClick={() => setSelectedAsset(asset)}
                           className={justLanded ? 'animate-card-glow' : ''}
-                          draggable
+                          draggable={!selectionMode}
+                          selectionMode={selectionMode}
+                          selected={selectedIds.has(asset.id)}
+                          onSelect={toggleSelection}
                           onDragStart={handleDragStart(idx)}
                           onDragOver={handleDragOver(idx)}
                           onDrop={handleDrop(idx)}
@@ -481,6 +516,30 @@ export default function SimpleAssetsPage() {
         description={successDialog.description}
         txId={successDialog.txId}
       />
+      <TransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
+        selectedAssets={selectedAssets}
+        onSuccess={(txId) => {
+          clearSelection();
+          refetchSa();
+          refetchAa();
+          setSuccessDialog({ open: true, title: 'Transfer Complete!', description: `Successfully transferred ${selectedAssets.length} NFT(s).`, txId });
+        }}
+      />
+
+      {/* Floating selection bar */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-cheese/50 rounded-lg shadow-2xl px-6 py-3 flex items-center gap-4">
+          <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+          <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-primary-foreground" onClick={() => setTransferDialogOpen(true)}>
+            <Send className="h-4 w-4 mr-1" />Transfer
+          </Button>
+          <Button size="sm" variant="ghost" onClick={clearSelection}>
+            <X className="h-4 w-4 mr-1" />Cancel
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
