@@ -621,27 +621,57 @@ export default function SimpleAssetsPage() {
                       {binderGrid.filter(s => s.owned).length} / {binderGrid.length} collected
                       {binderLoading && ' (loading templates...)'}
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                      {binderGrid.map(({ template, owned }) => {
-                        if (owned && owned.length > 0) {
-                          const asset = owned[0];
-                          return (
-                            <SimpleAssetCard
-                              key={`binder-${template.templateId}`}
-                              asset={asset}
-                              onClick={() => setSelectedAsset(asset)}
-                              draggable={false}
-                              selectionMode={selectionMode}
-                              selected={selectedIds.has(asset.id)}
-                              onSelect={toggleSelection}
-                            />
-                          );
-                        }
-                        return (
-                          <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
-                        );
-                      })}
-                    </div>
+                    {(() => {
+                      const regular = binderGrid.filter(s => s.template.variant !== 'collector' && s.template.variant !== 'golden');
+                      const collectors = binderGrid.filter(s => s.template.variant === 'collector');
+                      const golden = binderGrid.filter(s => s.template.variant === 'golden');
+
+                      const renderGrid = (items: typeof binderGrid) => (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                          {items.map(({ template, owned }) => {
+                            if (owned && owned.length > 0) {
+                              const asset = owned[0];
+                              return (
+                                <SimpleAssetCard
+                                  key={`binder-${template.templateId}`}
+                                  asset={asset}
+                                  onClick={() => setSelectedAsset(asset)}
+                                  draggable={false}
+                                  selectionMode={selectionMode}
+                                  selected={selectedIds.has(asset.id)}
+                                  onSelect={toggleSelection}
+                                />
+                              );
+                            }
+                            return (
+                              <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+                            );
+                          })}
+                        </div>
+                      );
+
+                      return (
+                        <div className="space-y-6">
+                          {regular.length > 0 && renderGrid(regular)}
+                          {collectors.length > 0 && (
+                            <div className="space-y-2">
+                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                                Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
+                              </h3>
+                              {renderGrid(collectors)}
+                            </div>
+                          )}
+                          {golden.length > 0 && (
+                            <div className="space-y-2">
+                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                                Golden ({golden.filter(s => s.owned).length}/{golden.length})
+                              </h3>
+                              {renderGrid(golden)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </>
                 ) : (
                   <>
