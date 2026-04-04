@@ -22,7 +22,7 @@ interface PackBrowserDialogProps {
   session: Session | null;
   accountName: string;
   snapshotUnboxingIds: (owner: string) => Promise<Set<number>>;
-  onSuccess?: () => void;
+  onSuccess?: (txId?: string | null) => void;
 }
 
 export function PackBrowserDialog({
