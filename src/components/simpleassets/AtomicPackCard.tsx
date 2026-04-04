@@ -45,7 +45,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
           <p className="font-bold text-foreground text-sm">{pack.name}</p>
           <p className="text-xs text-muted-foreground">{pack.cardsPerPack} cards per pack</p>
           <p className="text-lg font-mono text-primary">{pack.count}</p>
-          <Button size="sm" variant="outline" className="w-full text-xs" disabled={!session || isOpening || pack.count === 0} onClick={handleOpen}>
+          <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground" disabled={!session || isOpening || pack.count === 0} onClick={handleOpen}>
             {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : 'Open Pack'}
           </Button>
         </CardContent>

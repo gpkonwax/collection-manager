@@ -97,7 +97,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, collectionA
           <p className="text-xs text-muted-foreground">{pack.symbol}</p>
           <p className="text-lg font-mono text-primary">{pack.amount}</p>
           {pack.amount > 0 ? (
-            <Button size="sm" variant="outline" className="w-full text-xs" disabled={!session || isOpening || !unboxType}
+            <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground" disabled={!session || isOpening || !unboxType}
               onClick={hasMultiple ? () => setBrowserOpen(true) : handleOpen}>
               {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
             </Button>
