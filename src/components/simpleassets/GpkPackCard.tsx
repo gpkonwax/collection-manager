@@ -33,7 +33,7 @@ interface GpkPackCardProps {
   pack: GpkPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: () => void;
+  onSuccess?: (txId?: string | null) => void;
   collectionAssets?: SimpleAsset[];
 }
 
