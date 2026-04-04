@@ -15,6 +15,7 @@ import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
+import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
@@ -69,6 +70,9 @@ export default function SimpleAssetsPage() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
+  const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
+    open: false, title: '', description: '', txId: null,
+  });
 
   const handleCollectUnclaimed = useCallback(async () => {
     if (!accountName || !session) return;
@@ -90,15 +94,22 @@ export default function SimpleAssetsPage() {
       }
       const actor = String(session.actor);
       const auth = [{ actor, permission: String(session.permission) }];
+      let lastTxId: string | null = null;
       for (const [unboxingId, cardids] of groups) {
-        await executeRawTransaction([{
+        const result = await executeRawTransaction([{
           account: 'gpk.topps',
           name: 'getcards',
           authorization: auth,
           data: { from: actor, unboxing: unboxingId, cardids },
         }], { errorTitle: 'Collect Failed', showErrorToast: true });
+        lastTxId = result.resolved?.transaction.id?.toString() || null;
       }
-      toast.success(`Collected ${unclaimed.length} card(s)!`);
+      setSuccessDialog({
+        open: true,
+        title: 'Cards Collected!',
+        description: `Successfully collected ${unclaimed.length} card(s) from ${groups.size} pack(s).`,
+        txId: lastTxId,
+      });
       handlePackOpened();
     } catch (e) {
       console.error('Collect unclaimed failed:', e);
@@ -275,6 +286,13 @@ export default function SimpleAssetsPage() {
         )}
       </div>
       <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
+      <TransactionSuccessDialog
+        open={successDialog.open}
+        onOpenChange={(open) => setSuccessDialog(prev => ({ ...prev, open }))}
+        title={successDialog.title}
+        description={successDialog.description}
+        txId={successDialog.txId}
+      />
     </div>
   );
 }
