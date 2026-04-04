@@ -333,7 +333,7 @@ export default function SimpleAssetsPage() {
       }
 
       if (a.cardid) {
-        const side = String((a.idata as any)?.quality ?? '').toLowerCase();
+        const side = String((a.idata as any)?.quality ?? (a.mdata as any)?.quality ?? '').toLowerCase();
         const key = `${a.cardid}:${side}:${a.quality.toLowerCase()}`;
         if (!ownedByCardKey.has(key)) ownedByCardKey.set(key, []);
         ownedByCardKey.get(key)!.push(a);
