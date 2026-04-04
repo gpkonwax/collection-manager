@@ -76,6 +76,7 @@ export default function SimpleAssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [variantFilter, setVariantFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
