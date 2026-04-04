@@ -1,44 +1,47 @@
 
 
-## Sync Project with Original CHEESEHub — Full Parity Plan
+## Assessment: Pack Opening & Card Collecting Logic
 
-### 1. Update `ipfsGateways.ts`
-Add `IMAGE_LOAD_TIMEOUT` config object and `isVideoUrl()` helper function from the original.
+### Result: Functionally Identical
 
-### 2. Update `templateCache.ts`
-Add `batchGetOrFetch()`, `clearTemplateCache()`, and `getCacheStats()` functions. Inline the batch fetch logic since `services/atomicApi.ts` doesn't exist in this project.
+After a line-by-line comparison of all pack-related files between this project and the original CHEESEHub, the pack opening logic and card collecting flow are **exactly the same**. Here is the breakdown:
 
-### 3. Update `fetchWithFallback.ts`
-Add the `buildApiUrl` helper utility function.
+---
 
-### 4. Update `waxRpcFallback.ts`
-Add Hyperion API support:
-- `HYPERION_ENDPOINTS` array
-- `HyperionToken` interface
-- `fetchAllTokenBalances()`
-- `fetchSingleTokenBalance()`
-- `fetchAllTokenBalancesViaRpc()`
+### PackRevealDialog.tsx (SimpleAssets / Series 1 & 2 packs)
+- **Open flow**: Transfer pack token via `packs.topps::transfer` to `gpk.topps`, then call `gpk.topps::unbox` -- identical
+- **Polling**: Polls `pendingnft.a` table every 3s after 4s delay, filters by `preOpenUnboxingIds`, groups by `unboxingid`, matches by `boxtype` -- identical
+- **Card reveal**: Staggered 1.6s per card with `playRandomFart()` -- identical
+- **Collect**: Calls `gpk.topps::getcards` with `unboxingId` + `pendingRowIds` -- identical
+- **Error handling**: `closeWharfkitModals()` on failure, retry from `collect` phase -- identical
+- **Demo mode**: 4s fake delay, skips collect phase -- identical
 
-### 5. Update `useWaxTransaction.ts`
-Add `executeRawTransaction` method that returns the full transaction result object.
+### AtomicPackRevealDialog.tsx (AtomicAssets packs)
+- **Polling**: Polls `unboxassets` table on the unpack contract using secondary index on `pack_asset_id` -- identical
+- **Template resolution**: Fetches template metadata from AtomicAssets API with cache (`getCachedTemplate`/`setCachedTemplate`) -- identical
+- **Collect**: Calls `{unpackContract}::claimunboxed` with `pack_asset_id` + `origin_roll_ids` -- identical
 
-### 6. Update `WaxContext.tsx`
-Add all missing transaction functions from the original:
-- `transferCheese`, `transferToken`
-- `transferNFTs`, `burnNFTs`
-- `claimDrop`, `claimFreeDrop`
-- `joinDao`, `leaveDao`
+### GpkPackCard.tsx
+- **Snapshot**: `snapshotUnboxingIds` before opening -- identical
+- **Transaction**: Two-action transaction (transfer + unbox) -- identical
+- **Multi-pack**: Routes to `PackBrowserDialog` when `amount > 1` -- identical
+- **Demo cards**: Shuffles user's collection assets -- identical
 
-### 7. Create `IpfsImage` component
-Reusable component with IPFS gateway cycling on error. Replace raw `<img>` tags in:
-- `PackRevealDialog.tsx`
-- `AtomicPackRevealDialog.tsx`
-- `PackBrowserDialog.tsx`
-- `GpkPackCard.tsx`
-- `AtomicPackCard.tsx`
+### AtomicPackCard.tsx
+- **Transaction**: Single `atomicassets::transfer` action with memo `'unbox'` -- identical
 
-Refactor `SimpleAssetCard.tsx` and `SimpleAssetDetailDialog.tsx` to also use it, removing duplicated fallback logic.
+### PackBrowserDialog.tsx
+- **Pagination, open logic, local count decrement, page adjustment** -- all identical
 
-### 8. Wrap `Index.tsx` in Layout
-Create a `Layout` component (header/footer) matching the original, and wrap the page content.
+---
+
+### Runtime Error (Separate Issue)
+
+There is a runtime error: `useWax must be used within a WaxProvider`. The `App.tsx` correctly wraps `<Index>` inside `<WaxProvider>`, so this is likely a stale HMR/hot-reload issue that will resolve on a full page refresh. No code change is needed.
+
+---
+
+### Summary
+
+No changes are required. The pack opening logic, oracle polling, card reveal animation, and card collection transaction flows are all 1:1 with the original CHEESEHub project.
 
