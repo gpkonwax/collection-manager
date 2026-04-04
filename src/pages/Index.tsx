@@ -430,7 +430,7 @@ export default function SimpleAssetsPage() {
                   <SelectItem value="atomicassets">Atomic Assets</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1') setVariantFilter('all'); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
