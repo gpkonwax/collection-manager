@@ -613,49 +613,78 @@ export default function SimpleAssetsPage() {
 
             {!isLoading && !error && (
               <>
-                <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-                {filtered.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-12">
-                    {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {gridSlots.map((slotId, idx) => {
-                      if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
-                      const asset = assetMap.get(slotId);
-                      if (!asset) return null;
-
-                      // Card is being dealt — show reserved empty slot with ref
-                      const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
-                      if (isInFlight) {
+                {binderView && binderGrid ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {binderGrid.filter(s => s.owned).length} / {binderGrid.length} collected
+                      {binderLoading && ' (loading templates...)'}
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {binderGrid.map(({ template, owned }) => {
+                        if (owned && owned.length > 0) {
+                          const asset = owned[0];
+                          return (
+                            <SimpleAssetCard
+                              key={`binder-${template.templateId}`}
+                              asset={asset}
+                              onClick={() => setSelectedAsset(asset)}
+                              draggable={false}
+                              selectionMode={selectionMode}
+                              selected={selectedIds.has(asset.id)}
+                              onSelect={toggleSelection}
+                            />
+                          );
+                        }
                         return (
-                          <div
-                            key={slotId}
-                            ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
-                            className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
-                          />
+                          <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
                         );
-                      }
-
-                      const justLanded = dealtIds.has(slotId);
-                      return (
-                        <SimpleAssetCard
-                          key={asset.id}
-                          asset={asset}
-                          onClick={() => setSelectedAsset(asset)}
-                          className={justLanded ? 'animate-card-glow' : ''}
-                          draggable={!selectionMode}
-                          selectionMode={selectionMode}
-                          selected={selectedIds.has(asset.id)}
-                          onSelect={toggleSelection}
-                          onDragStart={handleDragStart(idx)}
-                          onDragOver={handleDragOver(idx)}
-                          onDrop={handleDrop(idx)}
-                          onDragEnd={handleDragEnd}
-                        />
-                      );
-                    })}
-                  </div>
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+                    {filtered.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-12">
+                        {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {gridSlots.map((slotId, idx) => {
+                          if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+                          const asset = assetMap.get(slotId);
+                          if (!asset) return null;
+                          const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
+                          if (isInFlight) {
+                            return (
+                              <div
+                                key={slotId}
+                                ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
+                                className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                              />
+                            );
+                          }
+                          const justLanded = dealtIds.has(slotId);
+                          return (
+                            <SimpleAssetCard
+                              key={asset.id}
+                              asset={asset}
+                              onClick={() => setSelectedAsset(asset)}
+                              className={justLanded ? 'animate-card-glow' : ''}
+                              draggable={!selectionMode}
+                              selectionMode={selectionMode}
+                              selected={selectedIds.has(asset.id)}
+                              onSelect={toggleSelection}
+                              onDragStart={handleDragStart(idx)}
+                              onDragOver={handleDragOver(idx)}
+                              onDrop={handleDrop(idx)}
+                              onDragEnd={handleDragEnd}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
