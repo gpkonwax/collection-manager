@@ -90,8 +90,6 @@ export default function SimpleAssetsPage() {
     setSelectedIds(new Set());
   }, []);
 
-  const selectedAssets = useMemo(() =>
-    assets.filter(a => selectedIds.has(a.id)), [assets, selectedIds]);
 
   // --- Deal animation state ---
   const preCollectIdsRef = useRef<Set<string>>(new Set());
