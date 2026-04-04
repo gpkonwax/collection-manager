@@ -66,7 +66,8 @@ export function SimpleAssetCard({ asset, onClick, draggable, className, onDragSt
     <Card
       className={`overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10 bg-card border-border
         ${isDragging ? 'opacity-50 scale-95' : ''}
-        ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}`}
+        ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
+        ${className || ''}`}
       onClick={handleClick}
       draggable={draggable}
       onDragStart={handleDragStart}

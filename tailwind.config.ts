@@ -111,6 +111,7 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
         "pack-shake": "pack-shake 1.2s ease-in-out infinite",
+        "card-glow": "card-glow 1s ease-out",
       },
     },
   },

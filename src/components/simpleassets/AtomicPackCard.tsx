@@ -35,7 +35,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
     } finally { setIsOpening(false); }
   }, [session, pack, executeTransaction]);
 
-  const handleRevealComplete = useCallback(() => { onSuccess?.(); }, [onSuccess]);
+  const handleRevealComplete = useCallback((txId?: string | null) => { onSuccess?.(txId); }, [onSuccess]);
 
   return (
     <>
