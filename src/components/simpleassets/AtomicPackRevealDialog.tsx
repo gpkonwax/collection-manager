@@ -34,7 +34,7 @@ interface AtomicPackRevealDialogProps {
   expectedCards: number;
   accountName: string;
   session: Session | null;
-  onComplete: () => void;
+  onComplete: (txId?: string | null) => void;
 }
 
 function swapGateway(url: string, gatewayIndex: number): string | null {
