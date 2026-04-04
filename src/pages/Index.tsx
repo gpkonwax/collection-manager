@@ -121,6 +121,9 @@ export default function SimpleAssetsPage() {
     return combined;
   }, [saAssets, aaAssets]);
 
+  const selectedAssets = useMemo(() =>
+    assets.filter(a => selectedIds.has(a.id)), [assets, selectedIds]);
+
   // Keep assetsRef in sync
   assetsRef.current = assets;
 
