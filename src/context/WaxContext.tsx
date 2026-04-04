@@ -10,6 +10,7 @@ interface WaxContextType {
   isLoading: boolean;
   accountName: string | null;
   cheeseBalance: number;
+  waxBalance: number;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   refreshBalance: () => Promise<void>;
