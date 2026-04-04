@@ -33,6 +33,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   promo: 'Promo', originalart: 'Original Art',
 };
 
+const SERIES1_VARIANTS: { value: string; label: string }[] = [
+  { value: 'a', label: 'Base' },
+  { value: 'b', label: 'Prism' },
+  { value: 'c', label: 'Sketch' },
+  { value: 'd', label: 'Collectors' },
+  { value: 'e', label: 'Gold' },
+];
+
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
   GPKTWOA: 'series2', GPKTWOB: 'series2', GPKTWOC: 'series2',
@@ -68,6 +76,7 @@ export default function SimpleAssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [variantFilter, setVariantFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
@@ -277,9 +286,10 @@ export default function SimpleAssetsPage() {
       if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
       if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
+      if (categoryFilter === 'series1' && variantFilter !== 'all' && a.quality !== variantFilter) return false;
       return true;
     });
-  }, [assets, search, categoryFilter, sourceFilter]);
+  }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
 
   // Load saved order from localStorage on filter change
   useEffect(() => {
@@ -420,13 +430,22 @@ export default function SimpleAssetsPage() {
                   <SelectItem value="atomicassets">Atomic Assets</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1') setVariantFilter('all'); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {categoryFilter === 'series1' && (
+                <Select value={variantFilter} onValueChange={setVariantFilter}>
+                  <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Variant" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Variants</SelectItem>
+                    {SERIES1_VARIANTS.map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
               <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
                 <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                 {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
