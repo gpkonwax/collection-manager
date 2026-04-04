@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useCallback, useEffect, DragEvent } from 'react';
-import { Search, RefreshCw } from 'lucide-react';
+import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
+import { Search, RefreshCw, Download, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -124,7 +124,7 @@ export default function SimpleAssetsPage() {
       if (cat) setCategoryFilter(cat);
       setSearch('');
       setSourceFilter('all');
-      setCustomOrder(null);
+      // customOrder will be reloaded by the filter-change effect
 
       setDealingCards(newCards);
       setDealtIds(new Set());
@@ -206,9 +206,37 @@ export default function SimpleAssetsPage() {
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
   // --- Grid / drag / filter state ---
+  const getStorageKey = useCallback((cat: string, src: string) =>
+    `gpk-order-${accountName}-${cat}-${src}`, [accountName]);
+
+  const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[]): string[] | null => {
+    try {
+      const raw = localStorage.getItem(getStorageKey(cat, src));
+      if (!raw) return null;
+      const saved: string[] = JSON.parse(raw);
+      if (!Array.isArray(saved)) return null;
+      const filteredIds = new Set(currentFiltered.map(a => a.id));
+      // Keep only IDs still in the filtered set (remove stale)
+      const valid = saved.filter(id => id === EMPTY || filteredIds.has(id));
+      // Append new cards not in saved order
+      const savedSet = new Set(saved);
+      const newIds = currentFiltered.filter(a => !savedSet.has(a.id)).map(a => a.id);
+      return [...valid, ...newIds];
+    } catch { return null; }
+  }, [getStorageKey]);
+
   const [customOrder, setCustomOrder] = useState<string[] | null>(null);
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Save to localStorage whenever customOrder changes
+  useEffect(() => {
+    if (!accountName || customOrder === null) return;
+    try {
+      localStorage.setItem(getStorageKey(categoryFilter, sourceFilter), JSON.stringify(customOrder));
+    } catch { /* storage full */ }
+  }, [customOrder, accountName, categoryFilter, sourceFilter, getStorageKey]);
 
   const categories = useMemo(() => {
     const fromAssets = new Set(assets.map((a) => a.category).filter((c) => c !== 'packs'));
@@ -227,7 +255,11 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, search, categoryFilter, sourceFilter]);
 
-  useEffect(() => { setCustomOrder(null); }, [search, categoryFilter, sourceFilter]);
+  // Load saved order from localStorage on filter change
+  useEffect(() => {
+    const saved = loadOrder(categoryFilter, sourceFilter, filtered);
+    setCustomOrder(saved);
+  }, [categoryFilter, sourceFilter, search, filtered, loadOrder]);
 
   const gridSlots = useMemo(() => {
     const base = customOrder ?? filtered.map((a) => a.id);
@@ -237,6 +269,52 @@ export default function SimpleAssetsPage() {
   }, [customOrder, filtered]);
 
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
+
+  // --- Export / Import handlers ---
+  const handleExportLayout = useCallback(() => {
+    if (!accountName) return;
+    const prefix = `gpk-order-${accountName}-`;
+    const orders: Record<string, string[]> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        try {
+          const val = JSON.parse(localStorage.getItem(key)!);
+          if (Array.isArray(val)) orders[key.slice(prefix.length)] = val;
+        } catch { /* skip */ }
+      }
+    }
+    const blob = new Blob([JSON.stringify({ account: accountName, orders }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `gpk-layout-${accountName}.json`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Layout exported');
+  }, [accountName]);
+
+  const handleImportLayout = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !accountName) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string);
+        if (!data || typeof data.orders !== 'object') { toast.error('Invalid layout file'); return; }
+        const prefix = `gpk-order-${accountName}-`;
+        for (const [suffix, order] of Object.entries(data.orders)) {
+          if (Array.isArray(order)) {
+            localStorage.setItem(`${prefix}${suffix}`, JSON.stringify(order));
+          }
+        }
+        // Reload current view's order
+        const saved = loadOrder(categoryFilter, sourceFilter, filtered);
+        setCustomOrder(saved);
+        toast.success('Layout imported');
+      } catch { toast.error('Failed to parse layout file'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, [accountName, categoryFilter, sourceFilter, filtered, loadOrder]);
 
   const handleDragStart = useCallback((idx: number) => (_e: DragEvent<HTMLDivElement>) => { dragSourceIdx.current = idx; }, []);
   const handleDragOver = useCallback((idx: number) => (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOverIdx(idx); }, []);
@@ -327,6 +405,13 @@ export default function SimpleAssetsPage() {
                 <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                 {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
               </Button>
+              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap" title="Export card layout">
+                <Download className="h-4 w-4 mr-1" />Save Layout
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap" title="Import card layout">
+                <Upload className="h-4 w-4 mr-1" />Load Layout
+              </Button>
+              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
             </div>
 
             {!isLoading && !error && (
