@@ -58,6 +58,8 @@ export default function SimpleAssetsPage() {
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(accountName);
   const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(accountName);
 
+  const { executeRawTransaction } = useWaxTransaction(session);
+
   const handlePackOpened = useCallback(() => {
     refetchPacks(); refetchAtomicPacks(); refetchSa(); refetchAa();
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
@@ -66,6 +68,44 @@ export default function SimpleAssetsPage() {
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
+  const [isCollecting, setIsCollecting] = useState(false);
+
+  const handleCollectUnclaimed = useCallback(async () => {
+    if (!accountName || !session) return;
+    setIsCollecting(true);
+    try {
+      const rows = await fetchPendingNfts(accountName);
+      const unclaimed = rows.filter((r: any) => r.done === 0);
+      if (unclaimed.length === 0) {
+        toast.info('No unclaimed cards found');
+        setIsCollecting(false);
+        return;
+      }
+      // Group by unboxingid
+      const groups = new Map<number, number[]>();
+      for (const row of unclaimed) {
+        const uid = (row as any).unboxingid;
+        if (!groups.has(uid)) groups.set(uid, []);
+        groups.get(uid)!.push((row as any).id);
+      }
+      const actor = String(session.actor);
+      const auth = [{ actor, permission: String(session.permission) }];
+      for (const [unboxingId, cardids] of groups) {
+        await executeRawTransaction([{
+          account: 'gpk.topps',
+          name: 'getcards',
+          authorization: auth,
+          data: { from: actor, unboxing: unboxingId, cardids },
+        }], { errorTitle: 'Collect Failed', showErrorToast: true });
+      }
+      toast.success(`Collected ${unclaimed.length} card(s)!`);
+      handlePackOpened();
+    } catch (e) {
+      console.error('Collect unclaimed failed:', e);
+    } finally {
+      setIsCollecting(false);
+    }
+  }, [accountName, session, executeRawTransaction, handlePackOpened]);
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
