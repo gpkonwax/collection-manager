@@ -42,8 +42,8 @@ const SERIES1_VARIANTS: { value: string; label: string }[] = [
   { value: 'base', label: 'Base' },
   { value: 'prism', label: 'Prism' },
   { value: 'sketch', label: 'Sketch' },
-  { value: 'collectors', label: 'Collectors' },
-  { value: 'gold', label: 'Gold' },
+  { value: 'collector', label: 'Collectors' },
+  { value: 'golden', label: 'Gold' },
 ];
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
