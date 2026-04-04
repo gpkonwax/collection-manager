@@ -319,7 +319,39 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
 
-  // Load saved order from localStorage on filter change
+  // Build binder grid: all templates with owned cards filled in, missing as placeholders
+  const binderGrid = useMemo(() => {
+    if (!binderView || !binderTemplates.length) return null;
+    const ownedByTemplate = new Map<string, SimpleAsset[]>();
+    for (const a of filtered) {
+      const tid = (a.idata as any)?.template_id || '';
+      if (tid) {
+        if (!ownedByTemplate.has(tid)) ownedByTemplate.set(tid, []);
+        ownedByTemplate.get(tid)!.push(a);
+      }
+      const key = `${a.cardid}:${a.quality.toLowerCase()}`;
+      if (a.cardid) {
+        if (!ownedByTemplate.has(key)) ownedByTemplate.set(key, []);
+        ownedByTemplate.get(key)!.push(a);
+      }
+    }
+
+    let filteredTemplates = binderTemplates;
+    if (categoryFilter === 'series1' && variantFilter !== 'all') {
+      const variantMap: Record<string, string> = { a: 'base', b: 'prism', c: 'sketch', d: 'collector', e: 'golden' };
+      const qualityName = variantMap[variantFilter] || '';
+      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === qualityName);
+    }
+
+    return filteredTemplates.map(template => {
+      const byTid = ownedByTemplate.get(template.templateId);
+      const byKey = ownedByTemplate.get(`${template.cardid}:${template.quality.toLowerCase()}`);
+      const owned = byTid || byKey || null;
+      return { template, owned };
+    });
+  }, [binderView, binderTemplates, filtered, categoryFilter, variantFilter]);
+
+
   useEffect(() => {
     const saved = loadOrder(categoryFilter, sourceFilter, filtered);
     setCustomOrder(saved);
