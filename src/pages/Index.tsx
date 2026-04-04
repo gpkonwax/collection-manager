@@ -380,6 +380,13 @@ export default function SimpleAssetsPage() {
                   {waxBalance.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} WAX
                 </span>
               </Button>
+              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Export card layout">
+                <Download className="h-4 w-4 mr-1" />Save Layout
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import card layout">
+                <Upload className="h-4 w-4 mr-1" />Load Layout
+              </Button>
+              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
               <Button onClick={logout} variant="ghost" size="sm" className="text-muted-foreground hover:text-cheese hover:bg-cheese/10 h-8 w-8 p-0">
                 <LogOut className="h-4 w-4" />
               </Button>
