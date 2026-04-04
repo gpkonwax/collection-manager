@@ -206,28 +206,37 @@ export default function SimpleAssetsPage() {
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
   // --- Grid / drag / filter state ---
+  const getStorageKey = useCallback((cat: string, src: string) =>
+    `gpk-order-${accountName}-${cat}-${src}`, [accountName]);
+
+  const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[]): string[] | null => {
+    try {
+      const raw = localStorage.getItem(getStorageKey(cat, src));
+      if (!raw) return null;
+      const saved: string[] = JSON.parse(raw);
+      if (!Array.isArray(saved)) return null;
+      const filteredIds = new Set(currentFiltered.map(a => a.id));
+      // Keep only IDs still in the filtered set (remove stale)
+      const valid = saved.filter(id => id === EMPTY || filteredIds.has(id));
+      // Append new cards not in saved order
+      const savedSet = new Set(saved);
+      const newIds = currentFiltered.filter(a => !savedSet.has(a.id)).map(a => a.id);
+      return [...valid, ...newIds];
+    } catch { return null; }
+  }, [getStorageKey]);
+
   const [customOrder, setCustomOrder] = useState<string[] | null>(null);
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const categories = useMemo(() => {
-    const fromAssets = new Set(assets.map((a) => a.category).filter((c) => c !== 'packs'));
-    for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
-    for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
-    return [...fromAssets].sort();
-  }, [assets, packs, atomicPacks]);
-
-  const filtered = useMemo(() => {
-    return assets.filter((a) => {
-      if (a.category === 'packs') return false;
-      if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
-      if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
-      if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      return true;
-    });
-  }, [assets, search, categoryFilter, sourceFilter]);
-
-  useEffect(() => { setCustomOrder(null); }, [search, categoryFilter, sourceFilter]);
+  // Save to localStorage whenever customOrder changes
+  useEffect(() => {
+    if (!accountName || customOrder === null) return;
+    try {
+      localStorage.setItem(getStorageKey(categoryFilter, sourceFilter), JSON.stringify(customOrder));
+    } catch { /* storage full */ }
+  }, [customOrder, accountName, categoryFilter, sourceFilter, getStorageKey]);
 
   const gridSlots = useMemo(() => {
     const base = customOrder ?? filtered.map((a) => a.id);
