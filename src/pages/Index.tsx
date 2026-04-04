@@ -343,9 +343,7 @@ export default function SimpleAssetsPage() {
 
     let filteredTemplates = binderTemplates;
     if (categoryFilter === 'series1' && variantFilter !== 'all') {
-      const variantMap: Record<string, string> = { a: 'base', b: 'prism', c: 'sketch', d: 'collector', e: 'golden' };
-      const qualityName = variantMap[variantFilter] || '';
-      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === qualityName);
+      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === variantFilter.toLowerCase());
     }
 
     return filteredTemplates.map(template => {
