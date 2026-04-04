@@ -98,7 +98,7 @@ export function useSimpleAssets(account: string | null) {
             id: row.id, owner: row.owner, author: row.author, category: row.category,
             name, image: images[0], images,
             cardid: String(combined.cardid ?? ''),
-            quality: normalizeGpkVariant(combined.variant, combined.quality),
+            quality: normalizeGpkVariant(combined.variant),
             idata, mdata,
             container: row.container || [], containerf: row.containerf || [],
             source: 'simpleassets' as const,
