@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Heart, Wallet, ChevronDown, Check } from 'lucide-react';
+import { Heart, Wallet, ChevronDown, Check, BookOpen } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,8 @@ import { useGpkAtomicAssets } from '@/hooks/useGpkAtomicAssets';
 import { useGpkPacks } from '@/hooks/useGpkPacks';
 import { useGpkAtomicPacks } from '@/hooks/useGpkAtomicPacks';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
+import { MissingCardPlaceholder } from '@/components/simpleassets/MissingCardPlaceholder';
+import { useBinderTemplates } from '@/hooks/useBinderTemplates';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
@@ -78,6 +81,7 @@ export default function SimpleAssetsPage() {
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [variantFilter, setVariantFilter] = useState('all');
+  const [binderView, setBinderView] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
@@ -134,6 +138,14 @@ export default function SimpleAssetsPage() {
     });
     return combined;
   }, [saAssets, aaAssets]);
+
+  // Binder view: fetch all templates for the current category
+  const binderSchema = binderView ? categoryFilter : null;
+  const { templates: binderTemplates, isLoading: binderLoading } = useBinderTemplates(
+    binderSchema !== 'all' ? binderSchema : null
+  );
+
+
 
   const selectedAssets = useMemo(() =>
     assets.filter(a => selectedIds.has(a.id)), [assets, selectedIds]);
@@ -307,7 +319,39 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
 
-  // Load saved order from localStorage on filter change
+  // Build binder grid: all templates with owned cards filled in, missing as placeholders
+  const binderGrid = useMemo(() => {
+    if (!binderView || !binderTemplates.length) return null;
+    const ownedByTemplate = new Map<string, SimpleAsset[]>();
+    for (const a of filtered) {
+      const tid = (a.idata as any)?.template_id || '';
+      if (tid) {
+        if (!ownedByTemplate.has(tid)) ownedByTemplate.set(tid, []);
+        ownedByTemplate.get(tid)!.push(a);
+      }
+      const key = `${a.cardid}:${a.quality.toLowerCase()}`;
+      if (a.cardid) {
+        if (!ownedByTemplate.has(key)) ownedByTemplate.set(key, []);
+        ownedByTemplate.get(key)!.push(a);
+      }
+    }
+
+    let filteredTemplates = binderTemplates;
+    if (categoryFilter === 'series1' && variantFilter !== 'all') {
+      const variantMap: Record<string, string> = { a: 'base', b: 'prism', c: 'sketch', d: 'collector', e: 'golden' };
+      const qualityName = variantMap[variantFilter] || '';
+      filteredTemplates = binderTemplates.filter(t => t.quality.toLowerCase() === qualityName);
+    }
+
+    return filteredTemplates.map(template => {
+      const byTid = ownedByTemplate.get(template.templateId);
+      const byKey = ownedByTemplate.get(`${template.cardid}:${template.quality.toLowerCase()}`);
+      const owned = byTid || byKey || null;
+      return { template, owned };
+    });
+  }, [binderView, binderTemplates, filtered, categoryFilter, variantFilter]);
+
+
   useEffect(() => {
     const saved = loadOrder(categoryFilter, sourceFilter, filtered);
     setCustomOrder(saved);
@@ -552,53 +596,95 @@ export default function SimpleAssetsPage() {
                 <CheckSquare className="h-4 w-4 mr-1" />
                 {selectionMode ? 'Cancel Select' : 'Select'}
               </Button>
+              {categoryFilter !== 'all' && (
+                <label className="flex items-center gap-2 whitespace-nowrap cursor-pointer">
+                  <Checkbox
+                    checked={binderView}
+                    onCheckedChange={(checked) => setBinderView(!!checked)}
+                    className="border-cheese/50 data-[state=checked]:bg-cheese data-[state=checked]:border-cheese"
+                  />
+                  <span className="text-sm text-cheese flex items-center gap-1">
+                    <BookOpen className="h-4 w-4" />
+                    Binder
+                  </span>
+                </label>
+              )}
             </div>
 
             {!isLoading && !error && (
               <>
-                <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-                {filtered.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-12">
-                    {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {gridSlots.map((slotId, idx) => {
-                      if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
-                      const asset = assetMap.get(slotId);
-                      if (!asset) return null;
-
-                      // Card is being dealt — show reserved empty slot with ref
-                      const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
-                      if (isInFlight) {
+                {binderView && binderGrid ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {binderGrid.filter(s => s.owned).length} / {binderGrid.length} collected
+                      {binderLoading && ' (loading templates...)'}
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {binderGrid.map(({ template, owned }) => {
+                        if (owned && owned.length > 0) {
+                          const asset = owned[0];
+                          return (
+                            <SimpleAssetCard
+                              key={`binder-${template.templateId}`}
+                              asset={asset}
+                              onClick={() => setSelectedAsset(asset)}
+                              draggable={false}
+                              selectionMode={selectionMode}
+                              selected={selectedIds.has(asset.id)}
+                              onSelect={toggleSelection}
+                            />
+                          );
+                        }
                         return (
-                          <div
-                            key={slotId}
-                            ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
-                            className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
-                          />
+                          <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
                         );
-                      }
-
-                      const justLanded = dealtIds.has(slotId);
-                      return (
-                        <SimpleAssetCard
-                          key={asset.id}
-                          asset={asset}
-                          onClick={() => setSelectedAsset(asset)}
-                          className={justLanded ? 'animate-card-glow' : ''}
-                          draggable={!selectionMode}
-                          selectionMode={selectionMode}
-                          selected={selectedIds.has(asset.id)}
-                          onSelect={toggleSelection}
-                          onDragStart={handleDragStart(idx)}
-                          onDragOver={handleDragOver(idx)}
-                          onDrop={handleDrop(idx)}
-                          onDragEnd={handleDragEnd}
-                        />
-                      );
-                    })}
-                  </div>
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+                    {filtered.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-12">
+                        {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {gridSlots.map((slotId, idx) => {
+                          if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+                          const asset = assetMap.get(slotId);
+                          if (!asset) return null;
+                          const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
+                          if (isInFlight) {
+                            return (
+                              <div
+                                key={slotId}
+                                ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
+                                className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                              />
+                            );
+                          }
+                          const justLanded = dealtIds.has(slotId);
+                          return (
+                            <SimpleAssetCard
+                              key={asset.id}
+                              asset={asset}
+                              onClick={() => setSelectedAsset(asset)}
+                              className={justLanded ? 'animate-card-glow' : ''}
+                              draggable={!selectionMode}
+                              selectionMode={selectionMode}
+                              selected={selectedIds.has(asset.id)}
+                              onSelect={toggleSelection}
+                              onDragStart={handleDragStart(idx)}
+                              onDragOver={handleDragOver(idx)}
+                              onDrop={handleDrop(idx)}
+                              onDragEnd={handleDragEnd}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
