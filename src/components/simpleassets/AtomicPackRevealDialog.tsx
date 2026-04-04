@@ -6,7 +6,7 @@ import { playRandomFart } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
-import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
+import { getIpfsUrl, extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
