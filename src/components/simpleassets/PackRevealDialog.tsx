@@ -179,7 +179,7 @@ export function PackRevealDialog({
       await session.transact({
         actions: [{
           account: 'gpk.topps', name: 'getcards', authorization: auth,
-          data: { from: actor, unboxing: unboxingId, card_ids: pendingRowIds },
+          data: { from: actor, unboxing: unboxingId, cardids: pendingRowIds },
         }],
       }, { transactPlugins: getTransactPlugins(session) });
       setPhase('done'); onComplete();
