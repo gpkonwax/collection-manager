@@ -30,6 +30,7 @@ import { getGpkVariantRank } from '@/lib/gpkVariant';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
+const ITEMS_PER_PAGE = 36;
 
 const CATEGORY_LABELS: Record<string, string> = {
   series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
@@ -89,6 +90,14 @@ export default function SimpleAssetsPage() {
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
+
+  // --- Pagination state ---
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_PAGE);
+  }, [search, categoryFilter, sourceFilter, variantFilter, binderView]);
 
   // --- Selection mode state ---
   const [selectionMode, setSelectionMode] = useState(false);
@@ -628,39 +637,55 @@ export default function SimpleAssetsPage() {
                       const collectors = binderGrid.filter(s => s.template.variant === 'collector');
                       const golden = binderGrid.filter(s => s.template.variant === 'golden');
 
-                      const renderGrid = (items: typeof binderGrid) => (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                          {items.map(({ template, owned }) => {
-                            if (owned && owned.length > 0) {
-                              const asset = owned[0];
-                              return (
-                                <SimpleAssetCard
-                                  key={`binder-${template.templateId}`}
-                                  asset={asset}
-                                  onClick={() => setSelectedAsset(asset)}
-                                  draggable={false}
-                                  selectionMode={selectionMode}
-                                  selected={selectedIds.has(asset.id)}
-                                  onSelect={toggleSelection}
-                                />
-                              );
-                            }
-                            return (
-                              <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
-                            );
-                          })}
-                        </div>
-                      );
+                      const renderGrid = (items: typeof binderGrid, sectionKey: string) => {
+                        const visible = items.slice(0, visibleCount);
+                        return (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                              {visible.map(({ template, owned }) => {
+                                if (owned && owned.length > 0) {
+                                  const asset = owned[0];
+                                  return (
+                                    <SimpleAssetCard
+                                      key={`binder-${template.templateId}`}
+                                      asset={asset}
+                                      onClick={() => setSelectedAsset(asset)}
+                                      draggable={false}
+                                      selectionMode={selectionMode}
+                                      selected={selectedIds.has(asset.id)}
+                                      onSelect={toggleSelection}
+                                    />
+                                  );
+                                }
+                                return (
+                                  <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+                                );
+                              })}
+                            </div>
+                            {items.length > visibleCount && (
+                              <div className="flex justify-center pt-4">
+                                <Button
+                                  onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                                  variant="outline"
+                                  className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                                >
+                                  Show More ({visibleCount} of {items.length})
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      };
 
                       return (
                         <div className="space-y-6">
-                          {regular.length > 0 && renderGrid(regular)}
+                          {regular.length > 0 && renderGrid(regular, 'regular')}
                           {collectors.length > 0 && (
                             <div className="space-y-2">
                               <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                 Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
                               </h3>
-                              {renderGrid(collectors)}
+                              {renderGrid(collectors, 'collectors')}
                             </div>
                           )}
                           {golden.length > 0 && (
@@ -668,7 +693,7 @@ export default function SimpleAssetsPage() {
                               <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                 Golden ({golden.filter(s => s.owned).length}/{golden.length})
                               </h3>
-                              {renderGrid(golden)}
+                              {renderGrid(golden, 'golden')}
                             </div>
                           )}
                         </div>
@@ -694,40 +719,53 @@ export default function SimpleAssetsPage() {
                         {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
                       </p>
                     ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {gridSlots.map((slotId, idx) => {
-                          if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
-                          const asset = assetMap.get(slotId);
-                          if (!asset) return null;
-                          const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
-                          if (isInFlight) {
+                      <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                          {gridSlots.slice(0, visibleCount).map((slotId, idx) => {
+                            if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+                            const asset = assetMap.get(slotId);
+                            if (!asset) return null;
+                            const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
+                            if (isInFlight) {
+                              return (
+                                <div
+                                  key={slotId}
+                                  ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
+                                  className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                                />
+                              );
+                            }
+                            const justLanded = dealtIds.has(slotId);
                             return (
-                              <div
-                                key={slotId}
-                                ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
-                                className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                              <SimpleAssetCard
+                                key={asset.id}
+                                asset={asset}
+                                onClick={() => setSelectedAsset(asset)}
+                                className={justLanded ? 'animate-card-glow' : ''}
+                                draggable={!selectionMode}
+                                selectionMode={selectionMode}
+                                selected={selectedIds.has(asset.id)}
+                                onSelect={toggleSelection}
+                                onDragStart={handleDragStart(idx)}
+                                onDragOver={handleDragOver(idx)}
+                                onDrop={handleDrop(idx)}
+                                onDragEnd={handleDragEnd}
                               />
                             );
-                          }
-                          const justLanded = dealtIds.has(slotId);
-                          return (
-                            <SimpleAssetCard
-                              key={asset.id}
-                              asset={asset}
-                              onClick={() => setSelectedAsset(asset)}
-                              className={justLanded ? 'animate-card-glow' : ''}
-                              draggable={!selectionMode}
-                              selectionMode={selectionMode}
-                              selected={selectedIds.has(asset.id)}
-                              onSelect={toggleSelection}
-                              onDragStart={handleDragStart(idx)}
-                              onDragOver={handleDragOver(idx)}
-                              onDrop={handleDrop(idx)}
-                              onDragEnd={handleDragEnd}
-                            />
-                          );
-                        })}
-                      </div>
+                          })}
+                        </div>
+                        {gridSlots.length > visibleCount && (
+                          <div className="flex justify-center pt-4">
+                            <Button
+                              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                              variant="outline"
+                              className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                            >
+                              Show More ({Math.min(visibleCount, gridSlots.length)} of {gridSlots.length})
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}
