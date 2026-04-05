@@ -290,19 +290,15 @@ export function PackRevealDialog({
               })}
             </div>
 
-            {allRevealed && isDemo && (
-              <div className="flex justify-center pt-2">
-                <Button onClick={handleClose} className="bg-primary hover:bg-primary/90 text-primary-foreground">Awesome! Close</Button>
-              </div>
-            )}
-
             {phase === 'collect' && (
               <div className="flex flex-col items-center gap-3 pt-2">
                 {collectError && <p className="text-xs text-destructive text-center">{collectError}</p>}
-                <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!session}>
+                <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!isDemo && !session}>
                   <Download className="h-4 w-4 mr-2" />Collect Assets
                 </Button>
-                <p className="text-xs text-muted-foreground text-center">Sign a transaction to deliver these cards to your wallet</p>
+                <p className="text-xs text-muted-foreground text-center">
+                  {isDemo ? 'Click to see your cards added to the collection' : 'Sign a transaction to deliver these cards to your wallet'}
+                </p>
               </div>
             )}
 
