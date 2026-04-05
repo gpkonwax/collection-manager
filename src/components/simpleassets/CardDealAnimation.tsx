@@ -10,21 +10,19 @@ interface CardDealAnimationProps {
 }
 
 const STACK_Y = 60;
-const SIT_DURATION = 4000;     // card sits on stack for 4 seconds
-const FLY_DURATION = 4000;     // flight takes 4 seconds
-const LAND_PAUSE = 2000;       // pause at destination so user can see it
-// Total ~10s per card
+const SIT_DURATION = 4000;
+const FLY_DURATION = 4000;
+const LAND_PAUSE = 2000;
+const SCROLL_SETTLE = 800;
 
 export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
   const [dealIndex, setDealIndex] = useState(0);
-  const [phase, setPhase] = useState<'sitting' | 'flying' | 'landed' | 'idle'>('idle');
+  const [phase, setPhase] = useState<'sitting' | 'scrolling' | 'flying' | 'landed' | 'idle'>('idle');
   const [flyTarget, setFlyTarget] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const hasCompletedRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const isFirstCardRef = useRef(true);
 
-  // Compute card size to match the grid cards
   const getCardSize = useCallback(() => {
-    // Try to measure from an existing grid cell
     for (const el of gridCellRefs.current.values()) {
       if (el) {
         const rect = el.getBoundingClientRect();
@@ -37,13 +35,11 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
   const [cardSize, setCardSize] = useState({ width: 160, height: 160 });
 
   useEffect(() => {
-    const size = getCardSize();
-    setCardSize(size);
+    setCardSize(getCardSize());
   }, [getCardSize]);
 
   const stackX = typeof window !== 'undefined' ? window.innerWidth / 2 - cardSize.width / 2 : 0;
 
-  // Auto-scroll to follow the card
   const scrollToElement = useCallback((top: number, height: number) => {
     const viewportH = window.innerHeight;
     const targetCenter = top + height / 2;
@@ -51,7 +47,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
   }, []);
 
-  // Main deal loop
   useEffect(() => {
     if (dealIndex >= cards.length) {
       if (!hasCompletedRef.current) {
@@ -63,52 +58,58 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     }
 
     if (phase === 'idle') {
-      // Start sitting phase - scroll to top to see the stack first
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      const delay = dealIndex === 0 ? 1500 : 300;
-      const timer = setTimeout(() => setPhase('sitting'), delay);
-      return () => clearTimeout(timer);
+      if (isFirstCardRef.current) {
+        isFirstCardRef.current = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const timer = setTimeout(() => setPhase('sitting'), 1500);
+        return () => clearTimeout(timer);
+      } else {
+        // Go straight to sitting, no scroll to top
+        setPhase('sitting');
+      }
+      return;
     }
 
     if (phase === 'sitting') {
-      // Card sits on top of stack for SIT_DURATION
+      const timer = setTimeout(() => setPhase('scrolling'), SIT_DURATION);
+      return () => clearTimeout(timer);
+    }
+
+    if (phase === 'scrolling') {
+      const card = cards[dealIndex];
+      const targetEl = gridCellRefs.current.get(card.id);
+      if (!targetEl) {
+        onCardDealt(card.id);
+        setPhase('idle');
+        setDealIndex(i => i + 1);
+        return;
+      }
+
+      // Scroll to destination first
+      const roughRect = targetEl.getBoundingClientRect();
+      const absTop = roughRect.top + window.scrollY;
+      scrollToElement(absTop, roughRect.height);
+
+      // Wait for scroll to settle, then measure fresh coords
       const timer = setTimeout(() => {
-        const card = cards[dealIndex];
-        const targetEl = gridCellRefs.current.get(card.id);
-        if (!targetEl) {
-          // No target found, skip
-          onCardDealt(card.id);
-          setPhase('idle');
-          setDealIndex(i => i + 1);
-          return;
-        }
-        const rect = targetEl.getBoundingClientRect();
-        setFlyTarget({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });
-
-        // Scroll to destination so user can see the card land
-        scrollToElement(rect.top, rect.height);
-
-        // Small delay to let scroll start, then fly
-        setTimeout(() => setPhase('flying'), 600);
-      }, SIT_DURATION);
+        const freshRect = targetEl.getBoundingClientRect();
+        setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
+        setPhase('flying');
+      }, SCROLL_SETTLE);
       return () => clearTimeout(timer);
     }
 
     if (phase === 'flying') {
-      // Wait for CSS transition to finish, then mark as landed
-      const timer = setTimeout(() => {
-        setPhase('landed');
-      }, FLY_DURATION + 200);
+      const timer = setTimeout(() => setPhase('landed'), FLY_DURATION + 200);
       return () => clearTimeout(timer);
     }
 
     if (phase === 'landed') {
-      // Pause at destination so user gets a good look
       const timer = setTimeout(() => {
         onCardDealt(cards[dealIndex].id);
         setFlyTarget(null);
-        setPhase('idle');
         setDealIndex(i => i + 1);
+        setPhase('idle');
       }, LAND_PAUSE);
       return () => clearTimeout(timer);
     }
@@ -125,81 +126,88 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
   const isLanded = phase === 'landed' && flyTarget;
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-50 pointer-events-none">
-      {/* Stack of upcoming cards */}
-      {stackCards.reverse().map((card, reverseIdx, arr) => {
-        const stackIdx = arr.length - 1 - reverseIdx;
-        const isTop = stackIdx === 0;
-        const cardMoving = isTop && (isFlying || isLanded);
+    <>
+      {/* Semi-transparent backdrop during flight */}
+      {(isFlying || isLanded) && (
+        <div className="fixed inset-0 z-40 bg-black/30 pointer-events-none" />
+      )}
 
-        const offset = stackIdx * 4;
-        const baseLeft = stackX - offset;
-        const baseTop = STACK_Y - offset;
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        {/* Stack */}
+        {stackCards.reverse().map((card, reverseIdx, arr) => {
+          const stackIdx = arr.length - 1 - reverseIdx;
+          const isTop = stackIdx === 0;
+          const cardMoving = isTop && (isFlying || isLanded);
 
-        const style: React.CSSProperties = cardMoving && flyTarget
-          ? {
-              position: 'fixed' as const,
-              left: flyTarget.left,
-              top: flyTarget.top,
-              width: flyTarget.width,
-              height: flyTarget.height,
-              zIndex: 200,
-              transition: `left ${FLY_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1), top ${FLY_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1), width ${FLY_DURATION}ms ease, height ${FLY_DURATION}ms ease`,
-            }
-          : {
-              position: 'fixed' as const,
-              left: baseLeft,
-              top: baseTop,
-              width: cardSize.width,
-              height: cardSize.height,
-              zIndex: 100 - stackIdx,
-              transition: 'none',
-            };
+          const offset = stackIdx * 4;
+          const baseLeft = stackX - offset;
+          const baseTop = STACK_Y - offset;
 
-        return (
-          <div
-            key={card.id}
-            className="rounded-lg overflow-hidden border border-border bg-card shadow-xl"
-            style={style}
-          >
-            <IpfsMedia url={card.image} alt={card.name} className="w-full h-full" context="card" />
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-              <p className="text-xs font-semibold truncate" style={{ color: 'white' }}>{card.name}</p>
+          const style: React.CSSProperties = cardMoving && flyTarget
+            ? {
+                position: 'fixed' as const,
+                left: flyTarget.left,
+                top: flyTarget.top,
+                width: flyTarget.width,
+                height: flyTarget.height,
+                zIndex: 200,
+                transition: `left ${FLY_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1), top ${FLY_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1), width ${FLY_DURATION}ms ease, height ${FLY_DURATION}ms ease`,
+              }
+            : {
+                position: 'fixed' as const,
+                left: baseLeft,
+                top: baseTop,
+                width: cardSize.width,
+                height: cardSize.height,
+                zIndex: 100 - stackIdx,
+                transition: 'none',
+              };
+
+          return (
+            <div
+              key={card.id}
+              className="rounded-lg overflow-hidden border border-border bg-card shadow-xl"
+              style={style}
+            >
+              <IpfsMedia url={card.image} alt={card.name} className="w-full h-full" context="card" />
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                <p className="text-xs font-semibold truncate" style={{ color: 'white' }}>{card.name}</p>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
 
-      {/* Counter badge */}
-      <div
-        className="fixed flex items-center justify-center rounded-full bg-cheese text-cheese-foreground text-sm font-bold shadow-lg"
-        style={{
-          left: stackX + cardSize.width - 12,
-          top: STACK_Y - 12,
-          width: 32,
-          height: 32,
-          zIndex: 201,
-        }}
-      >
-        {remaining.length}
-      </div>
-
-      {/* Card name overlay when sitting */}
-      {phase === 'sitting' && (
+        {/* Counter badge */}
         <div
-          className="fixed flex items-center justify-center pointer-events-none"
+          className="fixed flex items-center justify-center rounded-full bg-cheese text-cheese-foreground text-sm font-bold shadow-lg"
           style={{
-            left: stackX,
-            top: STACK_Y + cardSize.height + 8,
-            width: cardSize.width,
+            left: stackX + cardSize.width - 12,
+            top: STACK_Y - 12,
+            width: 32,
+            height: 32,
             zIndex: 201,
           }}
         >
-          <p className="text-sm font-bold text-foreground text-center bg-card/90 rounded-md px-3 py-1.5 border border-border shadow-md truncate max-w-[200px]">
-            {currentCard?.name}
-          </p>
+          {remaining.length}
         </div>
-      )}
-    </div>
+
+        {/* Card name when sitting */}
+        {phase === 'sitting' && (
+          <div
+            className="fixed flex items-center justify-center pointer-events-none"
+            style={{
+              left: stackX,
+              top: STACK_Y + cardSize.height + 8,
+              width: cardSize.width,
+              zIndex: 201,
+            }}
+          >
+            <p className="text-sm font-bold text-foreground text-center bg-card/90 rounded-md px-3 py-1.5 border border-border shadow-md truncate max-w-[200px]">
+              {currentCard?.name}
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
