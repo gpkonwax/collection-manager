@@ -45,6 +45,7 @@ interface PackRevealDialogProps {
   accountName: string;
   preOpenUnboxingIds: Set<number>;
   onComplete: (txId?: string | null) => void;
+  onDemoCollect?: () => void;
   demoCards?: RevealCard[];
   session?: Session | null;
 }
@@ -102,7 +103,7 @@ export async function fetchPendingNfts(owner: string): Promise<PendingNftRow[]> 
 
 export function PackRevealDialog({
   open, onOpenChange, packSymbol, packLabel, packImage,
-  accountName, preOpenUnboxingIds, onComplete, demoCards, session,
+  accountName, preOpenUnboxingIds, onComplete, onDemoCollect, demoCards, session,
 }: PackRevealDialogProps) {
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
@@ -112,6 +113,7 @@ export function PackRevealDialog({
   const [waitMessage, setWaitMessage] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
   const pollStartRef = useRef<number>(0);
+  const isDemo = !!(demoCards && demoCards.length > 0);
 
   const expectedCount = EXPECTED_CARDS[packSymbol] ?? 5;
   const boxtype = SYMBOL_TO_BOXTYPE[packSymbol];
@@ -202,12 +204,21 @@ export function PackRevealDialog({
   // Transition to collect
   useEffect(() => {
     if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
-      if (demoCards && demoCards.length > 0) return;
+      if (demoCards && demoCards.length > 0) {
+        setPhase('collect');
+        return;
+      }
       if (pendingRowIds.length > 0) setPhase('collect');
     }
   }, [phase, revealedCount, newCards.length, pendingRowIds, demoCards]);
 
   const handleCollect = useCallback(async () => {
+    if (isDemo) {
+      setPhase('done');
+      onOpenChange(false);
+      onDemoCollect?.();
+      return;
+    }
     if (!session || unboxingId === null || pendingRowIds.length === 0) return;
     setPhase('collecting'); setCollectError(null);
     const actor = String(session.actor);
@@ -227,11 +238,10 @@ export function PackRevealDialog({
       setCollectError(e instanceof Error ? e.message : 'Transaction failed');
       setPhase('collect');
     }
-  }, [session, unboxingId, pendingRowIds, onComplete]);
+  }, [session, unboxingId, pendingRowIds, onComplete, isDemo, onDemoCollect, onOpenChange]);
 
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
-  const isDemo = demoCards && demoCards.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={(v: boolean) => { if (!v) handleClose(); }}>
@@ -280,19 +290,15 @@ export function PackRevealDialog({
               })}
             </div>
 
-            {allRevealed && isDemo && (
-              <div className="flex justify-center pt-2">
-                <Button onClick={handleClose} className="bg-primary hover:bg-primary/90 text-primary-foreground">Awesome! Close</Button>
-              </div>
-            )}
-
             {phase === 'collect' && (
               <div className="flex flex-col items-center gap-3 pt-2">
                 {collectError && <p className="text-xs text-destructive text-center">{collectError}</p>}
-                <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!session}>
+                <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!isDemo && !session}>
                   <Download className="h-4 w-4 mr-2" />Collect Assets
                 </Button>
-                <p className="text-xs text-muted-foreground text-center">Sign a transaction to deliver these cards to your wallet</p>
+                <p className="text-xs text-muted-foreground text-center">
+                  {isDemo ? 'Click to see your cards added to the collection' : 'Sign a transaction to deliver these cards to your wallet'}
+                </p>
               </div>
             )}
 

@@ -34,6 +34,7 @@ interface GpkPackCardProps {
   session: Session | null;
   accountName: string;
   onSuccess?: (txId?: string | null) => void;
+  onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
 }
 
@@ -48,7 +49,7 @@ async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
   return ids;
 }
 
-export function GpkPackCard({ pack, session, accountName, onSuccess, collectionAssets = [] }: GpkPackCardProps) {
+export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [] }: GpkPackCardProps) {
   const series2Img = SERIES_2_IMAGES[pack.symbol];
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
@@ -61,13 +62,17 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, collectionA
   const hasMultiple = pack.amount > 1;
   const expectedCount = EXPECTED_CARDS[pack.symbol] ?? 5;
 
-  const demoCards = useMemo((): RevealCard[] => {
+  const demoAssetsSample = useMemo(() => {
     if (collectionAssets.length === 0) return [];
     const shuffled = [...collectionAssets].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, expectedCount).map((a) => ({
+    return shuffled.slice(0, expectedCount);
+  }, [collectionAssets, expectedCount]);
+
+  const demoCards = useMemo((): RevealCard[] => {
+    return demoAssetsSample.map((a) => ({
       asset_id: `demo-${a.id}`, name: a.name, image: a.image || null, rarity: a.quality || '',
     }));
-  }, [collectionAssets, expectedCount]);
+  }, [demoAssetsSample]);
 
   const handleOpen = useCallback(async () => {
     if (!session || !unboxType) return;
@@ -114,7 +119,8 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, collectionA
       <PackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
         packImage={series2Img} accountName={accountName} preOpenUnboxingIds={preOpenIds} onComplete={handleRevealComplete} session={session} />
       <PackRevealDialog open={demoRevealOpen} onOpenChange={setDemoRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
-        packImage={series2Img} accountName={accountName} preOpenUnboxingIds={new Set()} onComplete={() => {}} demoCards={demoCards} />
+        packImage={series2Img} accountName={accountName} preOpenUnboxingIds={new Set()} onComplete={() => {}} demoCards={demoCards}
+        onDemoCollect={() => onDemoCollect?.(demoAssetsSample)} />
       <PackBrowserDialog open={browserOpen} onOpenChange={setBrowserOpen} pack={pack} packImage={series2Img}
         session={session} accountName={accountName} snapshotUnboxingIds={snapshotUnboxingIds} onSuccess={onSuccess} />
     </>

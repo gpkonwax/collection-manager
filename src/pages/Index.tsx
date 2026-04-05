@@ -222,6 +222,18 @@ export default function SimpleAssetsPage() {
     await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
 
+  // --- Demo collect handler (triggers deal animation with existing assets) ---
+  const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
+    if (demoAssets.length === 0) return;
+    const cat = demoAssets[0].category;
+    if (cat) setCategoryFilter(cat);
+    setSearch('');
+    setSourceFilter('all');
+    setDealingCards(demoAssets);
+    setDealtIds(new Set());
+    setPendingSuccessInfo({ txId: null, count: demoAssets.length });
+  }, []);
+
   // --- Check for pending unclaimed NFTs on login ---
   useEffect(() => {
     if (!accountName) { setShowCollectUnclaimed(false); return; }
@@ -568,7 +580,7 @@ export default function SimpleAssetsPage() {
                 <div className="flex flex-wrap justify-center gap-4">
                   {packs.filter((p) => categoryFilter === 'all' || PACK_CATEGORY_MAP[p.symbol] === categoryFilter).map((pack) => (
                     <div key={pack.symbol} className="w-[calc(50%-0.5rem)] sm:w-48">
-                      <GpkPackCard pack={pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} collectionAssets={assets} />
+                      <GpkPackCard pack={pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets} />
                     </div>
                   ))}
                 </div>
