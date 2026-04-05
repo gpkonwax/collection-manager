@@ -637,29 +637,45 @@ export default function SimpleAssetsPage() {
                       const collectors = binderGrid.filter(s => s.template.variant === 'collector');
                       const golden = binderGrid.filter(s => s.template.variant === 'golden');
 
-                      const renderGrid = (items: typeof binderGrid) => (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                          {items.map(({ template, owned }) => {
-                            if (owned && owned.length > 0) {
-                              const asset = owned[0];
-                              return (
-                                <SimpleAssetCard
-                                  key={`binder-${template.templateId}`}
-                                  asset={asset}
-                                  onClick={() => setSelectedAsset(asset)}
-                                  draggable={false}
-                                  selectionMode={selectionMode}
-                                  selected={selectedIds.has(asset.id)}
-                                  onSelect={toggleSelection}
-                                />
-                              );
-                            }
-                            return (
-                              <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
-                            );
-                          })}
-                        </div>
-                      );
+                      const renderGrid = (items: typeof binderGrid, sectionKey: string) => {
+                        const visible = items.slice(0, visibleCount);
+                        return (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                              {visible.map(({ template, owned }) => {
+                                if (owned && owned.length > 0) {
+                                  const asset = owned[0];
+                                  return (
+                                    <SimpleAssetCard
+                                      key={`binder-${template.templateId}`}
+                                      asset={asset}
+                                      onClick={() => setSelectedAsset(asset)}
+                                      draggable={false}
+                                      selectionMode={selectionMode}
+                                      selected={selectedIds.has(asset.id)}
+                                      onSelect={toggleSelection}
+                                    />
+                                  );
+                                }
+                                return (
+                                  <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+                                );
+                              })}
+                            </div>
+                            {items.length > visibleCount && (
+                              <div className="flex justify-center pt-4">
+                                <Button
+                                  onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                                  variant="outline"
+                                  className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                                >
+                                  Show More ({visibleCount} of {items.length})
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      };
 
                       return (
                         <div className="space-y-6">
