@@ -77,19 +77,7 @@ export function useGpkAtomicAssets(account: string | null) {
         const combined = { ...templateData, ...raw.immutable_data, ...raw.mutable_data, ...raw.data };
         const name = combined.name || raw.name || `Asset #${raw.asset_id}`;
         const images = resolveAllImages(combined);
-        // Diagnostic: log raw metadata fields for Series 2
         const schemaName = raw.schema?.schema_name || '';
-        if (schemaName === 'series2' || schemaName === 'sticker') {
-          console.log('[AA-S2-DIAG]', {
-            asset_id: raw.asset_id, schema: schemaName,
-            rawVariant: combined.variant, rawQuality: combined.quality,
-            rawRarity: combined.rarity, rawType: combined.type,
-            cardid: combined.cardid,
-            templateVariant: raw.template?.immutable_data?.variant,
-            templateQuality: raw.template?.immutable_data?.quality,
-            allKeys: Object.keys(combined),
-          });
-        }
         return {
           id: raw.asset_id, owner: raw.owner, author: 'gpk.topps',
           category: schemaName,
