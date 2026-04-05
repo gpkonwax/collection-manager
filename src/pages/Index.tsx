@@ -133,6 +133,14 @@ export default function SimpleAssetsPage() {
     setVisibleCount(ITEMS_PER_PAGE);
   }, [search, categoryFilter, sourceFilter, variantFilter, binderView]);
 
+  // Expand visible count to show ALL grid slots when deal animation starts
+  // so every card placeholder is in the DOM and has a ref
+  useEffect(() => {
+    if (dealingCards.length > 0) {
+      setVisibleCount(Infinity);
+    }
+  }, [dealingCards]);
+
   // --- Selection mode state ---
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
