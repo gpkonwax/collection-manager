@@ -47,42 +47,44 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
         </DialogHeader>
-        {/* Front card */}
-        {images[0] && (
-          <div className="space-y-1 max-w-[400px] mx-auto">
-            <p className="text-xs font-semibold text-muted-foreground text-center">Front</p>
-            <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
-              <IpfsMedia
-                url={images[0]}
-                alt={`${asset.name} - Front`}
-                className="w-full h-full"
-                context="detail"
-                showSkeleton
-              />
+        <div className={`flex flex-col ${images.length > 1 ? 'md:flex-row' : ''} gap-6 items-start justify-center`}>
+          {/* Front card - vertical */}
+          {images[0] && (
+            <div className="space-y-1 w-full md:w-[320px] flex-shrink-0">
+              <p className="text-xs font-semibold text-muted-foreground text-center">Front</p>
+              <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                <IpfsMedia
+                  url={images[0]}
+                  alt={`${asset.name} - Front`}
+                  className="w-full h-full"
+                  context="detail"
+                  showSkeleton
+                />
+              </div>
             </div>
-          </div>
-        )}
-        {/* Back card - rotated 90° left so horizontal image displays correctly */}
-        {images[1] && (
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground text-center">Back</p>
-            <div className="bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center" style={{ aspectRatio: '4/3' }}>
-              <IpfsMedia
-                url={images[1]}
-                alt={`${asset.name} - Back`}
-                className="w-full h-full"
-                context="detail"
-                showSkeleton
-                style={{ transform: 'rotate(-90deg)', width: '133%', height: '133%', objectFit: 'contain' }}
-              />
+          )}
+          {/* Back card - displayed horizontally (image is stored rotated) */}
+          {images[1] && (
+            <div className="space-y-1 flex-1 min-w-0">
+              <p className="text-xs font-semibold text-muted-foreground text-center">Back</p>
+              <div className="bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                <IpfsMedia
+                  url={images[1]}
+                  alt={`${asset.name} - Back`}
+                  className="w-full h-auto"
+                  context="detail"
+                  showSkeleton
+                  style={{ transform: 'rotate(-90deg)' }}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         {mintDisplay && (
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-muted-foreground">Mint</span>
