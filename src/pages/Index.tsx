@@ -47,6 +47,19 @@ const SERIES1_VARIANTS: { value: string; label: string }[] = [
   { value: 'golden', label: 'Gold' },
 ];
 
+const SERIES2_VARIANTS: { value: string; label: string }[] = [
+  { value: 'base', label: 'Base' },
+  { value: 'raw', label: 'Raw' },
+  { value: 'prism', label: 'Prism' },
+  { value: 'slime', label: 'Slime' },
+  { value: 'gum', label: 'Gum' },
+  { value: 'vhs', label: 'VHS' },
+  { value: 'sketch', label: 'Sketch' },
+  { value: 'tiger stripe', label: 'Tiger Stripe' },
+  { value: 'tiger claw', label: 'Tiger Claw' },
+  { value: 'collector', label: 'Collectors' },
+];
+
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
   GPKTWOA: 'series2', GPKTWOB: 'series2', GPKTWOC: 'series2',
