@@ -212,6 +212,12 @@ export function PackRevealDialog({
   }, [phase, revealedCount, newCards.length, pendingRowIds, demoCards]);
 
   const handleCollect = useCallback(async () => {
+    if (isDemo) {
+      setPhase('done');
+      onOpenChange(false);
+      onDemoCollect?.();
+      return;
+    }
     if (!session || unboxingId === null || pendingRowIds.length === 0) return;
     setPhase('collecting'); setCollectError(null);
     const actor = String(session.actor);
@@ -231,7 +237,7 @@ export function PackRevealDialog({
       setCollectError(e instanceof Error ? e.message : 'Transaction failed');
       setPhase('collect');
     }
-  }, [session, unboxingId, pendingRowIds, onComplete]);
+  }, [session, unboxingId, pendingRowIds, onComplete, isDemo, onDemoCollect, onOpenChange]);
 
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
