@@ -679,13 +679,13 @@ export default function SimpleAssetsPage() {
 
                       return (
                         <div className="space-y-6">
-                          {regular.length > 0 && renderGrid(regular)}
+                          {regular.length > 0 && renderGrid(regular, 'regular')}
                           {collectors.length > 0 && (
                             <div className="space-y-2">
                               <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                 Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
                               </h3>
-                              {renderGrid(collectors)}
+                              {renderGrid(collectors, 'collectors')}
                             </div>
                           )}
                           {golden.length > 0 && (
@@ -693,7 +693,7 @@ export default function SimpleAssetsPage() {
                               <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                 Golden ({golden.filter(s => s.owned).length}/{golden.length})
                               </h3>
-                              {renderGrid(golden)}
+                              {renderGrid(golden, 'golden')}
                             </div>
                           )}
                         </div>
