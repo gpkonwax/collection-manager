@@ -344,7 +344,8 @@ export default function SimpleAssetsPage() {
     return assets.filter((a) => {
       if (a.category === 'packs') return false;
       if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
-      if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
       if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all' && a.quality.toLowerCase() !== variantFilter.toLowerCase()) return false;
       return true;
