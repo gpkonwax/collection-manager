@@ -57,8 +57,19 @@ const SERIES2_VARIANTS: { value: string; label: string }[] = [
   { value: 'sketch', label: 'Sketch' },
   { value: 'tiger stripe', label: 'Tiger Stripe' },
   { value: 'tiger claw', label: 'Tiger Claw' },
+  { value: 'returning', label: 'Returning' },
+  { value: 'error', label: 'Error' },
+  { value: 'originalart', label: 'Original Art' },
+  { value: 'relic', label: 'Relic' },
+  { value: 'promo', label: 'Promo' },
   { value: 'collector', label: 'Collectors' },
+  { value: 'golden', label: 'Golden' },
 ];
+
+// Schemas that should be grouped under a category for filtering
+const SCHEMA_TO_CATEGORY: Record<string, string> = {
+  exotic: 'series2',
+};
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
@@ -333,7 +344,8 @@ export default function SimpleAssetsPage() {
     return assets.filter((a) => {
       if (a.category === 'packs') return false;
       if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
-      if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
       if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all' && a.quality.toLowerCase() !== variantFilter.toLowerCase()) return false;
       return true;
@@ -646,7 +658,7 @@ export default function SimpleAssetsPage() {
                       </Button>
                     </div>
                     {(() => {
-                      const showGoldenSection = categoryFilter === 'series1';
+                      const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
                       const regular = binderGrid.filter(
                         (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
                       );

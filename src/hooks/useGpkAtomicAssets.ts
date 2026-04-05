@@ -77,9 +77,10 @@ export function useGpkAtomicAssets(account: string | null) {
         const combined = { ...templateData, ...raw.immutable_data, ...raw.mutable_data, ...raw.data };
         const name = combined.name || raw.name || `Asset #${raw.asset_id}`;
         const images = resolveAllImages(combined);
+        const schemaName = raw.schema?.schema_name || '';
         return {
           id: raw.asset_id, owner: raw.owner, author: 'gpk.topps',
-          category: raw.schema?.schema_name || '',
+          category: schemaName,
           name, image: images[0], images,
           cardid: String(combined.cardid ?? ''),
           quality: normalizeGpkVariant(combined.variant),
