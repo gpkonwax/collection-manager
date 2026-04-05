@@ -91,6 +91,14 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
+  // --- Pagination state ---
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_PAGE);
+  }, [search, categoryFilter, sourceFilter, variantFilter, binderView]);
+
   // --- Selection mode state ---
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
