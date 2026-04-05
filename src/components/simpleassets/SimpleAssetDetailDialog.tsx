@@ -47,7 +47,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
@@ -64,31 +64,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                 showSkeleton
               />
             );
-
-            if (i === 1) {
-              // Back image: show in landscape 4:3 frame, rotated 90° CW
-              // The source image is 3:4 portrait; after 90° CW rotation it fills 4:3 landscape
-              return (
-                <div key={i} className="space-y-1 shrink-0" style={{ width: '533px' }}>
-                  <p className="text-xs font-semibold text-cheese text-center">{label}</p>
-                  <div className="aspect-[4/3] bg-muted/30 rounded-lg overflow-hidden relative">
-                    <div
-                      className="absolute inset-0 flex items-center justify-center"
-                    >
-                      <div
-                        style={{
-                          width: '400px',
-                          height: '533px',
-                          transform: 'rotate(90deg)',
-                        }}
-                      >
-                        {media}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: '400px' }}>
