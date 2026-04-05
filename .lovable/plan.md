@@ -1,47 +1,72 @@
 
+Goal: remove the long wait when opening NFT details and make animated Prism/Collector cards play smoothly again.
 
-## Footer with Donate Button and Modal
+What I found
+- The detail dialog only switches IPFS gateways after the browser hard-fails an image. If a gateway hangs, the back image can sit there for a very long time before anything changes.
+- There is already an `IMAGE_LOAD_TIMEOUT` config, but it is not being used by the actual image components.
+- IPFS fallback logic is duplicated across cards, placeholders, detail view, and deal animation, so each part behaves differently and can restart from a bad gateway.
+- Animated cards are still rendered as plain `<img>` GIFs. The grid currently forces eager/sync loading for them, which can make multiple animated cards feel chunky.
+- The app already has utilities for video detection/cached media in other areas, but the main asset hooks/UI are not using that richer media path.
+- Opening the detail dialog also triggers a Radix ref warning, which is extra noise and worth cleaning while touching that flow.
 
-### What gets built
+Implementation plan
+1. Centralize media loading
+- Create one shared IPFS media loader/hook used by cards, detail dialog, missing placeholders, and deal animation.
+- Make it advance on timeout as well as `onError`, instead of waiting forever on a stalled gateway.
+- Cache the last successful gateway per CID/path so once one side of a card loads, the other side starts from the working gateway instead of retrying from the bad one.
 
-A footer at the bottom of the page with the donation blurb and a "Donate" button. When clicked, a `DonateDialog` modal opens with two tabs: **Tokens** and **NFTs**.
+2. Speed up NFT detail view
+- Update `SimpleAssetDetailDialog` to preload all card media as soon as the dialog opens.
+- Add visible loading states per side so users see progress immediately instead of a blank area.
+- For detail view specifically, use a more aggressive fallback strategy so the back image resolves quickly.
+- Keep raw JSON toggle and metadata behavior unchanged.
 
-### Footer (`src/pages/Index.tsx`)
-- Add a footer section below all existing content (before the floating selection bar)
-- Centered text with the blurb: *"This Project was built by the $CHEESE team..."*
-- A cheese-themed "Donate" button that opens the modal
-- Styled to match the existing dark/cheese theme
+3. Improve animated card playback
+- Extend asset parsing so cards can carry richer media info, not just a single image string:
+  - front/back still image URLs
+  - optional animation/video URL when metadata provides one
+  - media type flag
+- Prefer video playback for animated variants when metadata includes a video source.
+- If only GIF exists, stop forcing heavy decode behavior across many cards and only autoplay animation for cards actually on screen.
 
-### DonateDialog (`src/components/wallet/DonateDialog.tsx` — new file)
-- Header: "Donate WAX or unopened GPK packs to $CHEESE Team"
-- Recipient field pre-filled with `gpkcheesegpk` (read-only for now)
-- Two tabs using the existing `Tabs` component:
+4. Build a shared media renderer
+- Replace direct `<img>` usage in the main NFT card path with a shared component that can render:
+  - static image
+  - animated GIF fallback
+  - looping muted `<video>` when available
+- Use lightweight grid settings (`lazy`/`metadata`) and stronger detail settings (`auto`/preload on open).
+- Pause or avoid mounting offscreen animated media so the browser is not decoding lots of animations at once.
 
-**Token Tab:**
-- Token selector dropdown (WAX at 8 precision via `eosio.token`, CHEESE at 4 precision via `cheeseburger`)
-- Amount input (number)
-- Send button → calls `transferToken` from `WaxContext` with the selected token's contract/symbol/precision, recipient, amount, and memo `"donation"`
+5. Reduce page-wide slowdowns
+- Reuse the new loader in `MissingCardPlaceholder` so binder view is not filling the page with stalled IPFS requests.
+- Reuse it in `CardDealAnimation` so reveal/deal animation does not reintroduce the same slow media behavior.
+- If the page still hiccups after media fixes, do a small follow-up refactor so periodic wallet balance updates do not rerender the whole collection screen.
 
-**NFT Tab:**
-- Fetches user's AtomicAssets + SimpleAssets using existing hooks (`useSimpleAssets`, `useGpkAtomicAssets`)
-- Displays selectable card grid (thumbnails with checkboxes, similar to batch transfer)
-- Send button → builds combined transaction (same pattern as `TransferDialog.tsx`):
-  - `simpleassets::transfer` for SA assets
-  - `atomicassets::transfer` for AA assets
-- On success: show `TransactionSuccessDialog`
+6. Cleanup and regression checks
+- Fix the dialog ref warning in the shared dialog wrapper/components while updating the detail modal.
+- Verify normal grid, binder view, selection mode, drag/drop, and detail modal still work after media changes.
 
-### Files to change
+Technical details
+- Likely files touched:
+  - `src/lib/ipfsGateways.ts`
+  - `src/hooks/useSimpleAssets.ts`
+  - `src/hooks/useGpkAtomicAssets.ts`
+  - `src/components/simpleassets/SimpleAssetCard.tsx`
+  - `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
+  - `src/components/simpleassets/MissingCardPlaceholder.tsx`
+  - `src/components/simpleassets/CardDealAnimation.tsx`
+  - `src/components/ui/dialog.tsx`
+- New shared shape I’d introduce on assets:
+  - primary thumbnail/front
+  - optional back image
+  - optional animation/video source
+  - media type / playback hint
+- Fallback strategy:
+  - grid: short timeout + cached gateway preference
+  - detail: preload immediately + faster fallback escalation
+- No backend changes needed.
 
-| File | Change |
-|------|--------|
-| `src/components/wallet/DonateDialog.tsx` | **New.** Modal with token/NFT tabs, sends to `gpkcheesegpk` |
-| `src/pages/Index.tsx` | Add footer section + render `DonateDialog` with open state |
-
-### Technical notes
-- Reuses `transferToken` from WaxContext for token donations
-- Reuses the same multi-action transaction pattern from `TransferDialog` for NFT donations
-- NFT grid in the modal shows small thumbnails with checkboxes (scrollable area)
-- WAX token: contract `eosio.token`, symbol `WAX`, precision 8
-- CHEESE token: contract `cheeseburger`, symbol `CHEESE`, precision 4
-- All buttons/inputs styled with cheese theme to match existing UI
-
+Success criteria
+- Opening an NFT detail should show the back within a few seconds when any healthy gateway is available.
+- Prism/Collector animations should look continuous instead of stop-start when visible in the grid.
+- Binder placeholders and other IPFS-heavy views should feel more stable, not slower.
