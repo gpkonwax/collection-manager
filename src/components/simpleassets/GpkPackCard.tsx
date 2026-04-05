@@ -34,6 +34,7 @@ interface GpkPackCardProps {
   session: Session | null;
   accountName: string;
   onSuccess?: (txId?: string | null) => void;
+  onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
 }
 
