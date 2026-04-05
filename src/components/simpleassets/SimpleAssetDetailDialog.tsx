@@ -47,7 +47,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
@@ -61,6 +61,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   url={imgUrl}
                   alt={`${asset.name} - ${IMAGE_LABELS[i] || `Image ${i + 1}`}`}
                   className="w-full h-full"
+                  style={i === 1 ? { transform: 'rotate(90deg)' } : undefined}
                   context="detail"
                   showSkeleton
                 />
