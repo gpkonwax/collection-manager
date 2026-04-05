@@ -61,6 +61,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   url={imgUrl}
                   alt={`${asset.name} - ${IMAGE_LABELS[i] || `Image ${i + 1}`}`}
                   className="w-full h-full"
+                  style={i === 1 ? { transform: 'rotate(90deg)' } : undefined}
                   context="detail"
                   showSkeleton
                 />
