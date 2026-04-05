@@ -57,8 +57,19 @@ const SERIES2_VARIANTS: { value: string; label: string }[] = [
   { value: 'sketch', label: 'Sketch' },
   { value: 'tiger stripe', label: 'Tiger Stripe' },
   { value: 'tiger claw', label: 'Tiger Claw' },
+  { value: 'returning', label: 'Returning' },
+  { value: 'error', label: 'Error' },
+  { value: 'originalart', label: 'Original Art' },
+  { value: 'relic', label: 'Relic' },
+  { value: 'promo', label: 'Promo' },
   { value: 'collector', label: 'Collectors' },
+  { value: 'golden', label: 'Golden' },
 ];
+
+// Schemas that should be grouped under a category for filtering
+const SCHEMA_TO_CATEGORY: Record<string, string> = {
+  exotic: 'series2',
+};
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
