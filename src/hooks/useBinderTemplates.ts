@@ -23,6 +23,11 @@ function resolveImage(raw: string): string {
   return '/placeholder.svg';
 }
 
+const ALLOWED_SCHEMA_VARIANTS: Record<string, Set<string>> = {
+  series1: new Set(['base', 'prism', 'sketch', 'collector', 'golden']),
+  series2: new Set(['base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch', 'tiger stripe', 'tiger claw', 'collector']),
+};
+
 export function useBinderTemplates(schema: string | null) {
   const [templates, setTemplates] = useState<BinderTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,8 +70,13 @@ export function useBinderTemplates(schema: string | null) {
         };
       });
 
+      const allowedVariants = ALLOWED_SCHEMA_VARIANTS[schema];
+      const filteredParsed = allowedVariants
+        ? parsed.filter((template) => allowedVariants.has(template.variant))
+        : parsed;
+
       const seen = new Map<string, BinderTemplate>();
-      for (const t of parsed) {
+      for (const t of filteredParsed) {
         if (t.cardid) {
           const dedupeKey = `${t.cardid}:${t.quality}:${t.variant}`;
           if (!seen.has(dedupeKey)) {

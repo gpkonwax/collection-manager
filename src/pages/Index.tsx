@@ -646,67 +646,90 @@ export default function SimpleAssetsPage() {
                       </Button>
                     </div>
                     {(() => {
-                      const regular = binderGrid.filter(s => s.template.variant !== 'collector' && s.template.variant !== 'golden');
-                      const collectors = binderGrid.filter(s => s.template.variant === 'collector');
-                      const golden = binderGrid.filter(s => s.template.variant === 'golden');
+                      const showGoldenSection = categoryFilter === 'series1';
+                      const regular = binderGrid.filter(
+                        (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
+                      );
+                      const collectors = binderGrid.filter((s) => s.template.variant === 'collector');
+                      const golden = showGoldenSection ? binderGrid.filter((s) => s.template.variant === 'golden') : [];
+                      const totalItems = regular.length + collectors.length + golden.length;
 
-                      const renderGrid = (items: typeof binderGrid, sectionKey: string) => {
-                        const visible = items.slice(0, visibleCount);
-                        return (
-                          <>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                              {visible.map(({ template, owned }) => {
-                                if (owned && owned.length > 0) {
-                                  const asset = owned[0];
-                                  return (
-                                    <SimpleAssetCard
-                                      key={`binder-${template.templateId}`}
-                                      asset={asset}
-                                      onClick={() => setSelectedAsset(asset)}
-                                      draggable={false}
-                                      selectionMode={selectionMode}
-                                      selected={selectedIds.has(asset.id)}
-                                      onSelect={toggleSelection}
-                                    />
-                                  );
-                                }
-                                return (
-                                  <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
-                                );
-                              })}
-                            </div>
-                            {items.length > visibleCount && (
-                              <div className="flex justify-center pt-4">
-                                <Button
-                                  onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-                                  variant="outline"
-                                  className="border-cheese/50 text-cheese hover:bg-cheese/10"
-                                >
-                                  Show More ({visibleCount} of {items.length})
-                                </Button>
-                              </div>
-                            )}
-                          </>
-                        );
-                      };
+                      const renderGrid = (items: typeof binderGrid) => (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                          {items.map(({ template, owned }) => {
+                            if (owned && owned.length > 0) {
+                              const asset = owned[0];
+                              return (
+                                <SimpleAssetCard
+                                  key={`binder-${template.templateId}`}
+                                  asset={asset}
+                                  onClick={() => setSelectedAsset(asset)}
+                                  draggable={false}
+                                  selectionMode={selectionMode}
+                                  selected={selectedIds.has(asset.id)}
+                                  onSelect={toggleSelection}
+                                />
+                              );
+                            }
+                            return (
+                              <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+                            );
+                          })}
+                        </div>
+                      );
+
+                      const sections = [
+                        { key: 'regular', items: regular, heading: null },
+                        {
+                          key: 'collectors',
+                          items: collectors,
+                          heading: (
+                            <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                              Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
+                            </h3>
+                          ),
+                        },
+                        ...(golden.length > 0 ? [{
+                          key: 'golden',
+                          items: golden,
+                          heading: (
+                            <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                              Golden ({golden.filter(s => s.owned).length}/{golden.length})
+                            </h3>
+                          ),
+                        }] : []),
+                      ];
+
+                      let remaining = visibleCount;
 
                       return (
                         <div className="space-y-6">
-                          {regular.length > 0 && renderGrid(regular, 'regular')}
-                          {collectors.length > 0 && (
-                            <div className="space-y-2">
-                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-                                Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
-                              </h3>
-                              {renderGrid(collectors, 'collectors')}
-                            </div>
-                          )}
-                          {golden.length > 0 && (
-                            <div className="space-y-2">
-                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-                                Golden ({golden.filter(s => s.owned).length}/{golden.length})
-                              </h3>
-                              {renderGrid(golden, 'golden')}
+                          {sections.map((section) => {
+                            const visible = section.items.slice(0, Math.max(remaining, 0));
+                            remaining = Math.max(remaining - visible.length, 0);
+                            if (visible.length === 0) return null;
+
+                            if (!section.heading) {
+                              return <div key={section.key}>{renderGrid(visible)}</div>;
+                            }
+
+                            return (
+                              <div key={section.key} className="space-y-2">
+                                {section.heading}
+                                {renderGrid(visible)}
+                              </div>
+                            );
+                          })}
+
+                          {totalItems > visibleCount && (
+                            <div className="flex justify-center pt-4">
+                              <Button
+                                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                                variant="outline"
+                                className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                              >
+                                Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
+                              </Button>
                             </div>
                           )}
                         </div>

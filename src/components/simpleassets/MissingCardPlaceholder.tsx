@@ -23,6 +23,8 @@ export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps
             alt={template.name}
             className="w-full h-full grayscale brightness-50"
             context="card"
+            loading="eager"
+            showSkeleton
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60">
             <ExternalLink className="h-6 w-6 text-cheese mb-1" />
