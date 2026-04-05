@@ -94,6 +94,16 @@ export function useSimpleAssets(account: string | null) {
           const combined = { ...idata, ...mdata };
           const name = (combined.name as string) || `Asset #${row.id}`;
           const images = resolveAllImages(combined);
+          // Diagnostic: log raw metadata fields for Series 2
+          if (row.category === 'series2' || row.category === 'sticker') {
+            console.log('[SA-S2-DIAG]', {
+              id: row.id, category: row.category,
+              rawVariant: combined.variant, rawQuality: combined.quality,
+              rawRarity: combined.rarity, rawType: combined.type,
+              cardid: combined.cardid,
+              allKeys: Object.keys(combined),
+            });
+          }
           return {
             id: row.id, owner: row.owner, author: row.author, category: row.category,
             name, image: images[0], images,
