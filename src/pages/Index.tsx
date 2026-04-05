@@ -558,9 +558,68 @@ export default function SimpleAssetsPage() {
         </div>
 
         {!isConnected ? (
-          <div className="flex flex-col items-center justify-center py-20 space-y-4">
-            <p className="text-muted-foreground">Connect your wallet to view your SimpleAssets NFTs.</p>
-            <Button onClick={login} className="bg-cheese hover:bg-cheese/90 text-cheese-foreground">Connect Wallet</Button>
+          <div className="space-y-16 py-8">
+            {/* Hero Section */}
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cheese/30 bg-cheese/10 text-sm text-cheese">
+                <Sparkles className="h-4 w-4" />
+                The first NFT project ever on WAX
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-tight max-w-3xl">
+                The Ultimate GPK Collection Manager
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Open packs, organize your collection, track what you own and what you need — all in one place. 
+                Free to use, built by the <span className="text-cheese font-semibold">$CHEESE</span> team for the WAX community.
+              </p>
+              <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
+                <Wallet className="h-5 w-5 mr-2" />
+                Connect Wallet
+              </Button>
+            </div>
+
+            {/* Feature Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              <FeatureCard
+                icon={<BookOpen className="h-6 w-6 text-cheese" />}
+                title="Binder View"
+                description="See your full collection at a glance. Owned cards shown in full color, missing cards as greyscale placeholders linked directly to AtomicHub so you can buy what you need."
+              />
+              <FeatureCard
+                icon={<Package className="h-6 w-6 text-cheese" />}
+                title="All Topps Packs Supported"
+                description="Open Series 1 & 2 packs, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight and more. Both SimpleAssets and AtomicAssets pack formats."
+              />
+              <FeatureCard
+                icon={<GripVertical className="h-6 w-6 text-cheese" />}
+                title="Drag & Drop Layouts"
+                description="Arrange your cards exactly how you want them. Export and import your custom layouts as JSON to back up or share your arrangements."
+              />
+              <FeatureCard
+                icon={<Filter className="h-6 w-6 text-cheese" />}
+                title="Filter by Series & Variant"
+                description="Filter by Series 1, Series 2, and all sub-collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more."
+              />
+              <FeatureCard
+                icon={<Layers className="h-6 w-6 text-cheese" />}
+                title="SimpleAssets & AtomicAssets"
+                description="Full support for both NFT standards on WAX. Your entire GPK collection in one unified view regardless of which contract holds them."
+              />
+              <FeatureCard
+                icon={<Users className="h-6 w-6 text-cheese" />}
+                title="Free Community Tool"
+                description="No fees, no sign-ups. A WAX community asset built by the $CHEESE team — the first project ever launched on the WAX blockchain."
+              />
+            </div>
+
+            {/* CTA */}
+            <div className="text-center space-y-4">
+              <p className="text-muted-foreground">Connect your WAX wallet to get started — it only takes a few seconds.</p>
+              <Button onClick={login} className="bg-cheese hover:bg-cheese/90 text-cheese-foreground">
+                <Wallet className="h-4 w-4 mr-2" />
+                Connect Wallet
+              </Button>
+            </div>
           </div>
         ) : (
           <>
