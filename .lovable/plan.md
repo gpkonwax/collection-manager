@@ -1,23 +1,34 @@
 
 
-## Fix Series 2: Slow Front Loading + Remove Back Rotation + Shrink Modal
+## Investigate & Fix Series 2 Metadata Inconsistencies
 
-### Problem
-1. **Front images load too slowly** — The card-context timeout starts at 12s per gateway, and with 5 gateways that's potentially 60s before finding a working one. Pinata (gateway 0) may be consistently slow for these assets.
-2. **Back images are rotated** — The back image has a 90° rotation applied that was never requested for series 2 cards. They should display vertically like the front.
-3. **Modal is too wide** — At 1200px it's oversized now that both images will be portrait orientation.
+### Problem identified
 
-### Changes
+The `SimpleAsset` interface stores the visual variant (base, prism, etc.) in a field called `quality`, while the actual card side (a/b) lives in `idata.quality`. This naming collision was already addressed for Series 1 but may cause mismatches for Series 2, where:
 
-**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**
-- Remove the entire `if (i === 1)` rotation block (lines 68-90). Render back images identically to front images: same 400px-wide, 3:4 aspect portrait container.
-- Shrink modal from `sm:max-w-[1200px]` to `sm:max-w-[900px]` since both images are now portrait side-by-side.
+1. **Binder matching** builds keys as `${cardid}:${side}:${variant}` — if the `idata.quality` field is missing or named differently in SimpleAssets vs AtomicAssets templates, cards won't match their placeholders.
+2. **Variant normalization** — Series 2 has more variants with inconsistent naming across protocols (e.g., "Tiger Stripe" vs "tiger stripe", "Collectors" vs "collector"). If SimpleAssets idata uses different casing or field names than AtomicAssets template immutable_data, the normalization may produce different results.
 
-**`src/lib/ipfsGateways.ts`**
-- Reduce `card` timeout from 12000ms to 6000ms so dead gateways are skipped faster.
-- Reduce `max` from 12000ms to 8000ms.
+### Plan
 
-### Result
-- Both front and back display as vertical portraits side-by-side in a narrower modal.
-- Dead gateways are abandoned twice as fast, so images load sooner.
+**Step 1: Add diagnostic logging (temporary)**
+In `useSimpleAssets.ts` and `useGpkAtomicAssets.ts`, add `console.log` for Series 2 assets showing the raw `variant`, `quality`, and `cardid` fields from the metadata before normalization. This will reveal the actual field names and values used by each protocol.
+
+**Step 2: Fix field name resolution**
+Based on what the logs reveal, update both hooks to check alternate field names. Likely fixes:
+- In `useSimpleAssets.ts`: check for `combined.variant || combined.rarity || combined.type` as fallbacks
+- In `useGpkAtomicAssets.ts`: ensure template immutable_data fields are correctly merged and the `variant` field is resolved consistently
+- Both: ensure the a/b `quality` side is read from the correct source field
+
+**Step 3: Strengthen normalization**
+In `gpkVariant.ts`, add any additional aliases discovered from the logs (e.g., "Tiger_Stripe" → "tiger stripe", "Collectors" → "collector").
+
+**Step 4: Remove diagnostic logging**
+Clean up the console.logs after confirming the fix.
+
+### Files to modify
+- `src/hooks/useSimpleAssets.ts` — add fallback field checks for variant
+- `src/hooks/useGpkAtomicAssets.ts` — same
+- `src/lib/gpkVariant.ts` — expand alias map if needed
+- `src/pages/Index.tsx` — verify binder matching key construction handles both protocols consistently
 
