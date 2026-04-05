@@ -45,6 +45,7 @@ interface PackRevealDialogProps {
   accountName: string;
   preOpenUnboxingIds: Set<number>;
   onComplete: (txId?: string | null) => void;
+  onDemoCollect?: () => void;
   demoCards?: RevealCard[];
   session?: Session | null;
 }
