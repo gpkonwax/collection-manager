@@ -38,6 +38,9 @@ const EXTRA_SCHEMAS: Record<string, string[]> = {
   series2: ['exotic'],
 };
 
+// Only keep these variants from the exotic schema; all others already exist in series2
+const EXOTIC_ONLY_VARIANTS = new Set(['tiger stripe', 'tiger claw']);
+
 export function useBinderTemplates(schema: string | null) {
   const [templates, setTemplates] = useState<BinderTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
