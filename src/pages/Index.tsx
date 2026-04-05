@@ -162,6 +162,14 @@ export default function SimpleAssetsPage() {
   const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
+  // Expand visible count to show ALL grid slots when deal animation starts
+  // so every card placeholder is in the DOM and has a ref
+  useEffect(() => {
+    if (dealingCards.length > 0) {
+      setVisibleCount(Infinity);
+    }
+  }, [dealingCards]);
+
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
 
