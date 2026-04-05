@@ -3,14 +3,17 @@ import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT } from '@/lib/ipfsGa
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
+// Global last-known-good gateway so new hashes skip dead gateways
+let lastGoodGatewayIndex = 0;
 
 export function getCachedGatewayIndex(hash: string | null): number {
-  if (!hash) return 0;
-  return gatewayCache.get(hash) ?? 0;
+  if (!hash) return lastGoodGatewayIndex;
+  return gatewayCache.get(hash) ?? lastGoodGatewayIndex;
 }
 
 function setCachedGateway(hash: string, idx: number) {
   gatewayCache.set(hash, idx);
+  lastGoodGatewayIndex = idx;
   // Keep cache bounded
   if (gatewayCache.size > 500) {
     const first = gatewayCache.keys().next().value;
