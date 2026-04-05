@@ -11,13 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Send, Loader2, Heart } from 'lucide-react';
 import { useWax } from '@/context/WaxContext';
 import { getTransactPlugins, closeWharfkitModals } from '@/lib/wharfKit';
 import { toast } from 'sonner';
-import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { GpkPack } from '@/hooks/useGpkPacks';
+import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import gpkSeries1Img from '@/assets/gpk_pack_series_1.png';
 import gpkSeries2aImg from '@/assets/gpk_pack_series_2a.png';
 import gpkSeries2bImg from '@/assets/gpk_pack_series_2b.png';
@@ -42,12 +41,12 @@ const PACK_IMAGES: Record<string, string> = {
 interface DonateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  assets: SimpleAsset[];
   gpkPacks?: GpkPack[];
+  atomicPacks?: AtomicPack[];
   onSuccess: (txId: string | null) => void;
 }
 
-export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSuccess }: DonateDialogProps) {
+export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = [], onSuccess }: DonateDialogProps) {
   const { session, transferToken } = useWax();
 
   // Token tab state
@@ -55,45 +54,37 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
   const [amount, setAmount] = useState('');
   const [isSendingToken, setIsSendingToken] = useState(false);
 
-  // NFT tab state
-  const [selectedNftIds, setSelectedNftIds] = useState<Set<string>>(new Set());
-  const [isSendingNfts, setIsSendingNfts] = useState(false);
-
-  // Pack tab state
-  const [selectedPackSymbols, setSelectedPackSymbols] = useState<Map<string, number>>(new Map());
+  // Pack selection: gpk packs by symbol qty, atomic packs by templateId qty
+  const [gpkPackQtys, setGpkPackQtys] = useState<Map<string, number>>(new Map());
+  const [atomicPackQtys, setAtomicPackQtys] = useState<Map<string, number>>(new Map());
   const [isSendingPacks, setIsSendingPacks] = useState(false);
 
   const token = TOKENS.find(t => t.symbol === selectedToken) || TOKENS[0];
   const parsedAmount = parseFloat(amount);
   const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
 
-  const selectedNfts = useMemo(
-    () => assets.filter(a => selectedNftIds.has(a.id)),
-    [assets, selectedNftIds]
-  );
-
-  const toggleNft = useCallback((id: string) => {
-    setSelectedNftIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+  const setGpkQty = useCallback((symbol: string, qty: number, max: number) => {
+    setGpkPackQtys(prev => {
+      const next = new Map(prev);
+      if (qty <= 0) next.delete(symbol); else next.set(symbol, Math.min(qty, max));
       return next;
     });
   }, []);
 
-  const setPackQty = useCallback((symbol: string, qty: number, max: number) => {
-    setSelectedPackSymbols(prev => {
+  const setAtomicQty = useCallback((templateId: string, qty: number, max: number) => {
+    setAtomicPackQtys(prev => {
       const next = new Map(prev);
-      if (qty <= 0) next.delete(symbol);
-      else next.set(symbol, Math.min(qty, max));
+      if (qty <= 0) next.delete(templateId); else next.set(templateId, Math.min(qty, max));
       return next;
     });
   }, []);
 
   const totalPacks = useMemo(() => {
     let total = 0;
-    selectedPackSymbols.forEach(v => { total += v; });
+    gpkPackQtys.forEach(v => { total += v; });
+    atomicPackQtys.forEach(v => { total += v; });
     return total;
-  }, [selectedPackSymbols]);
+  }, [gpkPackQtys, atomicPackQtys]);
 
   const handleSendToken = async () => {
     if (!session || !isValidAmount) return;
@@ -116,45 +107,6 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
     }
   };
 
-  const handleSendNfts = async () => {
-    if (!session || selectedNfts.length === 0) return;
-    setIsSendingNfts(true);
-    try {
-      const actor = session.actor.toString();
-      const auth = [session.permissionLevel];
-      const actions: any[] = [];
-
-      const saAssets = selectedNfts.filter(a => a.source === 'simpleassets');
-      const aaAssets = selectedNfts.filter(a => a.source === 'atomicassets');
-
-      if (saAssets.length > 0) {
-        actions.push({
-          account: 'simpleassets', name: 'transfer', authorization: auth,
-          data: { from: actor, to: DONATE_ACCOUNT, assetids: saAssets.map(a => a.id), memo: 'donation' },
-        });
-      }
-      if (aaAssets.length > 0) {
-        actions.push({
-          account: 'atomicassets', name: 'transfer', authorization: auth,
-          data: { from: actor, to: DONATE_ACCOUNT, asset_ids: aaAssets.map(a => a.id), memo: 'donation' },
-        });
-      }
-
-      const result = await session.transact({ actions }, { transactPlugins: getTransactPlugins(session) });
-      const txId = result.resolved?.transaction.id?.toString() || null;
-      toast.success(`Donated ${selectedNfts.length} NFT(s) to ${DONATE_ACCOUNT}`);
-      setSelectedNftIds(new Set());
-      onOpenChange(false);
-      onSuccess(txId);
-    } catch (error) {
-      console.error('NFT donation failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Donation failed');
-    } finally {
-      setIsSendingNfts(false);
-      setTimeout(() => closeWharfkitModals(), 100);
-    }
-  };
-
   const handleSendPacks = async () => {
     if (!session || totalPacks === 0) return;
     setIsSendingPacks(true);
@@ -163,7 +115,8 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
       const auth = [session.permissionLevel];
       const actions: any[] = [];
 
-      selectedPackSymbols.forEach((qty, symbol) => {
+      // GPK token packs
+      gpkPackQtys.forEach((qty, symbol) => {
         const pack = gpkPacks.find(p => p.symbol === symbol);
         if (!pack || qty <= 0) return;
         const qtyStr = pack.precision > 0
@@ -175,10 +128,25 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
         });
       });
 
+      // Atomic NFT packs
+      const allAtomicIds: string[] = [];
+      atomicPackQtys.forEach((qty, templateId) => {
+        const pack = atomicPacks.find(p => p.templateId === templateId);
+        if (!pack || qty <= 0) return;
+        allAtomicIds.push(...pack.assetIds.slice(0, qty));
+      });
+      if (allAtomicIds.length > 0) {
+        actions.push({
+          account: 'atomicassets', name: 'transfer', authorization: auth,
+          data: { from: actor, to: DONATE_ACCOUNT, asset_ids: allAtomicIds, memo: 'donation' },
+        });
+      }
+
       const result = await session.transact({ actions }, { transactPlugins: getTransactPlugins(session) });
       const txId = result.resolved?.transaction.id?.toString() || null;
       toast.success(`Donated ${totalPacks} pack(s) to ${DONATE_ACCOUNT}`);
-      setSelectedPackSymbols(new Map());
+      setGpkPackQtys(new Map());
+      setAtomicPackQtys(new Map());
       onOpenChange(false);
       onSuccess(txId);
     } catch (error) {
@@ -190,8 +158,7 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
     }
   };
 
-  const hasNfts = assets.length > 0;
-  const hasGpkPacks = gpkPacks.length > 0;
+  const hasPacks = gpkPacks.length > 0 || atomicPacks.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,7 +169,7 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
             Donate to $CHEESE Team
           </DialogTitle>
           <DialogDescription>
-            Donate WAX, unopened GPK packs, or NFTs to $CHEESE Team
+            Donate WAX, CHEESE, or unopened GPK packs to $CHEESE Team
           </DialogDescription>
         </DialogHeader>
 
@@ -214,8 +181,7 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
         <Tabs defaultValue="tokens" className="w-full">
           <TabsList className="w-full">
             <TabsTrigger value="tokens" className="flex-1">Tokens</TabsTrigger>
-            {hasGpkPacks && <TabsTrigger value="packs" className="flex-1">Packs</TabsTrigger>}
-            {hasNfts && <TabsTrigger value="nfts" className="flex-1">NFTs</TabsTrigger>}
+            {hasPacks && <TabsTrigger value="packs" className="flex-1">Packs</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="tokens" className="space-y-4 mt-4">
@@ -257,15 +223,15 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
             </Button>
           </TabsContent>
 
-          {hasGpkPacks && (
+          {hasPacks && (
             <TabsContent value="packs" className="space-y-4 mt-4">
-              <ScrollArea className="max-h-60">
+              <ScrollArea className="max-h-72">
                 <div className="space-y-3">
                   {gpkPacks.map(pack => {
-                    const qty = selectedPackSymbols.get(pack.symbol) || 0;
+                    const qty = gpkPackQtys.get(pack.symbol) || 0;
                     const img = PACK_IMAGES[pack.symbol];
                     return (
-                      <div key={pack.symbol} className="flex items-center gap-3 p-2 rounded-md border border-border">
+                      <div key={`gpk-${pack.symbol}`} className="flex items-center gap-3 p-2 rounded-md border border-border">
                         {img ? (
                           <img src={img} alt={pack.label} className="w-12 h-16 object-contain rounded" />
                         ) : (
@@ -277,12 +243,38 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
                         </div>
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="outline" className="h-7 w-7 p-0"
-                            onClick={() => setPackQty(pack.symbol, qty - 1, pack.amount)}
+                            onClick={() => setGpkQty(pack.symbol, qty - 1, pack.amount)}
                             disabled={qty <= 0}>−</Button>
                           <span className="w-8 text-center text-sm font-mono text-foreground">{qty}</span>
                           <Button size="sm" variant="outline" className="h-7 w-7 p-0"
-                            onClick={() => setPackQty(pack.symbol, qty + 1, pack.amount)}
+                            onClick={() => setGpkQty(pack.symbol, qty + 1, pack.amount)}
                             disabled={qty >= pack.amount}>+</Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {atomicPacks.map(pack => {
+                    const qty = atomicPackQtys.get(pack.templateId) || 0;
+                    return (
+                      <div key={`aa-${pack.templateId}`} className="flex items-center gap-3 p-2 rounded-md border border-border">
+                        {pack.image ? (
+                          <img src={pack.image} alt={pack.name} className="w-12 h-16 object-contain rounded" />
+                        ) : (
+                          <span className="text-2xl">📦</span>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{pack.name}</p>
+                          <p className="text-xs text-muted-foreground">Available: {pack.count}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="outline" className="h-7 w-7 p-0"
+                            onClick={() => setAtomicQty(pack.templateId, qty - 1, pack.count)}
+                            disabled={qty <= 0}>−</Button>
+                          <span className="w-8 text-center text-sm font-mono text-foreground">{qty}</span>
+                          <Button size="sm" variant="outline" className="h-7 w-7 p-0"
+                            onClick={() => setAtomicQty(pack.templateId, qty + 1, pack.count)}
+                            disabled={qty >= pack.count}>+</Button>
                         </div>
                       </div>
                     );
@@ -298,54 +290,6 @@ export function DonateDialog({ open, onOpenChange, assets, gpkPacks = [], onSucc
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
                 ) : (
                   <><Send className="h-4 w-4 mr-2" />Donate {totalPacks} Pack{totalPacks !== 1 ? 's' : ''}</>
-                )}
-              </Button>
-            </TabsContent>
-          )}
-
-          {hasNfts && (
-            <TabsContent value="nfts" className="space-y-4 mt-4">
-              <ScrollArea className="h-60 border border-border rounded-md p-2">
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                  {assets.map(asset => {
-                    const isSelected = selectedNftIds.has(asset.id);
-                    return (
-                      <button
-                        key={asset.id}
-                        onClick={() => toggleNft(asset.id)}
-                        className={`relative rounded-md overflow-hidden border-2 transition-all ${
-                          isSelected
-                            ? 'border-cheese ring-2 ring-cheese/50'
-                            : 'border-transparent hover:border-cheese/30'
-                        }`}
-                      >
-                        <img
-                          src={asset.image}
-                          alt={asset.name}
-                          className="w-full aspect-square object-contain bg-muted/20"
-                        />
-                        <div className="absolute top-1 right-1">
-                          <Checkbox
-                            checked={isSelected}
-                            className="border-cheese data-[state=checked]:bg-cheese data-[state=checked]:text-primary-foreground"
-                            tabIndex={-1}
-                          />
-                        </div>
-                        <p className="text-[10px] text-center truncate px-0.5 py-0.5 text-foreground">{asset.name}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-              <Button
-                onClick={handleSendNfts}
-                disabled={selectedNfts.length === 0 || isSendingNfts}
-                className="w-full bg-cheese hover:bg-cheese/90 text-primary-foreground"
-              >
-                {isSendingNfts ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
-                ) : (
-                  <><Send className="h-4 w-4 mr-2" />Donate {selectedNfts.length} NFT{selectedNfts.length !== 1 ? 's' : ''}</>
                 )}
               </Button>
             </TabsContent>

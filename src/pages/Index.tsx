@@ -871,12 +871,13 @@ export default function SimpleAssetsPage() {
       <DonateDialog
         open={donateDialogOpen}
         onOpenChange={setDonateDialogOpen}
-        assets={assets.filter(a => a.category === 'packs')}
         gpkPacks={packs.filter(p => p.amount > 0)}
+        atomicPacks={atomicPacks.filter(p => p.count > 0)}
         onSuccess={(txId) => {
           refetchSa();
           refetchAa();
           refetchPacks();
+          refetchAtomicPacks();
           setSuccessDialog({ open: true, title: 'Donation Sent!', description: 'Thank you for your generous donation to the $CHEESE team!', txId });
         }}
       />
