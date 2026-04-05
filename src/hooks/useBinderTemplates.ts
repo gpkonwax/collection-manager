@@ -38,6 +38,9 @@ const EXTRA_SCHEMAS: Record<string, string[]> = {
   series2: ['exotic'],
 };
 
+// Only keep these variants from the exotic schema; all others already exist in series2
+const EXOTIC_ONLY_VARIANTS = new Set(['tiger stripe', 'tiger claw']);
+
 export function useBinderTemplates(schema: string | null) {
   const [templates, setTemplates] = useState<BinderTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,20 +74,16 @@ export function useBinderTemplates(schema: string | null) {
         }
       }
 
-      // Diagnostic: log exotic schema templates to verify cardids
-      const exoticTemplates = all.filter((t: any) => (t.schema?.schema_name || '') === 'exotic');
-      if (exoticTemplates.length > 0) {
-        console.log('[BinderTemplates] Exotic schema templates sample:', exoticTemplates.slice(0, 5).map((t: any) => ({
-          templateId: t.template_id,
-          name: t.immutable_data?.name,
-          cardid: t.immutable_data?.cardid,
-          variant: t.immutable_data?.variant,
-          quality: t.immutable_data?.quality,
-          schema: t.schema?.schema_name,
-        })));
-      }
+      // Filter exotic schema: only keep variants exclusive to it
+      const filtered = all.filter((t: any) => {
+        if ((t.schema?.schema_name || '') === 'exotic') {
+          const v = normalizeGpkVariant(t.immutable_data?.variant);
+          return EXOTIC_ONLY_VARIANTS.has(v);
+        }
+        return true;
+      });
 
-      const parsed: BinderTemplate[] = all.map((t: any) => {
+      const parsed: BinderTemplate[] = filtered.map((t: any) => {
         const data = t.immutable_data || {};
         return {
           templateId: t.template_id,
