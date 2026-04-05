@@ -77,26 +77,46 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
     if (phase === 'scrolling') {
       const card = cards[dealIndex];
-      const targetEl = gridCellRefs.current.get(card.id);
-      if (!targetEl) {
-        onCardDealt(card.id);
-        setPhase('idle');
-        setDealIndex(i => i + 1);
-        return;
-      }
 
-      // Scroll to destination first
-      const roughRect = targetEl.getBoundingClientRect();
-      const absTop = roughRect.top + window.scrollY;
-      scrollToElement(absTop, roughRect.height);
+      // Wait a tick for DOM refs to be available (grid may have just expanded)
+      const waitForRef = () => {
+        const targetEl = gridCellRefs.current.get(card.id);
+        if (!targetEl) {
+          // If after a generous wait the ref still doesn't exist, skip this card
+          onCardDealt(card.id);
+          setPhase('idle');
+          setDealIndex(i => i + 1);
+          return;
+        }
 
-      // Wait for scroll to settle, then measure fresh coords
-      const timer = setTimeout(() => {
-        const freshRect = targetEl.getBoundingClientRect();
-        setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
-        setPhase('flying');
-      }, SCROLL_SETTLE);
-      return () => clearTimeout(timer);
+        // Scroll to destination using absolute page coordinates
+        const roughRect = targetEl.getBoundingClientRect();
+        const absTop = roughRect.top + window.scrollY;
+        scrollToElement(absTop, roughRect.height);
+
+        // Wait for scroll to settle, then measure fresh viewport coords
+        const flyTimer = setTimeout(() => {
+          const el = gridCellRefs.current.get(card.id);
+          if (!el) {
+            onCardDealt(card.id);
+            setPhase('idle');
+            setDealIndex(i => i + 1);
+            return;
+          }
+          const freshRect = el.getBoundingClientRect();
+          setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
+          setPhase('flying');
+        }, SCROLL_SETTLE);
+        return flyTimer;
+      };
+
+      // Give DOM a frame to render new grid slots
+      const rafTimer = setTimeout(() => {
+        const innerTimer = waitForRef();
+        if (innerTimer) return;
+      }, 200);
+
+      return () => clearTimeout(rafTimer);
     }
 
     if (phase === 'flying') {
