@@ -49,7 +49,7 @@ async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
   return ids;
 }
 
-export function GpkPackCard({ pack, session, accountName, onSuccess, collectionAssets = [] }: GpkPackCardProps) {
+export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [] }: GpkPackCardProps) {
   const series2Img = SERIES_2_IMAGES[pack.symbol];
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
