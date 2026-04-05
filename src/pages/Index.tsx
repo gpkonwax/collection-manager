@@ -658,7 +658,7 @@ export default function SimpleAssetsPage() {
                       </Button>
                     </div>
                     {(() => {
-                      const showGoldenSection = categoryFilter === 'series1';
+                      const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
                       const regular = binderGrid.filter(
                         (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
                       );
