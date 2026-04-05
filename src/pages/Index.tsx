@@ -677,7 +677,18 @@ export default function SimpleAssetsPage() {
                   </>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+                      <Button
+                        onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+                        variant="outline"
+                        size="sm"
+                        className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+                      >
+                        <CheckSquare className="h-4 w-4 mr-1" />
+                        {selectionMode ? 'Cancel Select' : 'Select'}
+                      </Button>
+                    </div>
                     {filtered.length === 0 ? (
                       <p className="text-center text-muted-foreground py-12">
                         {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
