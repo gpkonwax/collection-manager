@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import {
   Dialog,
   DialogContent,
@@ -107,7 +108,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
           <div className="flex flex-wrap gap-2 p-1">
             {selectedAssets.map(asset => (
               <div key={asset.id} className="flex items-center gap-1.5 bg-muted/50 rounded px-2 py-1">
-                <img src={asset.image} alt={asset.name} className="w-8 h-8 rounded object-contain" />
+                <IpfsMedia url={asset.images?.[0] || asset.image} alt={asset.name} className="w-8 h-8 rounded object-contain" context="card" />
                 <span className="text-xs truncate max-w-[100px]">{asset.name}</span>
               </div>
             ))}
