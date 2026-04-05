@@ -30,6 +30,7 @@ import { getGpkVariantRank } from '@/lib/gpkVariant';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
+const ITEMS_PER_PAGE = 36;
 
 const CATEGORY_LABELS: Record<string, string> = {
   series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
