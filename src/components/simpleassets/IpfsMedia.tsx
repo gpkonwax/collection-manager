@@ -58,6 +58,7 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
         alt={alt}
         className={`w-full h-full object-contain ${isLoading && showSkeleton ? 'opacity-0' : ''}`}
         loading={loading ?? (isAnimated || context === 'detail' ? 'eager' : 'lazy')}
+        fetchPriority={context === 'detail' ? 'high' : 'auto'}
         decoding="async"
         onError={onError}
         onLoad={onLoad}
