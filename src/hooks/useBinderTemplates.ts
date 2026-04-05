@@ -3,6 +3,7 @@ import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
+import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
 
 export interface BinderTemplate {
   templateId: string;
@@ -22,6 +23,14 @@ function resolveImage(raw: string): string {
   if (raw.startsWith('Qm') || raw.startsWith('bafy') || raw.startsWith('bafk')) return getIpfsUrl(raw);
   return '/placeholder.svg';
 }
+
+/** Map schema names to boxtype keys used by buildGpkCardImageUrl */
+const SCHEMA_TO_BOXTYPE: Record<string, string> = {
+  series2: 'gpktwoeight',
+  gpktwoeight: 'gpktwoeight',
+  gpktwo25: 'gpktwo25',
+  gpktwo55: 'gpktwo55',
+};
 
 export function useBinderTemplates(schema: string | null) {
   const [templates, setTemplates] = useState<BinderTemplate[]>([]);
@@ -52,15 +61,30 @@ export function useBinderTemplates(schema: string | null) {
         page++;
       }
 
+      const boxtype = SCHEMA_TO_BOXTYPE[schema] || null;
+
       const parsed: BinderTemplate[] = all.map((t: any) => {
         const data = t.immutable_data || {};
+        const cardid = String(data.cardid ?? '');
+        const quality = String(data.quality ?? '').toLowerCase();
+        const variant = normalizeGpkVariant(data.variant);
+
+        // For Series 2, use the known IPFS folder structure for reliable images
+        let image: string;
+        if (boxtype && cardid && variant) {
+          const directUrl = buildGpkCardImageUrl(boxtype, variant, cardid, quality);
+          image = directUrl || resolveImage(data.img || data.image || data.icon || '');
+        } else {
+          image = resolveImage(data.img || data.image || data.icon || '');
+        }
+
         return {
           templateId: t.template_id,
           name: data.name || t.name || `Template #${t.template_id}`,
-          image: resolveImage(data.img || data.image || data.icon || ''),
-          cardid: String(data.cardid ?? ''),
-          quality: String(data.quality ?? '').toLowerCase(),
-          variant: normalizeGpkVariant(data.variant),
+          image,
+          cardid,
+          quality,
+          variant,
           schema: t.schema?.schema_name || schema,
         };
       });
