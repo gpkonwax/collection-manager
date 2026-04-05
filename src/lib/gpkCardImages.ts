@@ -7,7 +7,7 @@ const SERIES_HASH: Record<string, string> = {
   gpktwo55: 'QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ',
 };
 
-const GIF_VARIANTS = new Set(['prism', 'sketch', 'slime', 'raw']);
+const GIF_VARIANTS = new Set(['prism', 'sketch', 'slime', 'raw', 'gum', 'vhs', 'collector', 'tiger stripe', 'tiger claw', 'originalart', 'relic']);
 
 export function buildGpkCardImageUrl(
   boxtype: string,
