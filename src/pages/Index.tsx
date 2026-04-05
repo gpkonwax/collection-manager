@@ -335,7 +335,7 @@ export default function SimpleAssetsPage() {
       if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.includes(search)) return false;
       if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if (categoryFilter === 'series1' && variantFilter !== 'all' && a.quality.toLowerCase() !== variantFilter.toLowerCase()) return false;
+      if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all' && a.quality.toLowerCase() !== variantFilter.toLowerCase()) return false;
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
@@ -363,7 +363,7 @@ export default function SimpleAssetsPage() {
     }
 
     let filteredTemplates = binderTemplates;
-    if (categoryFilter === 'series1' && variantFilter !== 'all') {
+    if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all') {
       filteredTemplates = binderTemplates.filter(t => t.variant.toLowerCase() === variantFilter.toLowerCase());
     }
 
@@ -589,19 +589,19 @@ export default function SimpleAssetsPage() {
                   <SelectItem value="atomicassets">Atomic Assets</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1') setVariantFilter('all'); }}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2') setVariantFilter('all'); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {categoryFilter === 'series1' && (
+              {(categoryFilter === 'series1' || categoryFilter === 'series2') && (
                 <Select value={variantFilter} onValueChange={setVariantFilter}>
                   <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Variant" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Variants</SelectItem>
-                    {SERIES1_VARIANTS.map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}
+                    {(categoryFilter === 'series1' ? SERIES1_VARIANTS : SERIES2_VARIANTS).map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
