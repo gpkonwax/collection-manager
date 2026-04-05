@@ -49,7 +49,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[1200px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{asset.name}</DialogTitle>
+          <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
         </DialogHeader>
         <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
@@ -103,13 +103,13 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
         </div>
         {mintDisplay && (
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">Mint</span>
+            <span className="text-xs font-semibold text-cheese">Mint</span>
             <span className="text-sm font-mono text-primary">{mintDisplay}</span>
           </div>
         )}
         {metaFields.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground">Metadata</h4>
+            <h4 className="text-sm font-semibold text-cheese">Metadata</h4>
             <div className="grid grid-cols-2 gap-2">
               {metaFields.map(([key, value]) => (
                 <div key={key} className="bg-muted/30 rounded p-2">
@@ -122,7 +122,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
         )}
         {(hasContainer || hasContainerf) && (
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-foreground">📎 Contained Assets</h4>
+            <h4 className="text-sm font-semibold text-cheese">📎 Contained Assets</h4>
             {hasContainer && (
               <div className="bg-muted/30 rounded p-2">
                 <span className="text-[10px] text-muted-foreground uppercase">NFTs ({asset.container.length})</span>
@@ -144,11 +144,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
         {showRawJson && (
           <div className="space-y-2">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1">idata</p>
+              <p className="text-xs font-semibold text-cheese mb-1">idata</p>
               <pre className="text-xs bg-muted/30 rounded p-3 overflow-x-auto text-foreground">{JSON.stringify(asset.idata, null, 2)}</pre>
             </div>
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1">mdata</p>
+              <p className="text-xs font-semibold text-cheese mb-1">mdata</p>
               <pre className="text-xs bg-muted/30 rounded p-3 overflow-x-auto text-foreground">{JSON.stringify(asset.mdata, null, 2)}</pre>
             </div>
           </div>
