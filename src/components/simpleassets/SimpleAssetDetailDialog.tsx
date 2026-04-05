@@ -53,20 +53,24 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
         </DialogHeader>
         <div className={`grid gap-4 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1 max-w-[400px] mx-auto'}`}>
-          {images.map((imgUrl, i) => (
-            <div key={i} className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground text-center">{IMAGE_LABELS[i] || `Image ${i + 1}`}</p>
-              <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
-                <IpfsMedia
-                  url={imgUrl}
-                  alt={`${asset.name} - ${IMAGE_LABELS[i] || `Image ${i + 1}`}`}
-                  className="w-full h-full"
-                  context="detail"
-                  showSkeleton
-                />
+          {images.map((imgUrl, i) => {
+            const isBack = i > 0;
+            return (
+              <div key={i} className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground text-center">{IMAGE_LABELS[i] || `Image ${i + 1}`}</p>
+                <div className={`${isBack ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}>
+                  <IpfsMedia
+                    url={imgUrl}
+                    alt={`${asset.name} - ${IMAGE_LABELS[i] || `Image ${i + 1}`}`}
+                    className="w-full h-full"
+                    context="detail"
+                    showSkeleton
+                    style={isBack ? { transform: 'rotate(90deg)', objectFit: 'contain' } : undefined}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {mintDisplay && (
           <div className="flex items-center gap-2">
