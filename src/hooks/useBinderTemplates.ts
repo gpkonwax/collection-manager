@@ -41,6 +41,20 @@ const EXTRA_SCHEMAS: Record<string, string[]> = {
 // Only keep these variants from the exotic schema; all others already exist in series2
 const EXOTIC_ONLY_VARIANTS = new Set(['tiger stripe', 'tiger claw']);
 
+function getNumericCardId(cardid: string): number | null {
+  const normalized = cardid.trim();
+  if (!/^\d+$/.test(normalized)) return null;
+  return Number.parseInt(normalized, 10);
+}
+
+function getBinderSideRank(side: string): number {
+  const normalized = side.trim().toLowerCase();
+  if (!normalized) return 0;
+  if (/^[a-z]$/.test(normalized)) return normalized.charCodeAt(0) - 96;
+  const numeric = Number.parseInt(normalized, 10);
+  return Number.isNaN(numeric) ? Number.MAX_SAFE_INTEGER : numeric;
+}
+
 export function useBinderTemplates(schema: string | null) {
   const [templates, setTemplates] = useState<BinderTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,7 +88,6 @@ export function useBinderTemplates(schema: string | null) {
         }
       }
 
-      // Filter exotic schema: only keep variants exclusive to it
       const filtered = all.filter((t: any) => {
         if ((t.schema?.schema_name || '') === 'exotic') {
           const v = normalizeGpkVariant(t.immutable_data?.variant);
@@ -114,7 +127,6 @@ export function useBinderTemplates(schema: string | null) {
       }
       const deduped = Array.from(seen.values());
 
-      // Sort: regular variants first (base, prism, sketch), then collector, then golden
       const isSpecial = (v: string) => v === 'collector' || v === 'golden';
       const specialRank = (v: string) => v === 'collector' ? 0 : v === 'golden' ? 1 : -1;
       deduped.sort((a, b) => {
@@ -125,12 +137,22 @@ export function useBinderTemplates(schema: string | null) {
           const sr = specialRank(a.variant) - specialRank(b.variant);
           if (sr !== 0) return sr;
         }
-        const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
-        if (!isNaN(numA) && !isNaN(numB)) {
-          if (numA !== numB) return numA - numB;
-          if (a.quality !== b.quality) return a.quality.localeCompare(b.quality);
-          return getGpkVariantRank(a.variant) - getGpkVariantRank(b.variant);
-        }
+
+        const numA = getNumericCardId(a.cardid);
+        const numB = getNumericCardId(b.cardid);
+        if (numA !== null && numB !== null && numA !== numB) return numA - numB;
+        if (numA !== null && numB === null) return -1;
+        if (numA === null && numB !== null) return 1;
+
+        const sideRankDiff = getBinderSideRank(a.quality) - getBinderSideRank(b.quality);
+        if (sideRankDiff !== 0) return sideRankDiff;
+
+        const variantRankDiff = getGpkVariantRank(a.variant) - getGpkVariantRank(b.variant);
+        if (variantRankDiff !== 0) return variantRankDiff;
+
+        const nameDiff = a.name.localeCompare(b.name);
+        if (nameDiff !== 0) return nameDiff;
+
         return a.templateId.localeCompare(b.templateId);
       });
 
