@@ -46,25 +46,29 @@ export function useBinderTemplates(schema: string | null) {
     if (!schema) { setTemplates([]); return; }
     setIsLoading(true);
     try {
+      const schemasToFetch = [schema, ...(EXTRA_SCHEMAS[schema] || [])];
       const all: any[] = [];
-      let page = 1;
-      let hasMore = true;
-      while (hasMore) {
-        const params = new URLSearchParams({
-          collection_name: 'gpk.topps',
-          schema_name: schema,
-          limit: '100',
-          page: String(page),
-          order: 'asc',
-          sort: 'created',
-        });
-        const path = `${ATOMIC_API.paths.templates}?${params}`;
-        const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
-        const json = await response.json();
-        if (!json.success || !json.data) break;
-        all.push(...json.data);
-        hasMore = json.data.length === 100;
-        page++;
+
+      for (const s of schemasToFetch) {
+        let page = 1;
+        let hasMore = true;
+        while (hasMore) {
+          const params = new URLSearchParams({
+            collection_name: 'gpk.topps',
+            schema_name: s,
+            limit: '100',
+            page: String(page),
+            order: 'asc',
+            sort: 'created',
+          });
+          const path = `${ATOMIC_API.paths.templates}?${params}`;
+          const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
+          const json = await response.json();
+          if (!json.success || !json.data) break;
+          all.push(...json.data);
+          hasMore = json.data.length === 100;
+          page++;
+        }
       }
 
       const parsed: BinderTemplate[] = all.map((t: any) => {
