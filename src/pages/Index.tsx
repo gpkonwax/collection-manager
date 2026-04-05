@@ -871,7 +871,7 @@ export default function SimpleAssetsPage() {
       <DonateDialog
         open={donateDialogOpen}
         onOpenChange={setDonateDialogOpen}
-        assets={assets}
+        assets={assets.filter(a => a.category === 'packs')}
         onSuccess={(txId) => {
           refetchSa();
           refetchAa();
