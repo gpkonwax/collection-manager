@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, DragEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface SimpleAssetCardProps {
@@ -34,28 +34,10 @@ function getMintInfo(asset: SimpleAsset): string | null {
 }
 
 function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
-  const [gatewayIdx, setGatewayIdx] = useState(0);
-  const [imgError, setImgError] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleImgError = () => {
-    const hash = extractIpfsHash(asset.image);
-    if (hash && gatewayIdx < IPFS_GATEWAYS.length - 1) {
-      setGatewayIdx((prev) => prev + 1);
-    } else {
-      setImgError(true);
-    }
-  };
-
-  const displayUrl = useMemo(() => {
-    if (imgError) return '/placeholder.svg';
-    const hash = extractIpfsHash(asset.image);
-    if (hash && gatewayIdx > 0) return `${IPFS_GATEWAYS[gatewayIdx]}${hash}`;
-    return asset.image;
-  }, [asset.image, gatewayIdx, imgError]);
-
-  const isAnimatedGif = useMemo(() => displayUrl.toLowerCase().includes('.gif'), [displayUrl]);
+  const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintInfo = getMintInfo(asset);
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
 
@@ -65,10 +47,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const handleDrop = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(false); onDrop?.(e); };
   const handleDragEnd = (e: DragEvent<HTMLDivElement>) => { setIsDragging(false); setIsDragOver(false); onDragEnd?.(e); };
   const handleClick = () => {
-    if (selectionMode && onSelect) {
-      onSelect(asset.id);
-      return;
-    }
+    if (selectionMode && onSelect) { onSelect(asset.id); return; }
     if (!isDragging) onClick();
   };
 
@@ -100,14 +79,11 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none"
         style={isAnimatedGif ? { contain: 'paint', transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : undefined}
       >
-        <img
-          src={displayUrl}
+        <IpfsMedia
+          url={asset.image}
           alt={asset.name}
-          className="w-full h-full object-contain"
-          loading={isAnimatedGif ? 'eager' : 'lazy'}
-          decoding={isAnimatedGif ? 'sync' : 'async'}
-          onError={handleImgError}
-          style={isAnimatedGif ? { transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : {}}
+          className="w-full h-full"
+          context="card"
         />
       </div>
       <CardContent className="p-3 space-y-1">

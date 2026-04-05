@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface Props {
@@ -30,33 +30,14 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
-  const [gatewayIndices, setGatewayIndices] = useState<number[]>([]);
 
   useEffect(() => {
-    if (asset) {
-      setGatewayIndices(new Array(asset.images.length).fill(0));
-      setShowRawJson(false);
-    }
+    if (asset) setShowRawJson(false);
   }, [asset?.id]);
 
   if (!asset) return null;
 
   const images = asset.images;
-
-  const handleImgError = (idx: number) => {
-    const hash = extractIpfsHash(images[idx]);
-    if (hash && (gatewayIndices[idx] || 0) < IPFS_GATEWAYS.length - 1) {
-      setGatewayIndices((prev) => { const next = [...prev]; next[idx] = (next[idx] || 0) + 1; return next; });
-    }
-  };
-
-  const getDisplayUrl = (idx: number) => {
-    const gIdx = gatewayIndices[idx] || 0;
-    const hash = extractIpfsHash(images[idx]);
-    if (hash && gIdx > 0) return `${IPFS_GATEWAYS[gIdx]}${hash}`;
-    return images[idx];
-  };
-
   const mintDisplay = getMintDisplay(asset);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply'].includes(key)
@@ -72,11 +53,17 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
         </DialogHeader>
         <div className={`grid gap-4 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1 max-w-[400px] mx-auto'}`}>
-          {images.map((_, i) => (
+          {images.map((imgUrl, i) => (
             <div key={i} className="space-y-1">
               <p className="text-xs font-semibold text-muted-foreground text-center">{IMAGE_LABELS[i] || `Image ${i + 1}`}</p>
               <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
-                <img src={getDisplayUrl(i)} alt={`${asset.name} - ${IMAGE_LABELS[i] || `Image ${i + 1}`}`} className="max-w-full max-h-full object-contain" onError={() => handleImgError(i)} />
+                <IpfsMedia
+                  url={imgUrl}
+                  alt={`${asset.name} - ${IMAGE_LABELS[i] || `Image ${i + 1}`}`}
+                  className="w-full h-full"
+                  context="detail"
+                  showSkeleton
+                />
               </div>
             </div>
           ))}

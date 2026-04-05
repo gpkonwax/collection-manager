@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface CardDealAnimationProps {
@@ -7,21 +7,6 @@ interface CardDealAnimationProps {
   gridCellRefs: React.MutableRefObject<Map<string, HTMLElement | null>>;
   onCardDealt: (id: string) => void;
   onComplete: () => void;
-}
-
-function CardImage({ asset }: { asset: SimpleAsset }) {
-  const [gwIdx, setGwIdx] = useState(0);
-  const hash = extractIpfsHash(asset.image);
-  const src = hash && gwIdx > 0 ? `${IPFS_GATEWAYS[gwIdx]}${hash}` : asset.image;
-
-  return (
-    <img
-      src={src}
-      alt={asset.name}
-      className="w-full h-full object-contain"
-      onError={() => { if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }}
-    />
-  );
 }
 
 const CARD_SIZE = 120;
@@ -36,7 +21,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
   const stackX = typeof window !== 'undefined' ? window.innerWidth / 2 - CARD_SIZE / 2 : 0;
 
-  // Start dealing sequence
   useEffect(() => {
     if (dealIndex >= cards.length) {
       if (!hasCompletedRef.current) {
@@ -53,7 +37,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
       const card = cards[dealIndex];
       const targetEl = gridCellRefs.current.get(card.id);
       if (!targetEl) {
-        // No target found — skip this card
         onCardDealt(card.id);
         setDealIndex(i => i + 1);
         return;
@@ -81,13 +64,12 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
   const remaining = cards.slice(dealIndex);
   if (remaining.length === 0) return null;
 
-  // Show up to 4 cards in the stack, topmost last
   const stackCards = remaining.slice(0, 4);
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
       {stackCards.reverse().map((card, reverseIdx, arr) => {
-        const stackIdx = arr.length - 1 - reverseIdx; // 0 = top of stack
+        const stackIdx = arr.length - 1 - reverseIdx;
         const isTop = stackIdx === 0;
         const cardIsFlying = isTop && isFlying && flyTarget;
 
@@ -121,7 +103,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
             style={style}
             onTransitionEnd={cardIsFlying ? handleTransitionEnd : undefined}
           >
-            <CardImage asset={card} />
+            <IpfsMedia url={card.image} alt={card.name} className="w-full h-full" context="card" />
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1">
               <p className="text-[8px] font-medium truncate" style={{ color: 'white' }}>{card.name}</p>
             </div>
@@ -129,7 +111,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
         );
       })}
 
-      {/* Card count badge */}
       <div
         className="absolute flex items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold"
         style={{
