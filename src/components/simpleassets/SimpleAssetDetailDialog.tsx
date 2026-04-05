@@ -66,13 +66,23 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             );
 
             if (i === 1) {
-              // Back image: landscape frame, rotated 90° CW so left edge becomes top
+              // Back image: show in landscape 4:3 frame, rotated 90° CW
+              // The source image is 3:4 portrait; after 90° CW rotation it fills 4:3 landscape
               return (
                 <div key={i} className="space-y-1 shrink-0" style={{ width: '533px' }}>
                   <p className="text-xs font-semibold text-muted-foreground text-center">{label}</p>
-                  <div className="aspect-[4/3] bg-muted/30 rounded-lg overflow-hidden">
-                    <div className="w-full h-full origin-center rotate-90 scale-[0.75] flex items-center justify-center" style={{ transform: 'rotate(90deg) scale(0.75)' }}>
-                      <div className="w-[133.333%] h-[133.333%]">
+                  <div className="aspect-[4/3] bg-muted/30 rounded-lg overflow-hidden relative">
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                      <div
+                        className="object-cover"
+                        style={{
+                          width: '400px',
+                          height: '533px',
+                          transform: 'rotate(90deg)',
+                        }}
+                      >
                         {media}
                       </div>
                     </div>
