@@ -239,9 +239,9 @@ export function PackRevealDialog({
     }
   }, [session, unboxingId, pendingRowIds, onComplete, isDemo, onDemoCollect, onOpenChange]);
 
+  const isDemo = !!(demoCards && demoCards.length > 0);
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
-  const isDemo = demoCards && demoCards.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={(v: boolean) => { if (!v) handleClose(); }}>
