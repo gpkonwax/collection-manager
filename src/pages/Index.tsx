@@ -580,7 +580,7 @@ export default function SimpleAssetsPage() {
                 <div className="flex flex-wrap justify-center gap-4">
                   {packs.filter((p) => categoryFilter === 'all' || PACK_CATEGORY_MAP[p.symbol] === categoryFilter).map((pack) => (
                     <div key={pack.symbol} className="w-[calc(50%-0.5rem)] sm:w-48">
-                      <GpkPackCard pack={pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} collectionAssets={assets} />
+                      <GpkPackCard pack={pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets} />
                     </div>
                   ))}
                 </div>
