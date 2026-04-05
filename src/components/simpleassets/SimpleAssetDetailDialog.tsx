@@ -70,7 +70,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
               // The source image is 3:4 portrait; after 90° CW rotation it fills 4:3 landscape
               return (
                 <div key={i} className="space-y-1 shrink-0" style={{ width: '533px' }}>
-                  <p className="text-xs font-semibold text-muted-foreground text-center">{label}</p>
+                  <p className="text-xs font-semibold text-cheese text-center">{label}</p>
                   <div className="aspect-[4/3] bg-muted/30 rounded-lg overflow-hidden relative">
                     <div
                       className="absolute inset-0 flex items-center justify-center"
@@ -93,7 +93,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: '400px' }}>
-                <p className="text-xs font-semibold text-muted-foreground text-center">{label}</p>
+                <p className="text-xs font-semibold text-cheese text-center">{label}</p>
                 <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
                   {media}
                 </div>
