@@ -10,6 +10,7 @@ import { getIpfsUrl, extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
+import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 
 interface RevealCard {
   asset_id: string;

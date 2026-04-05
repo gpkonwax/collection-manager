@@ -8,6 +8,7 @@ import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
+import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 
 const EXPECTED_CARDS: Record<string, number> = {
   GPKFIVE: 5, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,

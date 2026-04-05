@@ -40,10 +40,10 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
   const stackX = typeof window !== 'undefined' ? window.innerWidth / 2 - cardSize.width / 2 : 0;
 
-  const scrollToElement = useCallback((top: number, height: number) => {
+  const scrollToElement = useCallback((absoluteTop: number, height: number) => {
     const viewportH = window.innerHeight;
-    const targetCenter = top + height / 2;
-    const scrollTarget = window.scrollY + targetCenter - viewportH / 2;
+    const targetCenter = absoluteTop + height / 2;
+    const scrollTarget = targetCenter - viewportH / 2;
     window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
   }, []);
 
