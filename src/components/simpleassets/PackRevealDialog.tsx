@@ -203,7 +203,10 @@ export function PackRevealDialog({
   // Transition to collect
   useEffect(() => {
     if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
-      if (demoCards && demoCards.length > 0) return;
+      if (demoCards && demoCards.length > 0) {
+        setPhase('collect');
+        return;
+      }
       if (pendingRowIds.length > 0) setPhase('collect');
     }
   }, [phase, revealedCount, newCards.length, pendingRowIds, demoCards]);
