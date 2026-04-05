@@ -152,6 +152,13 @@ export default function SimpleAssetsPage() {
     setSelectedIds(new Set());
   }, []);
 
+  // Expand visible count to show ALL grid slots when deal animation starts
+  // so every card placeholder is in the DOM and has a ref
+  useEffect(() => {
+    if (dealingCards.length > 0) {
+      setVisibleCount(Infinity);
+    }
+  }, [dealingCards]);
 
   // --- Deal animation state ---
   const preCollectIdsRef = useRef<Set<string>>(new Set());
