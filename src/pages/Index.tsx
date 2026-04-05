@@ -94,6 +94,16 @@ function EmptySlot({ onDragOver, onDrop, isOver }: {
   );
 }
 
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-6 space-y-3 hover:border-cheese/40 transition-colors">
+      <div className="h-12 w-12 rounded-lg bg-cheese/10 flex items-center justify-center">{icon}</div>
+      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
 export default function SimpleAssetsPage() {
   const { accountName, isConnected, login, logout, session, waxBalance, allSessions, switchAccount, addAccount, removeAccount } = useWax();
   const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
