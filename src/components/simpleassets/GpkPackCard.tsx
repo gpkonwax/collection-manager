@@ -119,7 +119,8 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
       <PackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
         packImage={series2Img} accountName={accountName} preOpenUnboxingIds={preOpenIds} onComplete={handleRevealComplete} session={session} />
       <PackRevealDialog open={demoRevealOpen} onOpenChange={setDemoRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
-        packImage={series2Img} accountName={accountName} preOpenUnboxingIds={new Set()} onComplete={() => {}} demoCards={demoCards} />
+        packImage={series2Img} accountName={accountName} preOpenUnboxingIds={new Set()} onComplete={() => {}} demoCards={demoCards}
+        onDemoCollect={() => onDemoCollect?.(demoAssetsSample)} />
       <PackBrowserDialog open={browserOpen} onOpenChange={setBrowserOpen} pack={pack} packImage={series2Img}
         session={session} accountName={accountName} snapshotUnboxingIds={snapshotUnboxingIds} onSuccess={onSuccess} />
     </>
