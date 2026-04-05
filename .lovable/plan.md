@@ -1,29 +1,18 @@
 
-Goal
-- Keep the front card face exactly the same size it is now.
-- Make the back card show full-size in its horizontal orientation instead of being shrunk to fit a portrait slot.
-- Keep metadata visible below the media area.
 
-What is wrong now
-- The modal is wider, but the image row is still capped at `max-w-[852px]` and uses two equal portrait columns.
-- The back is being rotated inside the same `aspect-[3/4]` frame with the `h-[75%] w-[133.333%]` shrink trick, so it has to render smaller than the front.
+## Fix: Back images not loading in NFT detail
 
-Plan
-1. Update only `src/components/simpleassets/SimpleAssetDetailDialog.tsx`.
-2. Replace the current equal-width 2-column image grid with a responsive side-by-side media row:
-   - front panel keeps the current portrait `3:4` frame and current visual size
-   - back panel gets a wider frame sized from that same card scale so the rotated back can display full-size horizontally
-3. Remove the current shrink wrapper around the back image and render it in its own frame, rotating it in the requested direction so the original left edge becomes the top.
-4. Keep the title, metadata, contained assets, owner, and raw JSON sections below the media row unchanged so widening the image area does not push them off-screen.
-5. On smaller screens, stack front and back vertically so nothing overflows.
+### Root cause
+The back image is wrapped in a complex nested layout: a 533px-wide landscape container with `overflow-hidden`, containing an absolutely-positioned 400x533 div that gets rotated. The problem is `overflow-hidden` clips based on the **pre-transform** bounding box, not the visual result. The 400x533 inner div overflows the ~400px-tall container, gets clipped, and the image either doesn't appear or is mostly cut off.
 
-Technical details
-- Stop constraining the media row to `max-w-[852px]`.
-- Keep the modal wide enough to fit the unchanged front face plus the full-width rotated back.
-- Use separate aspect/layout rules for front and back instead of forcing both into the same portrait box.
+### Fix (single file: `SimpleAssetDetailDialog.tsx`)
+Simplify the back image layout. Instead of nesting a portrait div inside a landscape container and rotating:
+- Keep the 533px-wide, 4:3 aspect container for the back
+- Put IpfsMedia directly inside with `style={{ transform: 'rotate(90deg)' }}` on the IpfsMedia wrapper
+- Remove the intermediate absolutely-positioned div
+- Add `overflow-visible` or restructure so the rotation isn't clipped
 
-Success criteria
-- Front face stays the same size as before.
-- Back face no longer looks smaller than the front.
-- Back is horizontal and oriented the requested way.
-- Metadata remains visible without being pushed off-screen.
+Specifically: render the IpfsMedia at the container's full size and apply rotation + scaling so the portrait source image fills the landscape frame correctly without clipping.
+
+### No other files changed.
+
