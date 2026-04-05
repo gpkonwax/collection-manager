@@ -36,8 +36,12 @@ export function normalizeGpkVariant(variant: unknown): string {
     collectors: 'collector',
     gold: 'golden',
     tigerstripe: 'tiger stripe',
+    tigerborder: 'tiger stripe',
     tigerclaw: 'tiger claw',
+    tigerscratch: 'tiger claw',
     'original art': 'originalart',
+    'tiger border': 'tiger stripe',
+    'tiger scratch': 'tiger claw',
   };
 
   return aliasMap[normalized] ?? normalized;

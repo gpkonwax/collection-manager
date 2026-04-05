@@ -25,7 +25,17 @@ function resolveImage(raw: string): string {
 
 const ALLOWED_SCHEMA_VARIANTS: Record<string, Set<string>> = {
   series1: new Set(['base', 'prism', 'sketch', 'collector', 'golden']),
-  series2: new Set(['base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch', 'tiger stripe', 'tiger claw', 'collector']),
+  series2: new Set([
+    'base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch',
+    'tiger stripe', 'tiger claw',
+    'returning', 'error', 'originalart', 'relic', 'promo',
+    'collector', 'golden',
+  ]),
+};
+
+// series2 binder also needs exotic schema templates (tiger stripe/claw live there)
+const EXTRA_SCHEMAS: Record<string, string[]> = {
+  series2: ['exotic'],
 };
 
 export function useBinderTemplates(schema: string | null) {
