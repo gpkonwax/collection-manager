@@ -1,21 +1,6 @@
-import fart01 from '@/assets/farts/fart-01.mp3';
-import fart02 from '@/assets/farts/fart-02.mp3';
-import fart03 from '@/assets/farts/fart-03.mp3';
-import fart04 from '@/assets/farts/fart-04.mp3';
-import fart05 from '@/assets/farts/fart-05.mp3';
-import fart06 from '@/assets/farts/fart-06.mp3';
-import fart07 from '@/assets/farts/fart-07.mp3';
-import fart08 from '@/assets/farts/fart-08.mp3';
-import fart09 from '@/assets/farts/fart-09.mp3';
-import fart10 from '@/assets/farts/fart-10.mp3';
-
-const FART_SOUNDS = [
-  fart01, fart02, fart03, fart04, fart05,
-  fart06, fart07, fart08, fart09, fart10,
-];
+import bellSfx from '@/assets/card-bell.mp3';
 
 export function playRandomFart() {
-  const src = FART_SOUNDS[Math.floor(Math.random() * FART_SOUNDS.length)];
-  const audio = new Audio(src);
+  const audio = new Audio(bellSfx);
   audio.play().catch(() => {});
 }
