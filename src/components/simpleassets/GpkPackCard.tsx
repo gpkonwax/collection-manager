@@ -62,13 +62,17 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
   const hasMultiple = pack.amount > 1;
   const expectedCount = EXPECTED_CARDS[pack.symbol] ?? 5;
 
-  const demoCards = useMemo((): RevealCard[] => {
+  const demoAssetsSample = useMemo(() => {
     if (collectionAssets.length === 0) return [];
     const shuffled = [...collectionAssets].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, expectedCount).map((a) => ({
+    return shuffled.slice(0, expectedCount);
+  }, [collectionAssets, expectedCount]);
+
+  const demoCards = useMemo((): RevealCard[] => {
+    return demoAssetsSample.map((a) => ({
       asset_id: `demo-${a.id}`, name: a.name, image: a.image || null, rarity: a.quality || '',
     }));
-  }, [collectionAssets, expectedCount]);
+  }, [demoAssetsSample]);
 
   const handleOpen = useCallback(async () => {
     if (!session || !unboxType) return;
