@@ -14,7 +14,6 @@ export function getCachedGatewayIndex(hash: string | null): number {
 function setCachedGateway(hash: string, idx: number) {
   gatewayCache.set(hash, idx);
   lastGoodGatewayIndex = idx;
-  // Keep cache bounded
   if (gatewayCache.size > 500) {
     const first = gatewayCache.keys().next().value;
     if (first) gatewayCache.delete(first);
@@ -22,9 +21,7 @@ function setCachedGateway(hash: string, idx: number) {
 }
 
 interface UseIpfsMediaOptions {
-  /** Timeout in ms before trying next gateway */
   timeout?: number;
-  /** Context for timeout config */
   context?: 'card' | 'detail';
 }
 
@@ -47,6 +44,7 @@ export function useIpfsMedia(
   const startIdx = getCachedGatewayIndex(hash);
 
   const [gwIdx, setGwIdx] = useState(startIdx);
+  const [triedCount, setTriedCount] = useState(0);
   const [failed, setFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,11 +54,11 @@ export function useIpfsMedia(
   useEffect(() => {
     const newStart = getCachedGatewayIndex(hash);
     setGwIdx(newStart);
+    setTriedCount(0);
     setFailed(false);
     setIsLoading(true);
   }, [originalUrl, hash]);
 
-  // Cleanup
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
@@ -71,8 +69,7 @@ export function useIpfsMedia(
     if (failed || !isLoading || !hash) return;
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    const retryCount = gwIdx - startIdx;
-    const timeout = Math.min(baseTimeout + retryCount * IMAGE_LOAD_TIMEOUT.increment, IMAGE_LOAD_TIMEOUT.max);
+    const timeout = Math.min(baseTimeout + triedCount * IMAGE_LOAD_TIMEOUT.increment, IMAGE_LOAD_TIMEOUT.max);
 
     timerRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
@@ -82,16 +79,18 @@ export function useIpfsMedia(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [gwIdx, isLoading, failed, hash, baseTimeout, startIdx]);
+  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount]);
 
   const advance = useCallback(() => {
-    if (gwIdx < IPFS_GATEWAYS.length - 1) {
-      setGwIdx(prev => prev + 1);
-    } else {
+    if (triedCount + 1 >= IPFS_GATEWAYS.length) {
+      // Tried all gateways, give up
       setFailed(true);
       setIsLoading(false);
+    } else {
+      setTriedCount(prev => prev + 1);
+      setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
     }
-  }, [gwIdx]);
+  }, [triedCount]);
 
   const onError = useCallback(() => {
     advance();
