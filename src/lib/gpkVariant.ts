@@ -1,5 +1,7 @@
 export const GPK_VARIANT_ORDER = ['base', 'prism', 'sketch', 'collector', 'golden'] as const;
 
+export const GPK_S2_VARIANT_ORDER = ['base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch', 'tiger stripe', 'tiger claw', 'collector'] as const;
+
 /**
  * Normalize the GPK variant field to a consistent lowercase value.
  * In GPK metadata:
