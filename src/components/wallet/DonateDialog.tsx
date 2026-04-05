@@ -225,7 +225,7 @@ export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = 
 
           {hasPacks && (
             <TabsContent value="packs" className="space-y-4 mt-4">
-              <ScrollArea className="max-h-72">
+              <ScrollArea className="h-64 border border-border rounded-md p-2">
                 <div className="space-y-3">
                   {gpkPacks.map(pack => {
                     const qty = gpkPackQtys.get(pack.symbol) || 0;
