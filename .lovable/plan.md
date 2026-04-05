@@ -1,31 +1,41 @@
 
 
-## Fix: Sketch/VHS variants sorting out of place in Series 2 binder
+## Fix: Card deal animation landing off-screen and disjointed movement
 
-### Root cause
+### Root causes
 
-The binder fetches both `series2` and `exotic` schemas. The `exotic` schema contains its own sketch and VHS templates, but these have different `cardid` values than the `series2` versions. Both pass the `ALLOWED_SCHEMA_VARIANTS` filter, so the exotic duplicates appear as separate entries and sort to the wrong position (around slot 500+).
+1. **Stale coordinates**: `getBoundingClientRect()` captures viewport-relative positions BEFORE the page scrolls to the destination. By the time the card flies (600ms later), the scroll has moved and the fixed-position target is wrong — the card lands off-screen.
 
-The series2 schema already has the correct sketch and VHS templates with proper cardids. The exotic schema should only contribute tiger stripe and tiger claw variants, which are exclusive to it.
+2. **Scrolls back to top every card**: The `idle` phase calls `window.scrollTo({ top: 0 })` before EVERY card (line 67), not just the first. This creates the disjointed, jumpy feeling — the page ping-pongs between top and bottom.
 
-### Fix
+3. **Only 300ms between cards**: After the first card, there's only a 300ms gap before the next sitting phase starts, giving no breathing room.
 
-**`src/hooks/useBinderTemplates.ts`**
+### Fix (single file: `CardDealAnimation.tsx`)
 
-After fetching exotic schema templates, filter them to only keep variants that are exclusive to the exotic schema (tiger stripe, tiger claw). Discard any sketch, VHS, or other variants from exotic that already exist in series2.
+1. **Re-measure target AFTER scroll settles**: Instead of capturing `getBoundingClientRect` during sitting and then scrolling, scroll first, wait for it to settle (~800ms), THEN capture the rect and set flyTarget. This ensures the fixed-position coordinates match what's actually on screen.
 
-Add a constant:
+2. **Only scroll to top for the first card**: Remove the `scrollTo top` from the idle phase for subsequent cards. After card 1 lands, the next card's sitting phase should show the stack where it is (or scroll up just enough to see the stack), not jump all the way to the top.
+
+3. **Smooth scroll sequence per card**:
+   - Scroll to show the stack area (not necessarily top 0)
+   - Sit for 4s showing the card
+   - Scroll to destination, wait for scroll to finish
+   - Measure target rect fresh
+   - Fly card (4s)
+   - Landed pause (2s)
+
+4. **Add a semi-transparent backdrop** so the card is always visible against the page content during flight.
+
+### Technical detail
+
+The key change is splitting the sitting-to-flying transition:
+
 ```
-const EXOTIC_ONLY_VARIANTS = new Set(['tiger stripe', 'tiger claw']);
+sitting → (timer 4s) → 'scrolling' phase
+scrolling → scroll to target, wait 800ms → measure rect → set flyTarget → 'flying'
+flying → (timer 4.2s) → 'landed'  
+landed → (timer 2s) → mark dealt, next card → 'sitting' (skip idle for subsequent cards)
 ```
 
-After collecting all templates and parsing them, filter out exotic-schema templates whose normalized variant is not in `EXOTIC_ONLY_VARIANTS`. This prevents duplicate sketch/VHS entries with wrong cardids from polluting the sort.
-
-Also remove the temporary diagnostic logging since it's served its purpose.
-
-### Single file change
-- `src/hooks/useBinderTemplates.ts`
-
-### Result
-Sketch and VHS cards with valid cardids (e.g., cardid 42) sort in their correct position alongside base, prism, etc. Tiger stripe/claw still load from exotic schema.
+This eliminates the scroll-to-top bounce and ensures coordinates are always fresh.
 
