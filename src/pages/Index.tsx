@@ -218,11 +218,13 @@ export default function SimpleAssetsPage() {
       const txInfo = pendingAnimationRef.current;
       pendingAnimationRef.current = null;
 
-      // Auto-switch to the category of the new cards
+      // Auto-switch to the category of the new cards and force the grid open
       const cat = newCards[0].category;
       if (cat) setCategoryFilter(cat);
+      setBinderView(false);
       setSearch('');
       setSourceFilter('all');
+      setVisibleCount(Number.POSITIVE_INFINITY);
       // customOrder will be reloaded by the filter-change effect
 
       setDealingCards(newCards);
@@ -245,8 +247,10 @@ export default function SimpleAssetsPage() {
     if (demoAssets.length === 0) return;
     const cat = demoAssets[0].category;
     if (cat) setCategoryFilter(cat);
+    setBinderView(false);
     setSearch('');
     setSourceFilter('all');
+    setVisibleCount(Number.POSITIVE_INFINITY);
     setDealingCards(demoAssets);
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
@@ -427,8 +431,12 @@ export default function SimpleAssetsPage() {
     const base = customOrder ?? filtered.map((a) => a.id);
     const trimmed = [...base];
     while (trimmed.length > 0 && trimmed[trimmed.length - 1] === EMPTY) trimmed.pop();
-    return [...trimmed, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
-  }, [customOrder, filtered]);
+
+    const occupied = new Set(trimmed.filter((id) => id !== EMPTY));
+    const pendingSlots = dealingCards.map((card) => card.id).filter((id) => !occupied.has(id));
+
+    return [...trimmed, ...pendingSlots, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
+  }, [customOrder, filtered, dealingCards]);
 
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
 
@@ -860,8 +868,7 @@ export default function SimpleAssetsPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                           {gridSlots.slice(0, visibleCount).map((slotId, idx) => {
                             if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
-                            const asset = assetMap.get(slotId);
-                            if (!asset) return null;
+
                             const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
                             if (isInFlight) {
                               return (
@@ -872,6 +879,10 @@ export default function SimpleAssetsPage() {
                                 />
                               );
                             }
+
+                            const asset = assetMap.get(slotId);
+                            if (!asset) return null;
+
                             const justLanded = dealtIds.has(slotId);
                             return (
                               <SimpleAssetCard
