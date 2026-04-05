@@ -77,12 +77,13 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
     if (phase === 'scrolling') {
       const card = cards[dealIndex];
+      let flyTimer: ReturnType<typeof setTimeout> | null = null;
+      let cancelled = false;
 
-      // Wait a tick for DOM refs to be available (grid may have just expanded)
-      const waitForRef = () => {
+      const rafTimer = setTimeout(() => {
+        if (cancelled) return;
         const targetEl = gridCellRefs.current.get(card.id);
         if (!targetEl) {
-          // If after a generous wait the ref still doesn't exist, skip this card
           onCardDealt(card.id);
           setPhase('idle');
           setDealIndex(i => i + 1);
@@ -95,7 +96,8 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
         scrollToElement(absTop, roughRect.height);
 
         // Wait for scroll to settle, then measure fresh viewport coords
-        const flyTimer = setTimeout(() => {
+        flyTimer = setTimeout(() => {
+          if (cancelled) return;
           const el = gridCellRefs.current.get(card.id);
           if (!el) {
             onCardDealt(card.id);
@@ -107,16 +109,13 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
           setPhase('flying');
         }, SCROLL_SETTLE);
-        return flyTimer;
-      };
-
-      // Give DOM a frame to render new grid slots
-      const rafTimer = setTimeout(() => {
-        const innerTimer = waitForRef();
-        if (innerTimer) return;
       }, 200);
 
-      return () => clearTimeout(rafTimer);
+      return () => {
+        cancelled = true;
+        clearTimeout(rafTimer);
+        if (flyTimer) clearTimeout(flyTimer);
+      };
     }
 
     if (phase === 'flying') {
