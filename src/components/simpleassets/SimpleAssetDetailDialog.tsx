@@ -52,22 +52,36 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           <DialogTitle>{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
         </DialogHeader>
-        <div className={`grid gap-4 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1 max-w-[400px] mx-auto'}`}>
-          {images.map((imgUrl, i) => (
-            <div key={i} className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground text-center">{IMAGE_LABELS[i] || `Image ${i + 1}`}</p>
-              <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
-                <IpfsMedia
-                  url={imgUrl}
-                  alt={`${asset.name} - ${IMAGE_LABELS[i] || `Image ${i + 1}`}`}
-                  className="w-full h-full"
-                  style={i === 1 ? { transform: 'rotate(90deg)' } : undefined}
-                  context="detail"
-                  showSkeleton
-                />
+        <div className={`grid gap-4 mx-auto ${images.length > 1 ? 'w-full max-w-[852px] grid-cols-2' : 'grid-cols-1 max-w-[400px]'}`}>
+          {images.map((imgUrl, i) => {
+            const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
+            const media = (
+              <IpfsMedia
+                url={imgUrl}
+                alt={`${asset.name} - ${label}`}
+                className="w-full h-full"
+                context="detail"
+                showSkeleton
+              />
+            );
+
+            return (
+              <div key={i} className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground text-center">{label}</p>
+                <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                  {i === 1 ? (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <div className="h-[75%] w-[133.333%] shrink-0 origin-center rotate-90 transform-gpu">
+                        {media}
+                      </div>
+                    </div>
+                  ) : (
+                    media
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {mintDisplay && (
           <div className="flex items-center gap-2">
