@@ -103,7 +103,7 @@ export async function fetchPendingNfts(owner: string): Promise<PendingNftRow[]> 
 
 export function PackRevealDialog({
   open, onOpenChange, packSymbol, packLabel, packImage,
-  accountName, preOpenUnboxingIds, onComplete, demoCards, session,
+  accountName, preOpenUnboxingIds, onComplete, onDemoCollect, demoCards, session,
 }: PackRevealDialogProps) {
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
