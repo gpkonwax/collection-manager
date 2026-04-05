@@ -1,18 +1,23 @@
 
 
-## Fix: Back images not loading in NFT detail
+## Fix Series 2: Slow Front Loading + Remove Back Rotation + Shrink Modal
 
-### Root cause
-The back image is wrapped in a complex nested layout: a 533px-wide landscape container with `overflow-hidden`, containing an absolutely-positioned 400x533 div that gets rotated. The problem is `overflow-hidden` clips based on the **pre-transform** bounding box, not the visual result. The 400x533 inner div overflows the ~400px-tall container, gets clipped, and the image either doesn't appear or is mostly cut off.
+### Problem
+1. **Front images load too slowly** — The card-context timeout starts at 12s per gateway, and with 5 gateways that's potentially 60s before finding a working one. Pinata (gateway 0) may be consistently slow for these assets.
+2. **Back images are rotated** — The back image has a 90° rotation applied that was never requested for series 2 cards. They should display vertically like the front.
+3. **Modal is too wide** — At 1200px it's oversized now that both images will be portrait orientation.
 
-### Fix (single file: `SimpleAssetDetailDialog.tsx`)
-Simplify the back image layout. Instead of nesting a portrait div inside a landscape container and rotating:
-- Keep the 533px-wide, 4:3 aspect container for the back
-- Put IpfsMedia directly inside with `style={{ transform: 'rotate(90deg)' }}` on the IpfsMedia wrapper
-- Remove the intermediate absolutely-positioned div
-- Add `overflow-visible` or restructure so the rotation isn't clipped
+### Changes
 
-Specifically: render the IpfsMedia at the container's full size and apply rotation + scaling so the portrait source image fills the landscape frame correctly without clipping.
+**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**
+- Remove the entire `if (i === 1)` rotation block (lines 68-90). Render back images identically to front images: same 400px-wide, 3:4 aspect portrait container.
+- Shrink modal from `sm:max-w-[1200px]` to `sm:max-w-[900px]` since both images are now portrait side-by-side.
 
-### No other files changed.
+**`src/lib/ipfsGateways.ts`**
+- Reduce `card` timeout from 12000ms to 6000ms so dead gateways are skipped faster.
+- Reduce `max` from 12000ms to 8000ms.
+
+### Result
+- Both front and back display as vertical portraits side-by-side in a narrower modal.
+- Dead gateways are abandoned twice as fast, so images load sooner.
 
