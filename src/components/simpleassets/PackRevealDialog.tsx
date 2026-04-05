@@ -113,17 +113,25 @@ export function PackRevealDialog({
   const [revealedCount, setRevealedCount] = useState(0);
   const [waitMessage, setWaitMessage] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
   const pollStartRef = useRef<number>(0);
   const isDemo = !!(demoCards && demoCards.length > 0);
 
   const expectedCount = EXPECTED_CARDS[packSymbol] ?? 5;
   const boxtype = SYMBOL_TO_BOXTYPE[packSymbol];
 
+  usePackRevealAudio({ open, phase, isShaking, revealedCount });
+
   useEffect(() => {
     if (open) {
       setPhase('waiting'); setNewCards([]); setPendingRowIds([]);
       setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
       setCollectError(null); pollStartRef.current = Date.now();
+      setIsShaking(true);
+      const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
+      return () => clearTimeout(shakeTimer);
+    } else {
+      setIsShaking(false);
     }
   }, [open]);
 

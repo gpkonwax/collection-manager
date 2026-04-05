@@ -125,13 +125,21 @@ export function AtomicPackRevealDialog({
   const [revealedCount, setRevealedCount] = useState(0);
   const [waitMessage, setWaitMessage] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
   const pollStartRef = useRef<number>(0);
+
+  usePackRevealAudio({ open, phase, isShaking, revealedCount });
 
   useEffect(() => {
     if (open) {
       setPhase('waiting'); setNewCards([]); setRollIds([]);
       setRevealedCount(0); setWaitMessage(''); setCollectError(null);
       pollStartRef.current = Date.now();
+      setIsShaking(true);
+      const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
+      return () => clearTimeout(shakeTimer);
+    } else {
+      setIsShaking(false);
     }
   }, [open]);
 
