@@ -26,7 +26,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
 
     const tearAudio = new Audio(packTearSrc);
     tearAudio.preload = 'auto';
-    tearAudio.loop = true;
+    tearAudio.loop = false;
     tearAudioRef.current = tearAudio;
 
     return () => {
