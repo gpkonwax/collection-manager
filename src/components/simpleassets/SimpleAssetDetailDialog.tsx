@@ -52,7 +52,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           <DialogTitle>{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
         </DialogHeader>
-        <div className={`grid gap-4 mx-auto ${images.length > 1 ? 'w-full max-w-[852px] grid-cols-2' : 'grid-cols-1 max-w-[400px]'}`}>
+        <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
           {images.map((imgUrl, i) => {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const media = (
@@ -65,19 +65,27 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
               />
             );
 
-            return (
-              <div key={i} className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground text-center">{label}</p>
-                <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
-                  {i === 1 ? (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <div className="h-[75%] w-[133.333%] shrink-0 origin-center rotate-90 transform-gpu">
+            if (i === 1) {
+              // Back image: landscape frame, rotated 90° CW so left edge becomes top
+              return (
+                <div key={i} className="space-y-1 shrink-0" style={{ width: '533px' }}>
+                  <p className="text-xs font-semibold text-muted-foreground text-center">{label}</p>
+                  <div className="aspect-[4/3] bg-muted/30 rounded-lg overflow-hidden">
+                    <div className="w-full h-full origin-center rotate-90 scale-[0.75] flex items-center justify-center" style={{ transform: 'rotate(90deg) scale(0.75)' }}>
+                      <div className="w-[133.333%] h-[133.333%]">
                         {media}
                       </div>
                     </div>
-                  ) : (
-                    media
-                  )}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div key={i} className="space-y-1 shrink-0" style={{ width: '400px' }}>
+                <p className="text-xs font-semibold text-muted-foreground text-center">{label}</p>
+                <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                  {media}
                 </div>
               </div>
             );
