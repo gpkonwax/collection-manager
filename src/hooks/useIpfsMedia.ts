@@ -23,6 +23,8 @@ function setCachedGateway(hash: string, idx: number) {
 interface UseIpfsMediaOptions {
   timeout?: number;
   context?: 'card' | 'detail';
+  /** When false, skip all loading/gateway rotation until enabled */
+  enabled?: boolean;
 }
 
 interface UseIpfsMediaResult {
@@ -37,7 +39,7 @@ export function useIpfsMedia(
   originalUrl: string | undefined,
   options: UseIpfsMediaOptions = {}
 ): UseIpfsMediaResult {
-  const { context = 'card' } = options;
+  const { context = 'card', enabled = true } = options;
   const baseTimeout = context === 'detail' ? IMAGE_LOAD_TIMEOUT.detail : IMAGE_LOAD_TIMEOUT.card;
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
@@ -64,9 +66,9 @@ export function useIpfsMedia(
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Timeout-based fallback
+  // Timeout-based fallback — only when enabled
   useEffect(() => {
-    if (failed || !isLoading || !hash) return;
+    if (!enabled || failed || !isLoading || !hash) return;
     if (timerRef.current) clearTimeout(timerRef.current);
 
     const timeout = Math.min(baseTimeout + triedCount * IMAGE_LOAD_TIMEOUT.increment, IMAGE_LOAD_TIMEOUT.max);
@@ -79,11 +81,10 @@ export function useIpfsMedia(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount]);
+  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled]);
 
   const advance = useCallback(() => {
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
-      // Tried all gateways, give up
       setFailed(true);
       setIsLoading(false);
     } else {
@@ -103,7 +104,10 @@ export function useIpfsMedia(
   }, [hash, gwIdx]);
 
   let src: string;
-  if (failed || !originalUrl) {
+  if (!enabled) {
+    // Not visible yet — return placeholder, don't trigger any loading
+    src = '/placeholder.svg';
+  } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
   } else if (hash) {
     src = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
@@ -111,5 +115,5 @@ export function useIpfsMedia(
     src = originalUrl;
   }
 
-  return { src, onError, onLoad, isLoading, failed };
+  return { src, onError, onLoad, isLoading: enabled ? isLoading : true, failed };
 }

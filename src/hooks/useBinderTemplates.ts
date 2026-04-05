@@ -71,6 +71,19 @@ export function useBinderTemplates(schema: string | null) {
         }
       }
 
+      // Diagnostic: log exotic schema templates to verify cardids
+      const exoticTemplates = all.filter((t: any) => (t.schema?.schema_name || '') === 'exotic');
+      if (exoticTemplates.length > 0) {
+        console.log('[BinderTemplates] Exotic schema templates sample:', exoticTemplates.slice(0, 5).map((t: any) => ({
+          templateId: t.template_id,
+          name: t.immutable_data?.name,
+          cardid: t.immutable_data?.cardid,
+          variant: t.immutable_data?.variant,
+          quality: t.immutable_data?.quality,
+          schema: t.schema?.schema_name,
+        })));
+      }
+
       const parsed: BinderTemplate[] = all.map((t: any) => {
         const data = t.immutable_data || {};
         return {
