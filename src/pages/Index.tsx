@@ -962,6 +962,15 @@ export default function SimpleAssetsPage() {
       )}
 
       <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
+      <BinderStackDialog
+        assets={stackedAssets ?? []}
+        open={stackDialogOpen}
+        onOpenChange={setStackDialogOpen}
+        onSelectAsset={(asset) => {
+          setStackDialogOpen(false);
+          setSelectedAsset(asset);
+        }}
+      />
       <TransactionSuccessDialog
         open={successDialog.open}
         onOpenChange={(open) => setSuccessDialog(prev => ({ ...prev, open }))}
