@@ -10,6 +10,7 @@ interface SimpleAssetCardProps {
   className?: string;
   selectionMode?: boolean;
   selected?: boolean;
+  stackCount?: number;
   onSelect?: (id: string) => void;
   onDragStart?: (e: DragEvent<HTMLDivElement>) => void;
   onDragOver?: (e: DragEvent<HTMLDivElement>) => void;
