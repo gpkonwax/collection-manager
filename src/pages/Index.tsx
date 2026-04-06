@@ -24,6 +24,7 @@ import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
+import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
@@ -138,6 +139,8 @@ export default function SimpleAssetsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [donateDialogOpen, setDonateDialogOpen] = useState(false);
+  const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
+  const [stackDialogOpen, setStackDialogOpen] = useState(false);
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -768,12 +771,21 @@ export default function SimpleAssetsPage() {
                           {items.map(({ template, owned }) => {
                             if (owned && owned.length > 0) {
                               const asset = owned[0];
+                              const handleClick = () => {
+                                if (owned.length > 1 && !selectionMode) {
+                                  setStackedAssets(owned);
+                                  setStackDialogOpen(true);
+                                } else {
+                                  setSelectedAsset(asset);
+                                }
+                              };
                               return (
                                 <SimpleAssetCard
                                   key={`binder-${template.templateId}`}
                                   asset={asset}
-                                  onClick={() => setSelectedAsset(asset)}
+                                  onClick={handleClick}
                                   draggable={false}
+                                  stackCount={owned.length}
                                   selectionMode={selectionMode}
                                   selected={selectedIds.has(asset.id)}
                                   onSelect={toggleSelection}
@@ -950,6 +962,15 @@ export default function SimpleAssetsPage() {
       )}
 
       <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
+      <BinderStackDialog
+        assets={stackedAssets ?? []}
+        open={stackDialogOpen}
+        onOpenChange={setStackDialogOpen}
+        onSelectAsset={(asset) => {
+          setStackDialogOpen(false);
+          setSelectedAsset(asset);
+        }}
+      />
       <TransactionSuccessDialog
         open={successDialog.open}
         onOpenChange={(open) => setSuccessDialog(prev => ({ ...prev, open }))}
