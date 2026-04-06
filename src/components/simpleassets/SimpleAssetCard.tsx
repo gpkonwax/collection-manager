@@ -34,7 +34,7 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
