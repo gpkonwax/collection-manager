@@ -1,41 +1,35 @@
 
 
-## Fix: Card deal animation landing off-screen and disjointed movement
+## Stack duplicate cards in Binder View
 
-### Root causes
+### What changes
 
-1. **Stale coordinates**: `getBoundingClientRect()` captures viewport-relative positions BEFORE the page scrolls to the destination. By the time the card flies (600ms later), the scroll has moved and the fixed-position target is wrong — the card lands off-screen.
+In binder view, when you own multiple copies of the same card (same template), they will appear as a single stacked card with a badge showing the count (e.g. "x3"). Clicking a stacked card opens an intermediate popup showing all individual cards in that stack. Clicking a specific card from there opens the full detail dialog.
 
-2. **Scrolls back to top every card**: The `idle` phase calls `window.scrollTo({ top: 0 })` before EVERY card (line 67), not just the first. This creates the disjointed, jumpy feeling — the page ping-pongs between top and bottom.
+### Implementation
 
-3. **Only 300ms between cards**: After the first card, there's only a 300ms gap before the next sitting phase starts, giving no breathing room.
+**1. New component: `BinderStackDialog.tsx`**
+- A small dialog/popover that receives an array of `SimpleAsset[]` and displays them in a grid
+- Each card is a `SimpleAssetCard` that, when clicked, calls the existing `setSelectedAsset` to open the detail dialog
+- Shows the template name as a header
 
-### Fix (single file: `CardDealAnimation.tsx`)
+**2. Modify `SimpleAssetCard` — add optional `stackCount` prop**
+- When `stackCount > 1`, render a badge in the top-right corner showing "x{count}"
+- Add a subtle visual stacking effect (offset shadow/border to hint at depth)
 
-1. **Re-measure target AFTER scroll settles**: Instead of capturing `getBoundingClientRect` during sitting and then scrolling, scroll first, wait for it to settle (~800ms), THEN capture the rect and set flyTarget. This ensures the fixed-position coordinates match what's actually on screen.
+**3. Update binder grid rendering in `Index.tsx` (lines 766-788)**
+- Currently renders `owned[0]` and ignores duplicates
+- Change the click handler: if `owned.length > 1`, open the new `BinderStackDialog` instead of going straight to detail
+- If `owned.length === 1`, keep current behavior (direct to detail)
+- Pass `stackCount={owned.length}` to `SimpleAssetCard`
 
-2. **Only scroll to top for the first card**: Remove the `scrollTo top` from the idle phase for subsequent cards. After card 1 lands, the next card's sitting phase should show the stack where it is (or scroll up just enough to see the stack), not jump all the way to the top.
+**4. State additions in `Index.tsx`**
+- `stackedAssets: SimpleAsset[] | null` — the array shown in the stack dialog
+- `stackDialogOpen: boolean`
+- When user selects a card from the stack dialog, set `selectedAsset` and close the stack dialog
 
-3. **Smooth scroll sequence per card**:
-   - Scroll to show the stack area (not necessarily top 0)
-   - Sit for 4s showing the card
-   - Scroll to destination, wait for scroll to finish
-   - Measure target rect fresh
-   - Fly card (4s)
-   - Landed pause (2s)
-
-4. **Add a semi-transparent backdrop** so the card is always visible against the page content during flight.
-
-### Technical detail
-
-The key change is splitting the sitting-to-flying transition:
-
-```
-sitting → (timer 4s) → 'scrolling' phase
-scrolling → scroll to target, wait 800ms → measure rect → set flyTarget → 'flying'
-flying → (timer 4.2s) → 'landed'  
-landed → (timer 2s) → mark dealt, next card → 'sitting' (skip idle for subsequent cards)
-```
-
-This eliminates the scroll-to-top bounce and ensures coordinates are always fresh.
+### Files touched
+- `src/components/simpleassets/BinderStackDialog.tsx` (new)
+- `src/components/simpleassets/SimpleAssetCard.tsx` (add `stackCount` prop + badge)
+- `src/pages/Index.tsx` (state + click logic in binder grid)
 
