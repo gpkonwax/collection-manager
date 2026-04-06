@@ -12,7 +12,7 @@ interface Props {
 
 const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
-const SERIES1_CATEGORIES = new Set(['five']);
+const SERIES1_CATEGORIES = new Set(['five', 'series1']);
 
 function getMintDisplay(asset: SimpleAsset): string | null {
   const combined = { ...asset.idata, ...asset.mdata };
