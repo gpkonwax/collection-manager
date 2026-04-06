@@ -52,7 +52,16 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
     if (!isDragging) onClick();
   };
 
+  const isStacked = (stackCount ?? 0) > 1;
+
   return (
+    <div className={isStacked ? 'relative' : ''}>
+      {isStacked && (
+        <>
+          <div className="absolute inset-0 rounded-lg border border-border bg-card translate-x-1.5 translate-y-1.5 opacity-40" />
+          <div className="absolute inset-0 rounded-lg border border-border bg-card translate-x-0.5 translate-y-0.5 opacity-60" />
+        </>
+      )}
     <Card
       className={`overflow-hidden cursor-pointer bg-card border-border relative
         ${isDragging ? 'opacity-50 scale-95' : 'hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10'}
@@ -68,6 +77,11 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
       onDrop={handleDrop}
       onDragEnd={handleDragEnd}
     >
+      {isStacked && (
+        <div className="absolute top-2 right-2 z-10 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
+          x{stackCount}
+        </div>
+      )}
       {selectionMode && (
         <div className="absolute top-2 left-2 z-10">
           <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
