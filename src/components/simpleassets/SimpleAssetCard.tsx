@@ -123,6 +123,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
 
@@ -138,6 +139,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
     prev.draggable === next.draggable &&
-    prev.className === next.className
+    prev.className === next.className &&
+    prev.stackCount === next.stackCount
   );
 });
