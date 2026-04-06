@@ -40,15 +40,20 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   const images = asset.images;
   const mintDisplay = getMintDisplay(asset);
+  const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply'].includes(key)
   );
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
 
+  // Series 1 backs are landscape — widen the modal
+  const hasLandscapeBack = isSeries1 && images.length > 1;
+  const modalMaxWidth = hasLandscapeBack ? 'sm:max-w-[1100px]' : 'sm:max-w-[900px]';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`${modalMaxWidth} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
@@ -56,6 +61,8 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
         <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
           {images.map((imgUrl, i) => {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
+            const isBack = i === 1;
+            const isLandscape = isBack && isSeries1;
             const media = (
               <IpfsMedia
                 url={imgUrl}
@@ -67,9 +74,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             );
 
             return (
-              <div key={i} className="space-y-1 shrink-0" style={{ width: '400px' }}>
+              <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
                 <p className="text-xs font-semibold text-cheese text-center">{label}</p>
-                <div className="aspect-[3/4] bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center">
+                <div
+                  className={`${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}
+                >
                   {media}
                 </div>
               </div>
