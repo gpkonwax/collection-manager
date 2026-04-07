@@ -117,7 +117,7 @@ export default function SimpleAssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
-  const [variantFilter, setVariantFilter] = useState('all');
+  const [variantFilter, setVariantFilter] = useState<Set<string>>(new Set());
   const [binderView, setBinderView] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
