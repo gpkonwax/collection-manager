@@ -67,7 +67,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
               <IpfsMedia
                 url={imgUrl}
                 alt={`${asset.name} - ${label}`}
-                className={`w-full h-full ${isLandscape ? 'rotate-90 scale-[0.75] origin-center' : ''}`}
+                className={`w-full h-full ${isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}`}
                 context="detail"
                 showSkeleton
               />
