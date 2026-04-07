@@ -117,7 +117,7 @@ export default function SimpleAssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
-  const [variantFilter, setVariantFilter] = useState<Set<string>>(new Set());
+  const [variantFilter, setVariantFilter] = useState('all');
   const [binderView, setBinderView] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
@@ -384,7 +384,7 @@ export default function SimpleAssetsPage() {
       const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
       if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter.size > 0 && !variantFilter.has(a.quality.toLowerCase())) return false;
+      if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all' && a.quality.toLowerCase() !== variantFilter.toLowerCase()) return false;
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
@@ -412,8 +412,8 @@ export default function SimpleAssetsPage() {
     }
 
     let filteredTemplates = binderTemplates;
-    if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter.size > 0) {
-      filteredTemplates = binderTemplates.filter(t => variantFilter.has(t.variant.toLowerCase()));
+    if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all') {
+      filteredTemplates = binderTemplates.filter(t => t.variant.toLowerCase() === variantFilter.toLowerCase());
     }
 
     return filteredTemplates.map(template => {
@@ -701,7 +701,7 @@ export default function SimpleAssetsPage() {
                   <SelectItem value="atomicassets">Atomic Assets</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2') setVariantFilter(new Set()); }}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2') setVariantFilter('all'); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
@@ -709,43 +709,13 @@ export default function SimpleAssetsPage() {
                 </SelectContent>
               </Select>
               {(categoryFilter === 'series1' || categoryFilter === 'series2') && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full sm:w-[180px] border-cheese/50 text-cheese hover:bg-cheese/10 justify-between">
-                      {variantFilter.size === 0 ? 'All Variants' : `${variantFilter.size} Variant${variantFilter.size !== 1 ? 's' : ''}`}
-                      <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-                    <DropdownMenuItem
-                      onSelect={(e) => { e.preventDefault(); setVariantFilter(new Set()); }}
-                      className={variantFilter.size === 0 ? 'font-bold text-cheese' : ''}
-                    >
-                      All Variants
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {(categoryFilter === 'series1' ? SERIES1_VARIANTS : SERIES2_VARIANTS).map((v) => (
-                      <DropdownMenuItem
-                        key={v.value}
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setVariantFilter(prev => {
-                            const next = new Set(prev);
-                            if (next.has(v.value)) next.delete(v.value); else next.add(v.value);
-                            return next;
-                          });
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <Checkbox
-                          checked={variantFilter.has(v.value)}
-                          className="pointer-events-none border-cheese/50 data-[state=checked]:bg-cheese data-[state=checked]:border-cheese"
-                        />
-                        {v.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Select value={variantFilter} onValueChange={setVariantFilter}>
+                  <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Variant" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Variants</SelectItem>
+                    {(categoryFilter === 'series1' ? SERIES1_VARIANTS : SERIES2_VARIANTS).map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               )}
               {showCollectUnclaimed && (
                 <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
