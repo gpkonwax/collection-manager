@@ -1,23 +1,27 @@
 
 
-## Rotate Series 1 back image to landscape
+## Add "Select All" checkbox in selection mode
 
-The container is already landscape (`aspect-[4/3]`, 500px wide), but the actual back image is portrait and needs to be rotated 90° clockwise to display correctly in landscape orientation.
+### What changes
 
-### Change
+When the user enters selection mode (clicks "Select"), a "Select All" checkbox appears next to the cancel button. Checking it selects all visible NFTs on the current page. Unchecking it deselects all.
 
-**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`** — Add a CSS rotation to the `IpfsMedia` component when rendering a Series 1 back image:
+### Implementation
 
-- When `isLandscape` is true, wrap the media in a container with `rotate-90` (or `-rotate-90`) and use `object-contain` to ensure it fits within the landscape aspect container
-- The image itself gets `transform: rotate(90deg)` plus appropriate sizing so it fills the landscape container after rotation
+**`src/pages/Index.tsx`** — 3 changes:
 
-Specifically, change the `className` on the `IpfsMedia` from `"w-full h-full"` to include rotation when `isLandscape`:
-```tsx
-className={`w-full h-full object-contain ${isLandscape ? 'rotate-90' : ''}`}
-```
+1. **Import `Checkbox`** from `@/components/ui/checkbox`
 
-If `rotate-90` alone doesn't scale correctly (since rotating a portrait image makes it overflow), we may need to also adjust the image dimensions so the rotated portrait fills the landscape box. This can be done by setting the image width/height to swap dimensions via a wrapping div with `origin-center`.
+2. **Add "Select All" checkbox next to the Select/Cancel button in both views** (binder view ~line 758, standard view ~line 872):
+   - Only visible when `selectionMode` is true
+   - Compute `visibleAssetIds` — the IDs of all owned assets currently rendered on screen
+   - `checked` = all visible IDs are in `selectedIds`
+   - `onCheckedChange`: if checked, add all visible IDs to `selectedIds`; if unchecked, clear `selectedIds`
+
+3. **Visible asset IDs logic**:
+   - **Standard view**: extract asset IDs from `gridSlots.slice(0, visibleCount)` that aren't empty slots, filtered through `assetMap`
+   - **Binder view**: extract asset IDs from the visible binder grid slots that have `owned` arrays (use `owned[0].id` for each)
 
 ### Files touched
-- `src/components/simpleassets/SimpleAssetDetailDialog.tsx` (1 line change on the IpfsMedia className)
+- `src/pages/Index.tsx`
 
