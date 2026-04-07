@@ -756,6 +756,25 @@ export default function SimpleAssetsPage() {
                         <CheckSquare className="h-4 w-4 mr-1" />
                         {selectionMode ? 'Cancel Select' : 'Select'}
                       </Button>
+                      {selectionMode && binderGrid && (() => {
+                        const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
+                        const allSelected = visibleOwned.length > 0 && visibleOwned.every(id => selectedIds.has(id));
+                        return (
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedIds(prev => { const next = new Set(prev); visibleOwned.forEach(id => next.add(id)); return next; });
+                                } else {
+                                  setSelectedIds(new Set());
+                                }
+                              }}
+                            />
+                            <span className="text-sm text-cheese">Select All</span>
+                          </label>
+                        );
+                      })()}
                     </div>
                     {(() => {
                       const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
@@ -870,6 +889,25 @@ export default function SimpleAssetsPage() {
                         <CheckSquare className="h-4 w-4 mr-1" />
                         {selectionMode ? 'Cancel Select' : 'Select'}
                       </Button>
+                      {selectionMode && (() => {
+                        const visibleIds = gridSlots.slice(0, visibleCount).filter(id => id !== EMPTY && assetMap.has(id));
+                        const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+                        return (
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
+                                } else {
+                                  setSelectedIds(new Set());
+                                }
+                              }}
+                            />
+                            <span className="text-sm text-cheese">Select All</span>
+                          </label>
+                        );
+                      })()}
                     </div>
                     {filtered.length === 0 ? (
                       <p className="text-center text-muted-foreground py-12">
