@@ -1,35 +1,23 @@
 
 
-## Stack duplicate cards in Binder View
+## Rotate Series 1 back image to landscape
 
-### What changes
+The container is already landscape (`aspect-[4/3]`, 500px wide), but the actual back image is portrait and needs to be rotated 90° clockwise to display correctly in landscape orientation.
 
-In binder view, when you own multiple copies of the same card (same template), they will appear as a single stacked card with a badge showing the count (e.g. "x3"). Clicking a stacked card opens an intermediate popup showing all individual cards in that stack. Clicking a specific card from there opens the full detail dialog.
+### Change
 
-### Implementation
+**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`** — Add a CSS rotation to the `IpfsMedia` component when rendering a Series 1 back image:
 
-**1. New component: `BinderStackDialog.tsx`**
-- A small dialog/popover that receives an array of `SimpleAsset[]` and displays them in a grid
-- Each card is a `SimpleAssetCard` that, when clicked, calls the existing `setSelectedAsset` to open the detail dialog
-- Shows the template name as a header
+- When `isLandscape` is true, wrap the media in a container with `rotate-90` (or `-rotate-90`) and use `object-contain` to ensure it fits within the landscape aspect container
+- The image itself gets `transform: rotate(90deg)` plus appropriate sizing so it fills the landscape container after rotation
 
-**2. Modify `SimpleAssetCard` — add optional `stackCount` prop**
-- When `stackCount > 1`, render a badge in the top-right corner showing "x{count}"
-- Add a subtle visual stacking effect (offset shadow/border to hint at depth)
+Specifically, change the `className` on the `IpfsMedia` from `"w-full h-full"` to include rotation when `isLandscape`:
+```tsx
+className={`w-full h-full object-contain ${isLandscape ? 'rotate-90' : ''}`}
+```
 
-**3. Update binder grid rendering in `Index.tsx` (lines 766-788)**
-- Currently renders `owned[0]` and ignores duplicates
-- Change the click handler: if `owned.length > 1`, open the new `BinderStackDialog` instead of going straight to detail
-- If `owned.length === 1`, keep current behavior (direct to detail)
-- Pass `stackCount={owned.length}` to `SimpleAssetCard`
-
-**4. State additions in `Index.tsx`**
-- `stackedAssets: SimpleAsset[] | null` — the array shown in the stack dialog
-- `stackDialogOpen: boolean`
-- When user selects a card from the stack dialog, set `selectedAsset` and close the stack dialog
+If `rotate-90` alone doesn't scale correctly (since rotating a portrait image makes it overflow), we may need to also adjust the image dimensions so the rotated portrait fills the landscape box. This can be done by setting the image width/height to swap dimensions via a wrapping div with `origin-center`.
 
 ### Files touched
-- `src/components/simpleassets/BinderStackDialog.tsx` (new)
-- `src/components/simpleassets/SimpleAssetCard.tsx` (add `stackCount` prop + badge)
-- `src/pages/Index.tsx` (state + click logic in binder grid)
+- `src/components/simpleassets/SimpleAssetDetailDialog.tsx` (1 line change on the IpfsMedia className)
 
