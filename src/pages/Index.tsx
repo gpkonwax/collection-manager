@@ -36,6 +36,7 @@ const ITEMS_PER_PAGE = 36;
 const CATEGORY_LABELS: Record<string, string> = {
   series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
   exotic: 'Tiger King', bernventures: 'Bernventures', mittens: 'Mittens',
+  five: 'Series 1',
   gamestonk: 'GameStonk', foodfightb: 'Food Fight', bonus: 'Bonus',
   promo: 'Promo', originalart: 'Original Art',
 };
@@ -70,6 +71,7 @@ const SERIES2_VARIANTS: { value: string; label: string }[] = [
 // Schemas that should be grouped under a category for filtering
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'series2',
+  five: 'series1',
 };
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
