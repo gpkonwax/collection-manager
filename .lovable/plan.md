@@ -1,27 +1,33 @@
 
 
-## Add "Select All" checkbox in selection mode
+## Fix Series 1 default sorting by cardid
 
-### What changes
+### Root cause
 
-When the user enters selection mode (clicks "Select"), a "Select All" checkbox appears next to the cancel button. Checking it selects all visible NFTs on the current page. Unchecking it deselects all.
+Series 1 SimpleAssets have category `'five'`, but there is no mapping in `SCHEMA_TO_CATEGORY` to group them under `'series1'`. This means:
+1. They appear as a separate `'five'` entry in the category dropdown (unlabeled)
+2. They don't show up when the user selects the `'series1'` filter
+3. The `'series1'` tab only shows AtomicAssets, which may have a stale custom order saved in localStorage
 
-### Implementation
+### Fix
 
-**`src/pages/Index.tsx`** — 3 changes:
+**`src/pages/Index.tsx`** — Two changes:
 
-1. **Import `Checkbox`** from `@/components/ui/checkbox`
+1. **Add `'five'` to `SCHEMA_TO_CATEGORY`** so SimpleAssets Series 1 cards are grouped under `'series1'`:
+```typescript
+const SCHEMA_TO_CATEGORY: Record<string, string> = {
+  exotic: 'series2',
+  five: 'series1',
+};
+```
 
-2. **Add "Select All" checkbox next to the Select/Cancel button in both views** (binder view ~line 758, standard view ~line 872):
-   - Only visible when `selectionMode` is true
-   - Compute `visibleAssetIds` — the IDs of all owned assets currently rendered on screen
-   - `checked` = all visible IDs are in `selectedIds`
-   - `onCheckedChange`: if checked, add all visible IDs to `selectedIds`; if unchecked, clear `selectedIds`
+2. **Add `'five'` to `CATEGORY_LABELS`** as a safety net (in case it still appears separately):
+```typescript
+five: 'Series 1',
+```
 
-3. **Visible asset IDs logic**:
-   - **Standard view**: extract asset IDs from `gridSlots.slice(0, visibleCount)` that aren't empty slots, filtered through `assetMap`
-   - **Binder view**: extract asset IDs from the visible binder grid slots that have `owned` arrays (use `owned[0].id` for each)
+This ensures all Series 1 cards (both SimpleAssets `'five'` and AtomicAssets `'series1'`) appear together under the Series 1 tab, sorted by cardid as the combined `assets` sort already handles.
 
 ### Files touched
-- `src/pages/Index.tsx`
+- `src/pages/Index.tsx` (2 small additions)
 
