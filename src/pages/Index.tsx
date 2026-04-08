@@ -36,7 +36,7 @@ const ITEMS_PER_PAGE = 36;
 const CATEGORY_LABELS: Record<string, string> = {
   series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
   exotic: 'Tiger King', bernventures: 'Bernventures', mittens: 'Mittens',
-  five: 'Series 1',
+  
   gamestonk: 'GameStonk', foodfightb: 'Food Fight', bonus: 'Bonus',
   promo: 'Promo', originalart: 'Original Art',
 };
@@ -373,7 +373,7 @@ export default function SimpleAssetsPage() {
   }, [customOrder, accountName, categoryFilter, sourceFilter, getStorageKey]);
 
   const categories = useMemo(() => {
-    const fromAssets = new Set(assets.map((a) => a.category).filter((c) => c !== 'packs'));
+    const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
     for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
     for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
     return [...fromAssets].sort();
