@@ -760,7 +760,7 @@ export default function SimpleAssetsPage() {
                   <>
                     <div className="flex items-center gap-3">
                       <p className="text-sm text-muted-foreground">
-                        {binderGrid.filter(s => s.owned).length} / {binderGrid.length} collected
+                        {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                         {binderLoading && ' (loading templates...)'}
                       </p>
                       <Button
