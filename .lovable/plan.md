@@ -1,39 +1,47 @@
 
 
-## Fix Series 1 sorting — treat all cards as one unified set sorted by cardid
+## Fix Series 1 "All Variants" ordering — simple approach matching Series 2
 
-### Problem
+### Root cause
 
-Two issues are causing Series 1 cards to appear split/incorrectly ordered:
+Series 2 sorts correctly because its localStorage saved order was always built with all its cards together. Series 1 has a **stale saved layout** in localStorage (key `gpk-order-{account}-series1-all`) that was created before `five` schema cards were merged into `series1`.
 
-1. **Categories list uses raw category values** — line 376 builds the category dropdown from `a.category` without normalizing through `SCHEMA_TO_CATEGORY`. So `'five'` (SimpleAssets) and `'series1'` (AtomicAssets) both appear as separate entries.
+When `loadOrder` runs, it finds this old saved order, keeps the IDs it recognizes, then **appends** the newly-merged `five` cards at the end (line 358). That's why Series 1 looks split — the AtomicAssets cards appear first (from the old saved order) and the SimpleAssets `five` cards are tacked on at the bottom.
 
-2. **Stale localStorage layout overrides the default sort** — the grid uses `customOrder` from localStorage (keyed by `series1-all`) which may contain an old saved order that doesn't include the newly-merged `'five'` cards, or has them appended at the end.
+The underlying sort logic (line 183) is identical for Series 1 and Series 2 — sort by `cardid`, then variant rank. It works fine. The problem is purely the stale localStorage overriding it.
 
-The actual combined sort (line 183) correctly sorts all cards by cardid — the problem is that stale saved layouts override it.
+### Fix
 
-### Changes
+**`src/pages/Index.tsx`** — 1 small change:
 
-**`src/pages/Index.tsx`** — 2 fixes:
-
-1. **Normalize categories in the dropdown builder** (line 375-380): Map raw categories through `SCHEMA_TO_CATEGORY` before adding to the set, so `'five'` becomes `'series1'` and doesn't appear separately.
+Add a one-time migration that clears stale Series 1 saved layouts. On component mount, if the user has a saved order for `series1`, delete it so the correct default `cardid` sort takes over.
 
 ```typescript
-const categories = useMemo(() => {
-  const fromAssets = new Set(
-    assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category)
-      .filter((c) => c !== 'packs')
-  );
-  for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
-  for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
-  return [...fromAssets].sort();
-}, [assets, packs, atomicPacks]);
+// After accountName is set, clear legacy series1 layouts once
+useEffect(() => {
+  if (!accountName) return;
+  const migrationKey = `gpk-s1-migrated-${accountName}`;
+  if (localStorage.getItem(migrationKey)) return;
+  // Remove stale series1 layouts that predate the five->series1 merge
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(`gpk-order-${accountName}-series1-`)) {
+      localStorage.removeItem(key);
+    }
+  }
+  localStorage.setItem(migrationKey, '1');
+}, [accountName]);
 ```
 
-2. **Remove the `five` entry from `CATEGORY_LABELS`** — it was added as a workaround but is no longer needed since `five` will be normalized to `series1` everywhere.
+This runs once per account. After clearing, `loadOrder` returns `null`, `customOrder` is `null`, and `gridSlots` falls back to `filtered.map(a => a.id)` — which uses the correct `cardid` sort from the `assets` memo. Future drag-and-drop reordering will save a fresh, correct layout.
 
-With these two fixes, all Series 1 cards (SimpleAssets + AtomicAssets) will be in one unified `series1` bucket. The filtering at line 386 already normalizes via `SCHEMA_TO_CATEGORY`, so they'll all pass together. The default sort by cardid (line 183) will apply correctly. If there's a stale localStorage layout, it will naturally reconcile via the `loadOrder` logic (line 346-358) which appends new IDs and removes stale ones.
+### Why this is the right fix
+
+- Series 2 works because it never had a stale layout problem
+- The sort comparator is already correct and identical for both series
+- No new comparators, no key changes, no complex refactoring needed
+- One-time cleanup, then everything works the same way Series 2 does
 
 ### Files touched
-- `src/pages/Index.tsx` (2 small edits)
+- `src/pages/Index.tsx` (add one `useEffect`)
 
