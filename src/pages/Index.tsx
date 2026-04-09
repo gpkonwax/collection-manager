@@ -131,6 +131,20 @@ export default function SimpleAssetsPage() {
   // --- Pagination state ---
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
+  // One-time migration: clear stale Series 1 saved layouts so default cardid sort applies
+  useEffect(() => {
+    if (!accountName) return;
+    const migrationKey = `gpk-s1-migrated-${accountName}`;
+    if (localStorage.getItem(migrationKey)) return;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(`gpk-order-${accountName}-series1-`)) {
+        localStorage.removeItem(key);
+      }
+    }
+    localStorage.setItem(migrationKey, '1');
+  }, [accountName]);
+
   // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
