@@ -968,14 +968,14 @@ export default function SimpleAssetsPage() {
                             );
                           })}
                         </div>
-                        {gridSlots.length > visibleCount && (
+                        {filtered.length > visibleCount && (
                           <div className="flex justify-center pt-4">
                             <Button
                               onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
                               variant="outline"
                               className="border-cheese/50 text-cheese hover:bg-cheese/10"
                             >
-                              Show More ({Math.min(visibleCount, gridSlots.length)} of {gridSlots.length})
+                              Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
                             </Button>
                           </div>
                         )}
