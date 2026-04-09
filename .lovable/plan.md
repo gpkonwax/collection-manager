@@ -1,33 +1,45 @@
 
 
-## Fix mismatched NFT count between header and "Show More" button
+## Fix binder view count to show total NFTs owned (not unique slots)
 
 ### Problem
 
-The header shows `filtered.length` (99 — actual NFTs), but the "Show More" button shows `gridSlots.length` which includes 6 extra empty drag-and-drop placeholder slots (`EXTRA_EMPTY_SLOTS = 6`), making it say 105.
+The two views count different things:
+- **Regular view**: shows `filtered.length` = 99 (total individual NFTs, including duplicates)
+- **Binder view**: shows `binderGrid.filter(s => s.owned).length` = 96 (unique template slots that have at least one owned card)
+
+The difference (3) means you own duplicate copies of 3 cards. The binder collapses duplicates into stacks, so it counts 96 unique cards collected. Both numbers are technically correct but confusing when switching views.
 
 ### Fix
 
-**`src/pages/Index.tsx`** — Update the "Show More" button (line 978) to use `filtered.length` instead of `gridSlots.length` for the total count display:
+**`src/pages/Index.tsx`** — Update the binder header (line 763) to show both the total NFT count and the unique collected count, so it's clear and consistent:
 
-```typescript
-// Before:
-Show More ({Math.min(visibleCount, gridSlots.length)} of {gridSlots.length})
-
-// After:
-Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
+Change from:
+```
+96 / 200 collected
 ```
 
-Also update the visibility condition (line 971) to compare against `filtered.length` so the button hides once all real NFTs are visible:
+To:
+```
+99 NFTs found · 96 / 200 unique collected
+```
 
+This way:
+- `99 NFTs found` matches the regular view count exactly
+- `96 / 200 unique collected` explains the binder completion progress
+
+### Technical detail
+
+Line 763 currently:
 ```typescript
-// Before:
-{gridSlots.length > visibleCount && (
+{binderGrid.filter(s => s.owned).length} / {binderGrid.length} collected
+```
 
-// After:
-{filtered.length > visibleCount && (
+Updated to:
+```typescript
+{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
 ```
 
 ### Files touched
-- `src/pages/Index.tsx` (2 small edits on lines 971 and 978)
+- `src/pages/Index.tsx` (1 line edit)
 
