@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from 'lucide-react';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
 import type { BinderTemplate } from '@/hooks/useBinderTemplates';
 
 interface MissingCardPlaceholderProps {
@@ -13,10 +14,14 @@ function getAtomicHubUrl(templateId: string): string {
 
 export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps) {
   const buyUrl = getAtomicHubUrl(template.templateId);
+  const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
   return (
-    <Card className="overflow-hidden bg-card/30 border-border/30 opacity-50 hover:opacity-80 transition-opacity">
-      <a href={buyUrl} target="_blank" rel="noopener noreferrer" className="block">
+    <>
+      <Card
+        className="overflow-hidden bg-card/30 border-border/30 opacity-50 hover:opacity-80 transition-opacity cursor-pointer"
+        onClick={() => requestNavigation(buyUrl)}
+      >
         <div className="aspect-square bg-muted/10 flex items-center justify-center overflow-hidden relative">
           <IpfsMedia
             url={template.image}
@@ -38,7 +43,8 @@ export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps
             <span className="text-[10px] text-muted-foreground/50">#{template.cardid}{template.quality ? template.quality.toUpperCase() : ''}</span>
           </div>
         </CardContent>
-      </a>
-    </Card>
+      </Card>
+      <ExternalLinkWarningDialog url={pendingUrl} onConfirm={confirm} onCancel={cancel} />
+    </>
   );
 }
