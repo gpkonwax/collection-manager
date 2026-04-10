@@ -1,47 +1,33 @@
 
 
-## Persist Saved Layout in localStorage
+## Update Atomic Pack Reveal: Fix Sound Label and Add Card Deal Animation
 
-### Problem
-The `savedOrder` state is a plain `useState` — it lives only in memory. Any page refresh or navigation wipes it.
+### What's happening now
+1. **Sound naming**: `playRandomFart()` in `fartSounds.ts` plays `card-bell.mp3` — the function name is misleading but the bell sound is correct and matches Series 1/2
+2. **Card Deal Animation**: The mechanism already exists — `handlePackOpened` detects new assets after refetch and triggers `CardDealAnimation`. However, for atomic packs, the reveal dialog stays open after `claimunboxed`, blocking the deal animation from being visible. The dialog needs to auto-close after collecting so the cards fly into the grid.
 
-### Solution
-Persist the saved layout to `localStorage` keyed by account name, so it automatically restores when the user returns.
+### Changes
 
-### File changes
+**`src/lib/fartSounds.ts`**
+- Rename function from `playRandomFart` to `playCardRevealSound` for clarity
+- Update all import references across the codebase
 
-**`src/pages/Index.tsx`**
+**`src/components/simpleassets/AtomicPackRevealDialog.tsx`**
+- After `claimunboxed` succeeds (phase becomes 'done'), auto-close the dialog after a brief delay (~1.5s) instead of requiring the user to click "Awesome! Close"
+- This lets `onComplete(txId)` flow through to `handlePackOpened`, which triggers the card deal animation once new assets are detected
+- Keep a brief "Cards Collected!" confirmation visible before auto-closing
 
-1. **Initialize `savedOrder` from localStorage**: On mount (and when `accountName` changes), read from `localStorage` key `gpk-saved-layout-{accountName}`. If found, parse and set as initial state.
+**`src/components/simpleassets/PackRevealDialog.tsx`**
+- Same auto-close treatment after collect succeeds (if not already doing this)
+- Update `playRandomFart` → `playCardRevealSound` import
 
-2. **Auto-save on changes**: Add a `useEffect` that writes `savedOrder` to localStorage whenever it changes (debounced or direct). Also persist `loadedLayoutName`.
+**`src/components/simpleassets/AtomicPackCard.tsx`**
+- Pass through `onComplete` callback correctly so the txId propagates to trigger the deal animation
 
-3. **Clear on logout**: When `accountName` becomes null, clear the state (but keep localStorage so it restores on re-login).
-
-### Key logic
-```typescript
-const STORAGE_KEY = `gpk-saved-layout-${accountName}`;
-
-// Restore on mount
-useEffect(() => {
-  if (!accountName) return;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    setSavedOrder(parsed.order);
-    setLoadedLayoutName(parsed.name ?? null);
-  }
-}, [accountName]);
-
-// Persist on change
-useEffect(() => {
-  if (!accountName || savedOrder === null) return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    order: savedOrder,
-    name: loadedLayoutName
-  }));
-}, [savedOrder, loadedLayoutName, accountName]);
-```
-
-This means once you load a JSON, it stays across refreshes until you explicitly clear it or load a different one.
+### Flow after fix
+1. User opens atomic pack → transfer + unbox transaction
+2. Reveal dialog: shake, tear, flip cards one-by-one with bell sounds
+3. User clicks "Collect Assets" → `claimunboxed` transaction
+4. Dialog briefly shows "Cards Collected!" then auto-closes
+5. Assets refetch detects new cards → Card Deal Animation plays (cards fly from stack to grid positions)
 
