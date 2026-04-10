@@ -338,8 +338,28 @@ export default function SimpleAssetsPage() {
 
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
-  const [savedOrder, setSavedOrder] = useState<string[] | null>(null);
-  const [loadedLayoutName, setLoadedLayoutName] = useState<string | null>(null);
+  const [savedOrder, setSavedOrder] = useState<string[] | null>(() => {
+    if (!accountName) return null;
+    try {
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.order ?? null;
+      }
+    } catch {}
+    return null;
+  });
+  const [loadedLayoutName, setLoadedLayoutName] = useState<string | null>(() => {
+    if (!accountName) return null;
+    try {
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.name ?? null;
+      }
+    } catch {}
+    return null;
+  });
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
