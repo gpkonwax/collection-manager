@@ -119,7 +119,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerStart = useRef<number>(0);
-  const [ratingResult, setRatingResult] = useState<{ time: number; rotation: number; placement: number; total: number; grade: string } | null>(null);
+  const [ratingResult, setRatingResult] = useState<{ time: number; rotation: number; placement: number; overlap: number; total: number; grade: string } | null>(null);
 
   useEffect(() => {
     if (!timerRunning) return;
@@ -138,42 +138,59 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
   };
 
   const computeRating = useCallback(() => {
-    const entries = Array.from(pieces.entries());
-    const totalPieces = entries.length;
+    const totalPieces = puzzleAssets.length;
     if (totalPieces === 0) return;
 
-    // Time score (0-40): 40 if under 30s, linear to 0 at 300s
-    const secs = elapsedMs / 1000;
-    const timeScore = secs <= 30 ? 40 : Math.max(0, 40 - ((secs - 30) / 270) * 40);
-
-    // Rotation score (0-30): % of pieces at 0°
-    const correctRotation = entries.filter(([, s]) => s.rotation === 0).length;
-    const rotationScore = (correctRotation / totalPieces) * 30;
-
-    // Placement score (0-30): pairwise bounding box overlap, -2 per overlap
-    let overlapCount = 0;
     const W = 120, H = 168;
-    for (let i = 0; i < entries.length; i++) {
-      for (let j = i + 1; j < entries.length; j++) {
-        const a = entries[i][1], b = entries[j][1];
+    const GRID_ORIGIN_X = 20, GRID_ORIGIN_Y = 20;
+
+    // Time score (0-20): 20 if under 30s, linear to 0 at 300s
+    const secs = elapsedMs / 1000;
+    const timeScore = secs <= 30 ? 20 : Math.max(0, 20 - ((secs - 30) / 270) * 20);
+
+    // Rotation score (0-20): % of pieces at 0°
+    const correctRotation = puzzleAssets.filter(a => (pieces.get(a.id)?.rotation ?? 0) === 0).length;
+    const rotationScore = (correctRotation / totalPieces) * 20;
+
+    // Position accuracy (0-40): average distance from target grid cell
+    // Grid order follows PUZZLE_CARD_IDS: rows of 6 (55-60, 66-71, 75-80)
+    let totalDist = 0;
+    for (const asset of puzzleAssets) {
+      const cid = getCardId(asset);
+      const idx = PUZZLE_CARD_IDS.indexOf(cid);
+      const targetX = GRID_ORIGIN_X + (idx % 6) * W;
+      const targetY = GRID_ORIGIN_Y + Math.floor(idx / 6) * H;
+      const p = pieces.get(asset.id) ?? { x: 0, y: 0, rotation: 0 };
+      totalDist += Math.sqrt(Math.pow(p.x - targetX, 2) + Math.pow(p.y - targetY, 2));
+    }
+    const avgDist = totalDist / totalPieces;
+    const positionScore = Math.max(0, 40 - (avgDist / 200) * 40);
+
+    // Overlap penalty (0-20): lose 3 per overlapping pair
+    let overlapCount = 0;
+    const assetStates = puzzleAssets.map(a => pieces.get(a.id) ?? { x: 0, y: 0, rotation: 0 });
+    for (let i = 0; i < assetStates.length; i++) {
+      for (let j = i + 1; j < assetStates.length; j++) {
+        const a = assetStates[i], b = assetStates[j];
         if (a.x < b.x + W && a.x + W > b.x && a.y < b.y + H && a.y + H > b.y) {
           overlapCount++;
         }
       }
     }
-    const placementScore = Math.max(0, 30 - overlapCount * 2);
+    const overlapScore = Math.max(0, 20 - overlapCount * 3);
 
-    const total = Math.round(timeScore + rotationScore + placementScore);
+    const total = Math.round(timeScore + rotationScore + positionScore + overlapScore);
     const grade = total >= 90 ? 'A' : total >= 80 ? 'B' : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
 
     setRatingResult({
       time: Math.round(timeScore),
       rotation: Math.round(rotationScore),
-      placement: Math.round(placementScore),
+      placement: Math.round(positionScore),
+      overlap: Math.round(overlapScore),
       total,
       grade,
     });
-  }, [pieces, elapsedMs]);
+  }, [pieces, elapsedMs, puzzleAssets]);
 
   const handleFinish = useCallback(() => {
     setTimerRunning(false);
@@ -308,18 +325,22 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
       {ratingResult && (
         <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-4 flex items-center gap-6">
           <div className="text-5xl font-bold text-cheese">{ratingResult.grade}</div>
-          <div className="flex-1 grid grid-cols-3 gap-4 text-sm">
+          <div className="flex-1 grid grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Speed</p>
-              <p className="font-medium text-foreground">{ratingResult.time}/40</p>
+              <p className="font-medium text-foreground">{ratingResult.time}/20</p>
             </div>
             <div>
               <p className="text-muted-foreground">Rotation</p>
-              <p className="font-medium text-foreground">{ratingResult.rotation}/30</p>
+              <p className="font-medium text-foreground">{ratingResult.rotation}/20</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Placement</p>
-              <p className="font-medium text-foreground">{ratingResult.placement}/30</p>
+              <p className="text-muted-foreground">Position</p>
+              <p className="font-medium text-foreground">{ratingResult.placement}/40</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Overlap</p>
+              <p className="font-medium text-foreground">{ratingResult.overlap}/20</p>
             </div>
           </div>
           <div className="text-right">
