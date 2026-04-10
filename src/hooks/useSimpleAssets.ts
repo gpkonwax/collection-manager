@@ -109,7 +109,9 @@ export function useSimpleAssets(account: string | null) {
       parsed.sort((a, b) => {
         const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
         if (!isNaN(numA) && !isNaN(numB)) {
-          if (numA !== numB) return numA - numB;
+        if (numA !== numB) return numA - numB;
+          const sideA = a.side || '', sideB = b.side || '';
+          if (sideA !== sideB) return sideA.localeCompare(sideB);
           return getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
         }
         if (!isNaN(numA)) return -1;

@@ -198,6 +198,8 @@ export default function SimpleAssetsPage() {
       const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
       if (!isNaN(numA) && !isNaN(numB)) {
         if (numA !== numB) return numA - numB;
+        const sideA = a.side || '', sideB = b.side || '';
+        if (sideA !== sideB) return sideA.localeCompare(sideB);
         const rankDiff = getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
         return rankDiff !== 0 ? rankDiff : a.quality.localeCompare(b.quality);
       }
