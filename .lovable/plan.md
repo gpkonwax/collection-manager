@@ -1,37 +1,34 @@
 
 
-## Add CheeseHub Banner Ads to GPK Pack Opener
+## Fix Banner Ads: Data Format + Size + Position
 
-### What this does
-Displays the same reward banners from CheeseHub's `cheesebannad` smart contract in the GPK pack opener. Banners rented on CheeseHub will automatically appear here too, reading from the same on-chain data.
+### Problem
+The banner ads show empty because of three data format mismatches between our code and the actual contract data, plus wrong sizing and placement.
 
-### New files
+### Root causes
+1. **`time` is a unix timestamp** (integer like `1775656800`), not an ISO string — our comparison logic fails
+2. **Positions are 1 and 2**, not 0 and 1 — we never find any matching rows
+3. **`rental_type` is a number** (0=exclusive, 1=shared), not a string — shared detection fails
+4. **Size is wrong** — should be 580x150, currently 468x60
+5. **Advertise link** should point to `https://cheesehubwax.github.io/cheesehub/bannerads`
+6. **Placement** — should be above the title, below the header (currently below the title)
+7. **Need to fetch all rows** — there are 126 rows, current limit of 100 misses some
 
-**`src/hooks/useBannerAds.ts`** -- Hook that reads the `cheesebannad` contract's `bannerads` table using the existing `fetchTableRows` from `waxRpcFallback.ts`. Returns up to 2 `ActiveBanner` objects for the current 24-hour window. Handles:
-- Multi-day rental content inheritance (copies IPFS hash from earlier row if current row is empty)
-- Exclusive vs shared rental types
-- Shared slot rotation (placeholder if second renter is absent)
-- Suspended banner filtering
-- Polls every 60 seconds
+### Changes
 
-**`src/lib/sanitizeUrl.ts`** -- Simple URL sanitizer that strips `javascript:` and `data:` protocols, allowing only `http://`, `https://`, and relative paths.
+**`src/hooks/useBannerAds.ts`**
+- Change `BannerAdRow.time` from `string` to `number`
+- Change `BannerAdRow.rental_type` from `string` to `number`
+- Update `getCurrentDayStart()` to return a unix timestamp
+- Fix `resolveActiveBanner` to use numeric comparisons for time and positions 1/2
+- Fix shared detection: `rental_type === 1` instead of `=== 'shared'`
+- Increase fetch limit to 200
 
-**`src/components/BannerAd.tsx`** -- Component that renders the banner ads:
-- Uses `useBannerAds()` hook
-- Shows IPFS-hosted images with gateway fallback (using existing `IPFS_GATEWAYS` from `ipfsGateways.ts`)
-- 2 banners side-by-side; 1 banner centered
-- Shared banners rotate every 30 seconds
-- Placeholder state when no active banners (links to CheeseHub banner ads page)
-- "Ad" badge overlay
-- Clicking a banner opens the advertiser's URL in a new tab
+**`src/components/BannerAd.tsx`**
+- Change banner dimensions to `max-w-[580px] h-[150px]`
+- Update placeholder link to `https://cheesehubwax.github.io/cheesehub/bannerads`
+- Update placeholder size to match
 
-### Modified files
-
-**`src/pages/Index.tsx`** -- Import and render `<BannerAd />` in the same position as CheeseHub (below the header, above the main content area). Single line addition.
-
-### Technical details
-- Contract: `cheesebannad`, table: `bannerads`, scope: `cheesebannad`
-- Table row fields: `time`, `position`, `user`, `ipfs_hash`, `website_url`, `rental_type`, `shared_user`, `shared_ipfs_hash`, `shared_website_url`, `suspended`
-- Uses `fetchTableRows` (already in the project) instead of CheeseHub's `fetchTable` -- same RPC call, just different wrapper
-- No new dependencies needed; uses existing `@tanstack/react-query`, IPFS gateways, and UI components
+**`src/pages/Index.tsx`**
+- Move `<BannerAd />` above the title `<div>` (before the `text-center mb-8` block)
 
