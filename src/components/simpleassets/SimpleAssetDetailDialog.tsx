@@ -30,7 +30,7 @@ function getMintDisplay(asset: SimpleAsset): string | null {
   return null;
 }
 
-const ZOOM = 2.5;
+const ZOOM = 5;
 const LENS_SIZE = 180;
 
 function ImageWithLens({ url, alt, isLandscape, className }: {
@@ -74,18 +74,26 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
       />
       {hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
         <div
-          className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50"
+          className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50 overflow-hidden"
           style={{
             width: LENS_SIZE,
             height: LENS_SIZE,
             left: `calc(${pos.x}% - ${LENS_SIZE / 2}px)`,
             top: `calc(${pos.y}% - ${LENS_SIZE / 2}px)`,
-            backgroundImage: `url(${resolvedUrl})`,
-            backgroundSize: `${ZOOM * 100}%`,
-            backgroundPosition: `${bgX}% ${bgY}%`,
-            backgroundRepeat: 'no-repeat',
           }}
-        />
+        >
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url(${resolvedUrl})`,
+              backgroundSize: `${ZOOM * 100}%`,
+              backgroundPosition: `${bgX}% ${bgY}%`,
+              backgroundRepeat: 'no-repeat',
+              ...(isLandscape ? { transform: 'rotate(90deg) scale(1.33)' } : {}),
+            }}
+          />
+        </div>
       )}
     </div>
   );
