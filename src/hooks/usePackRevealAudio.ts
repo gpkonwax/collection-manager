@@ -54,6 +54,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
     if (!shakeAudio) return;
 
     if (open && phase === 'waiting' && isShaking) {
+      hasStartedShakingRef.current = true;
       shakeAudio.currentTime = 0;
       shakeAudio.play().catch(() => {});
       return () => stopAudio(shakeAudio);
