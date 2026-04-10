@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, CheckCircle } from 'lucide-react';
+import { MissingPuzzlePiecePlaceholder } from '@/components/simpleassets/MissingPuzzlePiecePlaceholder';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -22,8 +24,6 @@ interface PuzzleBuilderProps {
   initialPieceState?: PuzzlePieceMap | null;
   /** Called whenever piece state changes so parent can track it for export */
   onPiecesChange?: (state: PuzzlePieceMap) => void;
-  /** Called when user wants to switch to binder view to find missing pieces */
-  onSwitchToBinder?: () => void;
 }
 
 const TOTAL_PUZZLE_PIECES = 18;
@@ -86,7 +86,7 @@ function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[
   return result;
 }
 
-export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder }: PuzzleBuilderProps) {
+export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: PuzzleBuilderProps) {
   const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
@@ -285,28 +285,65 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     }
   }, [notifyParent, timerEnabled]);
 
+  const ownedCardIds = useMemo(() => new Set(puzzleAssets.map(a => {
+    const id = typeof a.cardid === 'string' ? parseInt(a.cardid, 10) : a.cardid;
+    return id;
+  })), [puzzleAssets]);
+
   if (puzzleAssets.length < TOTAL_PUZZLE_PIECES) {
+    const progressPct = (puzzleAssets.length / TOTAL_PUZZLE_PIECES) * 100;
     return (
-      <div className="text-center py-16 space-y-4">
-        <div className="mx-auto h-20 w-20 rounded-full bg-cheese/10 flex items-center justify-center">
-          <Puzzle className="h-10 w-10 text-cheese" />
+      <div className="space-y-6 py-8">
+        <div className="text-center space-y-3">
+          <div className="mx-auto h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
+            <Puzzle className="h-8 w-8 text-cheese" />
+          </div>
+          <p className="text-lg font-medium text-foreground">
+            {puzzleAssets.length} / {TOTAL_PUZZLE_PIECES} puzzle pieces collected
+          </p>
+          <div className="max-w-xs mx-auto">
+            <Progress value={progressPct} className="h-2" />
+          </div>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Collect all {TOTAL_PUZZLE_PIECES} pieces to unlock the Puzzle Builder. Click any missing piece to buy it on AtomicHub.
+          </p>
         </div>
-        <p className="text-lg font-medium text-foreground">
-          You have {puzzleAssets.length} of {TOTAL_PUZZLE_PIECES} puzzle pieces
-        </p>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Collect all {TOTAL_PUZZLE_PIECES} Series 2 puzzle pieces to unlock the Puzzle Builder. Check the Collection Binder to see which pieces you're missing!
-        </p>
-        {onSwitchToBinder && (
-          <Button
-            variant="outline"
-            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
-            onClick={onSwitchToBinder}
-          >
-            <BookOpen className="h-4 w-4 mr-2" />
-            View in Collection Binder
-          </Button>
-        )}
+
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 max-w-3xl mx-auto px-4">
+          {PUZZLE_CARD_IDS.map(cardId => {
+            if (ownedCardIds.has(cardId)) {
+              const backUrl = buildGpkCardBackUrl('gpktwoeight', cardId);
+              return (
+                <div key={cardId} className="relative">
+                  <div className="rounded-lg overflow-hidden border border-cheese/30 shadow-sm">
+                    <div className="aspect-[5/7] bg-muted/10">
+                      {backUrl ? (
+                        <img
+                          src={backUrl}
+                          alt={`Puzzle piece #${cardId}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Puzzle className="h-6 w-6 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-1.5 text-center bg-background/80">
+                      <p className="text-xs font-medium text-foreground/70">#{cardId}</p>
+                    </div>
+                  </div>
+                  <div className="absolute -top-1 -right-1">
+                    <CheckCircle className="h-5 w-5 text-green-500 drop-shadow" />
+                  </div>
+                </div>
+              );
+            }
+            return <MissingPuzzlePiecePlaceholder key={cardId} cardId={cardId} />;
+          })}
+        </div>
       </div>
     );
   }
