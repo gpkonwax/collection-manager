@@ -1,41 +1,33 @@
 
 
-## Fix Overly Harsh Puzzle Rating
+## Fix Rotation & Overlap Scoring for Incomplete Puzzles
 
 ### Problem
-The rating swings from too generous (73 for scrambled) to too harsh (17 for nearly complete). Root causes:
+The user has 12 of 18 puzzle pieces, all correctly rotated and neatly arranged, but scores very low. Two issues:
 
-1. **Rigid target grid**: Origin is hardcoded to (20, 20). If the user assembles the puzzle anywhere else on the canvas, every piece is "far from target" even if perfectly arranged relative to each other.
-2. **Position scaling too steep**: 200px average distance = 0 points. A slight offset kills the score.
-3. **Overlap too punitive**: Adjacent touching pieces in a correct grid trigger overlap detection because bounding box checks don't account for pieces meant to be side-by-side.
+1. **Position scoring with missing pieces**: The centroid-based comparison assumes pieces are placed at their correct grid slots (with gaps where missing pieces would go). If the user pushes pieces together to make a neat arrangement without leaving gaps for the 6 missing pieces, every piece's relative offset differs from the ideal, tanking the position score.
+
+2. **Overlap with tight grids**: The 8px inset may still be too small when pieces are nudged close together.
 
 ### Solution
 
-**Position scoring — use relative accuracy instead of absolute position**:
-- Find the "centroid" of all placed pieces, then compare each piece's position relative to centroid against the expected relative position from the ideal grid. This way the puzzle can be assembled anywhere on the canvas.
-- Increase the distance threshold from 200px to 400px so small offsets don't tank the score.
+**Rotation** — no code change needed (12/12 at 0° = full 20 pts). The low score is coming from position and overlap, not rotation.
 
-**Overlap — add tolerance**:
-- Shrink bounding boxes by a few pixels (e.g. 8px inset) before overlap detection so adjacent touching pieces don't count as overlapping.
+**Position scoring — be more forgiving**:
+- Increase distance threshold from 400px to 600px
+- This gives partial credit even when pieces are arranged without gaps for missing ones
 
-**Revised scoring stays at same weights** (Time 20, Rotation 20, Position 40, Overlap 20) but with fairer calculations.
+**Overlap — increase tolerance**:
+- Increase inset from 8px to 20px so pieces can overlap by up to 20px on each edge without penalty
+- Reduce penalty from 3 pts to 1.5 pts per overlapping pair
+
+**Also soften grade thresholds** to be achievable with incomplete puzzles:
+- A: 80+, B: 65+, C: 50+, D: 35+, F: below 35
 
 ### File changes
-- **Edit**: `src/components/simpleassets/PuzzleBuilder.tsx` — rewrite `computeRating` (~40 lines changed)
-
-### Technical detail
-
-```text
-Position scoring approach:
-1. Compute ideal relative offsets for each piece from grid center
-   idealRelX[i] = (idx % 6) * W - avgIdealX
-   idealRelY[i] = floor(idx / 6) * H - avgIdealY
-2. Compute actual centroid of placed pieces
-3. For each piece, compare (actualPos - centroid) vs (idealRel)
-4. Average distance → score with 400px threshold
-
-Overlap inset:
-- Check overlap with (x+4, y+4, w-8, h-8) boxes
-  so perfectly adjacent pieces don't trigger penalty
-```
+- **Edit**: `src/components/simpleassets/PuzzleBuilder.tsx` — adjust constants in `computeRating`:
+  - `INSET`: 8 → 20
+  - Position threshold: 400 → 600
+  - Overlap penalty: 3 → 1.5 per pair
+  - Grade thresholds: A 80+, B 65+, C 50+, D 35+
 
