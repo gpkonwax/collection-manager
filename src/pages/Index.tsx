@@ -363,8 +363,31 @@ export default function SimpleAssetsPage() {
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Restore saved layout when account changes
+  useEffect(() => {
+    if (!accountName) return;
+    try {
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSavedOrder(parsed.order ?? null);
+        setLoadedLayoutName(parsed.name ?? null);
+      }
+    } catch {}
+  }, [accountName]);
 
-  const categories = useMemo(() => {
+  // Persist saved layout to localStorage
+  useEffect(() => {
+    if (!accountName || savedOrder === null) return;
+    try {
+      localStorage.setItem(`gpk-saved-layout-${accountName}`, JSON.stringify({
+        order: savedOrder,
+        name: loadedLayoutName
+      }));
+    } catch {}
+  }, [savedOrder, loadedLayoutName, accountName]);
+
+
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
     for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
     for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
