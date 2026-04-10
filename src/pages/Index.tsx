@@ -744,17 +744,17 @@ export default function SimpleAssetsPage() {
                 </Button>
               )}
               {categoryFilter !== 'all' && (
-                <label className="flex items-center gap-2 whitespace-nowrap cursor-pointer">
-                  <Checkbox
-                    checked={binderView}
-                    onCheckedChange={(checked) => setBinderView(!!checked)}
-                    className="border-cheese/50 data-[state=checked]:bg-cheese data-[state=checked]:border-cheese"
-                  />
-                  <span className="text-sm text-cheese flex items-center gap-1">
-                    <BookOpen className="h-4 w-4" />
-                    Binder
-                  </span>
-                </label>
+                <Tabs value={binderView ? 'binder' : 'classic'} onValueChange={(v) => setBinderView(v === 'binder')} className="w-auto">
+                  <TabsList className="h-8 bg-muted/50 border border-cheese/20">
+                    <TabsTrigger value="classic" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
+                      Classic View
+                    </TabsTrigger>
+                    <TabsTrigger value="binder" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      Collector Binder
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
               )}
             </div>
 
