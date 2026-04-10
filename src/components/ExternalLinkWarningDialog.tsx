@@ -11,11 +11,21 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ShieldAlert } from 'lucide-react';
 
+const TRUSTED_ORIGINS = ['https://cheesehubwax.github.io/cheesehub'];
+
+function isTrustedUrl(url: string): boolean {
+  return TRUSTED_ORIGINS.some(origin => url.startsWith(origin));
+}
+
 export function useExternalLinkWarning() {
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
 
   const requestNavigation = useCallback((url: string) => {
-    setPendingUrl(url);
+    if (isTrustedUrl(url)) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      setPendingUrl(url);
+    }
   }, []);
 
   const confirm = useCallback(() => {
