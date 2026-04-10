@@ -53,7 +53,7 @@ function AtomicRevealCardImage({ card, isRevealed }: { card: RevealCard; isRevea
       style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
       <div className="absolute inset-0 border border-border bg-card shadow-md" style={{ backfaceVisibility: 'hidden' }}>
         {currentSrc ? (
-          <img src={currentSrc} alt={card.name} className="w-full h-full object-cover" loading="lazy"
+          <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center" loading="lazy"
             onError={() => { if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
