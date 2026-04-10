@@ -451,8 +451,6 @@ export default function SimpleAssetsPage() {
     });
   }, [binderView, binderTemplates, filtered, categoryFilter, variantFilter]);
 
-        <BannerAd />
-
 
   useEffect(() => {
     const saved = loadOrder(categoryFilter, sourceFilter, filtered);
