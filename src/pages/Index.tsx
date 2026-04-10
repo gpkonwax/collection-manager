@@ -4,7 +4,7 @@ import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucid
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { PuzzleBuilder } from '@/components/simpleassets/PuzzleBuilder';
+import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -173,6 +173,10 @@ export default function SimpleAssetsPage() {
     setSelectedIds(new Set());
   }, []);
 
+  // --- Puzzle state for export/import ---
+  const [importedPuzzle, setImportedPuzzle] = useState<PuzzlePieceMap | null>(null);
+  const puzzleStateRef = useRef<PuzzlePieceMap>({});
+  const handlePuzzlePiecesChange = useCallback((state: PuzzlePieceMap) => { puzzleStateRef.current = state; }, []);
 
   // --- Deal animation state ---
   const preCollectIdsRef = useRef<Set<string>>(new Set());
@@ -481,7 +485,8 @@ export default function SimpleAssetsPage() {
         } catch { /* skip */ }
       }
     }
-    const blob = new Blob([JSON.stringify({ account: accountName, orders }, null, 2)], { type: 'application/json' });
+    const puzzle = puzzleStateRef.current;
+    const blob = new Blob([JSON.stringify({ account: accountName, orders, puzzle }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = finalFilename; a.click();
@@ -506,6 +511,10 @@ export default function SimpleAssetsPage() {
         // Reload current view's order
         const saved = loadOrder(categoryFilter, sourceFilter, filtered);
         setCustomOrder(saved);
+        // Load puzzle state if present
+        if (data.puzzle && typeof data.puzzle === 'object') {
+          setImportedPuzzle(data.puzzle as PuzzlePieceMap);
+        }
         toast.success('Layout imported');
       } catch { toast.error('Failed to parse layout file'); }
     };
@@ -1039,7 +1048,7 @@ export default function SimpleAssetsPage() {
                     )}
                   </TabsContent>
                   <TabsContent value="puzzle">
-                    <PuzzleBuilder assets={filtered} />
+                    <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} />
                   </TabsContent>
                 </Tabs>
               ) : (
