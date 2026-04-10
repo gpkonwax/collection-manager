@@ -5,10 +5,20 @@ import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
+const GRID_W = 130;
+const GRID_H = 180;
+
+function snapToGrid(x: number, y: number): { x: number; y: number } {
+  return {
+    x: Math.round(x / GRID_W) * GRID_W,
+    y: Math.round(y / GRID_H) * GRID_H,
+  };
+}
+
 interface PieceState {
   x: number;
   y: number;
-  rotation: number; // 0, 90, 180, 270
+  rotation: number;
 }
 
 interface PuzzleBuilderProps {
@@ -21,7 +31,6 @@ function isPuzzlePiece(asset: SimpleAsset): boolean {
   return PUZZLE_CARD_IDS.includes(id);
 }
 
-/** Deduplicate: keep only the first asset per cardid */
 function deduplicateByCardId(assets: SimpleAsset[]): SimpleAsset[] {
   const seen = new Set<number>();
   const result: SimpleAsset[] = [];
@@ -42,7 +51,7 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
     const m = new Map<string, PieceState>();
     const cols = 6;
     puzzleAssets.forEach((a, i) => {
-      m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 0 });
+      m.set(a.id, { x: (i % cols) * GRID_W, y: Math.floor(i / cols) * GRID_H, rotation: 0 });
     });
     return m;
   });
@@ -84,6 +93,17 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
   }, []);
 
   const handlePointerUp = useCallback(() => {
+    if (dragging.current) {
+      const id = dragging.current.id;
+      setPieces(prev => {
+        const next = new Map(prev);
+        const s = next.get(id);
+        if (s) {
+          next.set(id, { ...s, ...snapToGrid(s.x, s.y) });
+        }
+        return next;
+      });
+    }
     dragging.current = null;
   }, []);
 
@@ -99,12 +119,19 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        {puzzleAssets.length} puzzle piece{puzzleAssets.length !== 1 ? 's' : ''} · Drag to position · Click arrows to rotate 90°
+        {puzzleAssets.length} puzzle piece{puzzleAssets.length !== 1 ? 's' : ''} · Drag to position (snaps to grid) · Click arrows to rotate 90°
       </p>
       <div
         ref={canvasRef}
-        className="relative border border-border rounded-lg bg-muted/20 overflow-auto"
-        style={{ width: '100%', height: '70vh', minHeight: 500 }}
+        className="relative border border-border rounded-lg overflow-auto"
+        style={{
+          width: '100%',
+          height: '70vh',
+          minHeight: 500,
+          backgroundSize: `${GRID_W}px ${GRID_H}px`,
+          backgroundImage: `linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px)`,
+          backgroundColor: 'hsl(var(--muted) / 0.2)',
+        }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
@@ -117,19 +144,19 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
           return (
             <div
               key={asset.id}
-              className={`absolute cursor-grab active:cursor-grabbing select-none group ${isSelected ? 'z-20' : 'z-10'}`}
+              className={`absolute cursor-grab active:cursor-grabbing select-none group transition-[left,top] ${isSelected ? 'z-20' : 'z-10'}`}
               style={{
-                left: s.x,
-                top: s.y,
+                left: s.x + (GRID_W - 120) / 2,
+                top: s.y + (GRID_H - 168) / 2,
                 width: 120,
                 height: 168,
                 transform: `rotate(${s.rotation}deg)`,
                 transformOrigin: 'center center',
+                transitionDuration: dragging.current?.id === asset.id ? '0ms' : '150ms',
               }}
               onPointerDown={(e) => handlePointerDown(asset.id, e)}
               onClick={() => setSelectedId(asset.id)}
             >
-              {/* Card back image */}
               <div className={`w-full h-full rounded-md overflow-hidden border-2 transition-colors ${isSelected ? 'border-cheese shadow-lg shadow-cheese/20' : 'border-border'}`}>
                 {backUrl ? (
                   <img
@@ -141,7 +168,6 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
                 ) : (
                   <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">No image</div>
                 )}
-                {/* Card ID overlay */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className="text-2xl font-bold text-foreground/30 select-none">
                     {cardid}
@@ -149,7 +175,6 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
                 </div>
               </div>
 
-              {/* Rotation controls - visible on hover or selected */}
               <div
                 className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                 style={{ transform: `translateX(-50%) rotate(-${s.rotation}deg)` }}
