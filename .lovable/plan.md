@@ -1,34 +1,35 @@
 
 
-## Fix Banner Ads: Data Format + Size + Position
+## External Link Warning Dialog
 
-### Problem
-The banner ads show empty because of three data format mismatches between our code and the actual contract data, plus wrong sizing and placement.
+### What this does
+Adds a safety warning dialog that appears when users click any external/affiliate link (banner ads, AtomicHub buy links, etc.), showing them the destination URL and requiring confirmation before navigating away. This matches the pattern used by CheeseHub to protect users from potentially malicious advertiser URLs.
 
-### Root causes
-1. **`time` is a unix timestamp** (integer like `1775656800`), not an ISO string — our comparison logic fails
-2. **Positions are 1 and 2**, not 0 and 1 — we never find any matching rows
-3. **`rental_type` is a number** (0=exclusive, 1=shared), not a string — shared detection fails
-4. **Size is wrong** — should be 580x150, currently 468x60
-5. **Advertise link** should point to `https://cheesehubwax.github.io/cheesehub/bannerads`
-6. **Placement** — should be above the title, below the header (currently below the title)
-7. **Need to fetch all rows** — there are 126 rows, current limit of 100 misses some
+### New file
 
-### Changes
+**`src/components/ExternalLinkWarningDialog.tsx`**
+A reusable warning dialog component using the existing `AlertDialog` UI components. It:
+- Shows a warning icon and "You are leaving this site" title
+- Displays the full destination URL so users can verify it
+- Warns that the link is an external/third-party site not controlled by the app
+- Has "Cancel" and "Continue" buttons
+- On "Continue", opens the URL in a new tab with `noopener noreferrer`
+- Exports a simple hook `useExternalLinkWarning()` that returns `{ pendingUrl, requestNavigation, confirm, cancel }` for easy integration
 
-**`src/hooks/useBannerAds.ts`**
-- Change `BannerAdRow.time` from `string` to `number`
-- Change `BannerAdRow.rental_type` from `string` to `number`
-- Update `getCurrentDayStart()` to return a unix timestamp
-- Fix `resolveActiveBanner` to use numeric comparisons for time and positions 1/2
-- Fix shared detection: `rental_type === 1` instead of `=== 'shared'`
-- Increase fetch limit to 200
+### Modified files
 
 **`src/components/BannerAd.tsx`**
-- Change banner dimensions to `max-w-[580px] h-[150px]`
-- Update placeholder link to `https://cheesehubwax.github.io/cheesehub/bannerads`
-- Update placeholder size to match
+- Replace the direct `<a href>` wrapper with an `onClick` handler that calls `requestNavigation(url)` instead
+- Integrate the `ExternalLinkWarningDialog` into the component
+- Also apply to the placeholder "Advertise here" link
 
-**`src/pages/Index.tsx`**
-- Move `<BannerAd />` above the title `<div>` (before the `text-center mb-8` block)
+**`src/components/simpleassets/MissingCardPlaceholder.tsx`**
+- Replace the direct `<a href>` to AtomicHub with an `onClick` + warning dialog
+- Same pattern: click shows warning, confirm opens external link
+
+### Technical details
+- Uses existing `AlertDialog` components from `@/components/ui/alert-dialog` -- no new dependencies
+- The hook manages a single `pendingUrl` state -- set it to show the dialog, clear it to dismiss
+- URL is still sanitized via `sanitizeUrl` before display and navigation
+- Warning text: "You are about to visit an external website. This link is not controlled by GPK Pack Opener. Please verify the URL before continuing."
 
