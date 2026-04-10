@@ -22,6 +22,12 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
   const hasCompletedRef = useRef(false);
   const isFirstCardRef = useRef(true);
 
+  const handleSkip = useCallback(() => {
+    cards.slice(dealIndex).forEach(c => onCardDealt(c.id));
+    hasCompletedRef.current = true;
+    onComplete();
+  }, [cards, dealIndex, onCardDealt, onComplete]);
+
   const getCardSize = useCallback(() => {
     for (const el of gridCellRefs.current.values()) {
       if (el) {
@@ -226,6 +232,20 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
             </p>
           </div>
         )}
+
+        {/* Skip Animation button */}
+        <button
+          onClick={handleSkip}
+          className="fixed pointer-events-auto bg-card/90 hover:bg-card text-foreground text-xs font-semibold px-3 py-1.5 rounded-md border border-border shadow-md transition-colors"
+          style={{
+            left: stackX,
+            top: STACK_Y + cardSize.height + 44,
+            width: cardSize.width,
+            zIndex: 201,
+          }}
+        >
+          Skip Animation
+        </button>
       </div>
     </>
   );
