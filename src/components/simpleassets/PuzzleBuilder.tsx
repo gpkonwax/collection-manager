@@ -325,18 +325,22 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
       {ratingResult && (
         <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-4 flex items-center gap-6">
           <div className="text-5xl font-bold text-cheese">{ratingResult.grade}</div>
-          <div className="flex-1 grid grid-cols-3 gap-4 text-sm">
+          <div className="flex-1 grid grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Speed</p>
-              <p className="font-medium text-foreground">{ratingResult.time}/40</p>
+              <p className="font-medium text-foreground">{ratingResult.time}/20</p>
             </div>
             <div>
               <p className="text-muted-foreground">Rotation</p>
-              <p className="font-medium text-foreground">{ratingResult.rotation}/30</p>
+              <p className="font-medium text-foreground">{ratingResult.rotation}/20</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Placement</p>
-              <p className="font-medium text-foreground">{ratingResult.placement}/30</p>
+              <p className="text-muted-foreground">Position</p>
+              <p className="font-medium text-foreground">{ratingResult.placement}/40</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Overlap</p>
+              <p className="font-medium text-foreground">{ratingResult.overlap}/20</p>
             </div>
           </div>
           <div className="text-right">
