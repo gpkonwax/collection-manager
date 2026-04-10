@@ -1,30 +1,37 @@
 
 
-## Multi-Select Variant Filtering
+## Add CheeseHub Banner Ads to GPK Pack Opener
 
-### What changes
-The current single-select variant dropdown becomes a multi-select popover with checkboxes, allowing users to pick any combination of variants (from one up to all-minus-one individually, plus an "All" option). When "All" is selected, individual selections are cleared. When all individual variants are checked, it auto-reverts to "All."
+### What this does
+Displays the same reward banners from CheeseHub's `cheesebannad` smart contract in the GPK pack opener. Banners rented on CheeseHub will automatically appear here too, reading from the same on-chain data.
 
-### Implementation
+### New files
 
-**`src/pages/Index.tsx`**
+**`src/hooks/useBannerAds.ts`** -- Hook that reads the `cheesebannad` contract's `bannerads` table using the existing `fetchTableRows` from `waxRpcFallback.ts`. Returns up to 2 `ActiveBanner` objects for the current 24-hour window. Handles:
+- Multi-day rental content inheritance (copies IPFS hash from earlier row if current row is empty)
+- Exclusive vs shared rental types
+- Shared slot rotation (placeholder if second renter is absent)
+- Suspended banner filtering
+- Polls every 60 seconds
 
-1. **State change**: Replace `variantFilter: string` with `variantFilter: string[]` initialized to `['all']`.
+**`src/lib/sanitizeUrl.ts`** -- Simple URL sanitizer that strips `javascript:` and `data:` protocols, allowing only `http://`, `https://`, and relative paths.
 
-2. **Filter UI**: Replace the `<Select>` dropdown (lines 747-753) with a `<Popover>` containing a scrollable list of `<Checkbox>` items for each variant. The trigger button shows "All Variants" or a count like "3 Variants" or the single variant name.
+**`src/components/BannerAd.tsx`** -- Component that renders the banner ads:
+- Uses `useBannerAds()` hook
+- Shows IPFS-hosted images with gateway fallback (using existing `IPFS_GATEWAYS` from `ipfsGateways.ts`)
+- 2 banners side-by-side; 1 banner centered
+- Shared banners rotate every 30 seconds
+- Placeholder state when no active banners (links to CheeseHub banner ads page)
+- "Ad" badge overlay
+- Clicking a banner opens the advertiser's URL in a new tab
 
-3. **Toggle logic**:
-   - Clicking "All Variants" checkbox sets state to `['all']` and unchecks individuals.
-   - Clicking an individual variant toggles it in/out of the array.
-   - If all individual variants become selected, auto-switch to `['all']`.
-   - If unchecking the last individual variant, revert to `['all']`.
+### Modified files
 
-4. **Filter logic** (lines 412, 440-441): Update the comparison from single-string match to `variantFilter.includes('all') || variantFilter.includes(a.quality.toLowerCase())`.
+**`src/pages/Index.tsx`** -- Import and render `<BannerAd />` in the same position as CheeseHub (below the header, above the main content area). Single line addition.
 
-5. **Category change handler** (line 739): Reset to `['all']` when switching categories.
-
-6. **Dependencies**: Uses existing `Popover`, `Checkbox` components already in the project — no new packages needed.
-
-### Files touched
-- `src/pages/Index.tsx` — state type, filter logic, UI component swap
+### Technical details
+- Contract: `cheesebannad`, table: `bannerads`, scope: `cheesebannad`
+- Table row fields: `time`, `position`, `user`, `ipfs_hash`, `website_url`, `rental_type`, `shared_user`, `shared_ipfs_hash`, `shared_website_url`, `suspended`
+- Uses `fetchTableRows` (already in the project) instead of CheeseHub's `fetchTable` -- same RPC call, just different wrapper
+- No new dependencies needed; uses existing `@tanstack/react-query`, IPFS gateways, and UI components
 
