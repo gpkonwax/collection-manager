@@ -84,6 +84,7 @@ export function useGpkAtomicAssets(account: string | null) {
           name, image: images[0], images,
           cardid: String(combined.cardid ?? ''),
           quality: normalizeGpkVariant(combined.variant),
+          side: String(combined.quality ?? '').toLowerCase(),
           idata: { ...templateData, ...raw.immutable_data, _template_id: raw.template?.template_id || '' } as Record<string, unknown>,
           mdata: raw.mutable_data as Record<string, unknown>,
           container: [], containerf: [],

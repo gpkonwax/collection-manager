@@ -102,15 +102,17 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         />
       </div>
       <CardContent className="p-3 space-y-1">
-        <p className="text-sm font-semibold text-foreground truncate">{asset.name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold text-foreground truncate">{asset.name}</p>
+          {asset.cardid && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cheese/20 text-cheese shrink-0">
+              {asset.cardid}{asset.side || ''}
+            </span>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground truncate">by {asset.author}</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            {asset.cardid && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cheese/20 text-cheese">
-                {asset.cardid}{asset.quality?.toLowerCase() || ''}
-              </span>
-            )}
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{asset.category}</span>
             <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
               asset.source === 'atomicassets' ? 'bg-primary/15 text-primary' : 'bg-emerald-500/15 text-emerald-400'
