@@ -256,8 +256,8 @@ export function PackRevealDialog({
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={(v: boolean) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border" hideClose onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogTitle className="sr-only">Pack Reveal</DialogTitle>
 
         {phase === 'waiting' && (
