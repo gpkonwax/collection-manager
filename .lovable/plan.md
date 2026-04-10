@@ -1,35 +1,35 @@
 
 
-## External Link Warning Dialog
+## Fix Stale Sort Order When Switching Variant Filter
 
-### What this does
-Adds a safety warning dialog that appears when users click any external/affiliate link (banner ads, AtomicHub buy links, etc.), showing them the destination URL and requiring confirmation before navigating away. This matches the pattern used by CheeseHub to protect users from potentially malicious advertiser URLs.
+### Problem
+When switching between variant filters (e.g., selecting specific variants then back to "All Variants"), the card sort order appears mixed up. This happens because:
 
-### New file
+1. The localStorage key for custom drag-and-drop order is `gpk-order-{account}-{category}-{source}` — it does NOT include the variant filter
+2. When you drag-reorder cards while viewing a specific variant, that partial order gets saved
+3. Switching back to "All" loads that same partial order, appends missing cards unsorted at the end, producing a jumbled result
 
-**`src/components/ExternalLinkWarningDialog.tsx`**
-A reusable warning dialog component using the existing `AlertDialog` UI components. It:
-- Shows a warning icon and "You are leaving this site" title
-- Displays the full destination URL so users can verify it
-- Warns that the link is an external/third-party site not controlled by the app
-- Has "Cancel" and "Continue" buttons
-- On "Continue", opens the URL in a new tab with `noopener noreferrer`
-- Exports a simple hook `useExternalLinkWarning()` that returns `{ pendingUrl, requestNavigation, confirm, cancel }` for easy integration
+### Fix
 
-### Modified files
+**`src/pages/Index.tsx`** — two changes:
 
-**`src/components/BannerAd.tsx`**
-- Replace the direct `<a href>` wrapper with an `onClick` handler that calls `requestNavigation(url)` instead
-- Integrate the `ExternalLinkWarningDialog` into the component
-- Also apply to the placeholder "Advertise here" link
+1. **Include `variantFilter` in the storage key** so each variant selection gets its own saved order:
+   - Change `getStorageKey` to include a variant key component (sorted, joined variant values)
+   - This prevents cross-contamination between variant filter states
 
-**`src/components/simpleassets/MissingCardPlaceholder.tsx`**
-- Replace the direct `<a href>` to AtomicHub with an `onClick` + warning dialog
-- Same pattern: click shows warning, confirm opens external link
+2. **When `loadOrder` returns `null` (no saved order), don't set `customOrder` to `null`** — this is already correct (falls back to `filtered` order). But we need to ensure the `useEffect` doesn't re-trigger unnecessarily by stabilizing the `filtered` dependency. Add a stable identity check: only call `setCustomOrder` when the loaded order actually differs from the current one.
 
-### Technical details
-- Uses existing `AlertDialog` components from `@/components/ui/alert-dialog` -- no new dependencies
-- The hook manages a single `pendingUrl` state -- set it to show the dialog, clear it to dismiss
-- URL is still sanitized via `sanitizeUrl` before display and navigation
-- Warning text: "You are about to visit an external website. This link is not controlled by GPK Pack Opener. Please verify the URL before continuing."
+### Specific changes
+
+```
+// Line 368-369: Add variantFilter to storage key
+const getStorageKey = useCallback((cat: string, src: string, variants: string[]) => {
+  const vKey = [...variants].sort().join(',');
+  return `gpk-order-${accountName}-${cat}-${src}-${vKey}`;
+}, [accountName]);
+```
+
+Update all call sites of `getStorageKey` (lines 396, 456, 515) to pass `variantFilter`.
+
+Also stabilize the `useEffect` on lines 455-458 to avoid unnecessary re-runs by comparing the new order to the current one before calling `setCustomOrder`.
 
