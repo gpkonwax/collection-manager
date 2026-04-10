@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users } from 'lucide-react';
+import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -73,7 +73,6 @@ const SERIES2_VARIANTS: { value: string; label: string }[] = [
   { value: 'golden', label: 'Golden' },
 ];
 
-// Schemas that should be grouped under a category for filtering
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'series2',
   five: 'series1',
@@ -89,6 +88,8 @@ const ATOMIC_PACK_CATEGORY_MAP: Record<string, string> = {
   '53187': 'gamestonk', '59072': 'foodfightb', '59489': 'foodfightb',
   '59490': 'foodfightb', '59491': 'foodfightb', '59492': 'foodfightb',
 };
+
+type ViewMode = 'classic' | 'binder' | 'saved';
 
 function EmptySlot({ onDragOver, onDrop, isOver }: {
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
@@ -125,7 +126,7 @@ export default function SimpleAssetsPage() {
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [variantFilter, setVariantFilter] = useState<string[]>(['all']);
-  const [binderView, setBinderView] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('classic');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
@@ -133,29 +134,12 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
-  // --- Pagination state ---
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
-  // One-time migration: clear stale Series 1 saved layouts so default cardid sort applies
-  useEffect(() => {
-    if (!accountName) return;
-    const migrationKey = `gpk-s1-migrated-${accountName}`;
-    if (localStorage.getItem(migrationKey)) return;
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key?.startsWith(`gpk-order-${accountName}-series1-`)) {
-        localStorage.removeItem(key);
-      }
-    }
-    localStorage.setItem(migrationKey, '1');
-  }, [accountName]);
-
-  // Reset visible count when filters change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
-  }, [search, categoryFilter, sourceFilter, variantFilter, binderView]);
+  }, [search, categoryFilter, sourceFilter, variantFilter, viewMode]);
 
-  // --- Selection mode state ---
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
@@ -176,12 +160,10 @@ export default function SimpleAssetsPage() {
     setSelectedIds(new Set());
   }, []);
 
-  // --- Puzzle state for export/import ---
   const [importedPuzzle, setImportedPuzzle] = useState<PuzzlePieceMap | null>(null);
   const puzzleStateRef = useRef<PuzzlePieceMap>({});
   const handlePuzzlePiecesChange = useCallback((state: PuzzlePieceMap) => { puzzleStateRef.current = state; }, []);
 
-  // --- Deal animation state ---
   const preCollectIdsRef = useRef<Set<string>>(new Set());
   const pendingAnimationRef = useRef<{ txId: string | null } | null>(null);
   const assetsRef = useRef<SimpleAsset[]>([]);
@@ -190,8 +172,6 @@ export default function SimpleAssetsPage() {
   const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
-  // Expand visible count to show ALL grid slots when deal animation starts
-  // so every card placeholder is in the DOM and has a ref
   useEffect(() => {
     if (dealingCards.length > 0) {
       setVisibleCount(Infinity);
@@ -219,28 +199,22 @@ export default function SimpleAssetsPage() {
     return combined;
   }, [saAssets, aaAssets]);
 
-  // Binder view: fetch all templates for the current category
-  const binderSchema = binderView ? categoryFilter : null;
+  const binderSchema = viewMode === 'binder' ? categoryFilter : null;
   const { templates: binderTemplates, isLoading: binderLoading } = useBinderTemplates(
     binderSchema !== 'all' ? binderSchema : null
   );
 
-
-
   const selectedAssets = useMemo(() =>
     assets.filter(a => selectedIds.has(a.id)), [assets, selectedIds]);
 
-  // Keep assetsRef in sync
   assetsRef.current = assets;
 
-  // Keep preCollectIds updated (but not during pending animation)
   useEffect(() => {
     if (!pendingAnimationRef.current && dealingCards.length === 0) {
       preCollectIdsRef.current = new Set(assets.map(a => a.id));
     }
   }, [assets, dealingCards.length]);
 
-  // Detect new cards after refetch and trigger deal animation
   useEffect(() => {
     if (!pendingAnimationRef.current) return;
     const newCards = assets.filter(a => !preCollectIdsRef.current.has(a.id) && a.category !== 'packs');
@@ -248,14 +222,12 @@ export default function SimpleAssetsPage() {
       const txInfo = pendingAnimationRef.current;
       pendingAnimationRef.current = null;
 
-      // Auto-switch to the category of the new cards and force the grid open
       const cat = newCards[0].category;
       if (cat) setCategoryFilter(cat);
-      setBinderView(false);
+      setViewMode('classic');
       setSearch('');
       setSourceFilter('all');
       setVisibleCount(Number.POSITIVE_INFINITY);
-      // customOrder will be reloaded by the filter-change effect
 
       setDealingCards(newCards);
       setDealtIds(new Set());
@@ -263,7 +235,6 @@ export default function SimpleAssetsPage() {
     }
   }, [assets]);
 
-  // --- Pack opened / collect success handler ---
   const handlePackOpened = useCallback(async (txId?: string | null) => {
     if (txId) {
       preCollectIdsRef.current = new Set(assetsRef.current.map(a => a.id));
@@ -272,12 +243,11 @@ export default function SimpleAssetsPage() {
     await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
 
-  // --- Demo collect handler (triggers deal animation with existing assets) ---
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
     if (demoAssets.length === 0) return;
     const cat = demoAssets[0].category;
     if (cat) setCategoryFilter(cat);
-    setBinderView(false);
+    setViewMode('classic');
     setSearch('');
     setSourceFilter('all');
     setVisibleCount(Number.POSITIVE_INFINITY);
@@ -286,7 +256,6 @@ export default function SimpleAssetsPage() {
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
   }, []);
 
-  // --- Check for pending unclaimed NFTs on login ---
   useEffect(() => {
     if (!accountName) { setShowCollectUnclaimed(false); return; }
     (async () => {
@@ -294,11 +263,10 @@ export default function SimpleAssetsPage() {
         const rows = await fetchPendingNfts(accountName);
         const unclaimed = rows.filter((r: any) => r.done === 0);
         setShowCollectUnclaimed(unclaimed.length > 0);
-      } catch { /* ignore */ }
+      } catch { }
     })();
   }, [accountName]);
 
-  // --- Fallback collect unclaimed ---
   const handleCollectUnclaimed = useCallback(async () => {
     if (!accountName || !session) return;
     setIsCollecting(true);
@@ -333,7 +301,6 @@ export default function SimpleAssetsPage() {
       }
 
       setShowCollectUnclaimed(false);
-      // Trigger animation flow
       pendingAnimationRef.current = { txId: lastTxId };
       await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
     } catch (e) {
@@ -343,7 +310,6 @@ export default function SimpleAssetsPage() {
     }
   }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks]);
 
-  // --- Deal animation callbacks ---
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
   }, []);
@@ -364,44 +330,10 @@ export default function SimpleAssetsPage() {
 
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
-  // --- Grid / drag / filter state ---
-  const getStorageKey = useCallback((cat: string, src: string, variants: string[] = ['all']) => {
-    const vKey = [...variants].sort().join(',');
-    return `gpk-order-${accountName}-${cat}-${src}-${vKey}`;
-  }, [accountName]);
-
-  const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[], variants: string[] = ['all']): string[] | null => {
-    try {
-      const key = getStorageKey(cat, src, variants);
-      const raw = sessionOrders.current.get(key) ? JSON.stringify(sessionOrders.current.get(key)) : localStorage.getItem(key);
-      if (!raw) return null;
-      const saved: string[] = JSON.parse(raw);
-      if (!Array.isArray(saved)) return null;
-      const filteredIds = new Set(currentFiltered.map(a => a.id));
-      // Keep only IDs still in the filtered set (remove stale)
-      const valid = saved.filter(id => id === EMPTY || filteredIds.has(id));
-      // Append new cards not in saved order
-      const savedSet = new Set(saved);
-      const newIds = currentFiltered.filter(a => !savedSet.has(a.id)).map(a => a.id);
-      return [...valid, ...newIds];
-    } catch { return null; }
-  }, [getStorageKey]);
-
-  const [customOrder, setCustomOrder] = useState<string[] | null>(null);
-  const sessionOrders = useRef(new Map<string, string[]>());
+  const [savedOrder, setSavedOrder] = useState<string[] | null>(null);
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Save to localStorage whenever customOrder changes
-  useEffect(() => {
-    if (!accountName || customOrder === null) return;
-    try {
-      const key = getStorageKey(categoryFilter, sourceFilter, variantFilter);
-      localStorage.setItem(key, JSON.stringify(customOrder));
-      sessionOrders.current.set(key, customOrder);
-    } catch { /* storage full */ }
-  }, [customOrder, accountName, categoryFilter, sourceFilter, variantFilter, getStorageKey]);
 
   const categories = useMemo(() => {
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
@@ -422,9 +354,8 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
 
-  // Build binder grid: all templates with owned cards filled in, missing as placeholders
   const binderGrid = useMemo(() => {
-    if (!binderView || !binderTemplates.length) return null;
+    if (viewMode !== 'binder' || !binderTemplates.length) return null;
 
     const ownedByTemplateId = new Map<string, SimpleAsset[]>();
     const ownedByCardKey = new Map<string, SimpleAsset[]>();
@@ -455,65 +386,36 @@ export default function SimpleAssetsPage() {
       const owned = byTid || byKey || null;
       return { template, owned };
     });
-  }, [binderView, binderTemplates, filtered, categoryFilter, variantFilter]);
+  }, [viewMode, binderTemplates, filtered, categoryFilter, variantFilter]);
 
-
-  useEffect(() => {
-    const saved = loadOrder(categoryFilter, sourceFilter, filtered, variantFilter);
-    setCustomOrder(prev => {
-      if (saved === null && prev === null) return null;
-      if (saved === null) return null;
-      if (prev !== null && saved.length === prev.length && saved.every((id, i) => id === prev[i])) return prev;
-      return saved;
-    });
-  }, [categoryFilter, sourceFilter, search, filtered, loadOrder, variantFilter]);
-
-  const gridSlots = useMemo(() => {
-    const base = customOrder ?? filtered.map((a) => a.id);
-    const trimmed = [...base];
+  const savedGridSlots = useMemo(() => {
+    if (savedOrder === null) return [];
+    const trimmed = [...savedOrder];
     while (trimmed.length > 0 && trimmed[trimmed.length - 1] === EMPTY) trimmed.pop();
 
     const occupied = new Set(trimmed.filter((id) => id !== EMPTY));
     const pendingSlots = dealingCards.map((card) => card.id).filter((id) => !occupied.has(id));
 
     return [...trimmed, ...pendingSlots, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
-  }, [customOrder, filtered, dealingCards]);
+  }, [savedOrder, dealingCards]);
 
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
+  const allAssetMap = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
 
-  // --- Export / Import handlers ---
   const handleExportLayout = useCallback(() => {
-    if (!accountName) return;
+    if (!accountName || savedOrder === null) return;
     const defaultFilename = `gpk-layout-${accountName}.json`;
     const userFilename = window.prompt('Enter filename for your layout:', defaultFilename);
     if (!userFilename) return;
     const finalFilename = userFilename.toLowerCase().endsWith('.json') ? userFilename : `${userFilename}.json`;
-    const prefix = `gpk-order-${accountName}-`;
-    const orders: Record<string, string[]> = {};
-    // Load from localStorage first
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) {
-        try {
-          const val = JSON.parse(localStorage.getItem(key)!);
-          if (Array.isArray(val)) orders[key.slice(prefix.length)] = val;
-        } catch { /* skip */ }
-      }
-    }
-    // Merge in-memory session orders (overrides localStorage)
-    for (const [key, val] of sessionOrders.current.entries()) {
-      if (key.startsWith(prefix)) {
-        orders[key.slice(prefix.length)] = val;
-      }
-    }
     const puzzle = puzzleStateRef.current;
-    const blob = new Blob([JSON.stringify({ account: accountName, orders, puzzle }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ account: accountName, orders: { saved: savedOrder }, puzzle }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = finalFilename; a.click();
     URL.revokeObjectURL(url);
     toast.success('Layout exported');
-  }, [accountName]);
+  }, [accountName, savedOrder]);
 
   const handleImportLayout = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -522,56 +424,399 @@ export default function SimpleAssetsPage() {
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result as string);
-        if (!data || typeof data.orders !== 'object') { toast.error('Invalid layout file'); return; }
-        const prefix = `gpk-order-${accountName}-`;
-        for (const [suffix, order] of Object.entries(data.orders)) {
-          if (Array.isArray(order)) {
-            localStorage.setItem(`${prefix}${suffix}`, JSON.stringify(order));
+        if (!data || typeof data !== 'object') { toast.error('Invalid layout file'); return; }
+
+        let order: string[] | null = null;
+        if (data.orders) {
+          if (Array.isArray(data.orders.saved)) {
+            order = data.orders.saved;
+          } else if (typeof data.orders === 'object') {
+            const allIds: string[] = [];
+            const seen = new Set<string>();
+            for (const arr of Object.values(data.orders)) {
+              if (Array.isArray(arr)) {
+                for (const id of arr as string[]) {
+                  if (!seen.has(id)) { seen.add(id); allIds.push(id); }
+                }
+              }
+            }
+            if (allIds.length > 0) order = allIds;
           }
         }
-        // Reload current view's order
-        const saved = loadOrder(categoryFilter, sourceFilter, filtered, variantFilter);
-        setCustomOrder(saved);
-        // Load puzzle state if present
+
+        if (!order || order.length === 0) {
+          toast.error('No layout data found in file');
+          return;
+        }
+
+        setSavedOrder(order);
+        setViewMode('saved');
+
         if (data.puzzle && typeof data.puzzle === 'object') {
           setImportedPuzzle(data.puzzle as PuzzlePieceMap);
         }
-        toast.success('Layout imported');
+        toast.success('Layout imported — switch to Saved Collection tab to view');
       } catch { toast.error('Failed to parse layout file'); }
     };
     reader.readAsText(file);
     e.target.value = '';
-  }, [accountName, categoryFilter, sourceFilter, filtered, loadOrder]);
+  }, [accountName]);
 
   const handleDragStart = useCallback((idx: number) => (_e: DragEvent<HTMLDivElement>) => { dragSourceIdx.current = idx; }, []);
   const handleDragOver = useCallback((idx: number) => (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOverIdx(idx); }, []);
   const handleDrop = useCallback((targetIdx: number) => (_e: DragEvent<HTMLDivElement>) => {
     const srcIdx = dragSourceIdx.current; dragSourceIdx.current = null; setDragOverIdx(null);
-    if (srcIdx === null || srcIdx === targetIdx) return;
-    const currentOrder = customOrder ?? filtered.map((a) => a.id);
-    const padded = [...currentOrder];
+    if (srcIdx === null || srcIdx === targetIdx || savedOrder === null) return;
+    const padded = [...savedOrder];
     const maxIdx = Math.max(srcIdx, targetIdx);
     while (padded.length <= maxIdx) padded.push(EMPTY);
     const newOrder = [...padded]; const tmp = newOrder[srcIdx]; newOrder[srcIdx] = newOrder[targetIdx]; newOrder[targetIdx] = tmp;
-    setCustomOrder(newOrder);
-  }, [customOrder, filtered]);
+    setSavedOrder(newOrder);
+  }, [savedOrder]);
   const handleDragEnd = useCallback(() => { dragSourceIdx.current = null; setDragOverIdx(null); }, []);
+
+  const handleSnapshotToSaved = useCallback(() => {
+    const ids = filtered.map(a => a.id);
+    setSavedOrder(ids);
+    setViewMode('saved');
+    toast.success('Current view copied to Saved Collection — you can now rearrange and export');
+  }, [filtered]);
+
+  const renderBinderCard = useCallback(({ template, owned }: { template: any; owned: SimpleAsset[] | null }) => {
+    if (owned && owned.length > 0) {
+      const asset = owned[0];
+      const handleClick = () => {
+        if (owned.length > 1 && !selectionMode) {
+          setStackedAssets(owned);
+          setStackDialogOpen(true);
+        } else {
+          setSelectedAsset(asset);
+        }
+      };
+      return (
+        <SimpleAssetCard
+          key={`binder-${template.templateId}`}
+          asset={asset}
+          onClick={handleClick}
+          draggable={false}
+          stackCount={owned.length}
+          selectionMode={selectionMode}
+          selected={selectedIds.has(asset.id)}
+          onSelect={toggleSelection}
+        />
+      );
+    }
+    return (
+      <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+    );
+  }, [selectionMode, selectedIds, toggleSelection]);
+
+  const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {items.map(renderBinderCard)}
+    </div>
+  ), [renderBinderCard]);
+
+  const renderGroupedGrid = useCallback((items: NonNullable<typeof binderGrid>) => {
+    const groupMap = new Map<string, NonNullable<typeof binderGrid>>();
+    const groupOrder: string[] = [];
+    for (const item of items) {
+      const numId = String(item.template.cardid).replace(/[^0-9]/g, '');
+      if (!groupMap.has(numId)) {
+        groupMap.set(numId, []);
+        groupOrder.push(numId);
+      }
+      groupMap.get(numId)!.push(item);
+    }
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {groupOrder.flatMap((id) => {
+          const slots = groupMap.get(id)!;
+          const cells: React.ReactNode[] = slots.map(renderBinderCard);
+          const remainder = slots.length % 6;
+          if (remainder !== 0) {
+            const padCount = 6 - remainder;
+            for (let p = 0; p < padCount; p++) {
+              cells.push(<div key={`pad-${id}-${p}`} className="hidden xl:block" />);
+            }
+          }
+          return cells;
+        })}
+      </div>
+    );
+  }, [renderBinderCard]);
+
+  const renderSelectButton = () => (
+    <Button
+      onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+      variant="outline"
+      size="sm"
+      className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+    >
+      <CheckSquare className="h-4 w-4 mr-1" />
+      {selectionMode ? 'Cancel Select' : 'Select'}
+    </Button>
+  );
+
+  const renderSelectAllCheckbox = (visibleIds: string[]) => {
+    if (!selectionMode) return null;
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+    return (
+      <label className="flex items-center gap-1.5 cursor-pointer">
+        <Checkbox
+          checked={allSelected}
+          onCheckedChange={(checked) => {
+            if (checked) {
+              setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
+            } else {
+              setSelectedIds(new Set());
+            }
+          }}
+        />
+        <span className="text-sm text-cheese">Select All</span>
+      </label>
+    );
+  };
+
+  const renderBinderSections = (grid: NonNullable<typeof binderGrid>, useGrouped: boolean) => {
+    const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
+    const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
+    const collectors = grid.filter(s => s.template.variant === 'collector');
+    const golden = showGoldenSection ? grid.filter(s => s.template.variant === 'golden') : [];
+    const totalItems = regular.length + collectors.length + golden.length;
+
+    const sections = [
+      { key: 'regular', items: regular, heading: null, grouped: useGrouped },
+      {
+        key: 'collectors', items: collectors, grouped: false,
+        heading: (
+          <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+            Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
+          </h3>
+        ),
+      },
+      ...(golden.length > 0 ? [{
+        key: 'golden', items: golden, grouped: false,
+        heading: (
+          <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+            Golden ({golden.filter(s => s.owned).length}/{golden.length})
+          </h3>
+        ),
+      }] : []),
+    ];
+
+    let remaining = visibleCount;
+
+    return (
+      <div className="space-y-6">
+        {sections.map((section) => {
+          const visible = section.items.slice(0, Math.max(remaining, 0));
+          remaining = Math.max(remaining - visible.length, 0);
+          if (visible.length === 0) return null;
+
+          if (!section.heading) {
+            return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderBinderGrid(visible)}</div>;
+          }
+
+          return (
+            <div key={section.key} className="space-y-2">
+              {section.heading}
+              {renderBinderGrid(visible)}
+            </div>
+          );
+        })}
+
+        {totalItems > visibleCount && (
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+              variant="outline"
+              className="border-cheese/50 text-cheese hover:bg-cheese/10"
+            >
+              Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderClassicView = () => (
+    <>
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+        {renderSelectButton()}
+        {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
+        <Button
+          onClick={handleSnapshotToSaved}
+          variant="outline"
+          size="sm"
+          className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8 ml-auto"
+          title="Copy current view to Saved Collection for custom arrangement"
+        >
+          <Save className="h-4 w-4 mr-1" />
+          Copy to Saved
+        </Button>
+      </div>
+      {filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground py-12">
+          {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {filtered.slice(0, visibleCount).map((asset) => {
+              const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
+              if (isInFlight) {
+                return (
+                  <div
+                    key={asset.id}
+                    ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
+                    className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                  />
+                );
+              }
+
+              const justLanded = dealtIds.has(asset.id);
+              return (
+                <SimpleAssetCard
+                  key={asset.id}
+                  asset={asset}
+                  onClick={() => setSelectedAsset(asset)}
+                  className={justLanded ? 'animate-card-glow' : ''}
+                  draggable={false}
+                  selectionMode={selectionMode}
+                  selected={selectedIds.has(asset.id)}
+                  onSelect={toggleSelection}
+                />
+              );
+            })}
+          </div>
+          {filtered.length > visibleCount && (
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                variant="outline"
+                className="border-cheese/50 text-cheese hover:bg-cheese/10"
+              >
+                Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+
+  const renderBinderView = () => {
+    if (!binderGrid) return <p className="text-center text-muted-foreground py-12">Select a specific series to use Collector Binder.</p>;
+    const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
+    return (
+      <>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
+            {binderLoading && ' (loading templates...)'}
+          </p>
+          {renderSelectButton()}
+          {renderSelectAllCheckbox(visibleOwned)}
+        </div>
+        {renderBinderSections(binderGrid, categoryFilter === 'series2')}
+      </>
+    );
+  };
+
+  const renderSavedView = () => {
+    if (savedOrder === null) {
+      return (
+        <div className="text-center py-16 space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-full bg-cheese/10 flex items-center justify-center">
+            <Upload className="h-8 w-8 text-cheese" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground">No Saved Layout</h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Load a previously exported JSON layout, or use "Copy to Saved" from the Classic tab to snapshot your current collection here for custom arrangement.
+          </p>
+          <div className="flex justify-center gap-3">
+            <Button onClick={() => fileInputRef.current?.click()} className="bg-cheese hover:bg-cheese/90 text-primary-foreground">
+              <Upload className="h-4 w-4 mr-2" />
+              Load Layout
+            </Button>
+          </div>
+          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
+        </div>
+      );
+    }
+
+    const validSlots = savedGridSlots.filter(id => id !== EMPTY);
+    const validAssets = validSlots.map(id => allAssetMap.get(id)).filter(Boolean) as SimpleAsset[];
+
+    return (
+      <>
+        <div className="flex items-center gap-3 flex-wrap">
+          <p className="text-sm text-muted-foreground">{validAssets.length} card{validAssets.length !== 1 ? 's' : ''} in saved layout</p>
+          {renderSelectButton()}
+          {selectionMode && renderSelectAllCheckbox(validSlots.filter(id => allAssetMap.has(id)))}
+          <div className="ml-auto flex gap-2">
+            <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
+              <Download className="h-4 w-4 mr-1" />Save Layout
+            </Button>
+            <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
+              <Upload className="h-4 w-4 mr-1" />Load Layout
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {savedGridSlots.slice(0, visibleCount).map((slotId, idx) => {
+            if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+
+            const asset = allAssetMap.get(slotId);
+            if (!asset) return (
+              <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">Missing</span>
+              </div>
+            );
+
+            return (
+              <SimpleAssetCard
+                key={asset.id}
+                asset={asset}
+                onClick={() => setSelectedAsset(asset)}
+                draggable={!selectionMode}
+                selectionMode={selectionMode}
+                selected={selectedIds.has(asset.id)}
+                onSelect={toggleSelection}
+                onDragStart={handleDragStart(idx)}
+                onDragOver={handleDragOver(idx)}
+                onDrop={handleDrop(idx)}
+                onDragEnd={handleDragEnd}
+              />
+            );
+          })}
+        </div>
+        {savedGridSlots.length > visibleCount && (
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+              variant="outline"
+              className="border-cheese/50 text-cheese hover:bg-cheese/10"
+            >
+              Show More ({Math.min(visibleCount, savedGridSlots.length)} of {savedGridSlots.length})
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen relative">
       <BackgroundDecorations />
-      {/* Sticky header with account info */}
       {isConnected && accountName && (
         <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
           <div className="container flex h-12 items-center justify-end">
             <div className="flex items-center gap-2">
-              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Export card layout">
-                <Download className="h-4 w-4 mr-1" />Save Layout
-              </Button>
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import card layout">
-                <Upload className="h-4 w-4 mr-1" />Load Layout
-              </Button>
-              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="border-cheese/30 hover:border-cheese hover:bg-cheese/10 h-8 gap-2">
@@ -646,7 +891,6 @@ export default function SimpleAssetsPage() {
 
         {!isConnected ? (
           <div className="space-y-16 py-8">
-            {/* Hero Section */}
             <div className="flex flex-col items-center text-center space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cheese/30 bg-cheese/10 text-sm text-cheese">
                 <Sparkles className="h-4 w-4" />
@@ -665,7 +909,6 @@ export default function SimpleAssetsPage() {
               </Button>
             </div>
 
-            {/* Feature Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
               <FeatureCard
                 icon={<BookOpen className="h-6 w-6 text-cheese" />}
@@ -699,7 +942,6 @@ export default function SimpleAssetsPage() {
               />
             </div>
 
-            {/* CTA */}
             <div className="text-center space-y-4">
               <p className="text-muted-foreground">Connect your WAX wallet to get started — it only takes a few seconds.</p>
               <Button onClick={login} className="bg-cheese hover:bg-cheese/90 text-cheese-foreground">
@@ -818,537 +1060,70 @@ export default function SimpleAssetsPage() {
                 </Button>
               )}
             </div>
-            {categoryFilter !== 'all' && (
-              <div className="flex justify-center mt-2">
-                <Tabs value={binderView ? 'binder' : 'classic'} onValueChange={(v) => setBinderView(v === 'binder')} className="w-auto">
-                  <TabsList className="h-8 bg-muted/50 border border-cheese/20">
-                    <TabsTrigger value="classic" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
-                      Classic View
-                    </TabsTrigger>
-                    <TabsTrigger value="binder" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      Collector Binder
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-            )}
+
+            <div className="flex justify-center mt-2">
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-auto">
+                <TabsList className="h-8 bg-muted/50 border border-cheese/20">
+                  <TabsTrigger value="classic" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
+                    <Grid3X3 className="h-3 w-3 mr-1" />
+                    Classic View
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="binder"
+                    className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese"
+                    disabled={categoryFilter === 'all'}
+                  >
+                    <BookOpen className="h-3 w-3 mr-1" />
+                    Collector Binder
+                  </TabsTrigger>
+                  <TabsTrigger value="saved" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
+                    <Save className="h-3 w-3 mr-1" />
+                    Saved Collection
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
             {!isLoading && !error && (
-              categoryFilter === 'series2' ? (
+              categoryFilter === 'series2' && viewMode !== 'saved' ? (
                 <Tabs defaultValue="collection" className="w-full">
                   <TabsList className="mb-4">
                     <TabsTrigger value="collection">Collection</TabsTrigger>
                     <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>
                   </TabsList>
                   <TabsContent value="collection">
-                    {binderView && binderGrid ? (
+                    {viewMode === 'binder' && binderGrid ? (
                       <>
                         <div className="flex items-center gap-3">
                           <p className="text-sm text-muted-foreground">
                             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                             {binderLoading && ' (loading templates...)'}
                           </p>
-                          <Button
-                            onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
-                            variant="outline"
-                            size="sm"
-                            className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
-                          >
-                            <CheckSquare className="h-4 w-4 mr-1" />
-                            {selectionMode ? 'Cancel Select' : 'Select'}
-                          </Button>
-                          {selectionMode && binderGrid && (() => {
-                            const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
-                            const allSelected = visibleOwned.length > 0 && visibleOwned.every(id => selectedIds.has(id));
-                            return (
-                              <label className="flex items-center gap-1.5 cursor-pointer">
-                                <Checkbox
-                                  checked={allSelected}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedIds(prev => { const next = new Set(prev); visibleOwned.forEach(id => next.add(id)); return next; });
-                                    } else {
-                                      setSelectedIds(new Set());
-                                    }
-                                  }}
-                                />
-                                <span className="text-sm text-cheese">Select All</span>
-                              </label>
-                            );
-                          })()}
+                          {renderSelectButton()}
+                          {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
                         </div>
-                        {(() => {
-                          const showGoldenSection = true; // series2 always shows golden section
-                          const regular = binderGrid.filter(
-                            (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
-                          );
-                          const collectors = binderGrid.filter((s) => s.template.variant === 'collector');
-                          const golden = showGoldenSection ? binderGrid.filter((s) => s.template.variant === 'golden') : [];
-                          const totalItems = regular.length + collectors.length + golden.length;
-
-                          const renderCard = ({ template, owned }: typeof binderGrid[0]) => {
-                            if (owned && owned.length > 0) {
-                              const asset = owned[0];
-                              const handleClick = () => {
-                                if (owned.length > 1 && !selectionMode) {
-                                  setStackedAssets(owned);
-                                  setStackDialogOpen(true);
-                                } else {
-                                  setSelectedAsset(asset);
-                                }
-                              };
-                              return (
-                                <SimpleAssetCard
-                                  key={`binder-${template.templateId}`}
-                                  asset={asset}
-                                  onClick={handleClick}
-                                  draggable={false}
-                                  stackCount={owned.length}
-                                  selectionMode={selectionMode}
-                                  selected={selectedIds.has(asset.id)}
-                                  onSelect={toggleSelection}
-                                />
-                              );
-                            }
-                            return (
-                              <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
-                            );
-                          };
-
-                          const renderGrid = (items: typeof binderGrid) => (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                              {items.map(renderCard)}
-                            </div>
-                          );
-
-                          // Series 2 grouped grid: one card title per row (padded to 6 cols)
-                          const renderGroupedGrid = (items: typeof binderGrid) => {
-                            const groups: { cardid: string; name: string; slots: typeof binderGrid }[] = [];
-                            const groupMap = new Map<string, typeof binderGrid>();
-                            const groupOrder: string[] = [];
-                            for (const item of items) {
-                              const numId = String(item.template.cardid).replace(/[^0-9]/g, '');
-                              if (!groupMap.has(numId)) {
-                                groupMap.set(numId, []);
-                                groupOrder.push(numId);
-                              }
-                              groupMap.get(numId)!.push(item);
-                            }
-                            for (const id of groupOrder) {
-                              const slots = groupMap.get(id)!;
-                              groups.push({ cardid: id, name: slots[0]?.template.name ?? id, slots });
-                            }
-                            return (
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                                {groups.flatMap((group) => {
-                                  const cells: React.ReactNode[] = group.slots.map(renderCard);
-                                  const remainder = group.slots.length % 6;
-                                  if (remainder !== 0) {
-                                    const padCount = 6 - remainder;
-                                    for (let p = 0; p < padCount; p++) {
-                                      cells.push(<div key={`pad-${group.cardid}-${p}`} className="hidden xl:block" />);
-                                    }
-                                  }
-                                  return cells;
-                                })}
-                              </div>
-                            );
-                          };
-
-                          const sections = [
-                            { key: 'regular', items: regular, heading: null, grouped: true },
-                            {
-                              key: 'collectors',
-                              items: collectors,
-                              grouped: false,
-                              heading: (
-                                <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-                                  Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
-                                </h3>
-                              ),
-                            },
-                            ...(golden.length > 0 ? [{
-                              key: 'golden',
-                              items: golden,
-                              grouped: false,
-                              heading: (
-                                <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-                                  Golden ({golden.filter(s => s.owned).length}/{golden.length})
-                                </h3>
-                              ),
-                            }] : []),
-                          ];
-
-                          let remaining = visibleCount;
-
-                          return (
-                            <div className="space-y-6">
-                              {sections.map((section) => {
-                                const visible = section.items.slice(0, Math.max(remaining, 0));
-                                remaining = Math.max(remaining - visible.length, 0);
-                                if (visible.length === 0) return null;
-
-                                if (!section.heading) {
-                                  return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderGrid(visible)}</div>;
-                                }
-
-                                return (
-                                  <div key={section.key} className="space-y-2">
-                                    {section.heading}
-                                    {renderGrid(visible)}
-                                  </div>
-                                );
-                              })}
-
-                              {totalItems > visibleCount && (
-                                <div className="flex justify-center pt-4">
-                                  <Button
-                                    onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-                                    variant="outline"
-                                    className="border-cheese/50 text-cheese hover:bg-cheese/10"
-                                  >
-                                    Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                        {renderBinderSections(binderGrid, true)}
                       </>
                     ) : (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-                          <Button
-                            onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
-                            variant="outline"
-                            size="sm"
-                            className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
-                          >
-                            <CheckSquare className="h-4 w-4 mr-1" />
-                            {selectionMode ? 'Cancel Select' : 'Select'}
-                          </Button>
-                          {selectionMode && (() => {
-                            const visibleIds = gridSlots.slice(0, visibleCount).filter(id => id !== EMPTY && assetMap.has(id));
-                            const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
-                            return (
-                              <label className="flex items-center gap-1.5 cursor-pointer">
-                                <Checkbox
-                                  checked={allSelected}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
-                                    } else {
-                                      setSelectedIds(new Set());
-                                    }
-                                  }}
-                                />
-                                <span className="text-sm text-cheese">Select All</span>
-                              </label>
-                            );
-                          })()}
-                        </div>
-                        {filtered.length === 0 ? (
-                          <p className="text-center text-muted-foreground py-12">
-                            {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
-                          </p>
-                        ) : (
-                          <>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                              {gridSlots.slice(0, visibleCount).map((slotId, idx) => {
-                                if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
-
-                                const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
-                                if (isInFlight) {
-                                  return (
-                                    <div
-                                      key={slotId}
-                                      ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
-                                      className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
-                                    />
-                                  );
-                                }
-
-                                const asset = assetMap.get(slotId);
-                                if (!asset) return null;
-
-                                const justLanded = dealtIds.has(slotId);
-                                return (
-                                  <SimpleAssetCard
-                                    key={asset.id}
-                                    asset={asset}
-                                    onClick={() => setSelectedAsset(asset)}
-                                    className={justLanded ? 'animate-card-glow' : ''}
-                                    draggable={!selectionMode}
-                                    selectionMode={selectionMode}
-                                    selected={selectedIds.has(asset.id)}
-                                    onSelect={toggleSelection}
-                                    onDragStart={handleDragStart(idx)}
-                                    onDragOver={handleDragOver(idx)}
-                                    onDrop={handleDrop(idx)}
-                                    onDragEnd={handleDragEnd}
-                                  />
-                                );
-                              })}
-                            </div>
-                            {filtered.length > visibleCount && (
-                              <div className="flex justify-center pt-4">
-                                <Button
-                                  onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-                                  variant="outline"
-                                  className="border-cheese/50 text-cheese hover:bg-cheese/10"
-                                >
-                                  Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
-                                </Button>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </>
+                      renderClassicView()
                     )}
                   </TabsContent>
                   <TabsContent value="puzzle">
                     <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} />
                   </TabsContent>
                 </Tabs>
+              ) : viewMode === 'saved' ? (
+                renderSavedView()
+              ) : viewMode === 'binder' ? (
+                renderBinderView()
               ) : (
-                <>
-                  {binderView && binderGrid ? (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">
-                          {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
-                          {binderLoading && ' (loading templates...)'}
-                        </p>
-                        <Button
-                          onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
-                          variant="outline"
-                          size="sm"
-                          className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
-                        >
-                          <CheckSquare className="h-4 w-4 mr-1" />
-                          {selectionMode ? 'Cancel Select' : 'Select'}
-                        </Button>
-                        {selectionMode && binderGrid && (() => {
-                          const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
-                          const allSelected = visibleOwned.length > 0 && visibleOwned.every(id => selectedIds.has(id));
-                          return (
-                            <label className="flex items-center gap-1.5 cursor-pointer">
-                              <Checkbox
-                                checked={allSelected}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedIds(prev => { const next = new Set(prev); visibleOwned.forEach(id => next.add(id)); return next; });
-                                  } else {
-                                    setSelectedIds(new Set());
-                                  }
-                                }}
-                              />
-                              <span className="text-sm text-cheese">Select All</span>
-                            </label>
-                          );
-                        })()}
-                      </div>
-                      {(() => {
-                        const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
-                        const regular = binderGrid.filter(
-                          (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
-                        );
-                        const collectors = binderGrid.filter((s) => s.template.variant === 'collector');
-                        const golden = showGoldenSection ? binderGrid.filter((s) => s.template.variant === 'golden') : [];
-                        const totalItems = regular.length + collectors.length + golden.length;
-
-                        const renderGrid = (items: typeof binderGrid) => (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                            {items.map(({ template, owned }) => {
-                              if (owned && owned.length > 0) {
-                                const asset = owned[0];
-                                const handleClick = () => {
-                                  if (owned.length > 1 && !selectionMode) {
-                                    setStackedAssets(owned);
-                                    setStackDialogOpen(true);
-                                  } else {
-                                    setSelectedAsset(asset);
-                                  }
-                                };
-                                return (
-                                  <SimpleAssetCard
-                                    key={`binder-${template.templateId}`}
-                                    asset={asset}
-                                    onClick={handleClick}
-                                    draggable={false}
-                                    stackCount={owned.length}
-                                    selectionMode={selectionMode}
-                                    selected={selectedIds.has(asset.id)}
-                                    onSelect={toggleSelection}
-                                  />
-                                );
-                              }
-                              return (
-                                <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
-                              );
-                            })}
-                          </div>
-                        );
-
-                        const sections = [
-                          { key: 'regular', items: regular, heading: null },
-                          {
-                            key: 'collectors',
-                            items: collectors,
-                            heading: (
-                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-                                Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
-                              </h3>
-                            ),
-                          },
-                          ...(golden.length > 0 ? [{
-                            key: 'golden',
-                            items: golden,
-                            heading: (
-                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-                                Golden ({golden.filter(s => s.owned).length}/{golden.length})
-                              </h3>
-                            ),
-                          }] : []),
-                        ];
-
-                        let remaining = visibleCount;
-
-                        return (
-                          <div className="space-y-6">
-                            {sections.map((section) => {
-                              const visible = section.items.slice(0, Math.max(remaining, 0));
-                              remaining = Math.max(remaining - visible.length, 0);
-                              if (visible.length === 0) return null;
-
-                              if (!section.heading) {
-                                return <div key={section.key}>{renderGrid(visible)}</div>;
-                              }
-
-                              return (
-                                <div key={section.key} className="space-y-2">
-                                  {section.heading}
-                                  {renderGrid(visible)}
-                                </div>
-                              );
-                            })}
-
-                            {totalItems > visibleCount && (
-                              <div className="flex justify-center pt-4">
-                                <Button
-                                  onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-                                  variant="outline"
-                                  className="border-cheese/50 text-cheese hover:bg-cheese/10"
-                                >
-                                  Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-                        <Button
-                          onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
-                          variant="outline"
-                          size="sm"
-                          className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
-                        >
-                          <CheckSquare className="h-4 w-4 mr-1" />
-                          {selectionMode ? 'Cancel Select' : 'Select'}
-                        </Button>
-                        {selectionMode && (() => {
-                          const visibleIds = gridSlots.slice(0, visibleCount).filter(id => id !== EMPTY && assetMap.has(id));
-                          const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
-                          return (
-                            <label className="flex items-center gap-1.5 cursor-pointer">
-                              <Checkbox
-                                checked={allSelected}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
-                                  } else {
-                                    setSelectedIds(new Set());
-                                  }
-                                }}
-                              />
-                              <span className="text-sm text-cheese">Select All</span>
-                            </label>
-                          );
-                        })()}
-                      </div>
-                      {filtered.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-12">
-                          {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
-                        </p>
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                            {gridSlots.slice(0, visibleCount).map((slotId, idx) => {
-                              if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
-
-                              const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
-                              if (isInFlight) {
-                                return (
-                                  <div
-                                    key={slotId}
-                                    ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
-                                    className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
-                                  />
-                                );
-                              }
-
-                              const asset = assetMap.get(slotId);
-                              if (!asset) return null;
-
-                              const justLanded = dealtIds.has(slotId);
-                              return (
-                                <SimpleAssetCard
-                                  key={asset.id}
-                                  asset={asset}
-                                  onClick={() => setSelectedAsset(asset)}
-                                  className={justLanded ? 'animate-card-glow' : ''}
-                                  draggable={!selectionMode}
-                                  selectionMode={selectionMode}
-                                  selected={selectedIds.has(asset.id)}
-                                  onSelect={toggleSelection}
-                                  onDragStart={handleDragStart(idx)}
-                                  onDragOver={handleDragOver(idx)}
-                                  onDrop={handleDrop(idx)}
-                                  onDragEnd={handleDragEnd}
-                                />
-                              );
-                            })}
-                          </div>
-                          {filtered.length > visibleCount && (
-                            <div className="flex justify-center pt-4">
-                              <Button
-                                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-                                variant="outline"
-                                className="border-cheese/50 text-cheese hover:bg-cheese/10"
-                              >
-                                Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
-                              </Button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </>
+                renderClassicView()
               )
             )}
           </>
         )}
       </div>
 
-      {/* Footer */}
       <footer className="border-t border-cheese/20 mt-12 py-8">
         <div className="container text-center space-y-4">
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
@@ -1364,7 +1139,6 @@ export default function SimpleAssetsPage() {
         </div>
       </footer>
 
-      {/* Deal animation overlay */}
       {dealingCards.length > 0 && (
         <CardDealAnimation
           cards={dealingCards}
@@ -1416,7 +1190,6 @@ export default function SimpleAssetsPage() {
         }}
       />
 
-      {/* Floating selection bar */}
       {selectionMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-cheese/50 rounded-lg shadow-2xl px-6 py-3 flex items-center gap-4">
           <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
