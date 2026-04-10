@@ -365,8 +365,10 @@ export default function SimpleAssetsPage() {
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
   // --- Grid / drag / filter state ---
-  const getStorageKey = useCallback((cat: string, src: string) =>
-    `gpk-order-${accountName}-${cat}-${src}`, [accountName]);
+  const getStorageKey = useCallback((cat: string, src: string, variants: string[] = ['all']) => {
+    const vKey = [...variants].sort().join(',');
+    return `gpk-order-${accountName}-${cat}-${src}-${vKey}`;
+  }, [accountName]);
 
   const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[]): string[] | null => {
     try {
