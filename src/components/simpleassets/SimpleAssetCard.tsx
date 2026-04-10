@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, DragEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { useCardTilt } from '@/hooks/useCardTilt';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface SimpleAssetCardProps {
@@ -37,6 +38,7 @@ function getMintInfo(asset: SimpleAsset): string | null {
 function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const { ref: tiltRef, glareRef, onMouseMove: tiltMouseMove, onMouseLeave: tiltMouseLeave } = useCardTilt({ disabled: isDragging });
 
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintInfo = getMintInfo(asset);
@@ -55,7 +57,9 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isStacked = (stackCount ?? 0) > 1;
 
   return (
-    <div className={isStacked ? 'relative' : ''}>
+    <div className={isStacked ? 'relative' : ''} ref={tiltRef}
+      onMouseMove={tiltMouseMove} onMouseLeave={tiltMouseLeave}
+      style={{ transformStyle: 'preserve-3d', willChange: 'transform', transition: 'transform 0.15s ease' }}>
       {isStacked && (
         <>
           <div className="absolute inset-0 rounded-lg border border-border bg-card translate-x-1.5 translate-y-1.5 opacity-40" />
@@ -128,6 +132,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
+      <div ref={glareRef} className="absolute inset-0 rounded-lg pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease' }} />
       </CardContent>
     </Card>
     </div>
