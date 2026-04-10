@@ -895,6 +895,7 @@ export default function SimpleAssetsPage() {
                             ...(golden.length > 0 ? [{
                               key: 'golden',
                               items: golden,
+                              grouped: false,
                               heading: (
                                 <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                   Golden ({golden.filter(s => s.owned).length}/{golden.length})
