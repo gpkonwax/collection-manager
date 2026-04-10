@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, PointerEvent as RPointerEvent } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
 import { RotateCw, RotateCcw, Shuffle, Timer, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
