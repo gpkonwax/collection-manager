@@ -4,6 +4,7 @@ import { IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { sanitizeUrl } from '@/lib/sanitizeUrl';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
+import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
 
 const ROTATION_INTERVAL = 30_000;
 
@@ -15,9 +16,10 @@ function getIpfsImageUrl(hash: string, gatewayIndex = 0): string {
 interface BannerSlotProps {
   banner: ActiveBanner;
   className?: string;
+  onLinkClick: (url: string) => void;
 }
 
-function BannerSlot({ banner, className = '' }: BannerSlotProps) {
+function BannerSlot({ banner, className = '', onLinkClick }: BannerSlotProps) {
   const [showShared, setShowShared] = useState(false);
   const [gatewayIdx, setGatewayIdx] = useState(0);
   const [sharedGatewayIdx, setSharedGatewayIdx] = useState(0);
@@ -41,8 +43,15 @@ function BannerSlot({ banner, className = '' }: BannerSlotProps) {
     }
   };
 
-  const content = (
-    <div className={`relative group overflow-hidden rounded-lg border border-cheese/20 bg-card ${className}`}>
+  const handleClick = () => {
+    if (safeUrl) onLinkClick(safeUrl);
+  };
+
+  return (
+    <div
+      className={`relative group overflow-hidden rounded-lg border border-cheese/20 bg-card ${safeUrl ? 'cursor-pointer' : ''} ${className}`}
+      onClick={handleClick}
+    >
       <img
         src={getIpfsImageUrl(currentHash, currentGatewayIdx)}
         alt="Advertisement"
@@ -61,34 +70,24 @@ function BannerSlot({ banner, className = '' }: BannerSlotProps) {
       )}
     </div>
   );
-
-  if (safeUrl) {
-    return (
-      <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="block">
-        {content}
-      </a>
-    );
-  }
-
-  return content;
 }
 
 function BannerAdComponent() {
   const { data: banners, isLoading } = useBannerAds();
+  const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
   if (isLoading || !banners || banners.length === 0) {
     return (
       <div className="w-full max-w-5xl mx-auto px-4 mb-4">
         <div className="flex justify-center gap-4">
-          <a
-            href="https://cheesehubwax.github.io/cheesehub/bannerads"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="max-w-[580px] w-full h-[150px] rounded-lg border border-dashed border-cheese/20 bg-card/50 flex items-center justify-center text-xs text-muted-foreground hover:border-cheese/40 transition-colors"
+          <div
+            onClick={() => requestNavigation('https://cheesehubwax.github.io/cheesehub/bannerads')}
+            className="max-w-[580px] w-full h-[150px] rounded-lg border border-dashed border-cheese/20 bg-card/50 flex items-center justify-center text-xs text-muted-foreground hover:border-cheese/40 transition-colors cursor-pointer"
           >
             Advertise here — CheeseHub Banner Ads
-          </a>
+          </div>
         </div>
+        <ExternalLinkWarningDialog url={pendingUrl} onConfirm={confirm} onCancel={cancel} />
       </div>
     );
   }
@@ -101,9 +100,11 @@ function BannerAdComponent() {
             key={banner.position}
             banner={banner}
             className="max-w-[580px] w-full h-[150px]"
+            onLinkClick={requestNavigation}
           />
         ))}
       </div>
+      <ExternalLinkWarningDialog url={pendingUrl} onConfirm={confirm} onCancel={cancel} />
     </div>
   );
 }
