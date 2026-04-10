@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, PointerEvent as RPointerEvent } from 're
 import { RotateCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
-import { PUZZLE_PIECES } from '@/lib/puzzlePieces';
+import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface PieceState {
@@ -18,12 +18,25 @@ interface PuzzleBuilderProps {
 function isPuzzlePiece(asset: SimpleAsset): boolean {
   if (!asset.cardid) return false;
   const id = typeof asset.cardid === 'string' ? parseInt(asset.cardid, 10) : asset.cardid;
-  const side = (asset.side || '').toLowerCase();
-  return PUZZLE_PIECES.some(p => p.cardid === id && p.side === side);
+  return PUZZLE_CARD_IDS.includes(id);
+}
+
+/** Deduplicate: keep only the first asset per cardid */
+function deduplicateByCardId(assets: SimpleAsset[]): SimpleAsset[] {
+  const seen = new Set<number>();
+  const result: SimpleAsset[] = [];
+  for (const a of assets) {
+    const id = typeof a.cardid === 'string' ? parseInt(a.cardid, 10) : a.cardid;
+    if (id != null && !seen.has(id)) {
+      seen.add(id);
+      result.push(a);
+    }
+  }
+  return result;
 }
 
 export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
-  const puzzleAssets = assets.filter(isPuzzlePiece);
+  const puzzleAssets = deduplicateByCardId(assets.filter(isPuzzlePiece));
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
     const m = new Map<string, PieceState>();
@@ -120,7 +133,7 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
                 {backUrl ? (
                   <img
                     src={backUrl}
-                    alt={`Card ${asset.cardid}${asset.side}`}
+                    alt={`Card ${cardid}`}
                     className="w-full h-full object-cover pointer-events-none"
                     draggable={false}
                   />
@@ -130,7 +143,7 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
                 {/* Card ID overlay */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className="text-2xl font-bold text-foreground/30 select-none">
-                    {asset.cardid}{asset.side || ''}
+                    {cardid}
                   </span>
                 </div>
               </div>
