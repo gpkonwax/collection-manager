@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
@@ -112,6 +114,72 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
   const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // Timer race mode
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const timerStart = useRef<number>(0);
+  const [ratingResult, setRatingResult] = useState<{ time: number; rotation: number; placement: number; total: number; grade: string } | null>(null);
+
+  useEffect(() => {
+    if (!timerRunning) return;
+    const iv = setInterval(() => {
+      setElapsedMs(Date.now() - timerStart.current);
+    }, 100);
+    return () => clearInterval(iv);
+  }, [timerRunning]);
+
+  const formatTime = (ms: number) => {
+    const totalSec = ms / 1000;
+    const min = Math.floor(totalSec / 60);
+    const sec = Math.floor(totalSec % 60);
+    const tenths = Math.floor((totalSec * 10) % 10);
+    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${tenths}`;
+  };
+
+  const computeRating = useCallback(() => {
+    const entries = Array.from(pieces.entries());
+    const totalPieces = entries.length;
+    if (totalPieces === 0) return;
+
+    // Time score (0-40): 40 if under 30s, linear to 0 at 300s
+    const secs = elapsedMs / 1000;
+    const timeScore = secs <= 30 ? 40 : Math.max(0, 40 - ((secs - 30) / 270) * 40);
+
+    // Rotation score (0-30): % of pieces at 0°
+    const correctRotation = entries.filter(([, s]) => s.rotation === 0).length;
+    const rotationScore = (correctRotation / totalPieces) * 30;
+
+    // Placement score (0-30): pairwise bounding box overlap, -2 per overlap
+    let overlapCount = 0;
+    const W = 120, H = 168;
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const a = entries[i][1], b = entries[j][1];
+        if (a.x < b.x + W && a.x + W > b.x && a.y < b.y + H && a.y + H > b.y) {
+          overlapCount++;
+        }
+      }
+    }
+    const placementScore = Math.max(0, 30 - overlapCount * 2);
+
+    const total = Math.round(timeScore + rotationScore + placementScore);
+    const grade = total >= 90 ? 'A' : total >= 80 ? 'B' : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
+
+    setRatingResult({
+      time: Math.round(timeScore),
+      rotation: Math.round(rotationScore),
+      placement: Math.round(placementScore),
+      total,
+      grade,
+    });
+  }, [pieces, elapsedMs]);
+
+  const handleFinish = useCallback(() => {
+    setTimerRunning(false);
+    computeRating();
+  }, [computeRating]);
+
   const getState = (id: string): PieceState => pieces.get(id) ?? { x: 0, y: 0, rotation: 0 };
 
   const rotate = useCallback((id: string, dir: 'cw' | 'ccw') => {
@@ -172,7 +240,13 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
       notifyParent(next);
       return next;
     });
-  }, [notifyParent]);
+    if (timerEnabled) {
+      timerStart.current = Date.now();
+      setElapsedMs(0);
+      setTimerRunning(true);
+      setRatingResult(null);
+    }
+  }, [notifyParent, timerEnabled]);
 
   if (puzzleAssets.length === 0) {
     return (
@@ -185,20 +259,74 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm text-muted-foreground">
           {puzzleAssets.length} puzzle piece{puzzleAssets.length !== 1 ? 's' : ''} · Drag to position · Click arrows to rotate 90°
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
-          onClick={scramble}
-        >
-          <Shuffle className="h-4 w-4 mr-1" />
-          Scramble
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              id="timer-toggle"
+              checked={timerEnabled}
+              onCheckedChange={(v) => {
+                setTimerEnabled(!!v);
+                if (!v) { setTimerRunning(false); setElapsedMs(0); setRatingResult(null); }
+              }}
+            />
+            <Label htmlFor="timer-toggle" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
+              <Timer className="h-3.5 w-3.5" /> Timer
+            </Label>
+          </div>
+          {timerEnabled && (
+            <span className={`font-mono text-sm tabular-nums ${timerRunning ? 'text-cheese' : 'text-muted-foreground'}`}>
+              {formatTime(elapsedMs)}
+            </span>
+          )}
+          {timerRunning && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-green-500/30 text-green-400 hover:border-green-500 hover:bg-green-500/10"
+              onClick={handleFinish}
+            >
+              <Flag className="h-4 w-4 mr-1" />
+              Finish
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={scramble}
+          >
+            <Shuffle className="h-4 w-4 mr-1" />
+            Scramble
+          </Button>
+        </div>
       </div>
+
+      {ratingResult && (
+        <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-4 flex items-center gap-6">
+          <div className="text-5xl font-bold text-cheese">{ratingResult.grade}</div>
+          <div className="flex-1 grid grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Speed</p>
+              <p className="font-medium text-foreground">{ratingResult.time}/40</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Rotation</p>
+              <p className="font-medium text-foreground">{ratingResult.rotation}/30</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Placement</p>
+              <p className="font-medium text-foreground">{ratingResult.placement}/30</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-foreground">{ratingResult.total}<span className="text-sm text-muted-foreground">/100</span></p>
+          </div>
+        </div>
+      )}
       <div
         ref={canvasRef}
         className="relative border border-border rounded-lg bg-muted/20 overflow-auto"
