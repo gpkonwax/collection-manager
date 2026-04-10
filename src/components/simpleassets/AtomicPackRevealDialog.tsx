@@ -169,7 +169,7 @@ export function AtomicPackRevealDialog({
     if (phase !== 'revealing' || newCards.length === 0 || revealedCount >= newCards.length) return;
     const timer = setTimeout(() => {
       setRevealedCount((c) => c + 1);
-      setTimeout(() => playRandomFart(), 600);
+      setTimeout(() => playCardRevealSound(), 600);
     }, 1600);
     return () => clearTimeout(timer);
   }, [phase, revealedCount, newCards.length]);
