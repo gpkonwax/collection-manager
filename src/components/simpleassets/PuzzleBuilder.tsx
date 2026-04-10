@@ -22,7 +22,11 @@ interface PuzzleBuilderProps {
   initialPieceState?: PuzzlePieceMap | null;
   /** Called whenever piece state changes so parent can track it for export */
   onPiecesChange?: (state: PuzzlePieceMap) => void;
+  /** Called when user wants to switch to binder view to find missing pieces */
+  onSwitchToBinder?: () => void;
 }
+
+const TOTAL_PUZZLE_PIECES = 18;
 
 function isPuzzlePiece(asset: SimpleAsset): boolean {
   if (!asset.cardid) return false;
