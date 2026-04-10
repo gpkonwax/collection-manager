@@ -340,7 +340,15 @@ export default function SimpleAssetsPage() {
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
     for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
     for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
-    return [...fromAssets].sort();
+    const priority = ['all', 'series1', 'series2'];
+    return [...fromAssets].sort((a, b) => {
+      const ai = priority.indexOf(a);
+      const bi = priority.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
   }, [assets, packs, atomicPacks]);
 
   const filtered = useMemo(() => {
