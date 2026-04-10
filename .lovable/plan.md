@@ -1,31 +1,40 @@
 
 
-## Delay bell sound to play after card flip completes
+## Fix tear sound playing too early on series 2 pack opens
 
 ### Problem
-The bell sound plays simultaneously with the card flip starting (at the moment `revealedCount` increments). The flip animation takes 0.6s, so the bell should play after the flip finishes, not at the start.
+When the dialog opens, two effects both react to `open` becoming `true`:
+1. The dialog init effect sets `isShaking(true)` 
+2. The tear audio effect checks `!isShaking` — but sees the **old** `false` value before the other effect's state update takes effect
+
+Result: the tear sound fires immediately on dialog open instead of waiting for the shake to finish.
 
 ### Solution
-In both `PackRevealDialog.tsx` and `AtomicPackRevealDialog.tsx`, split the reveal timer into two steps: first increment `revealedCount` to start the flip, then play the bell 600ms later (matching the CSS `transition: transform 0.6s` duration).
+Add a `hasShaken` ref to track whether shaking has actually started and completed. The tear should only play after `isShaking` has been `true` and then transitioned to `false`.
 
-### Changes
+**File: `src/hooks/usePackRevealAudio.ts`**
 
-**`src/components/simpleassets/PackRevealDialog.tsx`** (line ~174):
-```tsx
-// Before:
-const timer = setTimeout(() => { playRandomFart(); setRevealedCount((c) => c + 1); }, 1600);
+1. Add a `hasStartedShakingRef` that gets set to `true` when shaking starts
+2. Reset it when dialog closes
+3. Change the tear condition to require `hasStartedShakingRef.current === true` (meaning shake already started) AND `!isShaking` (meaning shake finished)
 
-// After:
-const timer = setTimeout(() => {
-  setRevealedCount((c) => c + 1);
-  setTimeout(() => playRandomFart(), 600);
-}, 1600);
+```ts
+const hasStartedShakingRef = useRef(false);
+
+// In the reset effect (open === false):
+hasStartedShakingRef.current = false;
+
+// In the shake effect, when shaking starts:
+if (open && phase === 'waiting' && isShaking) {
+  hasStartedShakingRef.current = true;
+  // ... play shake
+}
+
+// In the tear effect:
+const shouldPlayTear = open && hasStartedShakingRef.current && !isShaking 
+  && (phase === 'waiting' || (phase === 'revealing' && revealedCount === 0));
 ```
 
-**`src/components/simpleassets/AtomicPackRevealDialog.tsx`** (line ~174):
-Same change — increment count first, then play bell after 600ms delay.
-
 ### Files touched
-- `src/components/simpleassets/PackRevealDialog.tsx`
-- `src/components/simpleassets/AtomicPackRevealDialog.tsx`
+- `src/hooks/usePackRevealAudio.ts`
 
