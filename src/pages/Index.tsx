@@ -1231,6 +1231,7 @@ export default function SimpleAssetsPage() {
               )
             )}
           </>
+        )}
       </div>
 
       {/* Footer */}
