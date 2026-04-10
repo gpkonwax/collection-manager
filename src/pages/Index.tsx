@@ -623,6 +623,8 @@ export default function SimpleAssetsPage() {
           <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
         </div>
 
+        <BannerAd />
+
         {!isConnected ? (
           <div className="space-y-16 py-8">
             {/* Hero Section */}
