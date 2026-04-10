@@ -1,26 +1,30 @@
 
-## Show full card sides in reveal dialogs
 
-### Root cause
-The rounded-corner issue appears fixed already. The remaining side clipping is coming from the reveal dialogs using `object-cover` on the card images, which zooms the image to fill the 2:3 frame and trims the left/right edges. The main front view uses `object-contain`, so it shows the full card.
+## Remove card overlay text and fix container sizing in reveal dialogs
 
-### Change
-Update both reveal dialog components so the front card image uses `object-contain` instead of `object-cover`, matching the main card display behavior.
+### Changes
+
+**1. Remove the name/rarity overlay from both reveal card components**
+
+Both `PackRevealDialog.tsx` and `AtomicPackRevealDialog.tsx` have a gradient overlay at the bottom of each card showing the card name and rarity text. Remove these overlay `div`s entirely (lines 75-78 in PackRevealDialog, lines 61-64 in AtomicPackRevealDialog).
+
+**2. Fix the black border caused by `aspect-[2/3]` + `object-contain`**
+
+The container is forced to a 2:3 aspect ratio, but with `object-contain` the image letterboxes inside it, leaving black/dark gaps on the sides. Fix by removing the forced `aspect-[2/3]` on the outer wrapper and instead letting the image define its own size naturally, or by changing the `bg-card` background to transparent so no dark border shows around the contained image.
+
+The simpler fix: remove `bg-card` from the front face container (change to `bg-transparent`) so the gaps from `object-contain` are invisible against the dialog background.
 
 ### Technical details
-- `src/components/simpleassets/PackRevealDialog.tsx`
-  - In `RevealCardImage`, change the front-face `<img>` from:
-    - `className="w-full h-full object-cover"`
-    - to `className="w-full h-full object-contain object-center"`
-- `src/components/simpleassets/AtomicPackRevealDialog.tsx`
-  - In `AtomicRevealCardImage`, make the same change:
-    - `object-cover` -> `object-contain object-center`
 
-### Notes
-- Keep the sharp-corner changes already made.
-- Keep the flip animation, borders, and name overlay unchanged.
-- If any cards have slightly different source aspect ratios, `object-contain` will preserve the full image instead of trimming the sides.
+**`src/components/simpleassets/PackRevealDialog.tsx`** — `RevealCardImage`:
+- Remove lines 75-78 (the gradient overlay div with name/rarity)
+- Line 68: change `bg-card` to `bg-transparent`
+
+**`src/components/simpleassets/AtomicPackRevealDialog.tsx`** — `AtomicRevealCardImage`:
+- Remove lines 61-64 (the gradient overlay div with name/rarity)
+- Line 54: change `bg-card` to `bg-transparent`
 
 ### Files touched
 - `src/components/simpleassets/PackRevealDialog.tsx`
 - `src/components/simpleassets/AtomicPackRevealDialog.tsx`
+
