@@ -338,11 +338,54 @@ export default function SimpleAssetsPage() {
 
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
-  const [savedOrder, setSavedOrder] = useState<string[] | null>(null);
-  const [loadedLayoutName, setLoadedLayoutName] = useState<string | null>(null);
+  const [savedOrder, setSavedOrder] = useState<string[] | null>(() => {
+    if (!accountName) return null;
+    try {
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.order ?? null;
+      }
+    } catch {}
+    return null;
+  });
+  const [loadedLayoutName, setLoadedLayoutName] = useState<string | null>(() => {
+    if (!accountName) return null;
+    try {
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.name ?? null;
+      }
+    } catch {}
+    return null;
+  });
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Restore saved layout when account changes
+  useEffect(() => {
+    if (!accountName) return;
+    try {
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSavedOrder(parsed.order ?? null);
+        setLoadedLayoutName(parsed.name ?? null);
+      }
+    } catch {}
+  }, [accountName]);
+
+  // Persist saved layout to localStorage
+  useEffect(() => {
+    if (!accountName || savedOrder === null) return;
+    try {
+      localStorage.setItem(`gpk-saved-layout-${accountName}`, JSON.stringify({
+        order: savedOrder,
+        name: loadedLayoutName
+      }));
+    } catch {}
+  }, [savedOrder, loadedLayoutName, accountName]);
 
   const categories = useMemo(() => {
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
