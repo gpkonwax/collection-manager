@@ -396,7 +396,7 @@ export default function SimpleAssetsPage() {
     const occupied = new Set(trimmed.filter((id) => id !== EMPTY));
     const pendingSlots = dealingCards.map((card) => card.id).filter((id) => !occupied.has(id));
 
-    return [...trimmed, ...pendingSlots, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
+    return [...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...trimmed, ...pendingSlots, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
   }, [savedOrder, dealingCards]);
 
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
