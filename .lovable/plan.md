@@ -1,29 +1,28 @@
 
 
-## Fix: Saved JSON Losing Card Positions in Empty Slots
+## Add 3D Tilt Hover Effect to Cards (Main Views Only)
 
-### Problem
-When you drag cards into the empty slots at the top or bottom, the export strips **all** `EMPTY` markers (`savedOrder.filter(id => id !== EMPTY)`). On re-import, it blindly prepends/appends full rows of empty slots. This means any cards you placed in the padding rows lose their relative position — they get pushed back down below a full empty row.
+### What it does
+Cards in the collection grid tilt in 3D following the cursor on hover, replicating the effect from topps.wdny.io. The detail dialog is excluded — it keeps its existing magnification lens.
 
-### Solution
-Change the export to only strip **leading and trailing** empty slots, preserving any `EMPTY` markers that sit between (or adjacent to) real cards. This keeps the grid structure intact.
+### Changes
 
-### Changes to `src/pages/Index.tsx`
+**1. New file: `src/hooks/useCardTilt.ts`** (~40 lines)
+- Returns a ref + `onMouseMove` / `onMouseLeave` handlers
+- Calculates `rotateX`/`rotateY` from cursor position relative to card center (max ~15°)
+- Applies `transform: perspective(800px) rotateX() rotateY() scale(1.03)` via direct DOM manipulation (no re-renders)
+- Smooth CSS transition back to flat on mouse leave
+- Accepts a `disabled` flag to skip during drag operations
 
-**Line 408** — Replace:
-```typescript
-const cleanOrder = savedOrder.filter(id => id !== EMPTY);
-```
-With:
-```typescript
-// Strip only leading and trailing EMPTY slots, preserve interior ones
-const firstReal = savedOrder.findIndex(id => id !== EMPTY);
-const lastReal = savedOrder.findLastIndex(id => id !== EMPTY);
-const cleanOrder = firstReal === -1 ? [] : savedOrder.slice(firstReal, lastReal + 1);
-```
+**2. Edit: `src/components/simpleassets/SimpleAssetCard.tsx`**
+- Import and use `useCardTilt({ disabled: isDragging })`
+- Attach ref and mouse handlers to the outer card wrapper
+- Add `transform-style: preserve-3d`, `will-change: transform`, and `transition: transform 0.15s ease` styles
+- Add a subtle glare overlay div (absolute, pointer-events-none, gradient that shifts with cursor)
 
-This way if you move 2 cards up into the top empty row, the exported JSON will contain those EMPTYs in context (e.g. `["EMPTY","EMPTY","card1","card2","EMPTY",...]`), and on import the padding rows get re-added around this preserved structure, keeping everything aligned.
+**3. No changes to `SimpleAssetDetailDialog.tsx`** — the detail dialog keeps the magnification lens as-is.
 
 ### File changes
-- **`src/pages/Index.tsx`**: ~3-line edit at line 408.
+- **New**: `src/hooks/useCardTilt.ts`
+- **Edit**: `src/components/simpleassets/SimpleAssetCard.tsx`
 
