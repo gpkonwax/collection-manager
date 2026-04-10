@@ -897,7 +897,7 @@ export default function SimpleAssetsPage() {
                 The Ultimate GPK Collection Manager
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl">
-                Open packs, organize your collection, track what you own and what you need — all in one place. 
+                Three flexible views, a magnifying lens for every detail, a puzzle builder for Series 2 — plus pack opening, filtering, and drag-and-drop layouts.
                 Free to use, built by the <span className="text-cheese font-semibold">$CHEESE</span> team for the WAX community.
               </p>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
@@ -906,37 +906,83 @@ export default function SimpleAssetsPage() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              <FeatureCard
-                icon={<BookOpen className="h-6 w-6 text-cheese" />}
-                title="Binder View"
-                description="See your full collection at a glance. Owned cards shown in full color, missing cards as greyscale placeholders linked directly to AtomicHub so you can buy what you need."
-              />
-              <FeatureCard
-                icon={<Package className="h-6 w-6 text-cheese" />}
-                title="All Topps Packs Supported"
-                description="Open Series 1 & 2 packs, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight and more. Both SimpleAssets and AtomicAssets pack formats."
-              />
-              <FeatureCard
-                icon={<GripVertical className="h-6 w-6 text-cheese" />}
-                title="Drag & Drop Layouts"
-                description="Arrange your cards exactly how you want them. Export and import your custom layouts as JSON to back up or share your arrangements."
-              />
-              <FeatureCard
-                icon={<Filter className="h-6 w-6 text-cheese" />}
-                title="Filter by Series & Variant"
-                description="Filter by Series 1, Series 2, and all sub-collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more."
-              />
-              <FeatureCard
-                icon={<Layers className="h-6 w-6 text-cheese" />}
-                title="SimpleAssets & AtomicAssets"
-                description="Full support for both NFT standards on WAX. Your entire GPK collection in one unified view regardless of which contract holds them."
-              />
-              <FeatureCard
-                icon={<Users className="h-6 w-6 text-cheese" />}
-                title="Free Community Tool"
-                description="No fees, no sign-ups. A WAX community asset built by the $CHEESE team — the first project ever launched on the WAX blockchain."
-              />
+            {/* Section A — Three Ways to View */}
+            <div className="max-w-5xl mx-auto space-y-4">
+              <h3 className="text-2xl font-bold text-cheese text-center">Three Ways to View Your Collection</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <FeatureCard
+                  icon={<Eye className="h-6 w-6 text-cheese" />}
+                  title="Classic View"
+                  description="A read-only grid of your cards in natural sort order. Clean, simple, no clutter. Just your collection as it is."
+                />
+                <FeatureCard
+                  icon={<BookOpen className="h-6 w-6 text-cheese" />}
+                  title="Collector Binder"
+                  description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. See exactly what you need."
+                />
+                <FeatureCard
+                  icon={<Save className="h-6 w-6 text-cheese" />}
+                  title="Saved Collection"
+                  description="Your personal workspace. Import/export JSON layouts, drag-and-drop to rearrange, and build the perfect display of your collection."
+                />
+              </div>
+            </div>
+
+            {/* Section B — Magnification Lens */}
+            <div className="max-w-5xl mx-auto">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-8 flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
+                  <ZoomIn className="h-8 w-8 text-cheese" />
+                </div>
+                <div className="text-center md:text-left">
+                  <h3 className="text-xl font-bold text-cheese mb-2">Inspect Every Detail</h3>
+                  <p className="text-muted-foreground">
+                    Click any card to see it in full detail. Hover over the image and a magnifying lens follows your cursor, zooming in so you can see every line, every detail, every variant difference up close.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section C — Puzzle Builder */}
+            <div className="max-w-5xl mx-auto">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-8 flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
+                  <Puzzle className="h-8 w-8 text-cheese" />
+                </div>
+                <div className="text-center md:text-left">
+                  <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
+                  <p className="text-muted-foreground">
+                    Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder gives you a free-form canvas to drag, rotate, and arrange your puzzle pieces. Scramble them, line them up, and save your progress as JSON. Can you complete the puzzle?
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section D — More Features */}
+            <div className="max-w-5xl mx-auto space-y-4">
+              <h3 className="text-2xl font-bold text-cheese text-center">More Features</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <FeatureCard
+                  icon={<Package className="h-6 w-6 text-cheese" />}
+                  title="All Topps Packs Supported"
+                  description="Open Series 1 & 2 packs, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight and more. Both SimpleAssets and AtomicAssets pack formats."
+                />
+                <FeatureCard
+                  icon={<Filter className="h-6 w-6 text-cheese" />}
+                  title="Filter by Series & Variant"
+                  description="Filter by Series 1, Series 2, and all sub-collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more."
+                />
+                <FeatureCard
+                  icon={<Layers className="h-6 w-6 text-cheese" />}
+                  title="SimpleAssets & AtomicAssets"
+                  description="Full support for both NFT standards on WAX. Your entire GPK collection in one unified view regardless of which contract holds them."
+                />
+                <FeatureCard
+                  icon={<Users className="h-6 w-6 text-cheese" />}
+                  title="Free Community Tool"
+                  description="No fees, no sign-ups. A WAX community asset built by the $CHEESE team — the first project ever launched on the WAX blockchain."
+                />
+              </div>
             </div>
 
             <div className="text-center space-y-4">
