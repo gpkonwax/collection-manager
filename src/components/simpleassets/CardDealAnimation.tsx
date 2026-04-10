@@ -10,9 +10,9 @@ interface CardDealAnimationProps {
 }
 
 const STACK_Y = 60;
-const SIT_DURATION = 4000;
-const FLY_DURATION = 4000;
-const LAND_PAUSE = 2000;
+const SIT_DURATION = 2800;
+const FLY_DURATION = 2800;
+const LAND_PAUSE = 1400;
 const SCROLL_SETTLE = 800;
 
 export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
