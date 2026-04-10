@@ -83,7 +83,7 @@ function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[
 }
 
 export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: PuzzleBuilderProps) {
-  const puzzleAssets = deduplicateByCardId(assets.filter(isPuzzlePiece));
+  const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
     if (initialPieceState && Object.keys(initialPieceState).length > 0) {
