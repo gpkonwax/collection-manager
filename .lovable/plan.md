@@ -1,26 +1,22 @@
 
 
-## Filter demo pack cards by matching series
+## Speed up card deal animation to ~7 seconds per card
 
-### Problem
-When doing a demo pack open, the sample cards are pulled from the entire collection (`assets`), so a Series 1 demo pack might show Series 2 cards and vice versa.
+Current timing: 4s sit + 4s fly + 2s land = 10s per card.
+Target: ~7s per card (~30% faster).
 
-### Solution
-Filter `collectionAssets` by the pack's series before passing to `GpkPackCard`. Use `PACK_CATEGORY_MAP` to determine which series a pack belongs to, then filter assets using `SCHEMA_TO_CATEGORY` to match.
+### Changes in `src/components/simpleassets/CardDealAnimation.tsx`
 
-### Changes
+Update the three timing constants:
 
-**`src/pages/Index.tsx`** (around line 689):
-
-Instead of passing `collectionAssets={assets}`, filter assets to only those matching the pack's series:
-
-```tsx
-collectionAssets={assets.filter(a => {
-  const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category;
-  return assetCat === PACK_CATEGORY_MAP[pack.symbol];
-})}
+```ts
+const SIT_DURATION = 2800;   // was 4000
+const FLY_DURATION = 2800;   // was 4000
+const LAND_PAUSE = 1400;     // was 2000
 ```
 
+Total: 2.8 + 2.8 + 1.4 = 7.0 seconds per card.
+
 ### Files touched
-- `src/pages/Index.tsx` (one line change)
+- `src/components/simpleassets/CardDealAnimation.tsx` (3 constant values)
 
