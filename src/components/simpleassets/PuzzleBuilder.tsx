@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
