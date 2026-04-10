@@ -142,7 +142,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     if (totalPieces === 0) return;
 
     const W = 120, H = 168;
-    const GRID_ORIGIN_X = 20, GRID_ORIGIN_Y = 20;
+    const INSET = 8; // px tolerance for overlap detection
 
     // Time score (0-20): 20 if under 30s, linear to 0 at 300s
     const secs = elapsedMs / 1000;
@@ -152,27 +152,43 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     const correctRotation = puzzleAssets.filter(a => (pieces.get(a.id)?.rotation ?? 0) === 0).length;
     const rotationScore = (correctRotation / totalPieces) * 20;
 
-    // Position accuracy (0-40): average distance from target grid cell
-    // Grid order follows PUZZLE_CARD_IDS: rows of 6 (55-60, 66-71, 75-80)
+    // Position accuracy (0-40): relative to centroid, not absolute grid origin
+    // 1. Compute ideal relative offsets from grid center
+    const idealPositions = puzzleAssets.map(asset => {
+      const idx = PUZZLE_CARD_IDS.indexOf(getCardId(asset));
+      return { x: (idx % 6) * W, y: Math.floor(idx / 6) * H };
+    });
+    const avgIdealX = idealPositions.reduce((s, p) => s + p.x, 0) / totalPieces;
+    const avgIdealY = idealPositions.reduce((s, p) => s + p.y, 0) / totalPieces;
+
+    // 2. Compute actual centroid of placed pieces
+    const actualPositions = puzzleAssets.map(a => pieces.get(a.id) ?? { x: 0, y: 0, rotation: 0 });
+    const avgActualX = actualPositions.reduce((s, p) => s + p.x, 0) / totalPieces;
+    const avgActualY = actualPositions.reduce((s, p) => s + p.y, 0) / totalPieces;
+
+    // 3. Compare each piece's relative offset vs ideal relative offset
     let totalDist = 0;
-    for (const asset of puzzleAssets) {
-      const cid = getCardId(asset);
-      const idx = PUZZLE_CARD_IDS.indexOf(cid);
-      const targetX = GRID_ORIGIN_X + (idx % 6) * W;
-      const targetY = GRID_ORIGIN_Y + Math.floor(idx / 6) * H;
-      const p = pieces.get(asset.id) ?? { x: 0, y: 0, rotation: 0 };
-      totalDist += Math.sqrt(Math.pow(p.x - targetX, 2) + Math.pow(p.y - targetY, 2));
+    for (let i = 0; i < totalPieces; i++) {
+      const idealRelX = idealPositions[i].x - avgIdealX;
+      const idealRelY = idealPositions[i].y - avgIdealY;
+      const actualRelX = actualPositions[i].x - avgActualX;
+      const actualRelY = actualPositions[i].y - avgActualY;
+      totalDist += Math.sqrt(Math.pow(actualRelX - idealRelX, 2) + Math.pow(actualRelY - idealRelY, 2));
     }
     const avgDist = totalDist / totalPieces;
-    const positionScore = Math.max(0, 40 - (avgDist / 200) * 40);
+    const positionScore = Math.max(0, 40 - (avgDist / 400) * 40);
 
-    // Overlap penalty (0-20): lose 3 per overlapping pair
+    // Overlap penalty (0-20): lose 3 per overlapping pair, with inset tolerance
     let overlapCount = 0;
-    const assetStates = puzzleAssets.map(a => pieces.get(a.id) ?? { x: 0, y: 0, rotation: 0 });
-    for (let i = 0; i < assetStates.length; i++) {
-      for (let j = i + 1; j < assetStates.length; j++) {
-        const a = assetStates[i], b = assetStates[j];
-        if (a.x < b.x + W && a.x + W > b.x && a.y < b.y + H && a.y + H > b.y) {
+    for (let i = 0; i < actualPositions.length; i++) {
+      for (let j = i + 1; j < actualPositions.length; j++) {
+        const a = actualPositions[i], b = actualPositions[j];
+        if (
+          a.x + INSET < b.x + W - INSET &&
+          a.x + W - INSET > b.x + INSET &&
+          a.y + INSET < b.y + H - INSET &&
+          a.y + H - INSET > b.y + INSET
+        ) {
           overlapCount++;
         }
       }
