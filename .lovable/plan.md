@@ -1,28 +1,42 @@
 
 
-## Fix: Magnification lens breaks after ~30 seconds
+## Fix: Allow magnifying lens to overflow card edges
 
-### Root cause
-
-The `ImageWithLens` component calls `useIpfsMedia` separately from the `IpfsMedia` component that actually renders the `<img>` tag. The second hook's `onLoad` callback is never triggered (no `<img>` element uses it), so its internal timeout keeps firing, rotating through IPFS gateways every 5-8 seconds. After cycling through all 5 gateways (~30s), it sets `failed = true` and `src` becomes `'/placeholder.svg'`. The lens then either shows an empty circle (broken background-image URL) or hides entirely.
+### Problem
+The container div has `overflow-hidden`, which clips the lens when hovering near the card edges. The lens circle gets cut off, making edge areas unzoomable.
 
 ### Fix
 
-Remove the second `useIpfsMedia` hook from `ImageWithLens`. Instead, build the resolved URL directly using the cached gateway index, which the already-loaded `IpfsMedia` component has already populated:
-
 **`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**:
 
-1. Import `getCachedGatewayIndex` from `useIpfsMedia` and `extractIpfsHash`, `IPFS_GATEWAYS` from `ipfsGateways`.
-2. Replace `const { src: resolvedUrl } = useIpfsMedia(url, ...)` with:
-   ```typescript
-   const hash = url ? extractIpfsHash(url) : null;
-   const cachedIdx = getCachedGatewayIndex(hash);
-   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
-   ```
-3. Remove the `useIpfsMedia` import if no longer used elsewhere in this file (it's still used via `IpfsMedia` internally, but not directly imported here).
+1. Remove `overflow-hidden` from the container div (line 65) — move it to a wrapper around `IpfsMedia` only so the image itself stays clipped but the lens can overflow.
 
-This approach uses the gateway that `IpfsMedia` already validated and cached, without running a parallel timeout chain. The URL is stable and won't rotate or fail.
+2. Wrap the container in an outer div or change the structure so:
+   - The image stays clipped within its rounded container
+   - The lens (absolute positioned) is allowed to overflow outside the container bounds
+
+Concrete change: Split line 65's container into two layers:
+- Outer div: `relative` + mouse handlers + aspect ratio — **no** `overflow-hidden`
+- Inner div wrapping `IpfsMedia`: `overflow-hidden rounded-lg` to clip the image
+
+```tsx
+<div
+  ref={containerRef}
+  className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
+  onMouseEnter={() => setHover(true)}
+  onMouseLeave={() => setHover(false)}
+  onMouseMove={handleMouseMove}
+  style={{ cursor: hover ? 'crosshair' : 'default' }}
+>
+  <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center">
+    <IpfsMedia ... />
+  </div>
+  {hover && resolvedUrl && ( /* lens div unchanged */ )}
+</div>
+```
+
+This lets the lens circle extend beyond the card boundary while the card image itself remains neatly clipped.
 
 ### Files touched
-- `src/components/simpleassets/SimpleAssetDetailDialog.tsx` — replace `useIpfsMedia` call with direct cache lookup
+- `src/components/simpleassets/SimpleAssetDetailDialog.tsx` — restructure container to allow lens overflow
 
