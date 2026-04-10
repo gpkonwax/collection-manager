@@ -1,38 +1,26 @@
 
 
-## Fix: Sort cards by side (a before b) within same cardid + variant
+## Filter demo pack cards by matching series
 
 ### Problem
-Cards with the same card ID and variant aren't sorted by side. So you get "5b, 5b, 5a, 5b" instead of "5a, 5b, 5b, 5b".
+When doing a demo pack open, the sample cards are pulled from the entire collection (`assets`), so a Series 1 demo pack might show Series 2 cards and vice versa.
 
-### Root cause
-All three sort functions compare cardid then variant rank, but never compare the `side` field. Need to add `side` comparison after variant rank match.
+### Solution
+Filter `collectionAssets` by the pack's series before passing to `GpkPackCard`. Use `PACK_CATEGORY_MAP` to determine which series a pack belongs to, then filter assets using `SCHEMA_TO_CATEGORY` to match.
 
 ### Changes
 
-**1. `src/hooks/useSimpleAssets.ts`** (line ~113) — Add side sort after variant rank:
-```ts
-if (numA !== numB) return numA - numB;
-const sideA = a.side || '', sideB = b.side || '';
-if (sideA !== sideB) return sideA.localeCompare(sideB);
-return getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
+**`src/pages/Index.tsx`** (around line 689):
+
+Instead of passing `collectionAssets={assets}`, filter assets to only those matching the pack's series:
+
+```tsx
+collectionAssets={assets.filter(a => {
+  const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category;
+  return assetCat === PACK_CATEGORY_MAP[pack.symbol];
+})}
 ```
-
-**2. `src/hooks/useGpkAtomicAssets.ts`** (line ~97) — Same change.
-
-**3. `src/pages/Index.tsx`** (line ~200) — Same change for the combined sort:
-```ts
-if (numA !== numB) return numA - numB;
-const sideA = a.side || '', sideB = b.side || '';
-if (sideA !== sideB) return sideA.localeCompare(sideB);
-const rankDiff = getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
-return rankDiff !== 0 ? rankDiff : a.quality.localeCompare(b.quality);
-```
-
-Sort priority becomes: **Card ID → Side (a/b) → Variant rank**.
 
 ### Files touched
-- `src/hooks/useSimpleAssets.ts`
-- `src/hooks/useGpkAtomicAssets.ts`
-- `src/pages/Index.tsx`
+- `src/pages/Index.tsx` (one line change)
 
