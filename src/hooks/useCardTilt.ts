@@ -21,7 +21,7 @@ export function useCardTilt({ disabled = false }: { disabled?: boolean } = {}) {
       card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`;
       if (glareRef.current) {
         glareRef.current.style.opacity = '1';
-        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, hsla(0,0%,100%,0.25) 0%, transparent 60%)`;
+        glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, hsla(0,0%,100%,0.12) 0%, transparent 50%)`;
       }
     });
   }, [disabled]);
