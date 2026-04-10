@@ -928,16 +928,16 @@ export default function SimpleAssetsPage() {
               </div>
             </div>
 
-            {/* Section B — Magnification Lens */}
+            {/* Section B — Pack Openings */}
             <div className="max-w-5xl mx-auto">
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-8 flex flex-col md:flex-row items-center gap-6">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <ZoomIn className="h-8 w-8 text-cheese" />
+                  <Package className="h-8 w-8 text-cheese" />
                 </div>
                 <div className="text-center md:text-left">
-                  <h3 className="text-xl font-bold text-cheese mb-2">Inspect Every Detail</h3>
+                  <h3 className="text-xl font-bold text-cheese mb-2">All Topps Packs Supported</h3>
                   <p className="text-muted-foreground">
-                    Click any card to see it in full detail. Hover over the image and a magnifying lens follows your cursor, zooming in so you can see every line, every detail, every variant difference up close.
+                    Open Series 1 &amp; 2 packs, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight and more — both SimpleAssets and AtomicAssets formats. Watch each card reveal one by one with a full unboxing animation, then see them dealt out to their sorted positions in your collection with a choreographed card-deal sequence. Skip anytime or sit back and enjoy the show.
                   </p>
                 </div>
               </div>
@@ -963,9 +963,9 @@ export default function SimpleAssetsPage() {
               <h3 className="text-2xl font-bold text-cheese text-center">More Features</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <FeatureCard
-                  icon={<Package className="h-6 w-6 text-cheese" />}
-                  title="All Topps Packs Supported"
-                  description="Open Series 1 & 2 packs, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight and more. Both SimpleAssets and AtomicAssets pack formats."
+                  icon={<ZoomIn className="h-6 w-6 text-cheese" />}
+                  title="Inspect Every Detail"
+                  description="Click any card to see it in full detail. Hover over the image and a magnifying lens follows your cursor, zooming in so you can see every line, every detail, every variant difference up close."
                 />
                 <FeatureCard
                   icon={<Filter className="h-6 w-6 text-cheese" />}
