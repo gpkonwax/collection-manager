@@ -370,9 +370,9 @@ export default function SimpleAssetsPage() {
     return `gpk-order-${accountName}-${cat}-${src}-${vKey}`;
   }, [accountName]);
 
-  const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[]): string[] | null => {
+  const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[], variants: string[] = ['all']): string[] | null => {
     try {
-      const raw = localStorage.getItem(getStorageKey(cat, src));
+      const raw = localStorage.getItem(getStorageKey(cat, src, variants));
       if (!raw) return null;
       const saved: string[] = JSON.parse(raw);
       if (!Array.isArray(saved)) return null;
