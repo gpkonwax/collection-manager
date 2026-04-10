@@ -881,18 +881,16 @@ export default function SimpleAssetsPage() {
         <BannerAd />
         <div className="mb-6" />
 
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
-          <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
-        </div>
+        {isConnected && (
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
+            <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
+          </div>
+        )}
 
         {!isConnected ? (
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cheese/30 bg-cheese/10 text-sm text-cheese">
-                <Sparkles className="h-4 w-4" />
-                The first NFT project ever on WAX
-              </div>
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-tight max-w-3xl">
                 The Ultimate GPK Collection Manager
               </h2>
