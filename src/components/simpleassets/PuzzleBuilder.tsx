@@ -285,11 +285,28 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     }
   }, [notifyParent, timerEnabled]);
 
-  if (puzzleAssets.length === 0) {
+  if (puzzleAssets.length < TOTAL_PUZZLE_PIECES) {
     return (
-      <div className="text-center py-16 text-muted-foreground">
-        <p className="text-lg font-medium">No puzzle pieces found</p>
-        <p className="text-sm mt-2">You don't own any Series 2 cards that match the puzzle piece list.</p>
+      <div className="text-center py-16 space-y-4">
+        <div className="mx-auto h-20 w-20 rounded-full bg-cheese/10 flex items-center justify-center">
+          <Puzzle className="h-10 w-10 text-cheese" />
+        </div>
+        <p className="text-lg font-medium text-foreground">
+          You have {puzzleAssets.length} of {TOTAL_PUZZLE_PIECES} puzzle pieces
+        </p>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          Collect all {TOTAL_PUZZLE_PIECES} Series 2 puzzle pieces to unlock the Puzzle Builder. Check the Collection Binder to see which pieces you're missing!
+        </p>
+        {onSwitchToBinder && (
+          <Button
+            variant="outline"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={onSwitchToBinder}
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            View in Collection Binder
+          </Button>
+        )}
       </div>
     );
   }
