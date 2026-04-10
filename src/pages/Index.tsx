@@ -545,6 +545,13 @@ export default function SimpleAssetsPage() {
         <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
           <div className="container flex h-12 items-center justify-end">
             <div className="flex items-center gap-2">
+              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Export card layout">
+                <Download className="h-4 w-4 mr-1" />Save Layout
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import card layout">
+                <Upload className="h-4 w-4 mr-1" />Load Layout
+              </Button>
+              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="border-cheese/30 hover:border-cheese hover:bg-cheese/10 h-8 gap-2">
@@ -604,13 +611,6 @@ export default function SimpleAssetsPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Export card layout">
-                <Download className="h-4 w-4 mr-1" />Save Layout
-              </Button>
-              <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import card layout">
-                <Upload className="h-4 w-4 mr-1" />Load Layout
-              </Button>
-              <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
             </div>
           </div>
         </div>
