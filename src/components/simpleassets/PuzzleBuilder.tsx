@@ -40,8 +40,9 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
     const m = new Map<string, PieceState>();
+    const cols = 6;
     puzzleAssets.forEach((a, i) => {
-      m.set(a.id, { x: 20 + (i % 6) * 140, y: 20 + Math.floor(i / 6) * 190, rotation: 0 });
+      m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 0 });
     });
     return m;
   });
