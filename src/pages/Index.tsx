@@ -405,7 +405,9 @@ export default function SimpleAssetsPage() {
     if (!userFilename) return;
     const finalFilename = userFilename.toLowerCase().endsWith('.json') ? userFilename : `${userFilename}.json`;
     const puzzle = puzzleStateRef.current;
-    const cleanOrder = savedOrder.filter(id => id !== EMPTY);
+    const firstReal = savedOrder.findIndex(id => id !== EMPTY);
+    const lastReal = savedOrder.findLastIndex(id => id !== EMPTY);
+    const cleanOrder = firstReal === -1 ? [] : savedOrder.slice(firstReal, lastReal + 1);
     const blob = new Blob([JSON.stringify({ account: accountName, orders: { saved: cleanOrder }, puzzle }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
