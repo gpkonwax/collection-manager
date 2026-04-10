@@ -13,6 +13,7 @@ export interface SimpleAsset {
   images: string[];
   cardid: string;
   quality: string;
+  side: string;
   idata: Record<string, unknown>;
   mdata: Record<string, unknown>;
   container: unknown[];
@@ -99,6 +100,7 @@ export function useSimpleAssets(account: string | null) {
             name, image: images[0], images,
             cardid: String(combined.cardid ?? ''),
             quality: normalizeGpkVariant(combined.variant),
+            side: String(combined.quality ?? '').toLowerCase(),
             idata, mdata,
             container: row.container || [], containerf: row.containerf || [],
             source: 'simpleassets' as const,
