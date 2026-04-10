@@ -1,26 +1,26 @@
 
+## Show full card sides in reveal dialogs
 
-## Show full card corners in reveal dialogs
+### Root cause
+The rounded-corner issue appears fixed already. The remaining side clipping is coming from the reveal dialogs using `object-cover` on the card images, which zooms the image to fill the 2:3 frame and trims the left/right edges. The main front view uses `object-contain`, so it shows the full card.
 
-### Problem
-The reveal card images have `rounded-lg` and `overflow-hidden` classes that clip the card corners and edges. The main grid view (`SimpleAssetCard`) shows cards with these rounded corners too, but the reveal cards look more noticeably clipped due to the smaller size and aspect ratio constraint.
+### Change
+Update both reveal dialog components so the front card image uses `object-contain` instead of `object-cover`, matching the main card display behavior.
 
-### Solution
-Remove `rounded-lg` from the outer wrapper, the front face, and the back face of the reveal cards in both dialog components. Remove `overflow-hidden` from the front face so the full card image displays edge-to-edge with sharp corners.
+### Technical details
+- `src/components/simpleassets/PackRevealDialog.tsx`
+  - In `RevealCardImage`, change the front-face `<img>` from:
+    - `className="w-full h-full object-cover"`
+    - to `className="w-full h-full object-contain object-center"`
+- `src/components/simpleassets/AtomicPackRevealDialog.tsx`
+  - In `AtomicRevealCardImage`, make the same change:
+    - `object-cover` -> `object-contain object-center`
 
-### Changes
-
-**`src/components/simpleassets/PackRevealDialog.tsx`** — `RevealCardImage` (lines 66-86):
-- Line 66: remove `rounded-lg` from outer div
-- Line 68: remove `rounded-lg overflow-hidden` from front face div
-- Line 80: remove `rounded-lg` from back face div
-
-**`src/components/simpleassets/AtomicPackRevealDialog.tsx`** — `AtomicRevealCardImage` (lines 52-70):
-- Line 52: remove `rounded-lg` from outer div
-- Line 54: remove `rounded-lg overflow-hidden` from front face div
-- Line 66: remove `rounded-lg` from back face div
+### Notes
+- Keep the sharp-corner changes already made.
+- Keep the flip animation, borders, and name overlay unchanged.
+- If any cards have slightly different source aspect ratios, `object-contain` will preserve the full image instead of trimming the sides.
 
 ### Files touched
 - `src/components/simpleassets/PackRevealDialog.tsx`
 - `src/components/simpleassets/AtomicPackRevealDialog.tsx`
-
