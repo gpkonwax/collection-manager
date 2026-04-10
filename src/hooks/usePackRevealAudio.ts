@@ -45,6 +45,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
       stopAudio(shakeAudioRef.current);
       stopAudio(tearAudioRef.current);
       tearPlayedRef.current = false;
+      hasStartedShakingRef.current = false;
     }
   }, [open]);
 
