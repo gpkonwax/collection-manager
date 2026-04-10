@@ -1,28 +1,24 @@
 
 
-## Add 3D Tilt Hover Effect to Cards (Main Views Only)
+## Add Timer Race Mode to Puzzle Builder
 
 ### What it does
-Cards in the collection grid tilt in 3D following the cursor on hover, replicating the effect from topps.wdny.io. The detail dialog is excluded — it keeps its existing magnification lens.
+A "Timer" checkbox next to Scramble. When checked, hitting Scramble starts a stopwatch (0:00 counting up). A "Finish" button appears. On finish, a **Puzzle Rating** is calculated and displayed.
 
-### Changes
+### Rating algorithm
+- **Time score** (0-40 pts): 40 pts if under 30s, linearly decreasing to 0 at 5 minutes
+- **Rotation score** (0-30 pts): `(piecesAt0deg / totalPieces) * 30`
+- **Placement score** (0-30 pts): Pairwise bounding box overlap check. 0 overlaps = 30 pts, -2 pts per overlapping pair
+- **Letter grade**: A (90+), B (80+), C (70+), D (60+), F (below 60)
 
-**1. New file: `src/hooks/useCardTilt.ts`** (~40 lines)
-- Returns a ref + `onMouseMove` / `onMouseLeave` handlers
-- Calculates `rotateX`/`rotateY` from cursor position relative to card center (max ~15°)
-- Applies `transform: perspective(800px) rotateX() rotateY() scale(1.03)` via direct DOM manipulation (no re-renders)
-- Smooth CSS transition back to flat on mouse leave
-- Accepts a `disabled` flag to skip during drag operations
+### Changes to `src/components/simpleassets/PuzzleBuilder.tsx`
 
-**2. Edit: `src/components/simpleassets/SimpleAssetCard.tsx`**
-- Import and use `useCardTilt({ disabled: isDragging })`
-- Attach ref and mouse handlers to the outer card wrapper
-- Add `transform-style: preserve-3d`, `will-change: transform`, and `transition: transform 0.15s ease` styles
-- Add a subtle glare overlay div (absolute, pointer-events-none, gradient that shifts with cursor)
-
-**3. No changes to `SimpleAssetDetailDialog.tsx`** — the detail dialog keeps the magnification lens as-is.
+1. **Add state**: `timerEnabled`, `timerRunning`, `elapsedMs`, `ratingResult`
+2. **Timer logic**: `useEffect` with `setInterval(100ms)` tracking start timestamp
+3. **Modify `scramble`**: If `timerEnabled`, start timer and clear previous rating
+4. **Add `handleFinish`**: Stop timer, compute rating, set result
+5. **UI**: Timer checkbox, live MM:SS.s display, Finish button, rating panel with letter grade and breakdown
 
 ### File changes
-- **New**: `src/hooks/useCardTilt.ts`
-- **Edit**: `src/components/simpleassets/SimpleAssetCard.tsx`
+- **Edit**: `src/components/simpleassets/PuzzleBuilder.tsx` (~80 lines added)
 
