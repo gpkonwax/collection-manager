@@ -113,6 +113,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const piecesRef = useRef(pieces);
+  useEffect(() => { piecesRef.current = pieces; }, [pieces]);
 
   // Timer race mode
   const [timerEnabled, setTimerEnabled] = useState(false);
