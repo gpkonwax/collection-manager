@@ -912,7 +912,7 @@ export default function SimpleAssetsPage() {
                                 if (visible.length === 0) return null;
 
                                 if (!section.heading) {
-                                  return <div key={section.key}>{renderGrid(visible)}</div>;
+                                  return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderGrid(visible)}</div>;
                                 }
 
                                 return (
