@@ -1229,7 +1229,8 @@ export default function SimpleAssetsPage() {
                   )}
                 </>
               )
-            )}
+          </>
+        )}
 
       {/* Footer */}
       <footer className="border-t border-cheese/20 mt-12 py-8">
