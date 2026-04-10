@@ -485,7 +485,8 @@ export default function SimpleAssetsPage() {
         } catch { /* skip */ }
       }
     }
-    const blob = new Blob([JSON.stringify({ account: accountName, orders }, null, 2)], { type: 'application/json' });
+    const puzzle = puzzleStateRef.current;
+    const blob = new Blob([JSON.stringify({ account: accountName, orders, puzzle }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = finalFilename; a.click();
@@ -510,6 +511,10 @@ export default function SimpleAssetsPage() {
         // Reload current view's order
         const saved = loadOrder(categoryFilter, sourceFilter, filtered);
         setCustomOrder(saved);
+        // Load puzzle state if present
+        if (data.puzzle && typeof data.puzzle === 'object') {
+          setImportedPuzzle(data.puzzle as PuzzlePieceMap);
+        }
         toast.success('Layout imported');
       } catch { toast.error('Failed to parse layout file'); }
     };
@@ -1043,7 +1048,7 @@ export default function SimpleAssetsPage() {
                     )}
                   </TabsContent>
                   <TabsContent value="puzzle">
-                    <PuzzleBuilder assets={filtered} />
+                    <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} />
                   </TabsContent>
                 </Tabs>
               ) : (
