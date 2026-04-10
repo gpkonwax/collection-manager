@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle, Timer, Flag } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,11 @@ interface PuzzleBuilderProps {
   initialPieceState?: PuzzlePieceMap | null;
   /** Called whenever piece state changes so parent can track it for export */
   onPiecesChange?: (state: PuzzlePieceMap) => void;
+  /** Called when user wants to switch to binder view to find missing pieces */
+  onSwitchToBinder?: () => void;
 }
+
+const TOTAL_PUZZLE_PIECES = 18;
 
 function isPuzzlePiece(asset: SimpleAsset): boolean {
   if (!asset.cardid) return false;
@@ -82,7 +86,7 @@ function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[
   return result;
 }
 
-export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: PuzzleBuilderProps) {
+export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder }: PuzzleBuilderProps) {
   const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
@@ -281,11 +285,28 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     }
   }, [notifyParent, timerEnabled]);
 
-  if (puzzleAssets.length === 0) {
+  if (puzzleAssets.length < TOTAL_PUZZLE_PIECES) {
     return (
-      <div className="text-center py-16 text-muted-foreground">
-        <p className="text-lg font-medium">No puzzle pieces found</p>
-        <p className="text-sm mt-2">You don't own any Series 2 cards that match the puzzle piece list.</p>
+      <div className="text-center py-16 space-y-4">
+        <div className="mx-auto h-20 w-20 rounded-full bg-cheese/10 flex items-center justify-center">
+          <Puzzle className="h-10 w-10 text-cheese" />
+        </div>
+        <p className="text-lg font-medium text-foreground">
+          You have {puzzleAssets.length} of {TOTAL_PUZZLE_PIECES} puzzle pieces
+        </p>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          Collect all {TOTAL_PUZZLE_PIECES} Series 2 puzzle pieces to unlock the Puzzle Builder. Check the Collection Binder to see which pieces you're missing!
+        </p>
+        {onSwitchToBinder && (
+          <Button
+            variant="outline"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={onSwitchToBinder}
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            View in Collection Binder
+          </Button>
+        )}
       </div>
     );
   }
