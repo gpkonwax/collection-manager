@@ -3,6 +3,7 @@ import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVert
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -122,7 +123,7 @@ export default function SimpleAssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
-  const [variantFilter, setVariantFilter] = useState('all');
+  const [variantFilter, setVariantFilter] = useState<string[]>(['all']);
   const [binderView, setBinderView] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
@@ -409,7 +410,7 @@ export default function SimpleAssetsPage() {
       const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
       if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all' && a.quality.toLowerCase() !== variantFilter.toLowerCase()) return false;
+      if ((categoryFilter === 'series1' || categoryFilter === 'series2') && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
@@ -437,8 +438,8 @@ export default function SimpleAssetsPage() {
     }
 
     let filteredTemplates = binderTemplates;
-    if ((categoryFilter === 'series1' || categoryFilter === 'series2') && variantFilter !== 'all') {
-      filteredTemplates = binderTemplates.filter(t => t.variant.toLowerCase() === variantFilter.toLowerCase());
+    if ((categoryFilter === 'series1' || categoryFilter === 'series2') && !variantFilter.includes('all')) {
+      filteredTemplates = binderTemplates.filter(t => variantFilter.includes(t.variant.toLowerCase()));
     }
 
     return filteredTemplates.map(template => {
@@ -736,22 +737,58 @@ export default function SimpleAssetsPage() {
                   <SelectItem value="atomicassets">Atomic Assets</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2') setVariantFilter('all'); }}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2') setVariantFilter(['all']); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {(categoryFilter === 'series1' || categoryFilter === 'series2') && (
-                <Select value={variantFilter} onValueChange={setVariantFilter}>
-                  <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Variant" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Variants</SelectItem>
-                    {(categoryFilter === 'series1' ? SERIES1_VARIANTS : SERIES2_VARIANTS).map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
+              {(categoryFilter === 'series1' || categoryFilter === 'series2') && (() => {
+                const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : SERIES2_VARIANTS;
+                const isAll = variantFilter.includes('all');
+                const toggleVariant = (val: string) => {
+                  if (val === 'all') {
+                    setVariantFilter(['all']);
+                    return;
+                  }
+                  let next: string[];
+                  if (variantFilter.includes(val)) {
+                    next = variantFilter.filter(v => v !== val && v !== 'all');
+                  } else {
+                    next = [...variantFilter.filter(v => v !== 'all'), val];
+                  }
+                  if (next.length === 0 || next.length === variants.length) {
+                    setVariantFilter(['all']);
+                  } else {
+                    setVariantFilter(next);
+                  }
+                };
+                const label = isAll ? 'All Variants' : variantFilter.length === 1 ? variants.find(v => v.value === variantFilter[0])?.label ?? variantFilter[0] : `${variantFilter.length} Variants`;
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10">
+                        {label}
+                        <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-2 max-h-[300px] overflow-y-auto" align="start">
+                      <label className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
+                        <Checkbox checked={isAll} onCheckedChange={() => toggleVariant('all')} />
+                        All Variants
+                      </label>
+                      <div className="my-1 h-px bg-border" />
+                      {variants.map(v => (
+                        <label key={v.value} className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
+                          <Checkbox checked={isAll || variantFilter.includes(v.value)} onCheckedChange={() => toggleVariant(v.value)} />
+                          {v.label}
+                        </label>
+                      ))}
+                    </PopoverContent>
+                  </Popover>
+                );
+              })()}
               {showCollectUnclaimed && (
                 <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
                   <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
