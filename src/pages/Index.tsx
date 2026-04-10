@@ -885,6 +885,7 @@ export default function SimpleAssetsPage() {
                             {
                               key: 'collectors',
                               items: collectors,
+                              grouped: false,
                               heading: (
                                 <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                   Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
