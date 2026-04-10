@@ -1231,7 +1231,7 @@ export default function SimpleAssetsPage() {
               )
             )}
           </>
-        )}
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-cheese/20 mt-12 py-8">
