@@ -1,35 +1,30 @@
 
 
-## Include Puzzle Builder State in Saved JSON + Scramble Button
+## Multi-Select Variant Filtering
 
 ### What changes
-1. The puzzle piece positions/rotations get included in the exported JSON layout file
-2. When importing a JSON that contains puzzle data, the puzzle builder loads those positions
-3. A "Scramble" button appears in the puzzle builder that randomizes all piece positions and rotations, useful for replaying or resetting a loaded puzzle
+The current single-select variant dropdown becomes a multi-select popover with checkboxes, allowing users to pick any combination of variants (from one up to all-minus-one individually, plus an "All" option). When "All" is selected, individual selections are cleared. When all individual variants are checked, it auto-reverts to "All."
 
 ### Implementation
 
-**`src/components/simpleassets/PuzzleBuilder.tsx`**
-
-1. Lift puzzle state up: change from internal `useState` to accepting optional `pieces` map and `onPiecesChange` callback as props (controlled/uncontrolled pattern). When `onPiecesChange` is provided, call it on every state update so the parent can track the current puzzle state.
-
-2. Accept an optional `initialPieceState` prop (a serializable `Record<string, PieceState>`) that overrides the default grid layout when present (from imported JSON).
-
-3. Add a "Scramble" button that randomizes all piece x/y positions within the canvas bounds and assigns random 0/90/180/270 rotations. This button is always visible but especially useful after loading a completed puzzle.
-
 **`src/pages/Index.tsx`**
 
-1. Add a `puzzleState` ref or state that the PuzzleBuilder reports back to via `onPiecesChange`.
+1. **State change**: Replace `variantFilter: string` with `variantFilter: string[]` initialized to `['all']`.
 
-2. **Export**: In `handleExportLayout`, include `puzzleState` in the JSON alongside `orders`:
-   ```json
-   { "account": "...", "orders": {...}, "puzzle": { "cardid:x:y:rotation": ... } }
-   ```
-   Key puzzle pieces by `cardid` (not asset ID) so the data is portable across accounts.
+2. **Filter UI**: Replace the `<Select>` dropdown (lines 747-753) with a `<Popover>` containing a scrollable list of `<Checkbox>` items for each variant. The trigger button shows "All Variants" or a count like "3 Variants" or the single variant name.
 
-3. **Import**: In `handleImportLayout`, read `data.puzzle` if present and pass it down to PuzzleBuilder as `initialPieceState`. Store it in component state so it persists while the tab is open.
+3. **Toggle logic**:
+   - Clicking "All Variants" checkbox sets state to `['all']` and unchecks individuals.
+   - Clicking an individual variant toggles it in/out of the array.
+   - If all individual variants become selected, auto-switch to `['all']`.
+   - If unchecking the last individual variant, revert to `['all']`.
+
+4. **Filter logic** (lines 412, 440-441): Update the comparison from single-string match to `variantFilter.includes('all') || variantFilter.includes(a.quality.toLowerCase())`.
+
+5. **Category change handler** (line 739): Reset to `['all']` when switching categories.
+
+6. **Dependencies**: Uses existing `Popover`, `Checkbox` components already in the project — no new packages needed.
 
 ### Files touched
-- `src/components/simpleassets/PuzzleBuilder.tsx` — add props for state lifting + scramble button
-- `src/pages/Index.tsx` — wire puzzle state into export/import
+- `src/pages/Index.tsx` — state type, filter logic, UI component swap
 
