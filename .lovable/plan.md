@@ -1,28 +1,26 @@
 
 
-## Disable user scrolling during card deal animation
+## Show full card corners in reveal dialogs
 
-### Change
-Add a `useEffect` in `CardDealAnimation` that sets `overflow: hidden` on `document.body` when the component mounts (animation active) and restores it on unmount (animation complete/skipped). This blocks mouse wheel and manual scrollbar scrolling while preserving cursor interaction. The component's own programmatic `window.scrollTo()` calls still work because `scrollTo` bypasses `overflow: hidden` on the body.
+### Problem
+The reveal card images have `rounded-lg` and `overflow-hidden` classes that clip the card corners and edges. The main grid view (`SimpleAssetCard`) shows cards with these rounded corners too, but the reveal cards look more noticeably clipped due to the smaller size and aspect ratio constraint.
 
-### Technical details
+### Solution
+Remove `rounded-lg` from the outer wrapper, the front face, and the back face of the reveal cards in both dialog components. Remove `overflow-hidden` from the front face so the full card image displays edge-to-edge with sharp corners.
 
-**File: `src/components/simpleassets/CardDealAnimation.tsx`**
+### Changes
 
-Add a `useEffect` near the top of the component:
+**`src/components/simpleassets/PackRevealDialog.tsx`** — `RevealCardImage` (lines 66-86):
+- Line 66: remove `rounded-lg` from outer div
+- Line 68: remove `rounded-lg overflow-hidden` from front face div
+- Line 80: remove `rounded-lg` from back face div
 
-```tsx
-useEffect(() => {
-  const prev = document.body.style.overflow;
-  document.body.style.overflow = 'hidden';
-  return () => {
-    document.body.style.overflow = prev;
-  };
-}, []);
-```
-
-This runs on mount/unmount of the animation component, which naturally aligns with the animation lifecycle — the component renders when dealing starts and unmounts when complete or skipped.
+**`src/components/simpleassets/AtomicPackRevealDialog.tsx`** — `AtomicRevealCardImage` (lines 52-70):
+- Line 52: remove `rounded-lg` from outer div
+- Line 54: remove `rounded-lg overflow-hidden` from front face div
+- Line 66: remove `rounded-lg` from back face div
 
 ### Files touched
-- `src/components/simpleassets/CardDealAnimation.tsx`
+- `src/components/simpleassets/PackRevealDialog.tsx`
+- `src/components/simpleassets/AtomicPackRevealDialog.tsx`
 
