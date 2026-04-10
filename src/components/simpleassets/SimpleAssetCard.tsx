@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, DragEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { useCardTilt } from '@/hooks/useCardTilt';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface SimpleAssetCardProps {
