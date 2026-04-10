@@ -395,7 +395,7 @@ export default function SimpleAssetsPage() {
   useEffect(() => {
     if (!accountName || customOrder === null) return;
     try {
-      localStorage.setItem(getStorageKey(categoryFilter, sourceFilter), JSON.stringify(customOrder));
+      localStorage.setItem(getStorageKey(categoryFilter, sourceFilter, variantFilter), JSON.stringify(customOrder));
     } catch { /* storage full */ }
   }, [customOrder, accountName, categoryFilter, sourceFilter, getStorageKey]);
 
@@ -456,8 +456,13 @@ export default function SimpleAssetsPage() {
 
   useEffect(() => {
     const saved = loadOrder(categoryFilter, sourceFilter, filtered);
-    setCustomOrder(saved);
-  }, [categoryFilter, sourceFilter, search, filtered, loadOrder]);
+    setCustomOrder(prev => {
+      if (saved === null && prev === null) return null;
+      if (saved === null) return null;
+      if (prev !== null && saved.length === prev.length && saved.every((id, i) => id === prev[i])) return prev;
+      return saved;
+    });
+  }, [categoryFilter, sourceFilter, search, filtered, loadOrder, variantFilter]);
 
   const gridSlots = useMemo(() => {
     const base = customOrder ?? filtered.map((a) => a.id);
