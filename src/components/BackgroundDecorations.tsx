@@ -1,3 +1,5 @@
+import cheeseLogo from '@/assets/cheese-logo.png';
+
 export function BackgroundDecorations() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -15,11 +17,11 @@ export function BackgroundDecorations() {
         }}
       />
 
-      {/* Floating cheese emojis */}
-      <span className="absolute top-20 left-20 text-3xl opacity-20 animate-float select-none">🧀</span>
-      <span className="absolute top-40 right-32 text-2xl opacity-15 animate-float select-none" style={{ animationDelay: '2s' }}>🧀</span>
-      <span className="absolute bottom-32 left-40 text-4xl opacity-10 animate-float select-none" style={{ animationDelay: '4s' }}>🧀</span>
-      <span className="absolute bottom-60 right-20 text-xl opacity-15 animate-float select-none" style={{ animationDelay: '6s' }}>🧀</span>
+      {/* Floating cheese logos */}
+      <img src={cheeseLogo} alt="" className="absolute top-20 left-20 w-12 h-12 opacity-20 animate-float select-none" />
+      <img src={cheeseLogo} alt="" className="absolute top-40 right-32 w-10 h-10 opacity-15 animate-float select-none" style={{ animationDelay: '2s' }} />
+      <img src={cheeseLogo} alt="" className="absolute bottom-32 left-40 w-16 h-16 opacity-10 animate-float select-none" style={{ animationDelay: '4s' }} />
+      <img src={cheeseLogo} alt="" className="absolute bottom-60 right-20 w-8 h-8 opacity-15 animate-float select-none" style={{ animationDelay: '6s' }} />
     </div>
   );
 }
