@@ -119,7 +119,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerStart = useRef<number>(0);
-  const [ratingResult, setRatingResult] = useState<{ time: number; rotation: number; placement: number; total: number; grade: string } | null>(null);
+  const [ratingResult, setRatingResult] = useState<{ time: number; rotation: number; placement: number; overlap: number; total: number; grade: string } | null>(null);
 
   useEffect(() => {
     if (!timerRunning) return;
