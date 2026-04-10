@@ -758,14 +758,14 @@ export default function SimpleAssetsPage() {
               )}
             </div>
 
-            {!isLoading && !error && categoryFilter === 'series2' ? (
-              <Tabs defaultValue="collection" className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="collection">Collection</TabsTrigger>
-                  <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>
-                </TabsList>
-                <TabsContent value="collection">
-                  <>
+            {!isLoading && !error && (
+              categoryFilter === 'series2' ? (
+                <Tabs defaultValue="collection" className="w-full">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="collection">Collection</TabsTrigger>
+                    <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="collection">
                     {binderView && binderGrid ? (
                       <>
                         <div className="flex items-center gap-3">
@@ -802,9 +802,434 @@ export default function SimpleAssetsPage() {
                             );
                           })()}
                         </div>
-          </>
-        )}
-      </div>
+                        {(() => {
+                          const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
+                          const regular = binderGrid.filter(
+                            (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
+                          );
+                          const collectors = binderGrid.filter((s) => s.template.variant === 'collector');
+                          const golden = showGoldenSection ? binderGrid.filter((s) => s.template.variant === 'golden') : [];
+                          const totalItems = regular.length + collectors.length + golden.length;
+
+                          const renderGrid = (items: typeof binderGrid) => (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                              {items.map(({ template, owned }) => {
+                                if (owned && owned.length > 0) {
+                                  const asset = owned[0];
+                                  const handleClick = () => {
+                                    if (owned.length > 1 && !selectionMode) {
+                                      setStackedAssets(owned);
+                                      setStackDialogOpen(true);
+                                    } else {
+                                      setSelectedAsset(asset);
+                                    }
+                                  };
+                                  return (
+                                    <SimpleAssetCard
+                                      key={`binder-${template.templateId}`}
+                                      asset={asset}
+                                      onClick={handleClick}
+                                      draggable={false}
+                                      stackCount={owned.length}
+                                      selectionMode={selectionMode}
+                                      selected={selectedIds.has(asset.id)}
+                                      onSelect={toggleSelection}
+                                    />
+                                  );
+                                }
+                                return (
+                                  <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+                                );
+                              })}
+                            </div>
+                          );
+
+                          const sections = [
+                            { key: 'regular', items: regular, heading: null },
+                            {
+                              key: 'collectors',
+                              items: collectors,
+                              heading: (
+                                <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                                  Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
+                                </h3>
+                              ),
+                            },
+                            ...(golden.length > 0 ? [{
+                              key: 'golden',
+                              items: golden,
+                              heading: (
+                                <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                                  Golden ({golden.filter(s => s.owned).length}/{golden.length})
+                                </h3>
+                              ),
+                            }] : []),
+                          ];
+
+                          let remaining = visibleCount;
+
+                          return (
+                            <div className="space-y-6">
+                              {sections.map((section) => {
+                                const visible = section.items.slice(0, Math.max(remaining, 0));
+                                remaining = Math.max(remaining - visible.length, 0);
+                                if (visible.length === 0) return null;
+
+                                if (!section.heading) {
+                                  return <div key={section.key}>{renderGrid(visible)}</div>;
+                                }
+
+                                return (
+                                  <div key={section.key} className="space-y-2">
+                                    {section.heading}
+                                    {renderGrid(visible)}
+                                  </div>
+                                );
+                              })}
+
+                              {totalItems > visibleCount && (
+                                <div className="flex justify-center pt-4">
+                                  <Button
+                                    onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                                    variant="outline"
+                                    className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                                  >
+                                    Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+                          <Button
+                            onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+                            variant="outline"
+                            size="sm"
+                            className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+                          >
+                            <CheckSquare className="h-4 w-4 mr-1" />
+                            {selectionMode ? 'Cancel Select' : 'Select'}
+                          </Button>
+                          {selectionMode && (() => {
+                            const visibleIds = gridSlots.slice(0, visibleCount).filter(id => id !== EMPTY && assetMap.has(id));
+                            const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+                            return (
+                              <label className="flex items-center gap-1.5 cursor-pointer">
+                                <Checkbox
+                                  checked={allSelected}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
+                                    } else {
+                                      setSelectedIds(new Set());
+                                    }
+                                  }}
+                                />
+                                <span className="text-sm text-cheese">Select All</span>
+                              </label>
+                            );
+                          })()}
+                        </div>
+                        {filtered.length === 0 ? (
+                          <p className="text-center text-muted-foreground py-12">
+                            {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+                          </p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                              {gridSlots.slice(0, visibleCount).map((slotId, idx) => {
+                                if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+
+                                const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
+                                if (isInFlight) {
+                                  return (
+                                    <div
+                                      key={slotId}
+                                      ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
+                                      className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                                    />
+                                  );
+                                }
+
+                                const asset = assetMap.get(slotId);
+                                if (!asset) return null;
+
+                                const justLanded = dealtIds.has(slotId);
+                                return (
+                                  <SimpleAssetCard
+                                    key={asset.id}
+                                    asset={asset}
+                                    onClick={() => setSelectedAsset(asset)}
+                                    className={justLanded ? 'animate-card-glow' : ''}
+                                    draggable={!selectionMode}
+                                    selectionMode={selectionMode}
+                                    selected={selectedIds.has(asset.id)}
+                                    onSelect={toggleSelection}
+                                    onDragStart={handleDragStart(idx)}
+                                    onDragOver={handleDragOver(idx)}
+                                    onDrop={handleDrop(idx)}
+                                    onDragEnd={handleDragEnd}
+                                  />
+                                );
+                              })}
+                            </div>
+                            {filtered.length > visibleCount && (
+                              <div className="flex justify-center pt-4">
+                                <Button
+                                  onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                                  variant="outline"
+                                  className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                                >
+                                  Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="puzzle">
+                    <PuzzleBuilder assets={filtered} />
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <>
+                  {binderView && binderGrid ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-muted-foreground">
+                          {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
+                          {binderLoading && ' (loading templates...)'}
+                        </p>
+                        <Button
+                          onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+                          variant="outline"
+                          size="sm"
+                          className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+                        >
+                          <CheckSquare className="h-4 w-4 mr-1" />
+                          {selectionMode ? 'Cancel Select' : 'Select'}
+                        </Button>
+                        {selectionMode && binderGrid && (() => {
+                          const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
+                          const allSelected = visibleOwned.length > 0 && visibleOwned.every(id => selectedIds.has(id));
+                          return (
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <Checkbox
+                                checked={allSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedIds(prev => { const next = new Set(prev); visibleOwned.forEach(id => next.add(id)); return next; });
+                                  } else {
+                                    setSelectedIds(new Set());
+                                  }
+                                }}
+                              />
+                              <span className="text-sm text-cheese">Select All</span>
+                            </label>
+                          );
+                        })()}
+                      </div>
+                      {(() => {
+                        const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
+                        const regular = binderGrid.filter(
+                          (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
+                        );
+                        const collectors = binderGrid.filter((s) => s.template.variant === 'collector');
+                        const golden = showGoldenSection ? binderGrid.filter((s) => s.template.variant === 'golden') : [];
+                        const totalItems = regular.length + collectors.length + golden.length;
+
+                        const renderGrid = (items: typeof binderGrid) => (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            {items.map(({ template, owned }) => {
+                              if (owned && owned.length > 0) {
+                                const asset = owned[0];
+                                const handleClick = () => {
+                                  if (owned.length > 1 && !selectionMode) {
+                                    setStackedAssets(owned);
+                                    setStackDialogOpen(true);
+                                  } else {
+                                    setSelectedAsset(asset);
+                                  }
+                                };
+                                return (
+                                  <SimpleAssetCard
+                                    key={`binder-${template.templateId}`}
+                                    asset={asset}
+                                    onClick={handleClick}
+                                    draggable={false}
+                                    stackCount={owned.length}
+                                    selectionMode={selectionMode}
+                                    selected={selectedIds.has(asset.id)}
+                                    onSelect={toggleSelection}
+                                  />
+                                );
+                              }
+                              return (
+                                <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+                              );
+                            })}
+                          </div>
+                        );
+
+                        const sections = [
+                          { key: 'regular', items: regular, heading: null },
+                          {
+                            key: 'collectors',
+                            items: collectors,
+                            heading: (
+                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                                Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
+                              </h3>
+                            ),
+                          },
+                          ...(golden.length > 0 ? [{
+                            key: 'golden',
+                            items: golden,
+                            heading: (
+                              <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+                                Golden ({golden.filter(s => s.owned).length}/{golden.length})
+                              </h3>
+                            ),
+                          }] : []),
+                        ];
+
+                        let remaining = visibleCount;
+
+                        return (
+                          <div className="space-y-6">
+                            {sections.map((section) => {
+                              const visible = section.items.slice(0, Math.max(remaining, 0));
+                              remaining = Math.max(remaining - visible.length, 0);
+                              if (visible.length === 0) return null;
+
+                              if (!section.heading) {
+                                return <div key={section.key}>{renderGrid(visible)}</div>;
+                              }
+
+                              return (
+                                <div key={section.key} className="space-y-2">
+                                  {section.heading}
+                                  {renderGrid(visible)}
+                                </div>
+                              );
+                            })}
+
+                            {totalItems > visibleCount && (
+                              <div className="flex justify-center pt-4">
+                                <Button
+                                  onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                                  variant="outline"
+                                  className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                                >
+                                  Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+                        <Button
+                          onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+                          variant="outline"
+                          size="sm"
+                          className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+                        >
+                          <CheckSquare className="h-4 w-4 mr-1" />
+                          {selectionMode ? 'Cancel Select' : 'Select'}
+                        </Button>
+                        {selectionMode && (() => {
+                          const visibleIds = gridSlots.slice(0, visibleCount).filter(id => id !== EMPTY && assetMap.has(id));
+                          const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+                          return (
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <Checkbox
+                                checked={allSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
+                                  } else {
+                                    setSelectedIds(new Set());
+                                  }
+                                }}
+                              />
+                              <span className="text-sm text-cheese">Select All</span>
+                            </label>
+                          );
+                        })()}
+                      </div>
+                      {filtered.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-12">
+                          {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+                        </p>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            {gridSlots.slice(0, visibleCount).map((slotId, idx) => {
+                              if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+
+                              const isInFlight = dealingCardIds.has(slotId) && !dealtIds.has(slotId);
+                              if (isInFlight) {
+                                return (
+                                  <div
+                                    key={slotId}
+                                    ref={(el) => { if (el) gridCellRefs.current.set(slotId, el); else gridCellRefs.current.delete(slotId); }}
+                                    className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                                  />
+                                );
+                              }
+
+                              const asset = assetMap.get(slotId);
+                              if (!asset) return null;
+
+                              const justLanded = dealtIds.has(slotId);
+                              return (
+                                <SimpleAssetCard
+                                  key={asset.id}
+                                  asset={asset}
+                                  onClick={() => setSelectedAsset(asset)}
+                                  className={justLanded ? 'animate-card-glow' : ''}
+                                  draggable={!selectionMode}
+                                  selectionMode={selectionMode}
+                                  selected={selectedIds.has(asset.id)}
+                                  onSelect={toggleSelection}
+                                  onDragStart={handleDragStart(idx)}
+                                  onDragOver={handleDragOver(idx)}
+                                  onDrop={handleDrop(idx)}
+                                  onDragEnd={handleDragEnd}
+                                />
+                              );
+                            })}
+                          </div>
+                          {filtered.length > visibleCount && (
+                            <div className="flex justify-center pt-4">
+                              <Button
+                                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                                variant="outline"
+                                className="border-cheese/50 text-cheese hover:bg-cheese/10"
+                              >
+                                Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )
+            )}
 
       {/* Footer */}
       <footer className="border-t border-cheese/20 mt-12 py-8">
