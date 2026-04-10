@@ -1156,7 +1156,7 @@ export default function SimpleAssetsPage() {
 
             {!isLoading && !error && (
               categoryFilter === 'series2' && viewMode !== 'saved' ? (
-                <Tabs defaultValue="collection" className="w-full">
+                <Tabs value={series2SubTab} onValueChange={setSeries2SubTab} className="w-full">
                   <TabsList className="mb-4">
                     <TabsTrigger value="collection">Collection</TabsTrigger>
                     <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>
@@ -1173,13 +1173,37 @@ export default function SimpleAssetsPage() {
                           {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
                         </div>
                         {renderBinderSections(binderGrid, true)}
+
+                        {/* Missing Puzzle Pieces section */}
+                        {(() => {
+                          const ownedCardIds = new Set(
+                            filtered
+                              .map(a => typeof a.cardid === 'string' ? parseInt(a.cardid, 10) : a.cardid)
+                              .filter((id): id is number => id != null)
+                          );
+                          const missingIds = PUZZLE_CARD_IDS.filter(id => !ownedCardIds.has(id));
+                          if (missingIds.length === 0) return null;
+                          return (
+                            <div className="mt-8">
+                              <h3 className="text-sm font-semibold text-cheese mb-3 flex items-center gap-2">
+                                <Puzzle className="h-4 w-4" />
+                                Missing Puzzle Pieces ({missingIds.length} of {PUZZLE_CARD_IDS.length})
+                              </h3>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                {missingIds.map(id => (
+                                  <MissingPuzzlePiecePlaceholder key={id} cardId={id} />
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </>
                     ) : (
                       renderClassicView()
                     )}
                   </TabsContent>
                   <TabsContent value="puzzle">
-                    <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} />
+                    <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} onSwitchToBinder={handleSwitchToBinder} />
                   </TabsContent>
                 </Tabs>
               ) : viewMode === 'saved' ? (
