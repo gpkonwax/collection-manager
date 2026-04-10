@@ -618,12 +618,12 @@ export default function SimpleAssetsPage() {
         </div>
       )}
       <div className="container py-8 space-y-6">
+        <BannerAd />
+
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
           <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
         </div>
-
-        <BannerAd />
 
         {!isConnected ? (
           <div className="space-y-16 py-8">
