@@ -803,7 +803,7 @@ export default function SimpleAssetsPage() {
                           })()}
                         </div>
                         {(() => {
-                          const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
+                          const showGoldenSection = true; // series2 always shows golden section
                           const regular = binderGrid.filter(
                             (s) => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden')
                           );
