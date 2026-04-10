@@ -114,6 +114,72 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
   const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // Timer race mode
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const timerStart = useRef<number>(0);
+  const [ratingResult, setRatingResult] = useState<{ time: number; rotation: number; placement: number; total: number; grade: string } | null>(null);
+
+  useEffect(() => {
+    if (!timerRunning) return;
+    const iv = setInterval(() => {
+      setElapsedMs(Date.now() - timerStart.current);
+    }, 100);
+    return () => clearInterval(iv);
+  }, [timerRunning]);
+
+  const formatTime = (ms: number) => {
+    const totalSec = ms / 1000;
+    const min = Math.floor(totalSec / 60);
+    const sec = Math.floor(totalSec % 60);
+    const tenths = Math.floor((totalSec * 10) % 10);
+    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${tenths}`;
+  };
+
+  const computeRating = useCallback(() => {
+    const entries = Array.from(pieces.entries());
+    const totalPieces = entries.length;
+    if (totalPieces === 0) return;
+
+    // Time score (0-40): 40 if under 30s, linear to 0 at 300s
+    const secs = elapsedMs / 1000;
+    const timeScore = secs <= 30 ? 40 : Math.max(0, 40 - ((secs - 30) / 270) * 40);
+
+    // Rotation score (0-30): % of pieces at 0°
+    const correctRotation = entries.filter(([, s]) => s.rotation === 0).length;
+    const rotationScore = (correctRotation / totalPieces) * 30;
+
+    // Placement score (0-30): pairwise bounding box overlap, -2 per overlap
+    let overlapCount = 0;
+    const W = 120, H = 168;
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const a = entries[i][1], b = entries[j][1];
+        if (a.x < b.x + W && a.x + W > b.x && a.y < b.y + H && a.y + H > b.y) {
+          overlapCount++;
+        }
+      }
+    }
+    const placementScore = Math.max(0, 30 - overlapCount * 2);
+
+    const total = Math.round(timeScore + rotationScore + placementScore);
+    const grade = total >= 90 ? 'A' : total >= 80 ? 'B' : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
+
+    setRatingResult({
+      time: Math.round(timeScore),
+      rotation: Math.round(rotationScore),
+      placement: Math.round(placementScore),
+      total,
+      grade,
+    });
+  }, [pieces, elapsedMs]);
+
+  const handleFinish = useCallback(() => {
+    setTimerRunning(false);
+    computeRating();
+  }, [computeRating]);
+
   const getState = (id: string): PieceState => pieces.get(id) ?? { x: 0, y: 0, rotation: 0 };
 
   const rotate = useCallback((id: string, dir: 'cw' | 'ccw') => {
