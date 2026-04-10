@@ -132,6 +132,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
+      <div ref={glareRef} className="absolute inset-0 rounded-lg pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease' }} />
       </CardContent>
     </Card>
     </div>
