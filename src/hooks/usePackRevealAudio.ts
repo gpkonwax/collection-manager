@@ -19,6 +19,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
   const shakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const tearAudioRef = useRef<HTMLAudioElement | null>(null);
   const tearPlayedRef = useRef(false);
+  const hasStartedShakingRef = useRef(false);
 
   useEffect(() => {
     const shakeAudio = new Audio(packShakeSrc);
@@ -44,6 +45,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
       stopAudio(shakeAudioRef.current);
       stopAudio(tearAudioRef.current);
       tearPlayedRef.current = false;
+      hasStartedShakingRef.current = false;
     }
   }, [open]);
 
@@ -52,6 +54,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
     if (!shakeAudio) return;
 
     if (open && phase === 'waiting' && isShaking) {
+      hasStartedShakingRef.current = true;
       shakeAudio.currentTime = 0;
       shakeAudio.play().catch(() => {});
       return () => stopAudio(shakeAudio);
@@ -67,7 +70,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
     // Only play tear once per dialog open
     if (tearPlayedRef.current) return;
 
-    const shouldPlayTear = open && !isShaking && (phase === 'waiting' || (phase === 'revealing' && revealedCount === 0));
+    const shouldPlayTear = open && hasStartedShakingRef.current && !isShaking && (phase === 'waiting' || (phase === 'revealing' && revealedCount === 0));
 
     if (shouldPlayTear) {
       tearPlayedRef.current = true;
