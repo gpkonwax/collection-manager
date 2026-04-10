@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
-import { useIpfsMedia } from '@/hooks/useIpfsMedia';
+import { getCachedGatewayIndex } from '@/hooks/useIpfsMedia';
+import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface Props {
@@ -42,7 +43,9 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const { src: resolvedUrl } = useIpfsMedia(url, { context: 'detail', enabled: true });
+  const hash = url ? extractIpfsHash(url) : null;
+  const cachedIdx = getCachedGatewayIndex(hash);
+  const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
