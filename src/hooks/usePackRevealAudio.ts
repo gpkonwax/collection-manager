@@ -19,6 +19,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
   const shakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const tearAudioRef = useRef<HTMLAudioElement | null>(null);
   const tearPlayedRef = useRef(false);
+  const hasStartedShakingRef = useRef(false);
 
   useEffect(() => {
     const shakeAudio = new Audio(packShakeSrc);
