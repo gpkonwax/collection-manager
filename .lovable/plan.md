@@ -1,40 +1,47 @@
 
 
-## Lock Puzzle Builder Until All 18 Pieces Are Collected
+## Persist Saved Layout in localStorage
 
-### What changes
+### Problem
+The `savedOrder` state is a plain `useState` — it lives only in memory. Any page refresh or navigation wipes it.
 
-**1. Lock the Puzzle Builder tab when pieces are incomplete**
-- When the user clicks the "Puzzle Builder" tab and owns fewer than 18 puzzle pieces, show a dialog/overlay instead of the canvas
-- The message: "You have X of 18 puzzle pieces. Collect them all to attempt the puzzle!"
-- Include a button to switch to the Collection Binder view to see which pieces are missing
-
-**2. Show missing puzzle piece placeholders in Collection Binder**
-- When viewing the binder in Series 2 and the user clicks from the puzzle tab (or just generally in binder mode), show placeholder cards for the missing puzzle piece card IDs
-- Each placeholder shows the card back image (using `buildGpkCardBackUrl`) with a greyed-out/dimmed style and an AtomicHub market link to buy the missing piece
-- Reuse the existing `ExternalLinkWarningDialog` pattern from `MissingCardPlaceholder`
+### Solution
+Persist the saved layout to `localStorage` keyed by account name, so it automatically restores when the user returns.
 
 ### File changes
 
-**`src/components/simpleassets/PuzzleBuilder.tsx`**
-- Add logic at the top of the component: count owned puzzle pieces vs total 18
-- If count < 18, render a locked state UI (centered message with piece count, puzzle icon, and a "View in Binder" button) instead of the canvas
-- Accept a new optional prop `onSwitchToBinder?: () => void` to let the parent handle tab switching
-
 **`src/pages/Index.tsx`**
-- Track the inner Series 2 tab state (`collection` vs `puzzle`) with a controlled state variable
-- Pass an `onSwitchToBinder` callback to `PuzzleBuilder` that switches to binder view mode and the collection sub-tab
-- In the binder view for Series 2, identify which of the 18 `PUZZLE_CARD_IDS` the user is missing and render placeholder back-image cards for them (in a dedicated "Missing Puzzle Pieces" section or inline)
 
-**`src/components/simpleassets/MissingPuzzlePiecePlaceholder.tsx`** (new file)
-- A simpler variant of `MissingCardPlaceholder` specifically for puzzle pieces
-- Shows the card back image via `buildGpkCardBackUrl('gpktwoeight', cardId)` in greyscale
-- Overlays "Buy on AtomicHub" link pointing to the AtomicHub market filtered by the appropriate template
-- Uses `ExternalLinkWarningDialog` for safe external navigation
+1. **Initialize `savedOrder` from localStorage**: On mount (and when `accountName` changes), read from `localStorage` key `gpk-saved-layout-{accountName}`. If found, parse and set as initial state.
 
-### Technical notes
-- `PUZZLE_CARD_IDS` from `src/lib/puzzlePieces.ts` has all 18 IDs
-- The `isPuzzlePiece` and `deduplicateByCardId` helpers already exist in `PuzzleBuilder.tsx` and can be reused/exported
-- Card back URLs use `buildGpkCardBackUrl('gpktwoeight', cardid)` — same as the puzzle canvas already does
-- For the AtomicHub link on missing pieces, we need the template ID. Since puzzle pieces are SimpleAssets (not AtomicAssets), we can link to the general Series 2 market page or use card ID in the search. If binder templates are available for these IDs, we can use their template IDs directly.
+2. **Auto-save on changes**: Add a `useEffect` that writes `savedOrder` to localStorage whenever it changes (debounced or direct). Also persist `loadedLayoutName`.
+
+3. **Clear on logout**: When `accountName` becomes null, clear the state (but keep localStorage so it restores on re-login).
+
+### Key logic
+```typescript
+const STORAGE_KEY = `gpk-saved-layout-${accountName}`;
+
+// Restore on mount
+useEffect(() => {
+  if (!accountName) return;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    setSavedOrder(parsed.order);
+    setLoadedLayoutName(parsed.name ?? null);
+  }
+}, [accountName]);
+
+// Persist on change
+useEffect(() => {
+  if (!accountName || savedOrder === null) return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    order: savedOrder,
+    name: loadedLayoutName
+  }));
+}, [savedOrder, loadedLayoutName, accountName]);
+```
+
+This means once you load a JSON, it stays across refreshes until you explicitly clear it or load a different one.
 
