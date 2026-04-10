@@ -1,17 +1,9 @@
 /**
- * Placeholder list of puzzle pieces for the Puzzle Builder.
- * Each entry defines a card ID and side (a or b) from Series 2.
- * Replace with the real card IDs when ready.
+ * Card IDs that are puzzle pieces in Series 2.
+ * All sides/variants share the same back image, so we only need the card ID.
  */
-export const PUZZLE_PIECES: { cardid: number; side: string }[] = [
-  { cardid: 1, side: 'a' },
-  { cardid: 1, side: 'b' },
-  { cardid: 2, side: 'a' },
-  { cardid: 2, side: 'b' },
-  { cardid: 3, side: 'a' },
-  { cardid: 3, side: 'b' },
-  { cardid: 4, side: 'a' },
-  { cardid: 4, side: 'b' },
-  { cardid: 5, side: 'a' },
-  { cardid: 5, side: 'b' },
+export const PUZZLE_CARD_IDS: number[] = [
+  55, 56, 57, 58, 59, 60,
+  66, 67, 68, 69, 70, 71,
+  75, 76, 77, 78, 79, 80,
 ];
