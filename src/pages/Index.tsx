@@ -387,7 +387,7 @@ export default function SimpleAssetsPage() {
     } catch {}
   }, [savedOrder, loadedLayoutName, accountName]);
 
-
+  const categories = useMemo(() => {
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
     for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
     for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
