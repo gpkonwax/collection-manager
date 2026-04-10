@@ -52,7 +52,7 @@ function buildDefaultLayout(puzzleAssets: SimpleAsset[]): Map<string, PieceState
   const m = new Map<string, PieceState>();
   const cols = 6;
   puzzleAssets.forEach((a, i) => {
-    m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 0 });
+    m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
   });
   return m;
 }
@@ -66,7 +66,7 @@ function applyImportedState(puzzleAssets: SimpleAsset[], imported: PuzzlePieceMa
     if (saved) {
       m.set(a.id, { x: saved.x, y: saved.y, rotation: saved.rotation });
     } else {
-      m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 0 });
+      m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
     }
   });
   return m;
@@ -152,7 +152,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     const timeScore = secs <= 30 ? 20 : Math.max(0, 20 - ((secs - 30) / 270) * 20);
 
     // Rotation score (0-20): % of pieces at 0°
-    const correctRotation = puzzleAssets.filter(a => (currentPieces.get(a.id)?.rotation ?? 0) === 0).length;
+    const correctRotation = puzzleAssets.filter(a => (currentPieces.get(a.id)?.rotation ?? 0) === 90).length;
     const rotationScore = (correctRotation / totalPieces) * 20;
 
     // Position accuracy (0-40): relative to centroid, not absolute grid origin
