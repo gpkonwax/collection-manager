@@ -911,27 +911,7 @@ export default function SimpleAssetsPage() {
                           return (
                             <div className="space-y-6">
                               {sections.map((section) => {
-                                if (remaining <= 0) return null;
-                                let visible: typeof section.items;
-                                if (section.grouped) {
-                                  // For grouped sections, always include complete card-title groups
-                                  // so we never cut a row in the middle
-                                  visible = [];
-                                  const groupMap = new Map<string, typeof section.items>();
-                                  const groupOrder: string[] = [];
-                                  for (const item of section.items) {
-                                    const numId = String(item.template.cardid).replace(/[^0-9]/g, '');
-                                    if (!groupMap.has(numId)) { groupMap.set(numId, []); groupOrder.push(numId); }
-                                    groupMap.get(numId)!.push(item);
-                                  }
-                                  for (const gid of groupOrder) {
-                                    const grp = groupMap.get(gid)!;
-                                    if (visible.length + grp.length > remaining && visible.length > 0) break;
-                                    visible.push(...grp);
-                                  }
-                                } else {
-                                  visible = section.items.slice(0, Math.max(remaining, 0));
-                                }
+                                const visible = section.items.slice(0, Math.max(remaining, 0));
                                 remaining = Math.max(remaining - visible.length, 0);
                                 if (visible.length === 0) return null;
 
