@@ -743,7 +743,9 @@ export default function SimpleAssetsPage() {
                   {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
                 </Button>
               )}
-              {categoryFilter !== 'all' && (
+            </div>
+            {categoryFilter !== 'all' && (
+              <div className="flex justify-center mt-2">
                 <Tabs value={binderView ? 'binder' : 'classic'} onValueChange={(v) => setBinderView(v === 'binder')} className="w-auto">
                   <TabsList className="h-8 bg-muted/50 border border-cheese/20">
                     <TabsTrigger value="classic" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
@@ -755,8 +757,8 @@ export default function SimpleAssetsPage() {
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
-              )}
-            </div>
+              </div>
+            )}
 
             {!isLoading && !error && (
               categoryFilter === 'series2' ? (
