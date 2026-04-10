@@ -811,44 +811,81 @@ export default function SimpleAssetsPage() {
                           const golden = showGoldenSection ? binderGrid.filter((s) => s.template.variant === 'golden') : [];
                           const totalItems = regular.length + collectors.length + golden.length;
 
+                          const renderCard = ({ template, owned }: typeof binderGrid[0]) => {
+                            if (owned && owned.length > 0) {
+                              const asset = owned[0];
+                              const handleClick = () => {
+                                if (owned.length > 1 && !selectionMode) {
+                                  setStackedAssets(owned);
+                                  setStackDialogOpen(true);
+                                } else {
+                                  setSelectedAsset(asset);
+                                }
+                              };
+                              return (
+                                <SimpleAssetCard
+                                  key={`binder-${template.templateId}`}
+                                  asset={asset}
+                                  onClick={handleClick}
+                                  draggable={false}
+                                  stackCount={owned.length}
+                                  selectionMode={selectionMode}
+                                  selected={selectedIds.has(asset.id)}
+                                  onSelect={toggleSelection}
+                                />
+                              );
+                            }
+                            return (
+                              <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+                            );
+                          };
+
                           const renderGrid = (items: typeof binderGrid) => (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                              {items.map(({ template, owned }) => {
-                                if (owned && owned.length > 0) {
-                                  const asset = owned[0];
-                                  const handleClick = () => {
-                                    if (owned.length > 1 && !selectionMode) {
-                                      setStackedAssets(owned);
-                                      setStackDialogOpen(true);
-                                    } else {
-                                      setSelectedAsset(asset);
-                                    }
-                                  };
-                                  return (
-                                    <SimpleAssetCard
-                                      key={`binder-${template.templateId}`}
-                                      asset={asset}
-                                      onClick={handleClick}
-                                      draggable={false}
-                                      stackCount={owned.length}
-                                      selectionMode={selectionMode}
-                                      selected={selectedIds.has(asset.id)}
-                                      onSelect={toggleSelection}
-                                    />
-                                  );
-                                }
-                                return (
-                                  <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
-                                );
-                              })}
+                              {items.map(renderCard)}
                             </div>
                           );
 
+                          // Series 2 grouped grid: one card title per row (padded to 6 cols)
+                          const renderGroupedGrid = (items: typeof binderGrid) => {
+                            const groups: { cardid: string; name: string; slots: typeof binderGrid }[] = [];
+                            const groupMap = new Map<string, typeof binderGrid>();
+                            const groupOrder: string[] = [];
+                            for (const item of items) {
+                              const numId = String(item.template.cardid).replace(/[^0-9]/g, '');
+                              if (!groupMap.has(numId)) {
+                                groupMap.set(numId, []);
+                                groupOrder.push(numId);
+                              }
+                              groupMap.get(numId)!.push(item);
+                            }
+                            for (const id of groupOrder) {
+                              const slots = groupMap.get(id)!;
+                              groups.push({ cardid: id, name: slots[0]?.template.name ?? id, slots });
+                            }
+                            return (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                                {groups.flatMap((group) => {
+                                  const cells: React.ReactNode[] = group.slots.map(renderCard);
+                                  const remainder = group.slots.length % 6;
+                                  if (remainder !== 0) {
+                                    const padCount = 6 - remainder;
+                                    for (let p = 0; p < padCount; p++) {
+                                      cells.push(<div key={`pad-${group.cardid}-${p}`} className="hidden xl:block" />);
+                                    }
+                                  }
+                                  return cells;
+                                })}
+                              </div>
+                            );
+                          };
+
                           const sections = [
-                            { key: 'regular', items: regular, heading: null },
+                            { key: 'regular', items: regular, heading: null, grouped: true },
                             {
                               key: 'collectors',
                               items: collectors,
+                              grouped: false,
                               heading: (
                                 <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                   Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
@@ -858,6 +895,7 @@ export default function SimpleAssetsPage() {
                             ...(golden.length > 0 ? [{
                               key: 'golden',
                               items: golden,
+                              grouped: false,
                               heading: (
                                 <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
                                   Golden ({golden.filter(s => s.owned).length}/{golden.length})
@@ -876,7 +914,7 @@ export default function SimpleAssetsPage() {
                                 if (visible.length === 0) return null;
 
                                 if (!section.heading) {
-                                  return <div key={section.key}>{renderGrid(visible)}</div>;
+                                  return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderGrid(visible)}</div>;
                                 }
 
                                 return (
