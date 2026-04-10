@@ -1,42 +1,28 @@
 
 
-## Increase zoom level and fix landscape lens for back images
+## Fix: Magnification lens breaks after ~30 seconds
 
-### Changes
+### Root cause
+
+The `ImageWithLens` component calls `useIpfsMedia` separately from the `IpfsMedia` component that actually renders the `<img>` tag. The second hook's `onLoad` callback is never triggered (no `<img>` element uses it), so its internal timeout keeps firing, rotating through IPFS gateways every 5-8 seconds. After cycling through all 5 gateways (~30s), it sets `failed = true` and `src` becomes `'/placeholder.svg'`. The lens then either shows an empty circle (broken background-image URL) or hides entirely.
+
+### Fix
+
+Remove the second `useIpfsMedia` hook from `ImageWithLens`. Instead, build the resolved URL directly using the cached gateway index, which the already-loaded `IpfsMedia` component has already populated:
 
 **`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**:
 
-1. **Increase zoom**: Change `ZOOM` from `2.5` to `5` (500% background-size) for a much closer inspection.
-
-2. **Fix landscape lens**: The lens currently shows a circular crop of the raw (portrait) image with swapped coordinates — but the source image is portrait while the display is rotated 90°. For landscape back images, the lens needs to show the image rotated too. This can be done by rendering the lens background with a CSS `transform: rotate(90deg)` on an inner element, or more practically by using a larger lens background approach:
-
-   - When `isLandscape` is true, apply `backgroundSize` that accounts for the 4:3 aspect ratio of the lens area vs the 3:4 source image, and keep the coordinate swap logic.
-   - Additionally, add a CSS `transform: rotate(90deg)` on the lens div's background layer using a pseudo-element or a nested div inside the lens, so the zoomed portion appears in landscape orientation matching the displayed card.
-
-   Simplest approach: wrap the lens background in an inner div that is rotated 90° and scaled, mirroring what the base image does:
-
+1. Import `getCachedGatewayIndex` from `useIpfsMedia` and `extractIpfsHash`, `IPFS_GATEWAYS` from `ipfsGateways`.
+2. Replace `const { src: resolvedUrl } = useIpfsMedia(url, ...)` with:
    ```typescript
-   // For landscape lens, use an inner rotated div for the background
-   {isLandscape ? (
-     <div className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50 overflow-hidden"
-       style={{ width: LENS_SIZE, height: LENS_SIZE, left: ..., top: ... }}>
-       <div style={{
-         width: '100%', height: '100%',
-         backgroundImage: `url(${resolvedUrl})`,
-         backgroundSize: `${ZOOM * 100}%`,
-         backgroundPosition: `${bgX}% ${bgY}%`,
-         transform: 'rotate(90deg) scale(1.33)',
-       }} />
-     </div>
-   ) : (
-     // existing lens div for portrait
-   )}
+   const hash = url ? extractIpfsHash(url) : null;
+   const cachedIdx = getCachedGatewayIndex(hash);
+   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
    ```
+3. Remove the `useIpfsMedia` import if no longer used elsewhere in this file (it's still used via `IpfsMedia` internally, but not directly imported here).
 
-### Summary of edits
-- Line 33: `ZOOM = 2.5` → `ZOOM = 5`
-- Lines 75-89: Split lens rendering into landscape (rotated inner div) and portrait (current) variants
+This approach uses the gateway that `IpfsMedia` already validated and cached, without running a parallel timeout chain. The URL is stable and won't rotate or fail.
 
 ### Files touched
-- `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
+- `src/components/simpleassets/SimpleAssetDetailDialog.tsx` — replace `useIpfsMedia` call with direct cache lookup
 
