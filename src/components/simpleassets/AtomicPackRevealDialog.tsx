@@ -51,17 +51,13 @@ function AtomicRevealCardImage({ card, isRevealed }: { card: RevealCard; isRevea
   return (
     <div className="relative aspect-[2/3]"
       style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
-      <div className="absolute inset-0 border border-border bg-card shadow-md" style={{ backfaceVisibility: 'hidden' }}>
+      <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
         {currentSrc ? (
           <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center" loading="lazy"
             onError={() => { if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
         )}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
-          <p className="text-[10px] font-medium truncate" style={{ color: 'white' }}>{card.name}</p>
-          {card.rarity && <p className="text-[9px] truncate" style={{ color: 'rgba(255,255,255,0.8)' }}>{card.rarity}</p>}
-        </div>
       </div>
       <div className="absolute inset-0 border-2 border-primary/30 bg-gradient-to-br from-primary/20 via-accent/20 to-primary/30 flex items-center justify-center shadow-md"
         style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
