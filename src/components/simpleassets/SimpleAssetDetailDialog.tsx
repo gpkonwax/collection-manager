@@ -62,19 +62,21 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
   return (
     <div
       ref={containerRef}
-      className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}
+      className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onMouseMove={handleMouseMove}
       style={{ cursor: hover ? 'crosshair' : 'default' }}
     >
-      <IpfsMedia
-        url={url}
-        alt={alt}
-        className={`w-full h-full ${className || ''}`}
-        context="detail"
-        showSkeleton
-      />
+      <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center">
+        <IpfsMedia
+          url={url}
+          alt={alt}
+          className={`w-full h-full ${className || ''}`}
+          context="detail"
+          showSkeleton
+        />
+      </div>
       {hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
         <div
           className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50 overflow-hidden"
