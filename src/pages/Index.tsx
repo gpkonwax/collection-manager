@@ -372,7 +372,8 @@ export default function SimpleAssetsPage() {
 
   const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[], variants: string[] = ['all']): string[] | null => {
     try {
-      const raw = localStorage.getItem(getStorageKey(cat, src, variants));
+      const key = getStorageKey(cat, src, variants);
+      const raw = sessionOrders.current.get(key) ? JSON.stringify(sessionOrders.current.get(key)) : localStorage.getItem(key);
       if (!raw) return null;
       const saved: string[] = JSON.parse(raw);
       if (!Array.isArray(saved)) return null;
@@ -387,6 +388,7 @@ export default function SimpleAssetsPage() {
   }, [getStorageKey]);
 
   const [customOrder, setCustomOrder] = useState<string[] | null>(null);
+  const sessionOrders = useRef(new Map<string, string[]>());
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -395,9 +397,11 @@ export default function SimpleAssetsPage() {
   useEffect(() => {
     if (!accountName || customOrder === null) return;
     try {
-      localStorage.setItem(getStorageKey(categoryFilter, sourceFilter, variantFilter), JSON.stringify(customOrder));
+      const key = getStorageKey(categoryFilter, sourceFilter, variantFilter);
+      localStorage.setItem(key, JSON.stringify(customOrder));
+      sessionOrders.current.set(key, customOrder);
     } catch { /* storage full */ }
-  }, [customOrder, accountName, categoryFilter, sourceFilter, getStorageKey]);
+  }, [customOrder, accountName, categoryFilter, sourceFilter, variantFilter, getStorageKey]);
 
   const categories = useMemo(() => {
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
@@ -486,6 +490,7 @@ export default function SimpleAssetsPage() {
     const finalFilename = userFilename.toLowerCase().endsWith('.json') ? userFilename : `${userFilename}.json`;
     const prefix = `gpk-order-${accountName}-`;
     const orders: Record<string, string[]> = {};
+    // Load from localStorage first
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(prefix)) {
@@ -493,6 +498,12 @@ export default function SimpleAssetsPage() {
           const val = JSON.parse(localStorage.getItem(key)!);
           if (Array.isArray(val)) orders[key.slice(prefix.length)] = val;
         } catch { /* skip */ }
+      }
+    }
+    // Merge in-memory session orders (overrides localStorage)
+    for (const [key, val] of sessionOrders.current.entries()) {
+      if (key.startsWith(prefix)) {
+        orders[key.slice(prefix.length)] = val;
       }
     }
     const puzzle = puzzleStateRef.current;
