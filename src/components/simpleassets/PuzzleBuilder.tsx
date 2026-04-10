@@ -240,7 +240,13 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
       notifyParent(next);
       return next;
     });
-  }, [notifyParent]);
+    if (timerEnabled) {
+      timerStart.current = Date.now();
+      setElapsedMs(0);
+      setTimerRunning(true);
+      setRatingResult(null);
+    }
+  }, [notifyParent, timerEnabled]);
 
   if (puzzleAssets.length === 0) {
     return (
