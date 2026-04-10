@@ -466,6 +466,10 @@ export default function SimpleAssetsPage() {
   // --- Export / Import handlers ---
   const handleExportLayout = useCallback(() => {
     if (!accountName) return;
+    const defaultFilename = `gpk-layout-${accountName}.json`;
+    const userFilename = window.prompt('Enter filename for your layout:', defaultFilename);
+    if (!userFilename) return;
+    const finalFilename = userFilename.toLowerCase().endsWith('.json') ? userFilename : `${userFilename}.json`;
     const prefix = `gpk-order-${accountName}-`;
     const orders: Record<string, string[]> = {};
     for (let i = 0; i < localStorage.length; i++) {
@@ -480,7 +484,7 @@ export default function SimpleAssetsPage() {
     const blob = new Blob([JSON.stringify({ account: accountName, orders }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `gpk-layout-${accountName}.json`; a.click();
+    a.href = url; a.download = finalFilename; a.click();
     URL.revokeObjectURL(url);
     toast.success('Layout exported');
   }, [accountName]);
