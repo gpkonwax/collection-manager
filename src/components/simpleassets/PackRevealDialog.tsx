@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, Download } from 'lucide-react';
-import { playRandomFart } from '@/lib/fartSounds';
+import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
@@ -204,7 +204,7 @@ export function PackRevealDialog({
     if (phase !== 'revealing' || newCards.length === 0 || revealedCount >= newCards.length) return;
     const timer = setTimeout(() => {
       setRevealedCount((c) => c + 1);
-      setTimeout(() => playRandomFart(), 600);
+      setTimeout(() => playCardRevealSound(), 600);
     }, 1600);
     return () => clearTimeout(timer);
   }, [phase, revealedCount, newCards.length]);
@@ -240,6 +240,8 @@ export function PackRevealDialog({
       }, { transactPlugins: getTransactPlugins(session) });
       const txId = result?.resolved?.transaction?.id?.toString() || null;
       setPhase('done'); onComplete(txId);
+      // Auto-close after brief confirmation
+      setTimeout(() => onOpenChange(false), 1500);
     } catch (e) {
       console.error('[pack-reveal] getcards failed', e);
       closeWharfkitModals(); setTimeout(() => closeWharfkitModals(), 100);
@@ -318,7 +320,7 @@ export function PackRevealDialog({
 
             {phase === 'done' && (
               <div className="flex justify-center pt-2">
-                <Button onClick={handleClose} className="bg-primary hover:bg-primary/90 text-primary-foreground">Awesome! Close</Button>
+                <p className="text-sm text-muted-foreground animate-pulse">Closing...</p>
               </div>
             )}
           </div>
