@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
+import { MissingPuzzlePiecePlaceholder } from '@/components/simpleassets/MissingPuzzlePiecePlaceholder';
+import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -163,6 +165,12 @@ export default function SimpleAssetsPage() {
   const [importedPuzzle, setImportedPuzzle] = useState<PuzzlePieceMap | null>(null);
   const puzzleStateRef = useRef<PuzzlePieceMap>({});
   const handlePuzzlePiecesChange = useCallback((state: PuzzlePieceMap) => { puzzleStateRef.current = state; }, []);
+  const [series2SubTab, setSeries2SubTab] = useState<string>('collection');
+
+  const handleSwitchToBinder = useCallback(() => {
+    setViewMode('binder');
+    setSeries2SubTab('collection');
+  }, []);
 
   const preCollectIdsRef = useRef<Set<string>>(new Set());
   const pendingAnimationRef = useRef<{ txId: string | null } | null>(null);
