@@ -908,7 +908,7 @@ export default function SimpleAssetsPage() {
 
             {/* Section A — Three Ways to View */}
             <div className="max-w-5xl mx-auto space-y-4">
-              <h3 className="text-2xl font-bold text-cheese text-center">Three Ways to View Your Collection</h3>
+              <h3 className="text-2xl font-bold text-cheese text-center">Three Ways to View, Sort and Show Your Collection</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <FeatureCard
                   icon={<Eye className="h-6 w-6 text-cheese" />}
