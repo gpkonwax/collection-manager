@@ -1,6 +1,6 @@
 import bellSfx from '@/assets/card-bell.mp3';
 
-export function playRandomFart() {
+export function playCardRevealSound() {
   const audio = new Audio(bellSfx);
   audio.play().catch(() => {});
 }
