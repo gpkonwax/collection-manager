@@ -1,22 +1,19 @@
 
 
-## Fix Rotation Score Always Showing 0
+## Fix Rotation Scoring — Correct Target is 90°
 
-### Root cause
-The `computeRating` function reads `pieces` from its closure. Due to React's render cycle, the `pieces` Map captured when `handleFinish` calls `computeRating` may be stale — still holding the scrambled rotation values rather than the current ones the user has corrected.
-
-Additionally, `puzzleAssets` is recomputed every render (not memoized), which can cause subtle closure staleness in the callback chain.
+### Problem
+The back images for puzzle pieces are oriented sideways by default. One clockwise rotation (90°) makes them look correct. But the scoring checks `rotation === 0`, so every correctly-oriented piece fails the check.
 
 ### Fix
+Single change in `src/components/simpleassets/PuzzleBuilder.tsx`:
 
-1. **Use a ref to always read the latest pieces state** — add a `piecesRef` that mirrors `pieces`, and read from it in `computeRating` instead of the closure variable.
-
-2. **Memoize `puzzleAssets`** to prevent unnecessary re-creation and stabilize callback dependencies.
+- In `computeRating`, change the rotation check from `=== 0` to `=== 90`
+- Also update `buildDefaultLayout` to start pieces at `rotation: 90` so they look correct out of the box (before scrambling)
 
 ### File changes
-- **Edit**: `src/components/simpleassets/PuzzleBuilder.tsx`
-  - Add `const piecesRef = useRef(pieces)` and sync it: `useEffect(() => { piecesRef.current = pieces; }, [pieces]);`
-  - Memoize `puzzleAssets` with `useMemo`
-  - In `computeRating`, read from `piecesRef.current` instead of `pieces`
-  - Remove `pieces` from `computeRating`'s dependency array (it reads from ref now)
+**`src/components/simpleassets/PuzzleBuilder.tsx`**:
+1. `buildDefaultLayout`: change initial rotation from `0` to `90`
+2. `applyImportedState`: change fallback rotation from `0` to `90`
+3. `computeRating`: change `rotation === 0` check to `rotation === 90`
 
