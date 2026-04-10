@@ -894,10 +894,12 @@ export default function SimpleAssetsPage() {
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-tight max-w-3xl">
                 The Ultimate GPK Collection Manager
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl">
-                Three flexible views, a magnifying lens for every detail, a puzzle builder for Series 2 — plus pack opening, filtering, and drag-and-drop layouts.
-                Free to use, built by the <span className="text-cheese font-semibold">$CHEESE</span> team for the WAX community.
-              </p>
+               <p className="text-lg text-muted-foreground max-w-2xl">
+                 Flexible gpk.topps SimpleAssets and AtomicAssets collection manager. Includes pack openings with animation, transfer of SimpleAssets NFTs between accounts, a first of its kind Series 2 Puzzle Builder, collection binder option with placeholder AtomicHub links, and a special magnification tool to see, sort, and enjoy your digital GPK cards like never before!
+               </p>
+               <p className="text-lg text-muted-foreground max-w-2xl mt-2">
+                 Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
+               </p>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
                 <Wallet className="h-5 w-5 mr-2" />
                 Connect Wallet
