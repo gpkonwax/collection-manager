@@ -480,6 +480,7 @@ export default function SimpleAssetsPage() {
   const handleSnapshotToSaved = useCallback(() => {
     const ids = filtered.map(a => a.id);
     setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...ids, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
+    setLoadedLayoutName(null);
     setViewMode('saved');
     toast.success('Current view copied to Saved Collection — you can now rearrange and export');
   }, [filtered]);
