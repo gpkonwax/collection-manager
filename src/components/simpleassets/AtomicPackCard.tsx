@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
+import { AtomicPackBrowserDialog } from './AtomicPackBrowserDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 
 interface AtomicPackCardProps {
@@ -17,10 +18,13 @@ interface AtomicPackCardProps {
 export function AtomicPackCard({ pack, session, accountName, onSuccess }: AtomicPackCardProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
+  const [browserOpen, setBrowserOpen] = useState(false);
   const [openedAssetId, setOpenedAssetId] = useState<string | null>(null);
   const { executeTransaction } = useWaxTransaction(session);
 
-  const handleOpen = useCallback(async () => {
+  const hasMultiple = pack.count > 1;
+
+  const handleOpenSingle = useCallback(async () => {
     if (!session || pack.assetIds.length === 0) return;
     setIsOpening(true);
     const actor = String(session.actor);
@@ -37,6 +41,14 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
 
   const handleRevealComplete = useCallback((txId?: string | null) => { onSuccess?.(txId); }, [onSuccess]);
 
+  const handleClick = useCallback(() => {
+    if (hasMultiple) {
+      setBrowserOpen(true);
+    } else {
+      handleOpenSingle();
+    }
+  }, [hasMultiple, handleOpenSingle]);
+
   return (
     <>
       <Card className="bg-card border-border hover:border-primary/40 transition-colors">
@@ -45,14 +57,17 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
           <p className="font-bold text-foreground text-sm">{pack.name}</p>
           <p className="text-xs text-muted-foreground">{pack.cardsPerPack} cards per pack</p>
           <p className="text-lg font-mono text-primary">{pack.count}</p>
-          <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground" disabled={!session || isOpening || pack.count === 0} onClick={handleOpen}>
-            {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : 'Open Pack'}
+          <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground"
+            disabled={!session || isOpening || pack.count === 0} onClick={handleClick}>
+            {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
           </Button>
         </CardContent>
       </Card>
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
         accountName={accountName} session={session} onComplete={handleRevealComplete} />
+      <AtomicPackBrowserDialog open={browserOpen} onOpenChange={setBrowserOpen} pack={pack}
+        session={session} accountName={accountName} onSuccess={onSuccess} />
     </>
   );
 }
