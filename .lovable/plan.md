@@ -1,33 +1,27 @@
 
 
-## Update Atomic Pack Reveal: Fix Sound Label and Add Card Deal Animation
+## Add Pack Browser Dialog for AtomicAssets Packs
 
-### What's happening now
-1. **Sound naming**: `playRandomFart()` in `fartSounds.ts` plays `card-bell.mp3` — the function name is misleading but the bell sound is correct and matches Series 1/2
-2. **Card Deal Animation**: The mechanism already exists — `handlePackOpened` detects new assets after refetch and triggers `CardDealAnimation`. However, for atomic packs, the reveal dialog stays open after `claimunboxed`, blocking the deal animation from being visible. The dialog needs to auto-close after collecting so the cards fly into the grid.
+### Problem
+Series 1/2 packs already show "Open Packs" (plural) when the user owns more than one, opening a browser dialog to pick which pack to open. AtomicAssets packs (Food Fight, Crash Gordon, etc.) always show "Open Pack" and immediately open the first one regardless of count.
 
 ### Changes
 
-**`src/lib/fartSounds.ts`**
-- Rename function from `playRandomFart` to `playCardRevealSound` for clarity
-- Update all import references across the codebase
+**1. New file: `src/components/simpleassets/AtomicPackBrowserDialog.tsx`**
+- Mirror the existing `PackBrowserDialog` pattern but adapted for AtomicAssets
+- Props: `open`, `onOpenChange`, `pack: AtomicPack`, `session`, `accountName`, `onSuccess`
+- Paginated grid (10 per page) showing pack images with individual "Open" buttons
+- Each "Open" button picks the corresponding `assetId` from `pack.assetIds[idx]` and sends the `atomicassets::transfer` action to the unpack contract
+- On success, opens `AtomicPackRevealDialog` for that specific asset, decrements local count, removes the used asset ID
+- Auto-closes browser when no packs remain
 
-**`src/components/simpleassets/AtomicPackRevealDialog.tsx`**
-- After `claimunboxed` succeeds (phase becomes 'done'), auto-close the dialog after a brief delay (~1.5s) instead of requiring the user to click "Awesome! Close"
-- This lets `onComplete(txId)` flow through to `handlePackOpened`, which triggers the card deal animation once new assets are detected
-- Keep a brief "Cards Collected!" confirmation visible before auto-closing
+**2. Update `src/components/simpleassets/AtomicPackCard.tsx`**
+- Add `hasMultiple = pack.count > 1` check
+- When multiple: button text becomes "Open Packs", click opens `AtomicPackBrowserDialog`
+- When single: keep current direct-open behavior
+- Import and render the new `AtomicPackBrowserDialog`
 
-**`src/components/simpleassets/PackRevealDialog.tsx`**
-- Same auto-close treatment after collect succeeds (if not already doing this)
-- Update `playRandomFart` → `playCardRevealSound` import
-
-**`src/components/simpleassets/AtomicPackCard.tsx`**
-- Pass through `onComplete` callback correctly so the txId propagates to trigger the deal animation
-
-### Flow after fix
-1. User opens atomic pack → transfer + unbox transaction
-2. Reveal dialog: shake, tear, flip cards one-by-one with bell sounds
-3. User clicks "Collect Assets" → `claimunboxed` transaction
-4. Dialog briefly shows "Cards Collected!" then auto-closes
-5. Assets refetch detects new cards → Card Deal Animation plays (cards fly from stack to grid positions)
+### Flow
+- 1 pack owned: "Open Pack" button opens directly (unchanged)
+- 2+ packs owned: "Open Packs" button opens browser dialog with paginated grid, user picks which pack to open, reveal plays, then returns to browser to open more
 
