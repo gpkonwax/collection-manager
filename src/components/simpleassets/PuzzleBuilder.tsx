@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle, Timer, Flag } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -86,7 +86,7 @@ function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[
   return result;
 }
 
-export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: PuzzleBuilderProps) {
+export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder }: PuzzleBuilderProps) {
   const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
