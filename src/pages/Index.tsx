@@ -1229,6 +1229,7 @@ export default function SimpleAssetsPage() {
                   )}
                 </>
               )
+            )}
           </>
         )}
 
