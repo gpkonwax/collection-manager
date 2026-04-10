@@ -1,33 +1,41 @@
 
 
-## Tighten Puzzle Rating System
+## Fix Overly Harsh Puzzle Rating
 
 ### Problem
-The current rating is far too generous. A fully scrambled mess scores ~73/100 because:
-- **Time score** rewards hitting Finish immediately on a scrambled board (you get near-max 40 pts)
-- **Placement score** only penalizes overlapping pairs (-2 each), but scrambled pieces often don't overlap much since they're spread across the canvas
-- **Rotation score** gives ~7-8 pts just from the 25% of pieces that randomly land at 0°
+The rating swings from too generous (73 for scrambled) to too harsh (17 for nearly complete). Root causes:
 
-There's no check for whether pieces are actually in the **correct grid position**.
+1. **Rigid target grid**: Origin is hardcoded to (20, 20). If the user assembles the puzzle anywhere else on the canvas, every piece is "far from target" even if perfectly arranged relative to each other.
+2. **Position scaling too steep**: 200px average distance = 0 points. A slight offset kills the score.
+3. **Overlap too punitive**: Adjacent touching pieces in a correct grid trigger overlap detection because bounding box checks don't account for pieces meant to be side-by-side.
 
-### Solution — add target-position accuracy
+### Solution
 
-The 18 puzzle pieces form a 6×3 grid. We know the correct order (rows: 55-60, 66-71, 75-80). The rating should measure how close each piece is to its correct target cell.
+**Position scoring — use relative accuracy instead of absolute position**:
+- Find the "centroid" of all placed pieces, then compare each piece's position relative to centroid against the expected relative position from the ideal grid. This way the puzzle can be assembled anywhere on the canvas.
+- Increase the distance threshold from 200px to 400px so small offsets don't tank the score.
 
-### Revised scoring (100 pts total)
+**Overlap — add tolerance**:
+- Shrink bounding boxes by a few pixels (e.g. 8px inset) before overlap detection so adjacent touching pieces don't count as overlapping.
 
-| Category | Points | How |
-|----------|--------|-----|
-| **Time** | 0-20 | Same linear scale but halved weight (20 if ≤30s, 0 at 5min) |
-| **Rotation** | 0-20 | % of pieces at 0° × 20 |
-| **Position accuracy** | 0-40 | For each piece, measure distance from its correct grid cell. Full marks if average distance < 10px, scaling to 0 if average > 200px |
-| **Overlap penalty** | 0-20 | Start at 20, lose 3 per overlapping pair |
-
-**Grades**: A (90+), B (80+), C (70+), D (60+), F (<60)
-
-### Target grid
-Define a reference grid origin (e.g. top-left of canvas + padding). Each piece's target = `(col * pieceWidth, row * pieceHeight)` based on its card ID position in the sorted PUZZLE_CARD_IDS array.
+**Revised scoring stays at same weights** (Time 20, Rotation 20, Position 40, Overlap 20) but with fairer calculations.
 
 ### File changes
-- **Edit**: `src/components/simpleassets/PuzzleBuilder.tsx` — rewrite `computeRating` (~30 lines changed)
+- **Edit**: `src/components/simpleassets/PuzzleBuilder.tsx` — rewrite `computeRating` (~40 lines changed)
+
+### Technical detail
+
+```text
+Position scoring approach:
+1. Compute ideal relative offsets for each piece from grid center
+   idealRelX[i] = (idx % 6) * W - avgIdealX
+   idealRelY[i] = floor(idx / 6) * H - avgIdealY
+2. Compute actual centroid of placed pieces
+3. For each piece, compare (actualPos - centroid) vs (idealRel)
+4. Average distance → score with 400px threshold
+
+Overlap inset:
+- Check overlap with (x+4, y+4, w-8, h-8) boxes
+  so perfectly adjacent pieces don't trigger penalty
+```
 
