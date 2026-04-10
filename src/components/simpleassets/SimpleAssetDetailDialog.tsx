@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { useIpfsMedia } from '@/hooks/useIpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface Props {
@@ -29,6 +30,67 @@ function getMintDisplay(asset: SimpleAsset): string | null {
   return null;
 }
 
+const ZOOM = 2.5;
+const LENS_SIZE = 180;
+
+function ImageWithLens({ url, alt, isLandscape, className }: {
+  url: string;
+  alt: string;
+  isLandscape: boolean;
+  className?: string;
+}) {
+  const [hover, setHover] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { src: resolvedUrl } = useIpfsMedia(url, { context: 'detail', enabled: true });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setPos({ x, y });
+  };
+
+  // For landscape (rotated) images, swap coordinates for the lens background
+  const bgX = isLandscape ? pos.y : pos.x;
+  const bgY = isLandscape ? (100 - pos.x) : pos.y;
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onMouseMove={handleMouseMove}
+      style={{ cursor: hover ? 'crosshair' : 'default' }}
+    >
+      <IpfsMedia
+        url={url}
+        alt={alt}
+        className={`w-full h-full ${className || ''}`}
+        context="detail"
+        showSkeleton
+      />
+      {hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
+        <div
+          className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50"
+          style={{
+            width: LENS_SIZE,
+            height: LENS_SIZE,
+            left: `calc(${pos.x}% - ${LENS_SIZE / 2}px)`,
+            top: `calc(${pos.y}% - ${LENS_SIZE / 2}px)`,
+            backgroundImage: `url(${resolvedUrl})`,
+            backgroundSize: `${ZOOM * 100}%`,
+            backgroundPosition: `${bgX}% ${bgY}%`,
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
 
@@ -47,7 +109,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
 
-  // Series 1 backs are landscape — widen the modal
   const hasLandscapeBack = isSeries1 && images.length > 1;
   const modalMaxWidth = hasLandscapeBack ? 'sm:max-w-[1100px]' : 'sm:max-w-[900px]';
 
@@ -63,24 +124,16 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const isBack = i === 1;
             const isLandscape = isBack && isSeries1;
-            const media = (
-              <IpfsMedia
-                url={imgUrl}
-                alt={`${asset.name} - ${label}`}
-                className={`w-full h-full ${isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}`}
-                context="detail"
-                showSkeleton
-              />
-            );
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
                 <p className="text-xs font-semibold text-cheese text-center">{label}</p>
-                <div
-                  className={`${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}
-                >
-                  {media}
-                </div>
+                <ImageWithLens
+                  url={imgUrl}
+                  alt={`${asset.name} - ${label}`}
+                  isLandscape={isLandscape}
+                  className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
+                />
               </div>
             );
           })}
