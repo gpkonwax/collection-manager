@@ -8,6 +8,7 @@ import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/Pu
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BackgroundDecorations } from '@/components/BackgroundDecorations';
 import { Button } from '@/components/ui/button';
 import { useWax } from '@/context/WaxContext';
 import { useSimpleAssets } from '@/hooks/useSimpleAssets';
@@ -537,7 +538,8 @@ export default function SimpleAssetsPage() {
   const handleDragEnd = useCallback(() => { dragSourceIdx.current = null; setDragOverIdx(null); }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      <BackgroundDecorations />
       {/* Sticky header with account info */}
       {isConnected && accountName && (
         <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
