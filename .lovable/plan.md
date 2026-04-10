@@ -1,30 +1,39 @@
 
 
-## Remove card overlay text and fix container sizing in reveal dialogs
+## Puzzle Builder Tab for Series 2
 
-### Changes
+### Overview
+Add a "Puzzle Builder" tab that appears only when Series 2 is selected. It shows a free-form canvas where specific puzzle-piece cards (defined by card ID + side) display their **back image** with a semi-transparent card ID overlay. Cards can be dragged freely on the canvas and rotated in 90° steps via arrow buttons.
 
-**1. Remove the name/rarity overlay from both reveal card components**
+### New files
 
-Both `PackRevealDialog.tsx` and `AtomicPackRevealDialog.tsx` have a gradient overlay at the bottom of each card showing the card name and rarity text. Remove these overlay `div`s entirely (lines 75-78 in PackRevealDialog, lines 61-64 in AtomicPackRevealDialog).
+**`src/components/simpleassets/PuzzleBuilder.tsx`**
+- A new component containing the entire puzzle builder UI
+- Accepts the user's Series 2 assets and filters them against a configurable `PUZZLE_PIECES` list (array of `{ cardid, side }` objects — placeholder for now)
+- Renders a large canvas area with relative positioning
+- Each puzzle piece is rendered as a draggable card showing:
+  - The card back image (via `buildGpkCardBackUrl`)
+  - A semi-transparent card ID overlay (e.g. "12a") — no other info
+- Each piece tracks its own `{ x, y, rotation }` state
+- Drag uses `onMouseDown/Move/Up` (or pointer events) for free-form positioning
+- Two small arrow buttons (↻ / ↺) on hover/select rotate the card ±90°
+- CSS `transform: rotate(Ndeg)` for rotation
 
-**2. Fix the black border caused by `aspect-[2/3]` + `object-contain`**
+**`src/lib/puzzlePieces.ts`**
+- Exports `PUZZLE_PIECES: { cardid: number; side: string }[]` — a placeholder array you'll fill in later with the real card IDs
+- Single source of truth for which cards are puzzle pieces
 
-The container is forced to a 2:3 aspect ratio, but with `object-contain` the image letterboxes inside it, leaving black/dark gaps on the sides. Fix by removing the forced `aspect-[2/3]` on the outer wrapper and instead letting the image define its own size naturally, or by changing the `bg-card` background to transparent so no dark border shows around the contained image.
+### Changes to existing files
 
-The simpler fix: remove `bg-card` from the front face container (change to `bg-transparent`) so the gaps from `object-contain` are invisible against the dialog background.
+**`src/pages/Index.tsx`**
+- When `categoryFilter === 'series2'`, add a tab bar (using existing `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` from shadcn) with two tabs: **Collection** (default, current view) and **Puzzle Builder**
+- The Puzzle Builder tab renders `<PuzzleBuilder assets={filtered} />` where `filtered` is the Series 2 assets
+- All existing Series 2 UI (filters, binder, grid) stays inside the Collection tab unchanged
 
 ### Technical details
-
-**`src/components/simpleassets/PackRevealDialog.tsx`** — `RevealCardImage`:
-- Remove lines 75-78 (the gradient overlay div with name/rarity)
-- Line 68: change `bg-card` to `bg-transparent`
-
-**`src/components/simpleassets/AtomicPackRevealDialog.tsx`** — `AtomicRevealCardImage`:
-- Remove lines 61-64 (the gradient overlay div with name/rarity)
-- Line 54: change `bg-card` to `bg-transparent`
-
-### Files touched
-- `src/components/simpleassets/PackRevealDialog.tsx`
-- `src/components/simpleassets/AtomicPackRevealDialog.tsx`
+- Card back URLs come from `buildGpkCardBackUrl('gpktwoeight', cardid)` (Series 2 hash)
+- Puzzle piece positions stored in component state as `Map<string, {x, y, rotation}>` — no persistence needed initially
+- Rotation: 0°, 90°, 180°, 270° cycling via click on ↻/↺ buttons
+- Free-form drag via pointer events with `position: absolute` on a large scrollable container
+- Cards sized ~120×168px (2:3 ratio) to fit comfortably on canvas
 
