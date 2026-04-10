@@ -173,6 +173,10 @@ export default function SimpleAssetsPage() {
     setSelectedIds(new Set());
   }, []);
 
+  // --- Puzzle state for export/import ---
+  const [importedPuzzle, setImportedPuzzle] = useState<PuzzlePieceMap | null>(null);
+  const puzzleStateRef = useRef<PuzzlePieceMap>({});
+  const handlePuzzlePiecesChange = useCallback((state: PuzzlePieceMap) => { puzzleStateRef.current = state; }, []);
 
   // --- Deal animation state ---
   const preCollectIdsRef = useRef<Set<string>>(new Set());
