@@ -619,6 +619,7 @@ export default function SimpleAssetsPage() {
       )}
       <div className="container py-8 space-y-6">
         <BannerAd />
+        <div className="mb-6" />
 
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
