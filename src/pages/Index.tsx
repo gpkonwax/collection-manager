@@ -28,6 +28,7 @@ import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
+import { BannerAd } from '@/components/BannerAd';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
@@ -621,6 +622,8 @@ export default function SimpleAssetsPage() {
           <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
           <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
         </div>
+
+        <BannerAd />
 
         {!isConnected ? (
           <div className="space-y-16 py-8">
