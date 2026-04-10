@@ -1,30 +1,76 @@
 
 
-## Fix: Persist Card Order Across Series Switches
+## Three-Tab Layout: Classic, Collector Binder, Saved Collection
 
-### Problem
-Two issues are causing the order to revert when switching series:
+### Overview
+Replace the current 2-tab toggle (Classic View / Collector Binder) with 3 distinct tabs, each with a clear purpose:
 
-1. **Missing dependency**: The save-to-localStorage effect (line 400) is missing `variantFilter` in its dependency array, so changes made under a specific variant may save to the wrong key.
+1. **Classic** -- Read-only grid of your cards in default sort order. No drag-and-drop, no reordering, no save/load. Just your cards as they are.
+2. **Collector Binder** -- Existing binder view, unchanged. Shows template grid with owned/missing placeholders.
+3. **Saved** -- A dedicated tab for loading a JSON layout file and viewing cards in that saved arrangement. Save Layout button exports from here. Load Layout imports into here.
 
-2. **No in-memory fallback**: The load effect (line 457) reads only from localStorage. If a user drags cards around but the save hasn't committed yet (or if they want a purely session-based workflow), switching categories can lose unsaved state.
+This eliminates all the ordering persistence bugs by separating concerns: Classic never stores order, Binder never stores order, and Saved is purely driven by the loaded JSON.
 
-### Fix — `src/pages/Index.tsx`
+### Changes to `src/pages/Index.tsx`
 
-1. **Add `variantFilter` to save effect dependencies** (line 400) — ensures the order is saved under the correct key.
+**1. New state for the 3-tab view**
+- Replace `binderView` boolean with a `viewMode` state: `'classic' | 'binder' | 'saved'`
+- Add `savedOrder` state (`string[] | null`) that only gets populated when a user loads a JSON file
+- Remove `customOrder`, `sessionOrders`, `dragSourceIdx`, `dragOverIdx`, and all drag-and-drop handlers from the main flow -- they are no longer needed since Classic is read-only and Saved is JSON-driven
 
-2. **Add a session-level in-memory order cache** (`useRef<Map<string, string[]>>`) that stores every custom order by its storage key. This cache:
-   - Gets written to whenever `customOrder` changes (alongside the localStorage write)
-   - Gets checked first in `loadOrder` before falling back to localStorage
-   - Survives category/variant switches within the session
-   - Gets included in the JSON export alongside localStorage orders
+**2. Tab bar always shows 3 tabs** (not just when a category is selected)
+- Classic View (default)
+- Collector Binder (only enabled when a specific category is selected, since it needs templates)
+- Saved Collection
 
-This way, a user can reorder Series 1, switch to Series 2, reorder that, switch back — all orders stay in memory. When they hit "Save Layout", the export includes all session orders.
+**3. Classic tab rendering**
+- Shows `filtered` cards in their natural sort order (the existing `filtered` useMemo)
+- No `draggable` prop, no drag handlers
+- Selection mode still works for transfers
+- No Save/Load buttons in the header
 
-### Specific changes
+**4. Collector Binder tab**
+- Unchanged from current binder view behavior
+- No drag-and-drop (already the case)
 
-- Add `const sessionOrders = useRef(new Map<string, string[]>())` near line 389
-- In the save effect (line 395-400): also write to `sessionOrders.current.set(key, customOrder)` and add `variantFilter` to deps
-- In `loadOrder` (line 373-387): check `sessionOrders.current.get(key)` before `localStorage.getItem(key)`
-- In `handleExportLayout` (line 481-505): merge session orders into the export alongside localStorage orders
+**5. Saved tab rendering**
+- Shows a "Load Layout" button prominently if no layout is loaded
+- When a JSON is loaded, renders cards in the saved order using `savedOrder`
+- "Save Layout" button exports the current `savedOrder` (and any edits)
+- Drag-and-drop IS enabled here so users can rearrange their saved layout before re-exporting
+- Empty slots rendered as before
+
+**6. Header bar changes**
+- Move Save/Load Layout buttons out of the sticky header
+- Save Layout appears only in the Saved tab
+- Load Layout appears in the Saved tab (or as a prompt when no layout is loaded)
+
+**7. Cleanup**
+- Remove `sessionOrders` ref, `getStorageKey`, `loadOrder`, and all localStorage order persistence logic
+- Remove the `useEffect` that auto-saves `customOrder` to localStorage
+- The Saved tab handles its own state independently -- load from JSON, allow reorder, export to JSON
+
+### Technical detail
+
+```text
+viewMode state: 'classic' | 'binder' | 'saved'
+
+Classic tab:
+  cards = filtered (natural sort)
+  draggable = false
+  no order persistence
+
+Binder tab:
+  cards = binderGrid (template-based)
+  draggable = false
+  unchanged behavior
+
+Saved tab:
+  cards = savedOrder (from loaded JSON)
+  draggable = true (drag to reorder)
+  Save Layout = export savedOrder to JSON
+  Load Layout = import JSON into savedOrder
+```
+
+This completely separates the saved/custom ordering concern from the live collection view, eliminating the stale-order bugs entirely.
 
