@@ -8,7 +8,7 @@ interface MissingPuzzlePiecePlaceholderProps {
 }
 
 function getAtomicHubSearchUrl(cardId: number): string {
-  return `https://wax.atomichub.io/market?collection_name=gpk.topps&schema_name=series2&order=asc&sort=price&search_type=sales&immutable_data.cardid=${cardId}`;
+  return `https://wax.atomichub.io/market?collection_name=gpktwoeight&order=asc&sort=price&search_type=sales&immutable_data.cardid=${cardId}`;
 }
 
 export function MissingPuzzlePiecePlaceholder({ cardId }: MissingPuzzlePiecePlaceholderProps) {
