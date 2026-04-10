@@ -167,6 +167,11 @@ export default function SimpleAssetsPage() {
   const handlePuzzlePiecesChange = useCallback((state: PuzzlePieceMap) => { puzzleStateRef.current = state; }, []);
   const [series2SubTab, setSeries2SubTab] = useState<string>('collection');
 
+  const handleSwitchToBinder = useCallback(() => {
+    setViewMode('binder');
+    setSeries2SubTab('collection');
+  }, []);
+
   const preCollectIdsRef = useRef<Set<string>>(new Set());
   const pendingAnimationRef = useRef<{ txId: string | null } | null>(null);
   const assetsRef = useRef<SimpleAsset[]>([]);
@@ -1198,7 +1203,7 @@ export default function SimpleAssetsPage() {
                     )}
                   </TabsContent>
                   <TabsContent value="puzzle">
-                    <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} />
+                    <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} onSwitchToBinder={handleSwitchToBinder} />
                   </TabsContent>
                 </Tabs>
               ) : viewMode === 'saved' ? (
