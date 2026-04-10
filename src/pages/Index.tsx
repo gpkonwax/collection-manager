@@ -390,13 +390,9 @@ export default function SimpleAssetsPage() {
 
   const savedGridSlots = useMemo(() => {
     if (savedOrder === null) return [];
-    const trimmed = [...savedOrder];
-    while (trimmed.length > 0 && trimmed[trimmed.length - 1] === EMPTY) trimmed.pop();
-
-    const occupied = new Set(trimmed.filter((id) => id !== EMPTY));
+    const occupied = new Set(savedOrder.filter((id) => id !== EMPTY));
     const pendingSlots = dealingCards.map((card) => card.id).filter((id) => !occupied.has(id));
-
-    return [...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...trimmed, ...pendingSlots, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
+    return [...savedOrder, ...pendingSlots];
   }, [savedOrder, dealingCards]);
 
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
@@ -409,7 +405,8 @@ export default function SimpleAssetsPage() {
     if (!userFilename) return;
     const finalFilename = userFilename.toLowerCase().endsWith('.json') ? userFilename : `${userFilename}.json`;
     const puzzle = puzzleStateRef.current;
-    const blob = new Blob([JSON.stringify({ account: accountName, orders: { saved: savedOrder }, puzzle }, null, 2)], { type: 'application/json' });
+    const cleanOrder = savedOrder.filter(id => id !== EMPTY);
+    const blob = new Blob([JSON.stringify({ account: accountName, orders: { saved: cleanOrder }, puzzle }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = finalFilename; a.click();
@@ -449,7 +446,7 @@ export default function SimpleAssetsPage() {
           return;
         }
 
-        setSavedOrder(order);
+        setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
         setViewMode('saved');
 
         if (data.puzzle && typeof data.puzzle === 'object') {
@@ -477,7 +474,7 @@ export default function SimpleAssetsPage() {
 
   const handleSnapshotToSaved = useCallback(() => {
     const ids = filtered.map(a => a.id);
-    setSavedOrder(ids);
+    setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...ids, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
     setViewMode('saved');
     toast.success('Current view copied to Saved Collection — you can now rearrange and export');
   }, [filtered]);
