@@ -1,22 +1,43 @@
 
 
-## Speed up card deal animation to ~7 seconds per card
+## Add "Skip Animation" button to card deal animation
 
-Current timing: 4s sit + 4s fly + 2s land = 10s per card.
-Target: ~7s per card (~30% faster).
+### Change
 
-### Changes in `src/components/simpleassets/CardDealAnimation.tsx`
+Add a floating **Skip Animation** button positioned below the card stack. When clicked, it immediately marks all remaining cards as dealt and calls `onComplete`.
 
-Update the three timing constants:
+### Technical details
 
-```ts
-const SIT_DURATION = 2800;   // was 4000
-const FLY_DURATION = 2800;   // was 4000
-const LAND_PAUSE = 1400;     // was 2000
+**File: `src/components/simpleassets/CardDealAnimation.tsx`**
+
+1. Add a `handleSkip` callback that loops through all remaining undealt cards calling `onCardDealt(id)` for each, then calls `onComplete()`.
+
+2. Render a button below the card stack (below the card name area) with `pointer-events-auto` (since the parent container is `pointer-events-none`). Positioned using the same `stackX` / `STACK_Y` coordinates plus the card height offset.
+
+```tsx
+const handleSkip = useCallback(() => {
+  cards.slice(dealIndex).forEach(c => onCardDealt(c.id));
+  hasCompletedRef.current = true;
+  onComplete();
+}, [cards, dealIndex, onCardDealt, onComplete]);
 ```
 
-Total: 2.8 + 2.8 + 1.4 = 7.0 seconds per card.
+Button rendered inside the existing `fixed inset-0 z-50` container:
+```tsx
+<button
+  onClick={handleSkip}
+  className="fixed pointer-events-auto bg-card/90 hover:bg-card text-foreground text-xs font-semibold px-3 py-1.5 rounded-md border border-border shadow-md transition-colors"
+  style={{
+    left: stackX,
+    top: STACK_Y + cardSize.height + 44,
+    width: cardSize.width,
+    zIndex: 201,
+  }}
+>
+  Skip Animation
+</button>
+```
 
 ### Files touched
-- `src/components/simpleassets/CardDealAnimation.tsx` (3 constant values)
+- `src/components/simpleassets/CardDealAnimation.tsx`
 
