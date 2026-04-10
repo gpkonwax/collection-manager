@@ -259,20 +259,74 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm text-muted-foreground">
           {puzzleAssets.length} puzzle piece{puzzleAssets.length !== 1 ? 's' : ''} · Drag to position · Click arrows to rotate 90°
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
-          onClick={scramble}
-        >
-          <Shuffle className="h-4 w-4 mr-1" />
-          Scramble
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Checkbox
+              id="timer-toggle"
+              checked={timerEnabled}
+              onCheckedChange={(v) => {
+                setTimerEnabled(!!v);
+                if (!v) { setTimerRunning(false); setElapsedMs(0); setRatingResult(null); }
+              }}
+            />
+            <Label htmlFor="timer-toggle" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
+              <Timer className="h-3.5 w-3.5" /> Timer
+            </Label>
+          </div>
+          {timerEnabled && (
+            <span className={`font-mono text-sm tabular-nums ${timerRunning ? 'text-cheese' : 'text-muted-foreground'}`}>
+              {formatTime(elapsedMs)}
+            </span>
+          )}
+          {timerRunning && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-green-500/30 text-green-400 hover:border-green-500 hover:bg-green-500/10"
+              onClick={handleFinish}
+            >
+              <Flag className="h-4 w-4 mr-1" />
+              Finish
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={scramble}
+          >
+            <Shuffle className="h-4 w-4 mr-1" />
+            Scramble
+          </Button>
+        </div>
       </div>
+
+      {ratingResult && (
+        <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-4 flex items-center gap-6">
+          <div className="text-5xl font-bold text-cheese">{ratingResult.grade}</div>
+          <div className="flex-1 grid grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Speed</p>
+              <p className="font-medium text-foreground">{ratingResult.time}/40</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Rotation</p>
+              <p className="font-medium text-foreground">{ratingResult.rotation}/30</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Placement</p>
+              <p className="font-medium text-foreground">{ratingResult.placement}/30</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-foreground">{ratingResult.total}<span className="text-sm text-muted-foreground">/100</span></p>
+          </div>
+        </div>
+      )}
       <div
         ref={canvasRef}
         className="relative border border-border rounded-lg bg-muted/20 overflow-auto"
