@@ -142,6 +142,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.author === next.asset.author &&
     prev.asset.category === next.asset.category &&
     prev.asset.quality === next.asset.quality &&
+    prev.asset.side === next.asset.side &&
     prev.asset.source === next.asset.source &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
