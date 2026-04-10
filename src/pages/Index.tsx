@@ -331,6 +331,7 @@ export default function SimpleAssetsPage() {
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
   const [savedOrder, setSavedOrder] = useState<string[] | null>(null);
+  const [loadedLayoutName, setLoadedLayoutName] = useState<string | null>(null);
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -450,6 +451,7 @@ export default function SimpleAssetsPage() {
         }
 
         setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
+        setLoadedLayoutName(file.name);
         setViewMode('saved');
 
         if (data.puzzle && typeof data.puzzle === 'object') {
@@ -757,7 +759,12 @@ export default function SimpleAssetsPage() {
           <p className="text-sm text-muted-foreground">{validAssets.length} card{validAssets.length !== 1 ? 's' : ''} in saved layout</p>
           {renderSelectButton()}
           {selectionMode && renderSelectAllCheckbox(validSlots.filter(id => allAssetMap.has(id)))}
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex items-center gap-2">
+            {loadedLayoutName && (
+              <span className="text-xs px-2 py-1 rounded bg-cheese/10 border border-cheese/20 text-cheese truncate max-w-[200px]" title={loadedLayoutName}>
+                📄 {loadedLayoutName}
+              </span>
+            )}
             <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
               <Download className="h-4 w-4 mr-1" />Save Layout
             </Button>
