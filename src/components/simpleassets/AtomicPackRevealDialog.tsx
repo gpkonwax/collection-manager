@@ -264,7 +264,7 @@ export function AtomicPackRevealDialog({
             )}
             {phase === 'done' && (
               <div className="flex justify-center pt-2">
-                <Button onClick={handleClose} className="bg-primary hover:bg-primary/90 text-primary-foreground">Awesome! Close</Button>
+                <p className="text-sm text-muted-foreground animate-pulse">Closing...</p>
               </div>
             )}
           </div>
