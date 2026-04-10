@@ -240,6 +240,8 @@ export function PackRevealDialog({
       }, { transactPlugins: getTransactPlugins(session) });
       const txId = result?.resolved?.transaction?.id?.toString() || null;
       setPhase('done'); onComplete(txId);
+      // Auto-close after brief confirmation
+      setTimeout(() => onOpenChange(false), 1500);
     } catch (e) {
       console.error('[pack-reveal] getcards failed', e);
       closeWharfkitModals(); setTimeout(() => closeWharfkitModals(), 100);

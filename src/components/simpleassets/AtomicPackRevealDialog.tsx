@@ -178,6 +178,15 @@ export function AtomicPackRevealDialog({
     if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0 && rollIds.length > 0) setPhase('collect');
   }, [phase, revealedCount, newCards.length, rollIds]);
 
+  // Auto-close dialog after cards are collected
+  useEffect(() => {
+    if (phase !== 'done') return;
+    const timer = setTimeout(() => {
+      onOpenChange(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [phase, onOpenChange]);
+
   const handleCollect = useCallback(async () => {
     if (!session || !packAssetId || rollIds.length === 0) return;
     setPhase('collecting'); setCollectError(null);
