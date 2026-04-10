@@ -5,7 +5,7 @@ import { sanitizeUrl } from '@/lib/sanitizeUrl';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 
-const ROTATION_INTERVAL = 30_000; // 30 seconds for shared slot rotation
+const ROTATION_INTERVAL = 30_000;
 
 function getIpfsImageUrl(hash: string, gatewayIndex = 0): string {
   const gateway = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
@@ -22,7 +22,6 @@ function BannerSlot({ banner, className = '' }: BannerSlotProps) {
   const [gatewayIdx, setGatewayIdx] = useState(0);
   const [sharedGatewayIdx, setSharedGatewayIdx] = useState(0);
 
-  // Rotate shared banners every 30 seconds
   useEffect(() => {
     if (!banner.isShared || !banner.sharedIpfsHash) return;
     const interval = setInterval(() => setShowShared(prev => !prev), ROTATION_INTERVAL);
@@ -78,15 +77,14 @@ function BannerAdComponent() {
   const { data: banners, isLoading } = useBannerAds();
 
   if (isLoading || !banners || banners.length === 0) {
-    // Show placeholder linking to CheeseHub
     return (
       <div className="w-full max-w-5xl mx-auto px-4 mb-4">
         <div className="flex justify-center gap-4">
           <a
-            href="https://cheesehub.io/bannerads"
+            href="https://cheesehubwax.github.io/cheesehub/bannerads"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 max-w-[468px] h-[60px] rounded-lg border border-dashed border-cheese/20 bg-card/50 flex items-center justify-center text-xs text-muted-foreground hover:border-cheese/40 transition-colors"
+            className="max-w-[580px] w-full h-[150px] rounded-lg border border-dashed border-cheese/20 bg-card/50 flex items-center justify-center text-xs text-muted-foreground hover:border-cheese/40 transition-colors"
           >
             Advertise here — CheeseHub Banner Ads
           </a>
@@ -97,12 +95,12 @@ function BannerAdComponent() {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 mb-4">
-      <div className={`flex justify-center gap-4 ${banners.length === 1 ? '' : ''}`}>
+      <div className="flex justify-center gap-4">
         {banners.map(banner => (
           <BannerSlot
             key={banner.position}
             banner={banner}
-            className={`${banners.length === 1 ? 'max-w-[468px] h-[60px]' : 'flex-1 max-w-[468px] h-[60px]'}`}
+            className="max-w-[580px] w-full h-[150px]"
           />
         ))}
       </div>
