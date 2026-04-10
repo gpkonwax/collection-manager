@@ -1,18 +1,25 @@
-import { useState, useCallback, useRef, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect, PointerEvent as RPointerEvent } from 'react';
+import { RotateCw, RotateCcw, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
-interface PieceState {
+export interface PieceState {
   x: number;
   y: number;
   rotation: number; // 0, 90, 180, 270
 }
 
+/** Serializable puzzle state keyed by cardid (string) */
+export type PuzzlePieceMap = Record<string, PieceState>;
+
 interface PuzzleBuilderProps {
   assets: SimpleAsset[];
+  /** If provided, initialises piece positions from imported JSON (keyed by cardid) */
+  initialPieceState?: PuzzlePieceMap | null;
+  /** Called whenever piece state changes so parent can track it for export */
+  onPiecesChange?: (state: PuzzlePieceMap) => void;
 }
 
 function isPuzzlePiece(asset: SimpleAsset): boolean {
@@ -35,17 +42,71 @@ function deduplicateByCardId(assets: SimpleAsset[]): SimpleAsset[] {
   return result;
 }
 
-export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
+function getCardId(asset: SimpleAsset): number {
+  return typeof asset.cardid === 'string' ? parseInt(asset.cardid, 10) : (asset.cardid ?? 0);
+}
+
+function buildDefaultLayout(puzzleAssets: SimpleAsset[]): Map<string, PieceState> {
+  const m = new Map<string, PieceState>();
+  const cols = 6;
+  puzzleAssets.forEach((a, i) => {
+    m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 0 });
+  });
+  return m;
+}
+
+function applyImportedState(puzzleAssets: SimpleAsset[], imported: PuzzlePieceMap): Map<string, PieceState> {
+  const m = new Map<string, PieceState>();
+  const cols = 6;
+  puzzleAssets.forEach((a, i) => {
+    const cid = String(getCardId(a));
+    const saved = imported[cid];
+    if (saved) {
+      m.set(a.id, { x: saved.x, y: saved.y, rotation: saved.rotation });
+    } else {
+      m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 0 });
+    }
+  });
+  return m;
+}
+
+/** Convert internal Map<assetId, PieceState> to portable Record<cardid, PieceState> */
+function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[]): PuzzlePieceMap {
+  const result: PuzzlePieceMap = {};
+  for (const a of puzzleAssets) {
+    const s = pieces.get(a.id);
+    if (s) result[String(getCardId(a))] = s;
+  }
+  return result;
+}
+
+export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: PuzzleBuilderProps) {
   const puzzleAssets = deduplicateByCardId(assets.filter(isPuzzlePiece));
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
-    const m = new Map<string, PieceState>();
-    const cols = 6;
-    puzzleAssets.forEach((a, i) => {
-      m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 0 });
-    });
-    return m;
+    if (initialPieceState && Object.keys(initialPieceState).length > 0) {
+      return applyImportedState(puzzleAssets, initialPieceState);
+    }
+    return buildDefaultLayout(puzzleAssets);
   });
+
+  // Re-apply when initialPieceState changes (e.g. new import)
+  const prevInitial = useRef(initialPieceState);
+  useEffect(() => {
+    if (initialPieceState !== prevInitial.current) {
+      prevInitial.current = initialPieceState;
+      if (initialPieceState && Object.keys(initialPieceState).length > 0) {
+        const next = applyImportedState(puzzleAssets, initialPieceState);
+        setPieces(next);
+        onPiecesChange?.(toCardIdMap(next, puzzleAssets));
+      }
+    }
+  }, [initialPieceState, puzzleAssets, onPiecesChange]);
+
+  // Report changes to parent
+  const notifyParent = useCallback((map: Map<string, PieceState>) => {
+    onPiecesChange?.(toCardIdMap(map, puzzleAssets));
+  }, [onPiecesChange, puzzleAssets]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -58,9 +119,10 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
       const next = new Map(prev);
       const s = next.get(id) ?? { x: 0, y: 0, rotation: 0 };
       next.set(id, { ...s, rotation: (s.rotation + (dir === 'cw' ? 90 : 270)) % 360 });
+      notifyParent(next);
       return next;
     });
-  }, []);
+  }, [notifyParent]);
 
   const handlePointerDown = useCallback((id: string, e: RPointerEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -84,8 +146,33 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
   }, []);
 
   const handlePointerUp = useCallback(() => {
-    dragging.current = null;
-  }, []);
+    if (dragging.current) {
+      dragging.current = null;
+      // Notify parent after drag ends
+      setPieces(prev => {
+        notifyParent(prev);
+        return prev;
+      });
+    }
+  }, [notifyParent]);
+
+  const scramble = useCallback(() => {
+    const canvasW = canvasRef.current?.clientWidth ?? 800;
+    const canvasH = canvasRef.current?.clientHeight ?? 500;
+    const rotations = [0, 90, 180, 270];
+    setPieces(prev => {
+      const next = new Map(prev);
+      for (const [id] of next) {
+        next.set(id, {
+          x: Math.floor(Math.random() * Math.max(canvasW - 140, 100)),
+          y: Math.floor(Math.random() * Math.max(canvasH - 190, 100)),
+          rotation: rotations[Math.floor(Math.random() * 4)],
+        });
+      }
+      notifyParent(next);
+      return next;
+    });
+  }, [notifyParent]);
 
   if (puzzleAssets.length === 0) {
     return (
@@ -98,9 +185,20 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {puzzleAssets.length} puzzle piece{puzzleAssets.length !== 1 ? 's' : ''} · Drag to position · Click arrows to rotate 90°
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {puzzleAssets.length} puzzle piece{puzzleAssets.length !== 1 ? 's' : ''} · Drag to position · Click arrows to rotate 90°
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+          onClick={scramble}
+        >
+          <Shuffle className="h-4 w-4 mr-1" />
+          Scramble
+        </Button>
+      </div>
       <div
         ref={canvasRef}
         className="relative border border-border rounded-lg bg-muted/20 overflow-auto"
@@ -110,8 +208,8 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
       >
         {puzzleAssets.map(asset => {
           const s = getState(asset.id);
-          const cardid = typeof asset.cardid === 'string' ? parseInt(asset.cardid, 10) : asset.cardid;
-          const backUrl = buildGpkCardBackUrl('gpktwoeight', cardid ?? 0);
+          const cardid = getCardId(asset);
+          const backUrl = buildGpkCardBackUrl('gpktwoeight', cardid);
           const isSelected = selectedId === asset.id;
 
           return (
@@ -129,7 +227,6 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
               onPointerDown={(e) => handlePointerDown(asset.id, e)}
               onClick={() => setSelectedId(asset.id)}
             >
-              {/* Card back image */}
               <div className={`w-full h-full rounded-md overflow-hidden border-2 transition-colors ${isSelected ? 'border-cheese shadow-lg shadow-cheese/20' : 'border-border'}`}>
                 {backUrl ? (
                   <img
@@ -141,7 +238,6 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
                 ) : (
                   <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">No image</div>
                 )}
-                {/* Card ID overlay */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className="text-2xl font-bold text-foreground/30 select-none">
                     {cardid}
@@ -149,7 +245,6 @@ export function PuzzleBuilder({ assets }: PuzzleBuilderProps) {
                 </div>
               </div>
 
-              {/* Rotation controls - visible on hover or selected */}
               <div
                 className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                 style={{ transform: `translateX(-50%) rotate(-${s.rotation}deg)` }}
