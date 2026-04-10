@@ -70,7 +70,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
     // Only play tear once per dialog open
     if (tearPlayedRef.current) return;
 
-    const shouldPlayTear = open && !isShaking && (phase === 'waiting' || (phase === 'revealing' && revealedCount === 0));
+    const shouldPlayTear = open && hasStartedShakingRef.current && !isShaking && (phase === 'waiting' || (phase === 'revealing' && revealedCount === 0));
 
     if (shouldPlayTear) {
       tearPlayedRef.current = true;
