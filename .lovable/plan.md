@@ -1,35 +1,30 @@
 
 
-## Fix Stale Sort Order When Switching Variant Filter
+## Fix: Persist Card Order Across Series Switches
 
 ### Problem
-When switching between variant filters (e.g., selecting specific variants then back to "All Variants"), the card sort order appears mixed up. This happens because:
+Two issues are causing the order to revert when switching series:
 
-1. The localStorage key for custom drag-and-drop order is `gpk-order-{account}-{category}-{source}` — it does NOT include the variant filter
-2. When you drag-reorder cards while viewing a specific variant, that partial order gets saved
-3. Switching back to "All" loads that same partial order, appends missing cards unsorted at the end, producing a jumbled result
+1. **Missing dependency**: The save-to-localStorage effect (line 400) is missing `variantFilter` in its dependency array, so changes made under a specific variant may save to the wrong key.
 
-### Fix
+2. **No in-memory fallback**: The load effect (line 457) reads only from localStorage. If a user drags cards around but the save hasn't committed yet (or if they want a purely session-based workflow), switching categories can lose unsaved state.
 
-**`src/pages/Index.tsx`** — two changes:
+### Fix — `src/pages/Index.tsx`
 
-1. **Include `variantFilter` in the storage key** so each variant selection gets its own saved order:
-   - Change `getStorageKey` to include a variant key component (sorted, joined variant values)
-   - This prevents cross-contamination between variant filter states
+1. **Add `variantFilter` to save effect dependencies** (line 400) — ensures the order is saved under the correct key.
 
-2. **When `loadOrder` returns `null` (no saved order), don't set `customOrder` to `null`** — this is already correct (falls back to `filtered` order). But we need to ensure the `useEffect` doesn't re-trigger unnecessarily by stabilizing the `filtered` dependency. Add a stable identity check: only call `setCustomOrder` when the loaded order actually differs from the current one.
+2. **Add a session-level in-memory order cache** (`useRef<Map<string, string[]>>`) that stores every custom order by its storage key. This cache:
+   - Gets written to whenever `customOrder` changes (alongside the localStorage write)
+   - Gets checked first in `loadOrder` before falling back to localStorage
+   - Survives category/variant switches within the session
+   - Gets included in the JSON export alongside localStorage orders
+
+This way, a user can reorder Series 1, switch to Series 2, reorder that, switch back — all orders stay in memory. When they hit "Save Layout", the export includes all session orders.
 
 ### Specific changes
 
-```
-// Line 368-369: Add variantFilter to storage key
-const getStorageKey = useCallback((cat: string, src: string, variants: string[]) => {
-  const vKey = [...variants].sort().join(',');
-  return `gpk-order-${accountName}-${cat}-${src}-${vKey}`;
-}, [accountName]);
-```
-
-Update all call sites of `getStorageKey` (lines 396, 456, 515) to pass `variantFilter`.
-
-Also stabilize the `useEffect` on lines 455-458 to avoid unnecessary re-runs by comparing the new order to the current one before calling `setCustomOrder`.
+- Add `const sessionOrders = useRef(new Map<string, string[]>())` near line 389
+- In the save effect (line 395-400): also write to `sessionOrders.current.set(key, customOrder)` and add `variantFilter` to deps
+- In `loadOrder` (line 373-387): check `sessionOrders.current.get(key)` before `localStorage.getItem(key)`
+- In `handleExportLayout` (line 481-505): merge session orders into the export alongside localStorage orders
 
