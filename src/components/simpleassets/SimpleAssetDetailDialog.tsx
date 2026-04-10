@@ -31,7 +31,7 @@ function getMintDisplay(asset: SimpleAsset): string | null {
   return null;
 }
 
-const ZOOM = 5;
+const ZOOM = 4;
 const LENS_SIZE = 220;
 
 function ImageWithLens({ url, alt, isLandscape, className }: {
