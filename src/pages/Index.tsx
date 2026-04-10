@@ -365,12 +365,14 @@ export default function SimpleAssetsPage() {
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
   // --- Grid / drag / filter state ---
-  const getStorageKey = useCallback((cat: string, src: string) =>
-    `gpk-order-${accountName}-${cat}-${src}`, [accountName]);
+  const getStorageKey = useCallback((cat: string, src: string, variants: string[] = ['all']) => {
+    const vKey = [...variants].sort().join(',');
+    return `gpk-order-${accountName}-${cat}-${src}-${vKey}`;
+  }, [accountName]);
 
-  const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[]): string[] | null => {
+  const loadOrder = useCallback((cat: string, src: string, currentFiltered: SimpleAsset[], variants: string[] = ['all']): string[] | null => {
     try {
-      const raw = localStorage.getItem(getStorageKey(cat, src));
+      const raw = localStorage.getItem(getStorageKey(cat, src, variants));
       if (!raw) return null;
       const saved: string[] = JSON.parse(raw);
       if (!Array.isArray(saved)) return null;
@@ -393,7 +395,7 @@ export default function SimpleAssetsPage() {
   useEffect(() => {
     if (!accountName || customOrder === null) return;
     try {
-      localStorage.setItem(getStorageKey(categoryFilter, sourceFilter), JSON.stringify(customOrder));
+      localStorage.setItem(getStorageKey(categoryFilter, sourceFilter, variantFilter), JSON.stringify(customOrder));
     } catch { /* storage full */ }
   }, [customOrder, accountName, categoryFilter, sourceFilter, getStorageKey]);
 
@@ -453,9 +455,14 @@ export default function SimpleAssetsPage() {
 
 
   useEffect(() => {
-    const saved = loadOrder(categoryFilter, sourceFilter, filtered);
-    setCustomOrder(saved);
-  }, [categoryFilter, sourceFilter, search, filtered, loadOrder]);
+    const saved = loadOrder(categoryFilter, sourceFilter, filtered, variantFilter);
+    setCustomOrder(prev => {
+      if (saved === null && prev === null) return null;
+      if (saved === null) return null;
+      if (prev !== null && saved.length === prev.length && saved.every((id, i) => id === prev[i])) return prev;
+      return saved;
+    });
+  }, [categoryFilter, sourceFilter, search, filtered, loadOrder, variantFilter]);
 
   const gridSlots = useMemo(() => {
     const base = customOrder ?? filtered.map((a) => a.id);
@@ -512,7 +519,7 @@ export default function SimpleAssetsPage() {
           }
         }
         // Reload current view's order
-        const saved = loadOrder(categoryFilter, sourceFilter, filtered);
+        const saved = loadOrder(categoryFilter, sourceFilter, filtered, variantFilter);
         setCustomOrder(saved);
         // Load puzzle state if present
         if (data.puzzle && typeof data.puzzle === 'object') {
