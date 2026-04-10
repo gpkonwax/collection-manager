@@ -13,6 +13,7 @@ export interface SimpleAsset {
   images: string[];
   cardid: string;
   quality: string;
+  side: string;
   idata: Record<string, unknown>;
   mdata: Record<string, unknown>;
   container: unknown[];
