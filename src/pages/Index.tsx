@@ -455,7 +455,7 @@ export default function SimpleAssetsPage() {
 
 
   useEffect(() => {
-    const saved = loadOrder(categoryFilter, sourceFilter, filtered);
+    const saved = loadOrder(categoryFilter, sourceFilter, filtered, variantFilter);
     setCustomOrder(prev => {
       if (saved === null && prev === null) return null;
       if (saved === null) return null;
@@ -519,7 +519,7 @@ export default function SimpleAssetsPage() {
           }
         }
         // Reload current view's order
-        const saved = loadOrder(categoryFilter, sourceFilter, filtered);
+        const saved = loadOrder(categoryFilter, sourceFilter, filtered, variantFilter);
         setCustomOrder(saved);
         // Load puzzle state if present
         if (data.puzzle && typeof data.puzzle === 'object') {
