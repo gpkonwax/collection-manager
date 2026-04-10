@@ -1,40 +1,34 @@
 
 
-## Lock Puzzle Builder Until All 18 Pieces Are Collected
+## Show Puzzle Piece Binder Inside Puzzle Builder Tab
 
 ### What changes
 
-**1. Lock the Puzzle Builder tab when pieces are incomplete**
-- When the user clicks the "Puzzle Builder" tab and owns fewer than 18 puzzle pieces, show a dialog/overlay instead of the canvas
-- The message: "You have X of 18 puzzle pieces. Collect them all to attempt the puzzle!"
-- Include a button to switch to the Collection Binder view to see which pieces are missing
+Instead of switching the user away to the Collection Binder tab, the locked state in the Puzzle Builder will include an inline binder grid showing all 18 puzzle pieces in order. Owned pieces display as normal cards; missing pieces show as greyed-out placeholders with AtomicHub buy links.
 
-**2. Show missing puzzle piece placeholders in Collection Binder**
-- When viewing the binder in Series 2 and the user clicks from the puzzle tab (or just generally in binder mode), show placeholder cards for the missing puzzle piece card IDs
-- Each placeholder shows the card back image (using `buildGpkCardBackUrl`) with a greyed-out/dimmed style and an AtomicHub market link to buy the missing piece
-- Reuse the existing `ExternalLinkWarningDialog` pattern from `MissingCardPlaceholder`
+When the user has all 18 pieces, the puzzle canvas shows as normal (no change).
 
 ### File changes
 
 **`src/components/simpleassets/PuzzleBuilder.tsx`**
-- Add logic at the top of the component: count owned puzzle pieces vs total 18
-- If count < 18, render a locked state UI (centered message with piece count, puzzle icon, and a "View in Binder" button) instead of the canvas
-- Accept a new optional prop `onSwitchToBinder?: () => void` to let the parent handle tab switching
+- In the locked state block (lines 288-311), replace the simple "View in Collection Binder" button with an inline grid of all 18 `PUZZLE_CARD_IDS`
+- For each card ID: if the user owns it, render the card back image in full color; if missing, render `MissingPuzzlePiecePlaceholder`
+- Add a progress indicator (e.g. "12 / 18 collected")
+- Remove the `onSwitchToBinder` prop (no longer needed)
 
 **`src/pages/Index.tsx`**
-- Track the inner Series 2 tab state (`collection` vs `puzzle`) with a controlled state variable
-- Pass an `onSwitchToBinder` callback to `PuzzleBuilder` that switches to binder view mode and the collection sub-tab
-- In the binder view for Series 2, identify which of the 18 `PUZZLE_CARD_IDS` the user is missing and render placeholder back-image cards for them (in a dedicated "Missing Puzzle Pieces" section or inline)
+- Remove `handleSwitchToBinder` callback and `onSwitchToBinder` prop from `<PuzzleBuilder>`
+- Remove `series2SubTab` state (the puzzle tab can keep its own internal binder)
+- Keep the existing Missing Puzzle Pieces section in the main Collection Binder as-is (it's still useful there)
 
-**`src/components/simpleassets/MissingPuzzlePiecePlaceholder.tsx`** (new file)
-- A simpler variant of `MissingCardPlaceholder` specifically for puzzle pieces
-- Shows the card back image via `buildGpkCardBackUrl('gpktwoeight', cardId)` in greyscale
-- Overlays "Buy on AtomicHub" link pointing to the AtomicHub market filtered by the appropriate template
-- Uses `ExternalLinkWarningDialog` for safe external navigation
+**`src/components/simpleassets/MissingPuzzlePiecePlaceholder.tsx`**
+- No changes needed — reused as-is inside PuzzleBuilder
 
-### Technical notes
-- `PUZZLE_CARD_IDS` from `src/lib/puzzlePieces.ts` has all 18 IDs
-- The `isPuzzlePiece` and `deduplicateByCardId` helpers already exist in `PuzzleBuilder.tsx` and can be reused/exported
-- Card back URLs use `buildGpkCardBackUrl('gpktwoeight', cardid)` — same as the puzzle canvas already does
-- For the AtomicHub link on missing pieces, we need the template ID. Since puzzle pieces are SimpleAssets (not AtomicAssets), we can link to the general Series 2 market page or use card ID in the search. If binder templates are available for these IDs, we can use their template IDs directly.
+### How the inline binder works
+
+The locked state renders a 6-column grid of all 18 puzzle piece IDs in order. For each ID:
+- **Owned**: Show the card back image (`buildGpkCardBackUrl`) at full brightness with a green checkmark badge
+- **Missing**: Render `<MissingPuzzlePiecePlaceholder cardId={id} />` (greyed out, links to AtomicHub)
+
+A progress bar or count ("12 / 18 puzzle pieces collected") sits above the grid with the lock message.
 
