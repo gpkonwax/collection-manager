@@ -142,7 +142,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     if (totalPieces === 0) return;
 
     const W = 120, H = 168;
-    const INSET = 8; // px tolerance for overlap detection
+    const INSET = 20; // px tolerance for overlap detection
 
     // Time score (0-20): 20 if under 30s, linear to 0 at 300s
     const secs = elapsedMs / 1000;
@@ -176,7 +176,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
       totalDist += Math.sqrt(Math.pow(actualRelX - idealRelX, 2) + Math.pow(actualRelY - idealRelY, 2));
     }
     const avgDist = totalDist / totalPieces;
-    const positionScore = Math.max(0, 40 - (avgDist / 400) * 40);
+    const positionScore = Math.max(0, 40 - (avgDist / 600) * 40);
 
     // Overlap penalty (0-20): lose 3 per overlapping pair, with inset tolerance
     let overlapCount = 0;
@@ -193,10 +193,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
         }
       }
     }
-    const overlapScore = Math.max(0, 20 - overlapCount * 3);
+    const overlapScore = Math.max(0, 20 - overlapCount * 1.5);
 
     const total = Math.round(timeScore + rotationScore + positionScore + overlapScore);
-    const grade = total >= 90 ? 'A' : total >= 80 ? 'B' : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
+    const grade = total >= 80 ? 'A' : total >= 65 ? 'B' : total >= 50 ? 'C' : total >= 35 ? 'D' : 'F';
 
     setRatingResult({
       time: Math.round(timeScore),
