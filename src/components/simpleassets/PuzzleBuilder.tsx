@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, PointerEvent as RPointerEvent } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
 import { RotateCw, RotateCcw, Shuffle, Timer, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -83,7 +83,7 @@ function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[
 }
 
 export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: PuzzleBuilderProps) {
-  const puzzleAssets = deduplicateByCardId(assets.filter(isPuzzlePiece));
+  const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
     if (initialPieceState && Object.keys(initialPieceState).length > 0) {
@@ -113,6 +113,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const piecesRef = useRef(pieces);
+  useEffect(() => { piecesRef.current = pieces; }, [pieces]);
 
   // Timer race mode
   const [timerEnabled, setTimerEnabled] = useState(false);
@@ -141,6 +143,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     const totalPieces = puzzleAssets.length;
     if (totalPieces === 0) return;
 
+    const currentPieces = piecesRef.current;
     const W = 120, H = 168;
     const INSET = 20; // px tolerance for overlap detection
 
@@ -149,11 +152,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     const timeScore = secs <= 30 ? 20 : Math.max(0, 20 - ((secs - 30) / 270) * 20);
 
     // Rotation score (0-20): % of pieces at 0°
-    const correctRotation = puzzleAssets.filter(a => (pieces.get(a.id)?.rotation ?? 0) === 0).length;
+    const correctRotation = puzzleAssets.filter(a => (currentPieces.get(a.id)?.rotation ?? 0) === 0).length;
     const rotationScore = (correctRotation / totalPieces) * 20;
 
     // Position accuracy (0-40): relative to centroid, not absolute grid origin
-    // 1. Compute ideal relative offsets from grid center
     const idealPositions = puzzleAssets.map(asset => {
       const idx = PUZZLE_CARD_IDS.indexOf(getCardId(asset));
       return { x: (idx % 6) * W, y: Math.floor(idx / 6) * H };
@@ -161,12 +163,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     const avgIdealX = idealPositions.reduce((s, p) => s + p.x, 0) / totalPieces;
     const avgIdealY = idealPositions.reduce((s, p) => s + p.y, 0) / totalPieces;
 
-    // 2. Compute actual centroid of placed pieces
-    const actualPositions = puzzleAssets.map(a => pieces.get(a.id) ?? { x: 0, y: 0, rotation: 0 });
+    const actualPositions = puzzleAssets.map(a => currentPieces.get(a.id) ?? { x: 0, y: 0, rotation: 0 });
     const avgActualX = actualPositions.reduce((s, p) => s + p.x, 0) / totalPieces;
     const avgActualY = actualPositions.reduce((s, p) => s + p.y, 0) / totalPieces;
 
-    // 3. Compare each piece's relative offset vs ideal relative offset
     let totalDist = 0;
     for (let i = 0; i < totalPieces; i++) {
       const idealRelX = idealPositions[i].x - avgIdealX;
@@ -178,7 +178,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
     const avgDist = totalDist / totalPieces;
     const positionScore = Math.max(0, 40 - (avgDist / 600) * 40);
 
-    // Overlap penalty (0-20): lose 3 per overlapping pair, with inset tolerance
+    // Overlap penalty (0-20): lose 1.5 per overlapping pair, with inset tolerance
     let overlapCount = 0;
     for (let i = 0; i < actualPositions.length; i++) {
       for (let j = i + 1; j < actualPositions.length; j++) {
@@ -206,7 +206,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange }: Puz
       total,
       grade,
     });
-  }, [pieces, elapsedMs, puzzleAssets]);
+  }, [puzzleAssets, elapsedMs]);
 
   const handleFinish = useCallback(() => {
     setTimerRunning(false);
