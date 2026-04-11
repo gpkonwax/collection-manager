@@ -645,6 +645,25 @@ export default function SimpleAssetsPage() {
     );
   };
 
+  const renderCompletionBar = () => {
+    if (!accountName) return null;
+    const key = categoryFilter === 'all' ? 'overall' : categoryFilter;
+    const entry = completion[key];
+    if (!entry) return null;
+    const label = categoryFilter === 'all' ? 'Overall' : (CATEGORY_LABELS[categoryFilter] || categoryFilter);
+    return (
+      <div className="flex items-center gap-2 mx-auto">
+        <span className="text-sm font-medium text-cheese whitespace-nowrap">
+          {label}: {entry.percent}%
+        </span>
+        <Progress value={entry.percent} className="w-24 h-2 bg-muted" />
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {entry.owned}/{entry.total}
+        </span>
+      </div>
+    );
+  };
+
   const renderBinderSections = (grid: NonNullable<typeof binderGrid>, useGrouped: boolean) => {
     const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
     const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
@@ -714,6 +733,7 @@ export default function SimpleAssetsPage() {
         <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
         {renderSelectButton()}
         {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
+        {renderCompletionBar()}
         <Button
           onClick={handleSnapshotToSaved}
           variant="outline"
@@ -785,6 +805,7 @@ export default function SimpleAssetsPage() {
             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
             {binderLoading && ' (loading templates...)'}
           </p>
+          {renderCompletionBar()}
           {renderSelectButton()}
           {renderSelectAllCheckbox(visibleOwned)}
         </div>
@@ -1080,24 +1101,7 @@ export default function SimpleAssetsPage() {
 
             {error && <p className="text-center text-destructive py-8">Error: {error}</p>}
 
-            {/* Collection Completion */}
-            {accountName && (() => {
-              const key = categoryFilter === 'all' ? 'overall' : categoryFilter;
-              const entry = completion[key];
-              if (!entry) return null;
-              const label = categoryFilter === 'all' ? 'Overall' : (CATEGORY_LABELS[categoryFilter] || categoryFilter);
-              return (
-                <div className="flex items-center gap-3 justify-end">
-                  <span className="text-sm font-medium text-cheese whitespace-nowrap">
-                    {label}: {entry.percent}%
-                  </span>
-                  <Progress value={entry.percent} className="w-32 h-2 bg-muted" />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {entry.owned}/{entry.total}
-                  </span>
-                </div>
-              );
-            })()}
+            {/* Completion bar removed - now shown in view rows */}
 
             {!packsLoading && packs.filter((p) => categoryFilter === 'all' || PACK_CATEGORY_MAP[p.symbol] === categoryFilter).length > 0 && (
               <div className="space-y-3">
@@ -1243,6 +1247,7 @@ export default function SimpleAssetsPage() {
                             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                             {binderLoading && ' (loading templates...)'}
                           </p>
+                          {renderCompletionBar()}
                           {renderSelectButton()}
                           {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
                         </div>
