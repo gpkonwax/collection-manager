@@ -134,6 +134,13 @@ export function PackRevealDialog({
     }
   }, [open]);
 
+  // Escape hatch: show close button after 60s of waiting
+  useEffect(() => {
+    if (!open || phase !== 'waiting') { setShowEscape(false); return; }
+    const timer = setTimeout(() => setShowEscape(true), 60000);
+    return () => clearTimeout(timer);
+  }, [open, phase]);
+
   // Demo mode
   useEffect(() => {
     if (!open || phase !== 'waiting' || !demoCards || demoCards.length === 0) return;
