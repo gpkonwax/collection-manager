@@ -758,7 +758,7 @@ export default function SimpleAssetsPage() {
 
   const renderClassicView = () => (
     <>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 relative z-10 mb-4">
         <div className="flex items-center gap-3 flex-1">
           <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
           {renderSelectButton()}
@@ -835,7 +835,7 @@ export default function SimpleAssetsPage() {
     const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
     return (
       <>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative z-10 mb-4">
           <div className="flex items-center gap-3 flex-1">
             <p className="text-sm text-muted-foreground">
               {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
@@ -882,7 +882,7 @@ export default function SimpleAssetsPage() {
 
     return (
       <>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative z-10 mb-4">
           <div className="flex items-center gap-3 flex-1">
             <p className="text-sm text-muted-foreground">{visibleAssets.length} card{visibleAssets.length !== 1 ? 's' : ''} in saved layout</p>
             {renderSelectButton()}
@@ -1308,7 +1308,7 @@ export default function SimpleAssetsPage() {
                   <TabsContent value="collection">
                     {viewMode === 'binder' && binderGrid ? (
                       <>
-                        <div className="flex items-center gap-3 mb-4">
+                        <div className="flex items-center gap-3 mb-4 relative z-10">
                           <div className="flex items-center gap-3 flex-1">
                             <p className="text-sm text-muted-foreground">
                               {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
