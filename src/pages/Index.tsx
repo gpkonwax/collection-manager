@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -599,19 +601,47 @@ export default function SimpleAssetsPage() {
   const renderBinderCard = useCallback(({ template, owned }: { template: any; owned: SimpleAsset[] | null }) => {
     if (owned && owned.length > 0) {
       const asset = owned[0];
-      const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
+      const allIds = owned.map(a => a.id);
+      const isAnyInFlight = allIds.some(id => dealingCardIds.has(id) && !dealtIds.has(id));
+      const anyJustLanded = allIds.some(id => dealtIds.has(id));
 
-      if (isInFlight) {
+      // Register ALL asset IDs in this slot to the same DOM element
+      const refCallback = (el: HTMLDivElement | null) => {
+        allIds.forEach(id => {
+          if (el) gridCellRefs.current.set(id, el);
+          else gridCellRefs.current.delete(id);
+        });
+      };
+
+      if (isAnyInFlight) {
+        // Frozen silhouette: grayscale image of the card, no overlay/animation
         return (
           <div
             key={`binder-${template.templateId}`}
-            ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
-            className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
-          />
+            ref={refCallback}
+          >
+            <Card className="overflow-hidden bg-card/30 border-border/30 opacity-50">
+              <div className="aspect-square bg-muted/10 flex items-center justify-center overflow-hidden">
+                <IpfsMedia
+                  url={template.image}
+                  alt={template.name}
+                  className="w-full h-full grayscale brightness-50"
+                  context="card"
+                  loading="eager"
+                />
+              </div>
+              <CardContent className="p-3 space-y-1">
+                <p className="text-sm font-semibold text-foreground/50 truncate">{template.name}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/50 text-accent-foreground/50">{template.variant || template.schema}</span>
+                  <span className="text-[10px] text-muted-foreground/50">#{template.cardid}{template.quality ? template.quality.toUpperCase() : ''}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         );
       }
 
-      const justLanded = dealtIds.has(asset.id);
       const handleClick = () => {
         if (owned.length > 1 && !selectionMode) {
           setStackedAssets(owned);
@@ -621,17 +651,18 @@ export default function SimpleAssetsPage() {
         }
       };
       return (
-        <SimpleAssetCard
-          key={`binder-${template.templateId}`}
-          asset={asset}
-          onClick={handleClick}
-          draggable={false}
-          stackCount={owned.length}
-          selectionMode={selectionMode}
-          selected={selectedIds.has(asset.id)}
-          onSelect={toggleSelection}
-          className={justLanded ? 'animate-card-glow' : ''}
-        />
+        <div key={`binder-${template.templateId}`} ref={refCallback}>
+          <SimpleAssetCard
+            asset={asset}
+            onClick={handleClick}
+            draggable={false}
+            stackCount={owned.length}
+            selectionMode={selectionMode}
+            selected={selectedIds.has(asset.id)}
+            onSelect={toggleSelection}
+            className={anyJustLanded ? 'animate-card-glow' : ''}
+          />
+        </div>
       );
     }
     return (
