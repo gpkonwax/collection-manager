@@ -54,15 +54,15 @@ const PACK_CONFIG: Record<string, PackConfig> = {
 
 /** Fallback metadata for packs when user owns 0 (so we can still show the artwork) */
 const PACK_DEFAULTS: Record<string, { name: string; image: string; description: string }> = {
-  '13778':  { name: 'Crash Gordon', image: 'QmZqocZjBbcauqXcbqBGkECrqiLLBkfXPMfXXojEWJ9R49', description: 'Crash Gordon Pack' },
-  '48479':  { name: "Bern's Adventures", image: 'QmPcXEuYM7mPfyYNaBzDdBEwWeFHAjEKqWKNrR3C9NMz8A', description: "Bern's Adventures Pack" },
-  '51437':  { name: 'Mittens', image: 'QmUHapYhXNjjTnmCqTkz6r1djC3fjb1NhkMx5sSrAXFU4n', description: 'Mittens Pack' },
-  '53187':  { name: 'Gamestonk', image: 'QmVKKBGDFj2QkgQi3iiaDJKNxzYQiZa2UfpRo9TvTjZKdx', description: 'Gamestonk Pack' },
-  '59072':  { name: 'Food Fight B', image: 'QmYV9jGwdE4J8xN5V3Z4tZc5e7KSKdYhXwAHXNhp7Q7mJF', description: 'Food Fight Pack' },
-  '59489':  { name: 'WinterCon 1', image: 'QmWintercon1placeholder', description: 'WinterCon Pack 1' },
-  '59490':  { name: 'WinterCon 2', image: 'QmWintercon2placeholder', description: 'WinterCon Pack 2' },
-  '59491':  { name: 'WinterCon 3', image: 'QmWintercon3placeholder', description: 'WinterCon Pack 3' },
-  '59492':  { name: 'WinterCon 4', image: 'QmWintercon4placeholder', description: 'WinterCon Pack 4' },
+  '13778':  { name: 'GPK Pack - Crash Gordon', image: 'Qmf3d8Dj1E5RM4nyqcQVw2s2adSxBUkuBc4FiDh76vVE5n', description: 'Contains 5 digital cards from the "Crash Gordon" series' },
+  '48479':  { name: 'Bernventures Pack', image: 'QmZFv6fGryvQsU2k1dDY5fkJNvTakKxBwDyj8RDfEEmTvj', description: 'Bernventures Pack' },
+  '51437':  { name: 'Mitten Pack', image: 'QmTMWkmXo5o3ddn9XZ15zuh9Gz9LJDpDoox48crJkj8Mnp', description: 'Mitten Pack' },
+  '53187':  { name: 'GameStonk! Pack', image: 'QmUkRt94GkTDUa2tTgTCDAm7xne2xYTpzSQizw5mJPf61y/back.jpg', description: 'GameStonk! Pack' },
+  '59072':  { name: 'Food Fight! Pack', image: 'QmYiXshxX23h4J68Z8HUGVbVZmCwrrjEi3TKA41jW6hcSH/pack.png', description: 'Food Fight! Pack' },
+  '59489':  { name: 'Food Fight! WinterCon Day 1', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 1 Pack' },
+  '59490':  { name: 'Food Fight! WinterCon Day 2', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 2 Pack' },
+  '59491':  { name: 'Food Fight! WinterCon Day 3', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 3 Pack' },
+  '59492':  { name: 'Food Fight! WinterCon Day 4', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 4 Pack' },
 };
 
 function resolveImage(raw: string | undefined): string {
