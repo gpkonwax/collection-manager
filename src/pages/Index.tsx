@@ -1308,13 +1308,19 @@ export default function SimpleAssetsPage() {
                   <TabsContent value="collection">
                     {viewMode === 'binder' && binderGrid ? (
                       <>
-                        <div className="flex items-center gap-3">
-                          <p className="text-sm text-muted-foreground">
-                            {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
-                            {binderLoading && ' (loading templates...)'}
-                          </p>
-                          {renderSelectButton()}
-                          {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="flex items-center gap-3 flex-1">
+                            <p className="text-sm text-muted-foreground">
+                              {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
+                              {binderLoading && ' (loading templates...)'}
+                            </p>
+                            {renderSelectButton()}
+                            {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
+                          </div>
+                          <div className="flex-shrink-0">
+                            {renderCompletionBar()}
+                          </div>
+                          <div className="flex-1" />
                         </div>
                         {renderBinderSections(binderGrid, true)}
 
