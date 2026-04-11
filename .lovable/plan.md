@@ -1,65 +1,38 @@
 
 
-## Fix Banner Ads: Match Contract Logic
+## Add CheeseHub Logo, Info Dialog, and Detailed Features List
 
-### Root Cause
+### Overview
+Three changes to `src/pages/Index.tsx`:
+1. Add the CheeseHub logo (already copied to `src/assets/cheesehub-logo.png`) to the top-left header -- visible in both connected and disconnected states
+2. Add an Info button (ℹ icon) to the left of the Connect Wallet / wallet dropdown, opening a dialog with a detailed feature list
+3. Expand the landing page feature descriptions with more detail focused on flexibility
 
-The current `resolveActiveBanner` logic has two problems:
+### 1. Persistent Header Bar
+Currently the sticky header only renders when connected (line 971). Change to always render a header bar:
+- **Left side**: CheeseHub logo (h-7 w-7) + "CHEESE" (yellow) "Hub" (white) text, linking to `https://cheesehubwax.github.io/cheesehub/` (opens in new tab via trusted URL)
+- **Right side**: Info button + wallet dropdown (connected) or Info button + Connect Wallet button (disconnected)
+- Same styling as CheeseHub's header: `sticky top-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50`
 
-1. **Missing "is rented" check** -- In the contract, when `row.user === 'cheesebannad'` (the contract account itself), the slot is **unrented/available**. The current code never checks this, so it tries to render unrented placeholder slots.
+### 2. Info Button + Features Dialog
+- Add an `Info` icon button (from lucide-react) to the left of the login/wallet button
+- Opens a Dialog with a scrollable list of features, organized into sections:
+  - **Collection Views**: Classic View, Collector Binder, Saved Collection with drag-and-drop
+  - **Pack Openings**: All Topps packs supported, card-by-card reveal animation, card-deal sequence, skip anytime
+  - **Flexibility**: Both SimpleAssets and AtomicAssets, multi-account support, any GPK sub-collection, filter by series/variant, sort options
+  - **Puzzle Builder**: Series 2 puzzle pieces, drag/rotate/arrange, save/load progress
+  - **Inspection & Magnification**: Click-to-zoom, magnifying lens on hover
+  - **Transfer & Management**: Transfer SimpleAssets between accounts, bulk selection
+  - **Import/Export**: Save layouts as JSON, import/export collection arrangements
+  - **Community**: Free to use, built by $CHEESE, banner ads via CheeseHub
 
-2. **Wrong time window** -- The code uses UTC midnight day bounds (`row.time >= start && row.time < end`), but the contract defines an active slot as `row.time <= now && row.time + 86400 > now`. If the contract's `start_time` values don't align perfectly with UTC midnight, the filtering misses today's active slot or picks up old ones.
+### 3. Files Changed
+- `src/pages/Index.tsx` -- restructure header, add Info dialog state, add info button, import logo image
 
-### Fix (2 files)
-
-**`src/hooks/useBannerAds.ts`** -- Rewrite `resolveActiveBanner`:
-- Remove `getDayBounds()` entirely
-- Use the contract's actual active-window check: `row.time <= nowSeconds && row.time + 86400 > nowSeconds`
-- Skip rows where `row.user === 'cheesebannad'` (unrented slots)
-- Skip suspended rows
-- For the first matching active+rented row per position, resolve ipfs_hash (own or fallback from earlier same-user row)
-- Return only genuinely rented, currently-active banners
-
-**`src/components/BannerAd.tsx`** -- No changes needed (already renders only returned banners with correct 580x150 sizing).
-
-### Updated Resolution Logic
-
-```typescript
-const CONTRACT_ACCOUNT = 'cheesebannad';
-const SECONDS_PER_DAY = 86400;
-
-function resolveActiveBanner(rows: BannerAdRow[], position: number): ActiveBanner | null {
-  const now = Math.floor(Date.now() / 1000);
-
-  const positionRows = rows
-    .filter(r => r.position === position)
-    .sort((a, b) => b.time - a.time); // newest first
-
-  for (const row of positionRows) {
-    // Skip if not currently active
-    if (row.time > now || row.time + SECONDS_PER_DAY <= now) continue;
-    // Skip unrented slots (owned by contract)
-    if (row.user === CONTRACT_ACCOUNT) continue;
-    // Skip suspended
-    if (row.suspended === 1) continue;
-
-    // Resolve ipfs_hash
-    let ipfsHash = row.ipfs_hash;
-    if (!ipfsHash) {
-      const fallback = positionRows.find(
-        r => r.time < row.time && r.ipfs_hash && r.user === row.user
-      );
-      if (fallback) ipfsHash = fallback.ipfs_hash;
-      else continue;
-    }
-
-    // Build banner (including shared slot handling)
-    ...
-    return banner;
-  }
-  return null;
-}
-```
-
-This ensures only currently-active, genuinely-rented ads are displayed -- matching exactly how the CheeseHub site resolves them.
+### Technical Details
+- Import: `import cheesehubLogo from '@/assets/cheesehub-logo.png'` and `import { Info } from 'lucide-react'`
+- Add state: `const [showInfoDialog, setShowInfoDialog] = useState(false)`
+- The header block (lines 971-1037) will be restructured to always show, with the logo on the left and wallet controls on the right
+- Remove the duplicate "Connect Wallet" button from inside the landing page hero since it will now be in the header
+- Keep the bottom "Connect Wallet" CTA in the landing page
 
