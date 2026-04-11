@@ -35,6 +35,8 @@ import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
+import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
+import { Progress } from '@/components/ui/progress';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -204,6 +206,8 @@ export default function SimpleAssetsPage() {
     });
     return combined;
   }, [saAssets, aaAssets]);
+
+  const { completion } = useCollectionCompletion(assets, packs, atomicPacks, accountName);
 
   const binderSchema = viewMode === 'binder' ? categoryFilter : null;
   const { templates: binderTemplates, isLoading: binderLoading } = useBinderTemplates(
@@ -1075,6 +1079,25 @@ export default function SimpleAssetsPage() {
             )}
 
             {error && <p className="text-center text-destructive py-8">Error: {error}</p>}
+
+            {/* Collection Completion */}
+            {accountName && (() => {
+              const key = categoryFilter === 'all' ? 'overall' : categoryFilter;
+              const entry = completion[key];
+              if (!entry) return null;
+              const label = categoryFilter === 'all' ? 'Overall' : (CATEGORY_LABELS[categoryFilter] || categoryFilter);
+              return (
+                <div className="flex items-center gap-3 justify-end">
+                  <span className="text-sm font-medium text-cheese whitespace-nowrap">
+                    {label}: {entry.percent}%
+                  </span>
+                  <Progress value={entry.percent} className="w-32 h-2 bg-muted" />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {entry.owned}/{entry.total}
+                  </span>
+                </div>
+              );
+            })()}
 
             {!packsLoading && packs.filter((p) => categoryFilter === 'all' || PACK_CATEGORY_MAP[p.symbol] === categoryFilter).length > 0 && (
               <div className="space-y-3">
