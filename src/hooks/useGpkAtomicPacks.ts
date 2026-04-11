@@ -13,6 +13,9 @@ export interface PackConfig {
   transferTo?: string;
   transferMemo?: string;
   collectionName?: string;
+  /** Temporarily disable opening this pack type */
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 export interface AtomicPack {
@@ -38,7 +41,7 @@ interface AtomicAssetRaw {
 }
 
 const PACK_CONFIG: Record<string, PackConfig> = {
-  '13778':  { contract: 'gpkcrashpack', cards: 5, openMode: 'transfer' },
+  '13778':  { contract: 'gpkcrashpack', cards: 5, openMode: 'transfer', disabled: true, disabledReason: 'Oracle unreliable — opening temporarily disabled' },
   '48479':  { contract: 'burnieunpack', cards: 2, openMode: 'transfer' },
   '51437':  { contract: 'burnieunpack', cards: 5, openMode: 'transfer' },
   '53187':  { contract: 'atomicpacksx', cards: 3, openMode: 'transfer' },
