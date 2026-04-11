@@ -1241,6 +1241,12 @@ export default function SimpleAssetsPage() {
                   {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
                 </Button>
               )}
+              {pendingAtomicClaims.length > 0 && (
+                <Button onClick={handleClaimAtomicUnboxed} disabled={isClaimingAtomic || !session} variant="outline" size="sm" className="whitespace-nowrap border-primary/50 text-primary hover:bg-primary/10">
+                  <Download className={`h-4 w-4 mr-1 ${isClaimingAtomic ? 'animate-spin' : ''}`} />
+                  {isClaimingAtomic ? 'Claiming...' : `Claim Unboxed Cards (${pendingAtomicClaims.length})`}
+                </Button>
+              )}
             </div>
 
             <div className="flex justify-center mt-2">
