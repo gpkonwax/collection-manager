@@ -1,28 +1,30 @@
 
 
-## Improve Binder Deal Animation: Frozen Silhouette Placeholders + Slot-Based Refs
+## Fix Card Clipping During Deal Animation
 
 ### Problem
-1. During dealing, the binder shows a generic pulsing dashed box instead of the card's grayscale silhouette — the card appears to land on "nothing" rather than visually replacing a recognizable shape.
-2. Only `owned[0]` gets a ref registered, so duplicate/stacked cards from demo packs can't find their target and get skipped or misplaced.
+The card elements in `CardDealAnimation.tsx` have `overflow-hidden` on the wrapper div (line 202), which clips the bottom of the card — particularly the name overlay gradient area.
 
-### Changes (all in `src/pages/Index.tsx`)
+### Fix (in `src/components/simpleassets/CardDealAnimation.tsx`)
 
-**1. Replace pulsing placeholder with frozen silhouette**
-When a binder slot has an in-flight card, render a static version of `MissingCardPlaceholder`'s visual (the grayscale image with no overlay/animation) instead of the dashed box. This gives the card a recognizable silhouette to "land on top of." The ref for the animation target attaches to this frozen silhouette element.
+**Restructure the card layout** so the image and overlay don't get clipped:
 
-**2. Register refs for all owned asset IDs in a slot**
-Loop through the entire `owned` array and register every asset ID to the same DOM element in `gridCellRefs`. Check if *any* ID in the slot is in-flight or just-landed, not just `owned[0]`. This fixes demo packs where duplicate copies need different IDs to resolve to the same binder cell.
+1. **Remove `overflow-hidden`** from the outer card div and instead apply it only to the image container, keeping the card name overlay inside the bounded area properly.
 
-### Technical Detail
+2. **Make the card wrapper `relative`** so the absolute-positioned name overlay is properly contained within the card's own dimensions rather than potentially overflowing.
 
-In `renderBinderCard` (line ~599):
-- Derive `allIds = owned.map(a => a.id)`
-- `isAnyInFlight = allIds.some(id => dealingCardIds.has(id) && !dealtIds.has(id))`
-- `anyJustLanded = allIds.some(id => dealtIds.has(id))`
-- Ref callback registers/unregisters all IDs in `allIds`
-- When `isAnyInFlight`, render the template's grayscale image (same as MissingCardPlaceholder but without the "Buy" overlay, hover effects, or pulse animation) with the ref attached
-- When `anyJustLanded`, apply the glow class to the rendered card
+3. **Ensure the image fills the card without pushing content out** — use `object-cover` on the `IpfsMedia` element and constrain the image area so the overlay sits within bounds.
 
-No changes to `CardDealAnimation.tsx` or `MissingCardPlaceholder.tsx`.
+The actual change is small — on line 202, replace:
+```
+className="rounded-lg overflow-hidden border border-border bg-card shadow-xl"
+```
+with:
+```
+className="relative rounded-lg border border-border bg-card shadow-xl overflow-hidden"
+```
+
+And ensure the `IpfsMedia` uses `object-cover` styling so it fills without distorting. The key fix is adding `relative` positioning context and verifying the image renders with `object-cover` to prevent it from pushing the container taller than the specified height, which causes the bottom to clip against the viewport or parent.
+
+If the root cause is actually that the measured `cardSize.height` is slightly too small (not accounting for the name overlay), we'll also add a small buffer (e.g., +8px) to the stack card height to accommodate the overlay text.
 
