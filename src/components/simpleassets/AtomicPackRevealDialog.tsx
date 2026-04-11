@@ -201,6 +201,13 @@ export function AtomicPackRevealDialog({
     }
   }, [open]);
 
+  // Escape hatch: show close button after 60s of waiting
+  useEffect(() => {
+    if (!open || phase !== 'waiting') { setShowEscape(false); return; }
+    const timer = setTimeout(() => setShowEscape(true), 60000);
+    return () => clearTimeout(timer);
+  }, [open, phase]);
+
   // Snapshot asset IDs before opening so we can detect new ones for unbox_nft
   const preOpenAssetIdsRef = useRef<Set<string>>(new Set());
   

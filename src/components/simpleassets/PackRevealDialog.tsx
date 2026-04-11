@@ -125,7 +125,7 @@ export function PackRevealDialog({
     if (open) {
       setPhase('waiting'); setNewCards([]); setPendingRowIds([]);
       setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
-      setCollectError(null); pollStartRef.current = Date.now();
+      setCollectError(null); setShowEscape(false); pollStartRef.current = Date.now();
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
       return () => clearTimeout(shakeTimer);
