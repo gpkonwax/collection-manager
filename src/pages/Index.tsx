@@ -876,9 +876,9 @@ export default function SimpleAssetsPage() {
       );
     }
 
-    const filteredIdSet = new Set(filtered.map(a => a.asset_id));
+    const filteredIdSet = new Set(filtered.map(a => a.id));
     const validSlots = savedGridSlots.filter(id => id !== EMPTY);
-    const visibleAssets = validSlots.filter(id => { const a = allAssetMap.get(id); return a && filteredIdSet.has(a.asset_id); });
+    const visibleAssets = validSlots.filter(id => filteredIdSet.has(id));
 
     return (
       <>
@@ -911,7 +911,7 @@ export default function SimpleAssetsPage() {
             if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
 
             const asset = allAssetMap.get(slotId);
-            if (!asset || !filteredIdSet.has(asset.asset_id)) return (
+            if (!asset || !filteredIdSet.has(asset.id)) return (
               <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
                 <span className="text-xs text-muted-foreground">Missing</span>
               </div>
