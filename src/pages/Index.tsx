@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye } from 'lucide-react';
+import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,7 +32,10 @@ import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { BannerAd } from '@/components/BannerAd';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
