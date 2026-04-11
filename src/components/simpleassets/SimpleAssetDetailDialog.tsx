@@ -34,6 +34,8 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
+const PAD = Math.ceil(LENS_SIZE / 2);
+
 function ImageWithLens({ url, alt, isLandscape, className }: {
   url: string;
   alt: string;
@@ -43,32 +45,38 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const hash = url ? extractIpfsHash(url) : null;
   const cachedIdx = getCachedGatewayIndex(hash);
   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    const inner = innerRef.current?.getBoundingClientRect();
+    if (!inner) return;
+    const x = Math.max(0, Math.min(100, ((e.clientX - inner.left) / inner.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - inner.top) / inner.height) * 100));
     setPos({ x, y });
   };
 
-  // For landscape (rotated) images, swap coordinates for the lens background
   const bgX = isLandscape ? pos.y : pos.x;
   const bgY = isLandscape ? (100 - pos.x) : pos.y;
+
+  const innerW = innerRef.current?.offsetWidth ?? 0;
+  const innerH = innerRef.current?.offsetHeight ?? 0;
 
   return (
     <div
       ref={containerRef}
-      className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
+      className="relative"
+      style={{ padding: PAD, margin: -PAD, cursor: hover ? 'crosshair' : 'default' }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onMouseMove={handleMouseMove}
-      style={{ cursor: hover ? 'crosshair' : 'default' }}
     >
-      <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center">
+      <div
+        ref={innerRef}
+        className={`relative w-full ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}
+      >
         <IpfsMedia
           url={url}
           alt={alt}
@@ -83,8 +91,8 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
           style={{
             width: LENS_SIZE,
             height: LENS_SIZE,
-            left: `calc(${pos.x}% - ${LENS_SIZE / 2}px)`,
-            top: `calc(${pos.y}% - ${LENS_SIZE / 2}px)`,
+            left: PAD + (pos.x / 100) * innerW - LENS_SIZE / 2,
+            top: PAD + (pos.y / 100) * innerH - LENS_SIZE / 2,
           }}
         >
           <div
