@@ -1247,6 +1247,7 @@ export default function SimpleAssetsPage() {
                             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                             {binderLoading && ' (loading templates...)'}
                           </p>
+                          {renderCompletionBar()}
                           {renderSelectButton()}
                           {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
                         </div>
