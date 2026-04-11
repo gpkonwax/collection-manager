@@ -730,22 +730,26 @@ export default function SimpleAssetsPage() {
   const renderClassicView = () => (
     <>
       <div className="flex items-center gap-3">
-        <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-        {renderSelectButton()}
-        {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
-        <div className="mx-auto">
+        <div className="flex items-center gap-3 flex-1">
+          <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+          {renderSelectButton()}
+          {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
+        </div>
+        <div className="flex-shrink-0">
           {renderCompletionBar()}
         </div>
-        <Button
-          onClick={handleSnapshotToSaved}
-          variant="outline"
-          size="sm"
-          className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
-          title="Copy current view to Saved Collection for custom arrangement"
-        >
-          <Save className="h-4 w-4 mr-1" />
-          Copy to Saved
-        </Button>
+        <div className="flex items-center justify-end flex-1">
+          <Button
+            onClick={handleSnapshotToSaved}
+            variant="outline"
+            size="sm"
+            className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+            title="Copy current view to Saved Collection for custom arrangement"
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Copy to Saved
+          </Button>
+        </div>
       </div>
       {filtered.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">
@@ -803,15 +807,18 @@ export default function SimpleAssetsPage() {
     return (
       <>
         <div className="flex items-center gap-3">
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
-            {binderLoading && ' (loading templates...)'}
-          </p>
-          {renderSelectButton()}
-          {renderSelectAllCheckbox(visibleOwned)}
-          <div className="mx-auto">
+          <div className="flex items-center gap-3 flex-1">
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
+              {binderLoading && ' (loading templates...)'}
+            </p>
+            {renderSelectButton()}
+            {renderSelectAllCheckbox(visibleOwned)}
+          </div>
+          <div className="flex-shrink-0">
             {renderCompletionBar()}
           </div>
+          <div className="flex-1" />
         </div>
         {renderBinderSections(binderGrid, categoryFilter === 'series2')}
       </>
@@ -845,14 +852,16 @@ export default function SimpleAssetsPage() {
 
     return (
       <>
-        <div className="flex items-center gap-3 flex-wrap">
-          <p className="text-sm text-muted-foreground">{validAssets.length} card{validAssets.length !== 1 ? 's' : ''} in saved layout</p>
-          {renderSelectButton()}
-          {selectionMode && renderSelectAllCheckbox(validSlots.filter(id => allAssetMap.has(id)))}
-          <div className="mx-auto">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
+            <p className="text-sm text-muted-foreground">{validAssets.length} card{validAssets.length !== 1 ? 's' : ''} in saved layout</p>
+            {renderSelectButton()}
+            {selectionMode && renderSelectAllCheckbox(validSlots.filter(id => allAssetMap.has(id)))}
+          </div>
+          <div className="flex-shrink-0">
             {renderCompletionBar()}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2 flex-1">
             {loadedLayoutName && (
               <span className="text-xs px-2 py-1 rounded bg-cheese/10 border border-cheese/20 text-cheese truncate max-w-[200px]" title={loadedLayoutName}>
                 📄 {loadedLayoutName}
