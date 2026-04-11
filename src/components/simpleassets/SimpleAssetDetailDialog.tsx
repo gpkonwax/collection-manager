@@ -91,7 +91,8 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
           style={{
             width: LENS_SIZE,
             height: LENS_SIZE,
-            ...lensStyle,
+            left: PAD + (pos.x / 100) * innerW - LENS_SIZE / 2,
+            top: PAD + (pos.y / 100) * innerH - LENS_SIZE / 2,
           }}
         >
           <div
