@@ -809,6 +809,9 @@ export default function SimpleAssetsPage() {
           </p>
           {renderSelectButton()}
           {renderSelectAllCheckbox(visibleOwned)}
+          <div className="mx-auto">
+            {renderCompletionBar()}
+          </div>
         </div>
         {renderBinderSections(binderGrid, categoryFilter === 'series2')}
       </>
@@ -846,7 +849,10 @@ export default function SimpleAssetsPage() {
           <p className="text-sm text-muted-foreground">{validAssets.length} card{validAssets.length !== 1 ? 's' : ''} in saved layout</p>
           {renderSelectButton()}
           {selectionMode && renderSelectAllCheckbox(validSlots.filter(id => allAssetMap.has(id)))}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="mx-auto">
+            {renderCompletionBar()}
+          </div>
+          <div className="flex items-center gap-2">
             {loadedLayoutName && (
               <span className="text-xs px-2 py-1 rounded bg-cheese/10 border border-cheese/20 text-cheese truncate max-w-[200px]" title={loadedLayoutName}>
                 📄 {loadedLayoutName}
