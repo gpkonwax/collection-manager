@@ -1,31 +1,65 @@
 
 
-## Fix Banner Ad Display
+## Fix Banner Ads: Match Contract Logic
 
-### Issues
-1. **Both positions always rendered** -- The code loops over positions `[1, 2]` and renders a banner for each one found. If only one position is rented on CheeseHub, the other position still resolves to an old/stale row and shows up.
-2. **Size not enforced** -- The banner uses `max-w-[580px] w-full h-[150px]` but when there's 1 banner vs 2, the layout should still maintain the exact 580x150 size per slot.
+### Root Cause
 
-### Changes
+The current `resolveActiveBanner` logic has two problems:
 
-**File: `src/components/BannerAd.tsx`**
-- Fix the banner slot sizing to use explicit `w-[580px] h-[150px]` instead of `max-w-[580px] w-full` so each slot is always exactly 580x150 regardless of how many banners exist.
-- When only 1 banner exists, render just that one centered. When 2 exist, render both side by side.
+1. **Missing "is rented" check** -- In the contract, when `row.user === 'cheesebannad'` (the contract account itself), the slot is **unrented/available**. The current code never checks this, so it tries to render unrented placeholder slots.
 
-**File: `src/hooks/useBannerAds.ts`**  
-- The resolution logic correctly returns `null` for positions with no valid ad. No change needed here -- the issue is purely in the rendering component showing a placeholder for empty positions or resolving stale rows incorrectly.
-- However, need to verify: if position 2 has no active rental but old rows exist in the table, `resolveActiveBanner` will still find them and return a banner. Fix: only return a banner if its resolved row's time falls within a reasonable active window (i.e., the row is for today or the most recent past booking that hasn't expired). Since each row represents a day rental (`time` = the day it's booked for), we should only return banners where `row.time >= start` (today's start), not just `< end`.
+2. **Wrong time window** -- The code uses UTC midnight day bounds (`row.time >= start && row.time < end`), but the contract defines an active slot as `row.time <= now && row.time + 86400 > now`. If the contract's `start_time` values don't align perfectly with UTC midnight, the filtering misses today's active slot or picks up old ones.
 
-### Technical Detail
+### Fix (2 files)
 
-In `resolveActiveBanner`, add a check: only consider rows where `row.time >= start` (today or later). Currently it only filters `row.time < end` (not future), which means any historical row from months ago could match. Adding `row.time >= start` ensures only today's active rentals are shown.
+**`src/hooks/useBannerAds.ts`** -- Rewrite `resolveActiveBanner`:
+- Remove `getDayBounds()` entirely
+- Use the contract's actual active-window check: `row.time <= nowSeconds && row.time + 86400 > nowSeconds`
+- Skip rows where `row.user === 'cheesebannad'` (unrented slots)
+- Skip suspended rows
+- For the first matching active+rented row per position, resolve ipfs_hash (own or fallback from earlier same-user row)
+- Return only genuinely rented, currently-active banners
 
+**`src/components/BannerAd.tsx`** -- No changes needed (already renders only returned banners with correct 580x150 sizing).
+
+### Updated Resolution Logic
+
+```typescript
+const CONTRACT_ACCOUNT = 'cheesebannad';
+const SECONDS_PER_DAY = 86400;
+
+function resolveActiveBanner(rows: BannerAdRow[], position: number): ActiveBanner | null {
+  const now = Math.floor(Date.now() / 1000);
+
+  const positionRows = rows
+    .filter(r => r.position === position)
+    .sort((a, b) => b.time - a.time); // newest first
+
+  for (const row of positionRows) {
+    // Skip if not currently active
+    if (row.time > now || row.time + SECONDS_PER_DAY <= now) continue;
+    // Skip unrented slots (owned by contract)
+    if (row.user === CONTRACT_ACCOUNT) continue;
+    // Skip suspended
+    if (row.suspended === 1) continue;
+
+    // Resolve ipfs_hash
+    let ipfsHash = row.ipfs_hash;
+    if (!ipfsHash) {
+      const fallback = positionRows.find(
+        r => r.time < row.time && r.ipfs_hash && r.user === row.user
+      );
+      if (fallback) ipfsHash = fallback.ipfs_hash;
+      else continue;
+    }
+
+    // Build banner (including shared slot handling)
+    ...
+    return banner;
+  }
+  return null;
+}
 ```
-const { start, end } = getDayBounds();
-// ...
-if (row.time >= end) continue;    // future
-if (row.time < start) continue;   // expired (not today)
-```
 
-This single change ensures that if position 2 isn't rented today, no banner appears for it.
+This ensures only currently-active, genuinely-rented ads are displayed -- matching exactly how the CheeseHub site resolves them.
 
