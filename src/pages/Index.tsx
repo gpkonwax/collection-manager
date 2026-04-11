@@ -475,21 +475,38 @@ export default function SimpleAssetsPage() {
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
   const allAssetMap = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
 
-  const handleExportLayout = useCallback(() => {
+  const handleExportLayout = useCallback(async () => {
     if (!accountName || savedOrder === null) return;
     const defaultFilename = `gpk-layout-${accountName}-${categoryFilter}.json`;
-    const userFilename = window.prompt('Enter filename for your layout:', defaultFilename);
-    if (!userFilename) return;
-    const finalFilename = userFilename.toLowerCase().endsWith('.json') ? userFilename : `${userFilename}.json`;
     const puzzle = puzzleStateRef.current;
     const firstReal = savedOrder.findIndex(id => id !== EMPTY);
     let lastReal = -1;
     for (let i = savedOrder.length - 1; i >= 0; i--) { if (savedOrder[i] !== EMPTY) { lastReal = i; break; } }
     const cleanOrder = firstReal === -1 ? [] : savedOrder.slice(firstReal, lastReal + 1);
-    const blob = new Blob([JSON.stringify({ account: accountName, category: categoryFilter, orders: { saved: cleanOrder }, puzzle }, null, 2)], { type: 'application/json' });
+    const jsonStr = JSON.stringify({ account: accountName, category: categoryFilter, orders: { saved: cleanOrder }, puzzle }, null, 2);
+
+    // Try File System Access API (lets user pick folder & name)
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: defaultFilename,
+          types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonStr);
+        await writable.close();
+        toast.success('Layout exported');
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return; // user cancelled
+      }
+    }
+
+    // Fallback for browsers without File System Access API
+    const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = finalFilename; a.click();
+    a.href = url; a.download = defaultFilename; a.click();
     URL.revokeObjectURL(url);
     toast.success('Layout exported');
   }, [accountName, savedOrder, categoryFilter]);
