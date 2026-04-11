@@ -62,7 +62,7 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
   return (
     <div
       ref={containerRef}
-      className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
+      className={`relative overflow-hidden ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onMouseMove={handleMouseMove}
