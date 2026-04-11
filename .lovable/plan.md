@@ -1,34 +1,24 @@
 
 
-## Fix: Lens Crossover Bug Between Front and Back Cards
+## Fix: Lens Should Overflow Card but Not Trigger Modal Scrollbar
 
 ### Problem
-The magnified clone inside the lens uses hardcoded card widths (400/500px) and reconstructs the layout independently. This doesn't match the actual rendered strip pixel-for-pixel, so when the lens crosses from the front card to the back card, the magnified front image overlaps where the back image should appear.
+The previous fix added `overflow-hidden` to the card's container, which clips the lens at the card edge. This means edges of the card become unmagnifiable. The real fix is to let the lens overflow the card freely, but prevent it from causing scrollbars on the modal.
 
-### Root Cause
-The lens renders its own flex layout with `width: cardW * ZOOM` for each card, but the real strip's cards may render at different actual pixel widths (due to flex shrink, container constraints, etc.). The mismatch means the magnified seam doesn't align with the visual seam.
+### Approach
+1. **Remove `overflow-hidden` from the `ImageWithLens` container** (line 65) — restore the lens's ability to extend past the card edge
+2. **Add `overflow-hidden` to the flex wrapper** that holds the card columns (line 135) — this is the parent `div` with `flex flex-col sm:flex-row`. This clips the lens at the content area boundary rather than at the individual card
+3. **Also add `overflow-x: hidden`** to the `DialogContent` (line 130) so any remaining edge cases don't trigger a horizontal scrollbar
 
-### Fix
-Instead of reconstructing the strip layout inside the lens, measure each card image's actual bounding rect relative to the strip, then position each magnified background-image tile at exactly the right spot.
+### Changes
 
-### Changes — `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
+**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**
 
-1. **Add refs for each card image container** — use a `useRef` array to capture each card's actual DOM element within the strip.
-
-2. **On mouse move, measure actual card positions** — for each card, get its `getBoundingClientRect()` relative to the strip's rect. This gives exact `left`, `top`, `width`, `height` for each card within the strip.
-
-3. **Replace the flex-based magnified clone with absolutely positioned tiles** — inside the lens, render each card as an absolutely positioned `background-image` div using:
-   - `left: cardRect.left * ZOOM`  
-   - `top: cardRect.top * ZOOM`  
-   - `width: cardRect.width * ZOOM`  
-   - `height: cardRect.height * ZOOM`  
-   
-   This guarantees pixel-perfect alignment with the visible strip.
-
-4. **Offset the tile container** so the cursor point is centered in the lens (same `magOffsetX/Y` logic but using strip dimensions from `getBoundingClientRect`).
+- Line 65: Remove `overflow-hidden` from the `ImageWithLens` container → `relative ${isLandscape ? ...}`
+- Line 130: Add `overflow-x-hidden` to `DialogContent` → `overflow-y-auto overflow-x-hidden`
+- Line 135: Add `overflow-hidden` to the images flex wrapper
 
 ### Result
-- The magnified view is an exact scaled replica of the visible strip
-- No overlap or gap at the seam between front and back cards
-- Edge magnification still works because the stage padding is unchanged
+- Lens can extend beyond the card edge, so all parts of the card are magnifiable
+- Lens gets clipped at the modal content boundary, preventing scrollbar jumps
 
