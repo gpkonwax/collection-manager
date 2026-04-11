@@ -191,6 +191,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         </CardContent>
       </Card>
     </div>
+    </div>
   );
 }
 
