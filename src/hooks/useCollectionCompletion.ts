@@ -56,11 +56,16 @@ const SCHEMA_TO_CATEGORY: Record<string, string> = {
   five: 'series1',
 };
 
-async function fetchTemplateTotals(): Promise<Record<string, number>> {
-  const totals: Record<string, number> = {};
+interface CategoryTotals {
+  total: number;
+  byVariant: Record<string, number>;
+}
+
+async function fetchTemplateTotals(): Promise<Record<string, CategoryTotals>> {
+  const totals: Record<string, CategoryTotals> = {};
 
   for (const [category, schemas] of Object.entries(CATEGORY_SCHEMAS)) {
-    let count = 0;
+    const catTotals: CategoryTotals = { total: 0, byVariant: {} };
     const allowedVariants = ALLOWED_SCHEMA_VARIANTS[category];
 
     for (const schema of schemas) {
@@ -84,9 +89,9 @@ async function fetchTemplateTotals(): Promise<Record<string, number>> {
           for (const t of json.data) {
             const data = t.immutable_data || {};
             const variant = normalizeGpkVariant(data.variant);
-            // Apply same variant filtering as the binder
             if (allowedVariants && !allowedVariants.has(variant)) continue;
-            count++;
+            catTotals.total++;
+            catTotals.byVariant[variant] = (catTotals.byVariant[variant] || 0) + 1;
           }
 
           hasMore = json.data.length === 100;
@@ -97,7 +102,7 @@ async function fetchTemplateTotals(): Promise<Record<string, number>> {
       }
     }
 
-    totals[category] = count;
+    totals[category] = catTotals;
   }
 
   return totals;
@@ -107,9 +112,10 @@ export function useCollectionCompletion(
   assets: SimpleAsset[],
   packs: GpkPack[],
   atomicPacks: AtomicPack[],
-  accountName: string | null
+  accountName: string | null,
+  variantFilter: string[] = ['all']
 ) {
-  const [templateTotals, setTemplateTotals] = useState<Record<string, number>>({});
+  const [templateTotals, setTemplateTotals] = useState<Record<string, CategoryTotals>>({});
   const [isFetching, setIsFetching] = useState(false);
 
   // Fetch template totals once on mount
@@ -130,6 +136,8 @@ export function useCollectionCompletion(
   const completion = useMemo<Record<string, CompletionEntry>>(() => {
     if (!accountName || Object.keys(templateTotals).length === 0) return {};
 
+    const hasVariantFilter = !(variantFilter.length === 0 || (variantFilter.length === 1 && variantFilter[0] === 'all'));
+
     // Build set of owned unique template keys per category
     const ownedPerCategory: Record<string, Set<string>> = {};
     for (const cat of Object.keys(CATEGORY_SCHEMAS)) {
@@ -139,7 +147,13 @@ export function useCollectionCompletion(
     for (const asset of assets) {
       const cat = SCHEMA_TO_CATEGORY[asset.category] || asset.category;
       if (!ownedPerCategory[cat]) continue;
-      // Use template_id if available, otherwise cardid+quality+variant
+
+      // If variant filter is active, only count assets matching the filter
+      if (hasVariantFilter) {
+        const assetVariant = normalizeGpkVariant(asset.quality);
+        if (!variantFilter.includes(assetVariant)) continue;
+      }
+
       const templateId = (asset.idata as Record<string, unknown>)?._template_id as string;
       const key = templateId
         ? `tid:${templateId}`
@@ -152,23 +166,36 @@ export function useCollectionCompletion(
     let overallOwned = 0;
     let overallTotal = 0;
 
-    for (const [cat, totalTemplates] of Object.entries(templateTotals)) {
+    for (const [cat, catTotals] of Object.entries(templateTotals)) {
       const ownedCards = ownedPerCategory[cat]?.size ?? 0;
 
-      // Pack totals for this category
-      const saPackSymbols = SA_PACK_CATEGORIES[cat] || [];
-      const aaPackTemplates = AA_PACK_CATEGORIES[cat] || [];
-      const totalPacks = saPackSymbols.length + aaPackTemplates.length;
-
-      // Owned packs
-      let ownedPacks = 0;
-      for (const sym of saPackSymbols) {
-        const pack = packs.find((p) => p.symbol === sym);
-        if (pack && pack.amount > 0) ownedPacks++;
+      // Template total: if variant filter active, sum only matching variants
+      let totalTemplates: number;
+      if (hasVariantFilter) {
+        totalTemplates = 0;
+        for (const v of variantFilter) {
+          totalTemplates += catTotals.byVariant[v] || 0;
+        }
+      } else {
+        totalTemplates = catTotals.total;
       }
-      for (const tid of aaPackTemplates) {
-        const pack = atomicPacks.find((p) => p.templateId === tid);
-        if (pack && pack.count > 0) ownedPacks++;
+
+      // Pack totals: exclude when variant filter is active
+      let totalPacks = 0;
+      let ownedPacks = 0;
+      if (!hasVariantFilter) {
+        const saPackSymbols = SA_PACK_CATEGORIES[cat] || [];
+        const aaPackTemplates = AA_PACK_CATEGORIES[cat] || [];
+        totalPacks = saPackSymbols.length + aaPackTemplates.length;
+
+        for (const sym of saPackSymbols) {
+          const pack = packs.find((p) => p.symbol === sym);
+          if (pack && pack.amount > 0) ownedPacks++;
+        }
+        for (const tid of aaPackTemplates) {
+          const pack = atomicPacks.find((p) => p.templateId === tid);
+          if (pack && pack.count > 0) ownedPacks++;
+        }
       }
 
       const total = totalTemplates + totalPacks;
@@ -187,7 +214,7 @@ export function useCollectionCompletion(
     };
 
     return result;
-  }, [assets, packs, atomicPacks, accountName, templateTotals]);
+  }, [assets, packs, atomicPacks, accountName, templateTotals, variantFilter]);
 
   return { completion, isFetching };
 }
