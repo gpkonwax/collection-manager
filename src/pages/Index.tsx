@@ -1095,6 +1095,8 @@ export default function SimpleAssetsPage() {
                   <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                   <li>Card-by-card reveal animation with skip option.</li>
                   <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions.</li>
+                  <li>Immersive sound design — pack shake, pack rip, and card bell noises synchronized to the animations.</li>
+                  <li>View your SimpleAssets packs using the original placeholder artwork.</li>
                 </ul>
               </div>
               <div>
