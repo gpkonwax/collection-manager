@@ -158,7 +158,7 @@ async function fetchUnboxResults(contract: string, packAssetId: string): Promise
 
 export function AtomicPackRevealDialog({
   open, onOpenChange, packName, packImage, packAssetId,
-  unpackContract, expectedCards, accountName, session, onComplete,
+  unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
 }: AtomicPackRevealDialogProps) {
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
