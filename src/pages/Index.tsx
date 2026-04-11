@@ -74,6 +74,15 @@ const SERIES2_VARIANTS: { value: string; label: string }[] = [
   { value: 'golden', label: 'Golden' },
 ];
 
+const EXOTIC_VARIANTS: { value: string; label: string }[] = [
+  { value: 'base', label: 'Base' },
+  { value: 'prism', label: 'Prism' },
+  { value: 'tiger stripe', label: 'Tiger Stripe' },
+  { value: 'tiger claw', label: 'Tiger Claw' },
+  { value: 'golden', label: 'Golden' },
+  { value: 'collector', label: 'Collector' },
+];
+
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'exotic',
   five: 'series1',
