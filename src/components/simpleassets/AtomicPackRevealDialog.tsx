@@ -11,6 +11,9 @@ import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
+import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
+import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
+import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 
 interface RevealCard {
   asset_id: string;
@@ -36,6 +39,51 @@ interface AtomicPackRevealDialogProps {
   accountName: string;
   session: Session | null;
   onComplete: (txId?: string | null) => void;
+  openMode?: PackOpenMode;
+}
+
+/** Result row from unbox.nft's results table */
+interface UnboxNftResultRow {
+  template_id: number;
+  [key: string]: unknown;
+}
+
+async function fetchUnboxNftResults(accountName: string, packAssetId: string): Promise<number[]> {
+  try {
+    // unbox.nft stores results with scope = the account that opened the pack
+    // We fetch recent assets for the account from the atomic API instead
+    const result = await fetchTableRows<UnboxNftResultRow>({
+      code: 'unbox.nft', scope: accountName, table: 'results',
+      limit: 100,
+    });
+    if (result.rows.length > 0) {
+      return result.rows.map(r => r.template_id);
+    }
+  } catch (e) {
+    console.warn('[AtomicReveal] unbox.nft results table fetch failed, trying assets API', e);
+  }
+  
+  // Fallback: poll the atomic assets API for recently minted assets
+  try {
+    const params = new URLSearchParams({
+      owner: accountName,
+      collection_name: 'gpk.topps',
+      sort: 'asset_id',
+      order: 'desc',
+      limit: '20',
+    });
+    const path = `${ATOMIC_API.paths.assets}?${params}`;
+    const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
+    const json = await response.json();
+    if (json.success && json.data) {
+      return json.data
+        .filter((a: any) => a.template?.template_id)
+        .map((a: any) => parseInt(a.template.template_id, 10));
+    }
+  } catch (e) {
+    console.warn('[AtomicReveal] assets API fallback failed', e);
+  }
+  return [];
 }
 
 function swapGateway(url: string, gatewayIndex: number): string | null {
