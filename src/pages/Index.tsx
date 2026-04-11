@@ -123,7 +123,6 @@ export default function SimpleAssetsPage() {
   const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(accountName);
 
   const { executeRawTransaction } = useWaxTransaction(session);
-  const { completion } = useCollectionCompletion(assets, packs, atomicPacks, accountName);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
