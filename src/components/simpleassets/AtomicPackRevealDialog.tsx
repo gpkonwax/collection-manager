@@ -198,7 +198,7 @@ export function AtomicPackRevealDialog({
         try {
           const params = new URLSearchParams({
             owner: accountName, collection_name: 'gpk.topps',
-            sort: 'asset_id', order: 'desc', limit: '50',
+            sort: 'asset_id', order: 'desc', limit: '100',
           });
           const path = `${ATOMIC_API.paths.assets}?${params}`;
           const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
@@ -214,14 +214,15 @@ export function AtomicPackRevealDialog({
       try {
         if (cancelled) return;
         const elapsed = Date.now() - pollStartRef.current;
-        if (elapsed > 60000) setWaitMessage('Taking longer than usual... still waiting');
+        if (elapsed > 90000) setWaitMessage('This is taking unusually long — the blockchain indexer may be behind. Hang tight...');
+        else if (elapsed > 60000) setWaitMessage('Taking longer than usual... still waiting');
         else if (elapsed > 30000) setWaitMessage('Still waiting for cards to be minted...');
 
         if (openMode === 'unbox_nft') {
           // For unbox.nft: poll the atomic assets API for new assets
           const params = new URLSearchParams({
             owner: accountName, collection_name: 'gpk.topps',
-            sort: 'asset_id', order: 'desc', limit: '50',
+            sort: 'asset_id', order: 'desc', limit: '100',
           });
           const path = `${ATOMIC_API.paths.assets}?${params}`;
           const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
@@ -282,19 +283,19 @@ export function AtomicPackRevealDialog({
 
   useEffect(() => {
     if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
-      // For unbox_nft: no claim needed, skip straight to done
       if (openMode === 'unbox_nft') {
-        setPhase('done');
-        onComplete(null);
+        // Show a "Done" button instead of auto-completing — no claim needed
+        setPhase('collect');
       } else if (rollIds.length > 0) {
         setPhase('collect');
       }
     }
-  }, [phase, revealedCount, newCards.length, rollIds, openMode, onComplete]);
+  }, [phase, revealedCount, newCards.length, rollIds, openMode]);
 
-  // Auto-close dialog after cards are collected
+  // Auto-close dialog after cards are collected (standard mode only)
   useEffect(() => {
     if (phase !== 'done') return;
+    // For unbox_nft, the Done button already closed — this handles standard collect
     const timer = setTimeout(() => {
       onOpenChange(false);
     }, 1500);
@@ -302,6 +303,13 @@ export function AtomicPackRevealDialog({
   }, [phase, onOpenChange]);
 
   const handleCollect = useCallback(async () => {
+    // For unbox_nft: no blockchain claim needed, just close with a marker
+    if (openMode === 'unbox_nft') {
+      setPhase('done');
+      onComplete('unbox_nft_complete');
+      setTimeout(() => onOpenChange(false), 1500);
+      return;
+    }
     if (!session || !packAssetId || rollIds.length === 0) return;
     setPhase('collecting'); setCollectError(null);
     const actor = String(session.actor);
@@ -319,7 +327,7 @@ export function AtomicPackRevealDialog({
       setCollectError(e instanceof Error ? e.message : 'Transaction failed');
       setPhase('collect');
     }
-  }, [session, packAssetId, rollIds, unpackContract, onComplete]);
+  }, [session, packAssetId, rollIds, unpackContract, onComplete, openMode, onOpenChange]);
 
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
@@ -365,10 +373,21 @@ export function AtomicPackRevealDialog({
             {phase === 'collect' && (
               <div className="flex flex-col items-center gap-3 pt-2">
                 {collectError && <p className="text-xs text-destructive text-center">{collectError}</p>}
-                <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!session}>
-                  <Download className="h-4 w-4 mr-2" />Collect Assets
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">Sign a transaction to deliver these cards to your wallet</p>
+                {openMode === 'unbox_nft' ? (
+                  <>
+                    <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Sparkles className="h-4 w-4 mr-2" />View in Collection
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">Your cards are already in your wallet</p>
+                  </>
+                ) : (
+                  <>
+                    <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={!session}>
+                      <Download className="h-4 w-4 mr-2" />Collect Assets
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">Sign a transaction to deliver these cards to your wallet</p>
+                  </>
+                )}
               </div>
             )}
             {phase === 'collecting' && (
