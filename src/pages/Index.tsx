@@ -1081,9 +1081,9 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Eye className="h-4 w-4" /> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                  <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection.</li>
-                  <li><strong>Collector Binder</strong> — Template-based completionist view. Owned cards appear in full color; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need.</li>
-                  <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards, add empty slots, and build the perfect display. Layouts persist across sessions.</li>
+                  <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection as it is. Supports pagination for large collections and instant search across all card names.</li>
+                  <li><strong>Collector Binder</strong> — Template-based completionist view with real-time completion percentage tracking. Owned cards appear in full color with checkmarks; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need. Duplicate cards are stacked and accessible via a stack dialog showing all copies. Completion stats update live as you open packs or receive transfers.</li>
+                  <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards into any order you like, insert empty spacer slots for custom layouts, and build the perfect display of your collection. Layouts persist across sessions via localStorage, and can be exported as JSON to back up or share with other collectors. Import layouts to restore previous arrangements instantly.</li>
                 </ul>
               </div>
               <div>
@@ -1109,10 +1109,19 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Puzzle className="h-4 w-4" /> Series 2 Puzzle Builder</h4>
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                  <li>Series 2 cards contain hidden puzzle pieces on their backs.</li>
-                  <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces.</li>
+                  <li>18 unique puzzle pieces (card IDs 55–60, 66–71, 75–80) hidden on the backs of Series 2 cards.</li>
+                  <li>Access unlocks once all 18 pieces are collected. While locked, a <strong>Puzzle Binder</strong> grid shows owned pieces in full color with checkmarks and missing pieces as greyscale placeholders with AtomicHub purchase links.</li>
+                  <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces. Pieces initialize at 90° and support rotation.</li>
+                  <li>Scramble pieces randomly to start fresh or fine-tune placements.</li>
                   <li>Save and load your puzzle progress as JSON.</li>
-                  <li>Scramble pieces to start fresh or fine-tune placements.</li>
+                  <li><strong>Timer Race Mode</strong> — Race the clock to assemble the puzzle, then receive an A–F grade based on a 100-point scoring system:
+                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
+                      <li><strong>Speed</strong> (20 pts) — faster completion = higher score.</li>
+                      <li><strong>Rotation Accuracy</strong> (20 pts) — how close each piece is to its target 90° orientation.</li>
+                      <li><strong>Position Accuracy</strong> (40 pts) — centroid-based relative positioning measured against a 600px threshold.</li>
+                      <li><strong>Overlap Penalty</strong> (20 pts) — deductions for overlapping pieces (1.5 pts per pair, 20px inset tolerance).</li>
+                    </ul>
+                  </li>
                 </ul>
               </div>
               <div>
