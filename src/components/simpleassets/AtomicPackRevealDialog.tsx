@@ -290,7 +290,7 @@ export function AtomicPackRevealDialog({
         setPhase('collect');
       }
     }
-  }, [phase, revealedCount, newCards.length, rollIds]);
+  }, [phase, revealedCount, newCards.length, rollIds, openMode, onComplete]);
 
   // Auto-close dialog after cards are collected
   useEffect(() => {
