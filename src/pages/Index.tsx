@@ -1128,13 +1128,14 @@ export default function SimpleAssetsPage() {
                 '48479': 8,   // Bernventures
                 '53187': 9,   // GameStonk
                 '13778': 10,  // Crash Gordon
-                '59072': 11,  // Food Fight! Pack
-                '59489': 12,  // Food Fight! WinterCon Day 1
-                '59490': 13,  // Food Fight! WinterCon Day 2
-                '59491': 14,  // Food Fight! WinterCon Day 3
-                '59492': 15,  // Food Fight! WinterCon Day 4
-                '51437': 16,  // Mittens
+                '51437': 11,  // Mittens
+                '59072': 12,  // Food Fight! Pack
+                '59489': 13,  // Food Fight! WinterCon Day 1
+                '59490': 14,  // Food Fight! WinterCon Day 2
+                '59491': 15,  // Food Fight! WinterCon Day 3
+                '59492': 16,  // Food Fight! WinterCon Day 4
               };
+              const ROW_BREAKS = [5, 11]; // break after order 5 (row1) and 11 (row2)
               const filteredTokenPacks = packs.filter((p) => categoryFilter === 'all' || PACK_CATEGORY_MAP[p.symbol] === categoryFilter);
               const filteredAtomicPacks = atomicPacks.filter((p) => categoryFilter === 'all' || ATOMIC_PACK_CATEGORY_MAP[p.templateId] === categoryFilter);
               type PackItem = { type: 'token'; pack: typeof packs[0]; order: number } | { type: 'atomic'; pack: typeof atomicPacks[0]; order: number };
@@ -1143,20 +1144,30 @@ export default function SimpleAssetsPage() {
                 ...filteredAtomicPacks.map(p => ({ type: 'atomic' as const, pack: p, order: ATOMIC_PACK_ORDER[p.templateId] ?? 99 })),
               ].sort((a, b) => a.order - b.order);
               if (packsLoading || atomicPacksLoading || allPacks.length === 0) return null;
+              // Split into rows
+              const rows: PackItem[][] = [[], [], []];
+              for (const item of allPacks) {
+                if (item.order <= ROW_BREAKS[0]) rows[0].push(item);
+                else if (item.order <= ROW_BREAKS[1]) rows[1].push(item);
+                else rows[2].push(item);
+              }
+              const renderPackItem = (item: PackItem) => item.type === 'token' ? (
+                <div key={item.pack.symbol} className="w-[calc(50%-0.5rem)] sm:w-48">
+                  <GpkPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} />
+                </div>
+              ) : (
+                <div key={item.pack.templateId} className="w-[calc(50%-0.5rem)] sm:w-48">
+                  <AtomicPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} />
+                </div>
+              );
               return (
                 <div className="space-y-3">
                   <h2 className="text-xl font-semibold text-foreground text-center">Packs</h2>
-                  <div className="flex flex-wrap justify-center gap-4">
-                    {allPacks.map((item) => item.type === 'token' ? (
-                      <div key={item.pack.symbol} className="w-[calc(50%-0.5rem)] sm:w-48">
-                        <GpkPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} />
-                      </div>
-                    ) : (
-                      <div key={item.pack.templateId} className="w-[calc(50%-0.5rem)] sm:w-48">
-                        <AtomicPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} />
-                      </div>
-                    ))}
-                  </div>
+                  {rows.filter(r => r.length > 0).map((row, ri) => (
+                    <div key={ri} className="flex flex-wrap justify-center gap-4">
+                      {row.map(renderPackItem)}
+                    </div>
+                  ))}
                 </div>
               );
             })()}
