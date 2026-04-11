@@ -35,8 +35,8 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
-const EDGE_DEPTH = 5;
-const EDGE_COLOR = 'hsl(var(--card))';
+const EDGE_DEPTH = 8;
+const EDGE_COLOR = 'hsl(var(--muted))';
 
 function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -60,12 +60,13 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isStacked = (stackCount ?? 0) > 1;
 
   return (
+    <div className="relative" style={{ perspective: '1200px' }}>
     <div
       className="relative"
       ref={tiltRef}
       onMouseMove={tiltMouseMove}
       onMouseLeave={tiltMouseLeave}
-      style={{ transformStyle: 'preserve-3d', willChange: 'transform', backfaceVisibility: 'hidden', perspective: '1200px' }}
+      style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
     >
       {isStacked && (
         <>
@@ -124,8 +125,8 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           ${className || ''}`}
         style={{
           ...(isAnimatedGif ? { contentVisibility: 'auto', contain: 'layout paint style', containIntrinsicSize: '280px 360px' } : undefined),
-          backfaceVisibility: 'hidden',
-          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden' as const,
+          transform: `translateZ(${EDGE_DEPTH}px)`,
         }}
         onClick={handleClick}
         draggable={draggable}
@@ -189,6 +190,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         <div ref={glareRef} className="absolute inset-0 rounded-lg pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease' }} />
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }
