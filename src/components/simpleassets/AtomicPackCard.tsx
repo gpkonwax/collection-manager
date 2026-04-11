@@ -7,6 +7,7 @@ import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
 import { AtomicPackBrowserDialog } from './AtomicPackBrowserDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
+import { buildOpenPackActions } from '@/lib/packOpenActions';
 
 interface AtomicPackCardProps {
   pack: AtomicPack;
@@ -31,10 +32,11 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
     const auth = [{ actor, permission: String(session.permission) }];
     const assetId = pack.assetIds[0];
     try {
-      const result = await executeTransaction([{
-        account: 'atomicassets', name: 'transfer', authorization: auth,
-        data: { from: actor, to: pack.unpackContract, asset_ids: [assetId], memo: 'unbox' },
-      }], { successTitle: 'Pack Sent!', successDescription: `Your ${pack.name} has been sent for unboxing. Revealing cards...` });
+      const actions = buildOpenPackActions(pack, assetId, actor, auth);
+      const result = await executeTransaction(actions, {
+        successTitle: 'Pack Sent!',
+        successDescription: `Your ${pack.name} has been sent for unboxing. Revealing cards...`,
+      });
       if (result.success) { setOpenedAssetId(assetId); setRevealOpen(true); }
     } finally { setIsOpening(false); }
   }, [session, pack, executeTransaction]);
@@ -65,7 +67,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
       </Card>
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
-        accountName={accountName} session={session} onComplete={handleRevealComplete} />
+        accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />
       <AtomicPackBrowserDialog open={browserOpen} onOpenChange={setBrowserOpen} pack={pack}
         session={session} accountName={accountName} onSuccess={onSuccess} />
     </>

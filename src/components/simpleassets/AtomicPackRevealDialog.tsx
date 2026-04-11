@@ -11,6 +11,7 @@ import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
+import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
 
 interface RevealCard {
   asset_id: string;
@@ -36,6 +37,51 @@ interface AtomicPackRevealDialogProps {
   accountName: string;
   session: Session | null;
   onComplete: (txId?: string | null) => void;
+  openMode?: PackOpenMode;
+}
+
+/** Result row from unbox.nft's results table */
+interface UnboxNftResultRow {
+  template_id: number;
+  [key: string]: unknown;
+}
+
+async function fetchUnboxNftResults(accountName: string, packAssetId: string): Promise<number[]> {
+  try {
+    // unbox.nft stores results with scope = the account that opened the pack
+    // We fetch recent assets for the account from the atomic API instead
+    const result = await fetchTableRows<UnboxNftResultRow>({
+      code: 'unbox.nft', scope: accountName, table: 'results',
+      limit: 100,
+    });
+    if (result.rows.length > 0) {
+      return result.rows.map(r => r.template_id);
+    }
+  } catch (e) {
+    console.warn('[AtomicReveal] unbox.nft results table fetch failed, trying assets API', e);
+  }
+  
+  // Fallback: poll the atomic assets API for recently minted assets
+  try {
+    const params = new URLSearchParams({
+      owner: accountName,
+      collection_name: 'gpk.topps',
+      sort: 'asset_id',
+      order: 'desc',
+      limit: '20',
+    });
+    const path = `${ATOMIC_API.paths.assets}?${params}`;
+    const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
+    const json = await response.json();
+    if (json.success && json.data) {
+      return json.data
+        .filter((a: any) => a.template?.template_id)
+        .map((a: any) => parseInt(a.template.template_id, 10));
+    }
+  } catch (e) {
+    console.warn('[AtomicReveal] assets API fallback failed', e);
+  }
+  return [];
 }
 
 function swapGateway(url: string, gatewayIndex: number): string | null {
@@ -112,7 +158,7 @@ async function fetchUnboxResults(contract: string, packAssetId: string): Promise
 
 export function AtomicPackRevealDialog({
   open, onOpenChange, packName, packImage, packAssetId,
-  unpackContract, expectedCards, accountName, session, onComplete,
+  unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
 }: AtomicPackRevealDialogProps) {
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
@@ -138,31 +184,92 @@ export function AtomicPackRevealDialog({
     }
   }, [open]);
 
+  // Snapshot asset IDs before opening so we can detect new ones for unbox_nft
+  const preOpenAssetIdsRef = useRef<Set<string>>(new Set());
+  
   useEffect(() => {
     if (!open || !packAssetId || phase !== 'waiting') return;
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | undefined;
+
+    // Snapshot current assets for unbox_nft mode
+    const snapshotAndStart = async () => {
+      if (openMode === 'unbox_nft') {
+        try {
+          const params = new URLSearchParams({
+            owner: accountName, collection_name: 'gpk.topps',
+            sort: 'asset_id', order: 'desc', limit: '50',
+          });
+          const path = `${ATOMIC_API.paths.assets}?${params}`;
+          const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
+          const json = await response.json();
+          if (json.success && json.data) {
+            preOpenAssetIdsRef.current = new Set(json.data.map((a: any) => a.asset_id));
+          }
+        } catch (e) { console.warn('[AtomicReveal] snapshot failed', e); }
+      }
+    };
+
     const poll = async () => {
       try {
-        const rows = await fetchUnboxResults(unpackContract, packAssetId);
         if (cancelled) return;
         const elapsed = Date.now() - pollStartRef.current;
-        if (elapsed > 60000) setWaitMessage('Taking longer than usual... still waiting for oracle');
-        else if (elapsed > 30000) setWaitMessage('Still waiting for the RNG oracle...');
-        if (rows.length >= expectedCards) {
-          clearInterval(interval);
-          const templateData = await Promise.all(rows.map((r) => fetchTemplateImage(r.template_id)));
-          const cards: RevealCard[] = rows.map((r, i) => ({
-            asset_id: `${r.pack_asset_id}-${r.origin_roll_id}`,
-            name: templateData[i].name, image: templateData[i].image, rarity: '',
-          }));
-          setNewCards(cards); setRollIds(rows.map((r) => r.origin_roll_id)); setPhase('revealing');
+        if (elapsed > 60000) setWaitMessage('Taking longer than usual... still waiting');
+        else if (elapsed > 30000) setWaitMessage('Still waiting for cards to be minted...');
+
+        if (openMode === 'unbox_nft') {
+          // For unbox.nft: poll the atomic assets API for new assets
+          const params = new URLSearchParams({
+            owner: accountName, collection_name: 'gpk.topps',
+            sort: 'asset_id', order: 'desc', limit: '50',
+          });
+          const path = `${ATOMIC_API.paths.assets}?${params}`;
+          const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
+          const json = await response.json();
+          if (!json.success || !json.data) return;
+          
+          const newAssets = json.data.filter((a: any) => !preOpenAssetIdsRef.current.has(a.asset_id));
+          if (newAssets.length >= expectedCards) {
+            clearInterval(interval);
+            const cards: RevealCard[] = newAssets.slice(0, expectedCards).map((a: any) => {
+              const idata = a.template?.immutable_data || {};
+              const img = resolveImage(idata.img || idata.image);
+              return {
+                asset_id: a.asset_id,
+                name: idata.name || a.name || `Card`,
+                image: img,
+                rarity: '',
+              };
+            });
+            setNewCards(cards);
+            setRollIds([]); // No roll IDs for unbox.nft
+            setPhase('revealing');
+          }
+        } else {
+          // Standard flow: poll unboxassets table
+          const rows = await fetchUnboxResults(unpackContract, packAssetId);
+          if (cancelled) return;
+          if (rows.length >= expectedCards) {
+            clearInterval(interval);
+            const templateData = await Promise.all(rows.map((r) => fetchTemplateImage(r.template_id)));
+            const cards: RevealCard[] = rows.map((r, i) => ({
+              asset_id: `${r.pack_asset_id}-${r.origin_roll_id}`,
+              name: templateData[i].name, image: templateData[i].image, rarity: '',
+            }));
+            setNewCards(cards); setRollIds(rows.map((r) => r.origin_roll_id)); setPhase('revealing');
+          }
         }
       } catch (e) { console.error('[AtomicReveal] poll error', e); }
     };
-    const startDelay = setTimeout(() => { if (cancelled) return; poll(); interval = setInterval(poll, POLL_INTERVAL); }, 4000);
+
+    const startDelay = setTimeout(async () => {
+      if (cancelled) return;
+      await snapshotAndStart();
+      poll();
+      interval = setInterval(poll, POLL_INTERVAL);
+    }, 4000);
     return () => { cancelled = true; clearTimeout(startDelay); clearInterval(interval); };
-  }, [open, phase, packAssetId, unpackContract, expectedCards]);
+  }, [open, phase, packAssetId, unpackContract, expectedCards, openMode, accountName]);
 
   useEffect(() => {
     if (phase !== 'revealing' || newCards.length === 0 || revealedCount >= newCards.length) return;
@@ -174,8 +281,16 @@ export function AtomicPackRevealDialog({
   }, [phase, revealedCount, newCards.length]);
 
   useEffect(() => {
-    if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0 && rollIds.length > 0) setPhase('collect');
-  }, [phase, revealedCount, newCards.length, rollIds]);
+    if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
+      // For unbox_nft: no claim needed, skip straight to done
+      if (openMode === 'unbox_nft') {
+        setPhase('done');
+        onComplete(null);
+      } else if (rollIds.length > 0) {
+        setPhase('collect');
+      }
+    }
+  }, [phase, revealedCount, newCards.length, rollIds, openMode, onComplete]);
 
   // Auto-close dialog after cards are collected
   useEffect(() => {
