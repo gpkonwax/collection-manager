@@ -90,7 +90,7 @@ function swapGateway(url: string, gatewayIndex: number): string | null {
   return `${IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length]}${hash}`;
 }
 
-function AtomicRevealCardImage({ card, isRevealed }: { card: RevealCard; isRevealed: boolean }) {
+function AtomicRevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
   const currentSrc = card.image ? (gwIdx === 0 ? card.image : swapGateway(card.image, gwIdx)) : null;
 
@@ -105,9 +105,14 @@ function AtomicRevealCardImage({ card, isRevealed }: { card: RevealCard; isRevea
           <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
         )}
       </div>
-      <div className="absolute inset-0 border-2 border-primary/30 bg-gradient-to-br from-primary/20 via-accent/20 to-primary/30 flex items-center justify-center shadow-md"
+      <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 flex items-center justify-center shadow-md border border-zinc-700/50 rounded-sm"
         style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-        <div className="text-center space-y-1"><span className="text-3xl">🧀</span><p className="text-[10px] text-muted-foreground font-medium">GPK</p></div>
+        {packImage ? (
+          <img src={packImage} alt="card back" className="w-3/4 h-3/4 object-contain opacity-15" style={{ filter: 'grayscale(1) contrast(1.5) brightness(0.8)' }} />
+        ) : (
+          <span className="text-4xl opacity-20">🃏</span>
+        )}
+        <div className="absolute inset-0 border border-zinc-600/30 rounded-sm" />
       </div>
     </div>
   );
