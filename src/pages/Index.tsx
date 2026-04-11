@@ -26,9 +26,7 @@ import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
-import { fetchUnboxResults, type UnboxResultRow } from '@/components/simpleassets/AtomicPackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
-import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
@@ -135,8 +133,6 @@ export default function SimpleAssetsPage() {
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
-  const [pendingAtomicClaims, setPendingAtomicClaims] = useState<{ contract: string; pack_asset_id: number; origin_roll_ids: number[] }[]>([]);
-  const [isClaimingAtomic, setIsClaimingAtomic] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
@@ -273,39 +269,13 @@ export default function SimpleAssetsPage() {
   }, []);
 
   useEffect(() => {
-    if (!accountName) { setShowCollectUnclaimed(false); setPendingAtomicClaims([]); return; }
+    if (!accountName) { setShowCollectUnclaimed(false); return; }
     (async () => {
       try {
         const rows = await fetchPendingNfts(accountName);
         const unclaimed = rows.filter((r: any) => r.done === 0);
         setShowCollectUnclaimed(unclaimed.length > 0);
       } catch { }
-    })();
-    // Check transfer-mode atomic contracts for unclaimed unboxed cards
-    (async () => {
-      const TRANSFER_CONTRACTS = ['gpkcrashpack', 'burnieunpack', 'atomicpacksx'];
-      const claims: { contract: string; pack_asset_id: number; origin_roll_ids: number[] }[] = [];
-      for (const contract of TRANSFER_CONTRACTS) {
-        try {
-          const result = await fetchTableRows<UnboxResultRow>({
-            code: contract, scope: accountName, table: 'unboxassets', limit: 500,
-          });
-          if (result.rows.length > 0) {
-            const grouped = new Map<number, number[]>();
-            for (const row of result.rows) {
-              const ids = grouped.get(row.pack_asset_id) || [];
-              ids.push(row.origin_roll_id);
-              grouped.set(row.pack_asset_id, ids);
-            }
-            for (const [pack_asset_id, origin_roll_ids] of grouped) {
-              claims.push({ contract, pack_asset_id, origin_roll_ids });
-            }
-          }
-        } catch (e) {
-          console.warn(`[recovery] Failed to check ${contract} unboxassets`, e);
-        }
-      }
-      setPendingAtomicClaims(claims);
     })();
   }, [accountName]);
 
@@ -351,34 +321,6 @@ export default function SimpleAssetsPage() {
       setIsCollecting(false);
     }
   }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks]);
-
-  const handleClaimAtomicUnboxed = useCallback(async () => {
-    if (!session || pendingAtomicClaims.length === 0) return;
-    setIsClaimingAtomic(true);
-    try {
-      const actor = String(session.actor);
-      const auth = [{ actor, permission: String(session.permission) }];
-      let lastTxId: string | null = null;
-      for (const claim of pendingAtomicClaims) {
-        const result = await executeRawTransaction([{
-          account: claim.contract,
-          name: 'claimunboxed',
-          authorization: auth,
-          data: { pack_asset_id: claim.pack_asset_id, origin_roll_ids: claim.origin_roll_ids },
-        }], { errorTitle: 'Claim Failed', showErrorToast: true });
-        lastTxId = result.resolved?.transaction.id?.toString() || null;
-      }
-      setPendingAtomicClaims([]);
-      if (lastTxId) {
-        setSuccessDialog({ open: true, title: 'Cards Claimed!', description: 'Your unboxed cards have been delivered to your wallet.', txId: lastTxId });
-      }
-      await Promise.all([refetchAa(), refetchAtomicPacks()]);
-    } catch (e) {
-      console.error('Claim atomic unboxed failed:', e);
-    } finally {
-      setIsClaimingAtomic(false);
-    }
-  }, [session, pendingAtomicClaims, executeRawTransaction, refetchAa, refetchAtomicPacks]);
 
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
@@ -1239,12 +1181,6 @@ export default function SimpleAssetsPage() {
                 <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
                   <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                   {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
-                </Button>
-              )}
-              {pendingAtomicClaims.length > 0 && (
-                <Button onClick={handleClaimAtomicUnboxed} disabled={isClaimingAtomic || !session} variant="outline" size="sm" className="whitespace-nowrap border-primary/50 text-primary hover:bg-primary/10">
-                  <Download className={`h-4 w-4 mr-1 ${isClaimingAtomic ? 'animate-spin' : ''}`} />
-                  {isClaimingAtomic ? 'Claiming...' : `Claim Unboxed Cards (${pendingAtomicClaims.length})`}
                 </Button>
               )}
             </div>

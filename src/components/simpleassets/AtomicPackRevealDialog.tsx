@@ -20,7 +20,7 @@ interface RevealCard {
   rarity: string;
 }
 
-export interface UnboxResultRow {
+interface UnboxResultRow {
   pack_asset_id: number;
   origin_roll_id: number;
   template_id: number;
@@ -148,7 +148,7 @@ async function fetchTemplateImage(templateId: number): Promise<{ name: string; i
   return { name: `Card #${tid}`, image: null };
 }
 
-export async function fetchUnboxResults(contract: string, packAssetId: string, accountName?: string): Promise<UnboxResultRow[]> {
+async function fetchUnboxResults(contract: string, packAssetId: string, accountName?: string): Promise<UnboxResultRow[]> {
   try {
     // Try scope = packAssetId first (works for most contracts)
     const result = await fetchTableRows<UnboxResultRow>({

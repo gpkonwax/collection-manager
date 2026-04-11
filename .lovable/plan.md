@@ -1,36 +1,61 @@
 
 
-## Add Recovery Button for Unclaimed Atomic Pack Cards
+## Fix: Crash Gordon Pack Reveal Polling
 
 ### Problem
-When a transfer-mode atomic pack (e.g., Crash Gordon via `gpkcrashpack`) is opened but the reveal dialog is closed before collecting, the cards sit unclaimed in the contract's `unboxassets` table with no way to claim them from the main UI.
+The `gpkcrashpack` contract's `unboxassets` table is being polled with `scope = packAssetId` (the NFT asset ID like `1099511932586`), but this contract likely uses `scope = accountName` (e.g. `guydgnjzgage`). Every poll returns empty rows, trapping the user forever.
 
-### Approach
-Add a check on page load (alongside the existing `pendingnft.a` check) that polls the `unboxassets` table for each transfer-mode contract. If unclaimed rows are found, show a "Claim Unboxed Cards" button in the utility bar next to the existing "Collect Unclaimed" button.
+### Root Cause
+In `AtomicPackRevealDialog.tsx`, `fetchUnboxResults()` always uses `scope: packAssetId`. This works for some contracts but not all. The `gpkcrashpack` contract appears to scope its `unboxassets` table by the user's account name instead.
 
-### Changes
+### Solution
+Try both scopes — first the pack asset ID, then fall back to the account name. Also add a timeout escape hatch so users are never permanently trapped.
 
-**`src/pages/Index.tsx`**:
-1. Add state for `pendingAtomicClaims` — an array of `{ contract, pack_asset_id, origin_roll_ids }` objects
-2. On mount (when `accountName` is set), poll the `unboxassets` table for each transfer-mode contract (`gpkcrashpack`, `burnieunpack`) using `scope = accountName`
-3. If rows are found, show a "Claim Unboxed Cards" button in the utility bar
-4. On click, execute `claimunboxed` action for each contract/pack group, then refetch assets
-5. Show the transaction success dialog on completion
+### Technical Details
 
-**`src/components/simpleassets/AtomicPackRevealDialog.tsx`**:
-- Export `fetchUnboxResults` so it can be reused from `Index.tsx`
+**File: `src/components/simpleassets/AtomicPackRevealDialog.tsx`**
 
-### Technical Detail
+1. **Update `fetchUnboxResults` to accept and try both scopes**:
+   - First try `scope = packAssetId` (works for most contracts)
+   - If empty, retry with `scope = accountName`
+   - Return whichever has results
 
-The contracts that need checking are those with `openMode: 'transfer'` in `PACK_CONFIG`:
-- `gpkcrashpack` (template 13778)
-- `burnieunpack` (templates 48479, 51437)
-- `atomicpacksx` (templates 53187, 59072)
+2. **Pass `accountName` into the polling logic for the fallback scope**:
+   - The poll function already has access to `accountName` — just pass it through to `fetchUnboxResults`
 
-The `claimunboxed` action signature:
+3. **Add a 60-second escape hatch** (from the previously proposed plan):
+   - Add `showEscape` state, set `true` after 60s via `setTimeout`
+   - Render a "Close & Check Later" button in the waiting phase
+   - Wire to existing `handleClose`
+
+**File: `src/components/simpleassets/PackRevealDialog.tsx`**
+   - Same escape hatch addition (this dialog already uses account-scoped polling so the scope issue doesn't apply here)
+
+### Updated `fetchUnboxResults` signature
+
 ```ts
-{ account: contract, name: 'claimunboxed', data: { pack_asset_id, origin_roll_ids } }
+async function fetchUnboxResults(
+  contract: string, 
+  packAssetId: string, 
+  accountName?: string
+): Promise<UnboxResultRow[]> {
+  // Try pack asset ID scope first
+  const result = await fetchTableRows({ 
+    code: contract, scope: packAssetId, table: 'unboxassets', limit: 100 
+  });
+  if (result.rows.length > 0) return result.rows;
+  
+  // Fallback: try account name scope
+  if (accountName) {
+    const fallback = await fetchTableRows({ 
+      code: contract, scope: accountName, table: 'unboxassets', limit: 100 
+    });
+    return fallback.rows;
+  }
+  return [];
+}
 ```
 
-The recovery check will group rows by `pack_asset_id` and call `claimunboxed` for each group.
+### Immediate Action
+Refresh the page to escape the stuck modal. Your cards may have already been minted — they should appear in your collection after refresh.
 
