@@ -645,7 +645,24 @@ export default function SimpleAssetsPage() {
     );
   };
 
-  const renderBinderSections = (grid: NonNullable<typeof binderGrid>, useGrouped: boolean) => {
+  const renderCompletionBar = () => {
+    if (!accountName) return null;
+    const key = categoryFilter === 'all' ? 'overall' : categoryFilter;
+    const entry = completion[key];
+    if (!entry) return null;
+    const label = categoryFilter === 'all' ? 'Overall' : (CATEGORY_LABELS[categoryFilter] || categoryFilter);
+    return (
+      <div className="flex items-center gap-2 mx-auto">
+        <span className="text-sm font-medium text-cheese whitespace-nowrap">
+          {label}: {entry.percent}%
+        </span>
+        <Progress value={entry.percent} className="w-24 h-2 bg-muted" />
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {entry.owned}/{entry.total}
+        </span>
+      </div>
+    );
+  };
     const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
     const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
     const collectors = grid.filter(s => s.template.variant === 'collector');
