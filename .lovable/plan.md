@@ -1,24 +1,42 @@
 
 
-## Fix: Lens Should Overflow Card but Not Trigger Modal Scrollbar
+## Fix: Allow Lens to Reach Card Edges
 
 ### Problem
-The previous fix added `overflow-hidden` to the card's container, which clips the lens at the card edge. This means edges of the card become unmagnifiable. The real fix is to let the lens overflow the card freely, but prevent it from causing scrollbars on the modal.
+The `onMouseLeave` fires as soon as the cursor exits the card container, making it impossible to magnify the very edges. The lens disappears before reaching the border of the card.
 
 ### Approach
-1. **Remove `overflow-hidden` from the `ImageWithLens` container** (line 65) — restore the lens's ability to extend past the card edge
-2. **Add `overflow-hidden` to the flex wrapper** that holds the card columns (line 135) — this is the parent `div` with `flex flex-col sm:flex-row`. This clips the lens at the content area boundary rather than at the individual card
-3. **Also add `overflow-x: hidden`** to the `DialogContent` (line 130) so any remaining edge cases don't trigger a horizontal scrollbar
+Add generous padding to the `ImageWithLens` container so the mouse-tracking area extends well beyond the visible card image. The cursor position is already clamped to 0–100%, so the lens background will correctly show the edge of the card even when the cursor is in the padding zone. The inner image div stays the same size visually.
 
 ### Changes
 
 **`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**
 
-- Line 65: Remove `overflow-hidden` from the `ImageWithLens` container → `relative ${isLandscape ? ...}`
-- Line 130: Add `overflow-x-hidden` to `DialogContent` → `overflow-y-auto overflow-x-hidden`
-- Line 135: Add `overflow-hidden` to the images flex wrapper
+1. Add `p-[110px] -m-[110px]` (padding equal to half the lens size) to the outer container div so the hover zone extends ~110px beyond the card on all sides
+2. Move the `bg-muted/30 rounded-lg` styling to the inner image div since the outer container is now larger than the visible card
+3. Adjust the lens position calculation to be relative to the inner image area (subtract padding from mouse coordinates)
+
+```tsx
+// Container gets padding for extended hover zone
+<div
+  ref={containerRef}
+  className={`relative p-[110px] -m-[110px]`}
+  onMouseEnter={() => setHover(true)}
+  onMouseLeave={() => setHover(false)}
+  onMouseMove={handleMouseMove}
+  style={{ cursor: hover ? 'crosshair' : 'default' }}
+>
+  <div className={`relative w-full ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}>
+    <IpfsMedia ... />
+  </div>
+  {/* Lens positioned relative to outer container */}
+</div>
+```
+
+4. Update `handleMouseMove` to calculate position relative to the inner image area (offset by padding)
 
 ### Result
-- Lens can extend beyond the card edge, so all parts of the card are magnifiable
-- Lens gets clipped at the modal content boundary, preventing scrollbar jumps
+- Cursor can move 110px beyond the card edge before the lens disappears
+- Lens stays visible and functional right up to (and slightly beyond) the card edges
+- Parent `overflow-hidden` on the flex wrapper still prevents scrollbar issues
 
