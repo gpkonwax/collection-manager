@@ -1,42 +1,59 @@
 
+## Fix: Turn the card-detail magnifier into one shared lens for the whole image strip
 
-## Fix: Allow Lens to Reach Card Edges
+Your suggested behavior is the right fix: the lens should stop being per-image and become one free-floating lens across the full gallery area.
 
-### Problem
-The `onMouseLeave` fires as soon as the cursor exits the card container, making it impossible to magnify the very edges. The lens disappears before reaching the border of the card.
+### What is wrong now
+- `ImageWithLens` is stateful per card, so hover ends at each individual image boundary.
+- The current padding trick is also per image, so right/bottom edges still get cut off.
+- When front/back sit side by side, the neighboring card can take over the lens near the seam.
 
-### Approach
-Add generous padding to the `ImageWithLens` container so the mouse-tracking area extends well beyond the visible card image. The cursor position is already clamped to 0–100%, so the lens background will correctly show the edge of the card even when the cursor is in the padding zone. The inner image div stays the same size visually.
+### Implementation plan
 
-### Changes
+**File:** `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
 
-**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**
+1. **Move lens state up to the shared image area**
+   - Replace per-card hover/lens logic with one parent-level magnifier stage.
+   - Keep one hover state, one cursor position, and one lens element.
 
-1. Add `p-[110px] -m-[110px]` (padding equal to half the lens size) to the outer container div so the hover zone extends ~110px beyond the card on all sides
-2. Move the `bg-muted/30 rounded-lg` styling to the inner image div since the outer container is now larger than the visible card
-3. Adjust the lens position calculation to be relative to the inner image area (subtract padding from mouse coordinates)
+2. **Make the stage span both images plus the gap**
+   - Wrap the full front/back image strip in a single relative container.
+   - Remove per-card hover ownership and per-card clipping.
+   - Move the current `PAD` behavior from each card to this shared container.
 
-```tsx
-// Container gets padding for extended hover zone
-<div
-  ref={containerRef}
-  className={`relative p-[110px] -m-[110px]`}
-  onMouseEnter={() => setHover(true)}
-  onMouseLeave={() => setHover(false)}
-  onMouseMove={handleMouseMove}
-  style={{ cursor: hover ? 'crosshair' : 'default' }}
->
-  <div className={`relative w-full ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}>
-    <IpfsMedia ... />
-  </div>
-  {/* Lens positioned relative to outer container */}
-</div>
+3. **Allow edge magnification in every direction**
+   - Give the stage extra invisible hover room on the left/right/top.
+   - Keep real bottom padding so the lens can travel below the cards without colliding with the metadata section.
+   - This lets the lens be mostly or fully clipped before it disappears, so the outer edges and bottom edges stay magnifiable.
+
+4. **Render the lens from the whole stage, not a single card**
+   - Inside the circular lens, render a magnified clone of the entire image strip: front card, gap, and back card.
+   - Position that clone from stage-relative cursor coordinates.
+   - Result: the lens can float over the space between images and still show the correct enlarged content instead of switching cards.
+
+5. **Preserve existing card-specific rendering**
+   - Keep the same portrait/landscape rules.
+   - Preserve the rotated Series 1 back-image behavior inside both the visible strip and the magnified clone.
+   - Reuse the same face-rendering structure so the normal view and magnified view stay visually identical.
+
+6. **Keep scrollbars controlled at the modal boundary**
+   - Keep `DialogContent` horizontal overflow hidden.
+   - Remove any image-level clipping that cuts the lens off too early.
+   - Let the shared stage be the only interaction boundary.
+
+### Technical shape
+
+```text
+DialogContent
+  Header
+  Shared magnifier stage
+    visible strip: [front]  gap  [back]
+    one free-floating circular lens over the whole strip
+  Metadata / raw JSON
 ```
 
-4. Update `handleMouseMove` to calculate position relative to the inner image area (offset by padding)
-
-### Result
-- Cursor can move 110px beyond the card edge before the lens disappears
-- Lens stays visible and functional right up to (and slightly beyond) the card edges
-- Parent `overflow-hidden` on the flex wrapper still prevents scrollbar issues
-
+### Expected result
+- You can magnify to the far right, far left, and bottom edges.
+- The lens can pass across the gap between front and back.
+- No more front/back crossover takeover near the seam.
+- The lens only disappears after leaving the larger shared stage, not when crossing an individual card edge.
