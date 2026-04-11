@@ -11,11 +11,14 @@ import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 
 const EXPECTED_CARDS: Record<string, number> = {
-  GPKFIVE: 5, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
+  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
+  EXOFIVE: 5, EXOMEGA: 25,
 };
 
 const SYMBOL_TO_BOXTYPE: Record<string, string> = {
-  GPKFIVE: 'five', GPKTWOA: 'gpktwoeight', GPKTWOB: 'gpktwo25', GPKTWOC: 'gpktwo55',
+  GPKFIVE: 'five', GPKMEGA: 'thirty',
+  GPKTWOA: 'gpktwoeight', GPKTWOB: 'gpktwo25', GPKTWOC: 'gpktwo55',
+  EXOFIVE: 'exotic5', EXOMEGA: 'exotic25',
 };
 
 export interface RevealCard {
