@@ -10,11 +10,12 @@ import type { RevealCard } from './PackRevealDialog';
 import { PackBrowserDialog } from './PackBrowserDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import gpkSeries1Img from '@/assets/gpk_pack_series_1.png';
-import gpkSeries2aImg from '@/assets/gpk_pack_series_2a.png';
-import gpkSeries2bImg from '@/assets/gpk_pack_series_2b.png';
-import gpkSeries2cImg from '@/assets/gpk_pack_series_2c.png';
-import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega.jpg';
+// Geepeekay versions (current) — old originals kept in assets with original filenames
+import gpkSeries1Img from '@/assets/gpk_pack_series_1_geepeekay.jpg';
+import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega_geepeekay.jpg';
+import gpkSeries2aImg from '@/assets/gpk_pack_series_2a_geepeekay.jpg';
+import gpkSeries2bImg from '@/assets/gpk_pack_series_2b_geepeekay.jpg';
+import gpkSeries2cImg from '@/assets/gpk_pack_series_2c_geepeekay.jpg';
 import gpkExoticImg from '@/assets/gpk_pack_exotic.jpeg';
 import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpeg';
 
