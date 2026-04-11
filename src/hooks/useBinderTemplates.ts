@@ -27,19 +27,12 @@ const ALLOWED_SCHEMA_VARIANTS: Record<string, Set<string>> = {
   series1: new Set(['base', 'prism', 'sketch', 'collector', 'golden']),
   series2: new Set([
     'base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch',
-    'tiger stripe', 'tiger claw',
     'returning', 'error', 'originalart', 'relic', 'promo',
     'collector', 'golden',
   ]),
 };
 
-// series2 binder also needs exotic schema templates (tiger stripe/claw live there)
-const EXTRA_SCHEMAS: Record<string, string[]> = {
-  series2: ['exotic'],
-};
-
-// Only keep these variants from the exotic schema; all others already exist in series2
-const EXOTIC_ONLY_VARIANTS = new Set(['tiger stripe', 'tiger claw']);
+const EXTRA_SCHEMAS: Record<string, string[]> = {};
 
 function getNumericCardId(cardid: string): number | null {
   const normalized = cardid.trim();
