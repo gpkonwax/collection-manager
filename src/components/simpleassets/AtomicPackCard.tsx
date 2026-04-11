@@ -24,6 +24,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
   const { executeTransaction } = useWaxTransaction(session);
 
   const hasMultiple = pack.count > 1;
+  const isDisabled = pack.packConfig.disabled === true;
 
   const handleOpenSingle = useCallback(async () => {
     if (!session || pack.assetIds.length === 0) return;
@@ -59,10 +60,19 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
           <p className="font-bold text-foreground text-sm">{pack.name}</p>
           <p className="text-xs text-muted-foreground">{pack.cardsPerPack} cards per pack</p>
           <p className="text-lg font-mono text-primary">{pack.count}</p>
-          <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground"
-            disabled={!session || isOpening || pack.count === 0} onClick={handleClick}>
-            {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
-          </Button>
+          {isDisabled ? (
+            <div className="w-full space-y-1">
+              <Button size="sm" className="w-full text-xs" disabled>
+                Opening Disabled
+              </Button>
+              <p className="text-[10px] text-muted-foreground text-center">{pack.packConfig.disabledReason}</p>
+            </div>
+          ) : (
+            <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground"
+              disabled={!session || isOpening || pack.count === 0} onClick={handleClick}>
+              {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
+            </Button>
+          )}
         </CardContent>
       </Card>
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
