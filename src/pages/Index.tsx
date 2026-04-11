@@ -375,8 +375,10 @@ export default function SimpleAssetsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Restore saved layout when account or category changes
+  const restoringRef = useRef(false);
   useEffect(() => {
-    if (!savedLayoutKey) return;
+    restoringRef.current = true;
+    if (!savedLayoutKey) { setSavedOrder(null); setLoadedLayoutName(null); return; }
     try {
       const stored = localStorage.getItem(savedLayoutKey);
       if (stored) {
@@ -391,11 +393,13 @@ export default function SimpleAssetsPage() {
       setSavedOrder(null);
       setLoadedLayoutName(null);
     }
+    // Allow persist after restore completes
+    requestAnimationFrame(() => { restoringRef.current = false; });
   }, [savedLayoutKey]);
 
   // Persist saved layout to localStorage
   useEffect(() => {
-    if (!savedLayoutKey || savedOrder === null) return;
+    if (!savedLayoutKey || savedOrder === null || restoringRef.current) return;
     try {
       localStorage.setItem(savedLayoutKey, JSON.stringify({
         order: savedOrder,
