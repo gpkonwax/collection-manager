@@ -1,25 +1,24 @@
 
 
-## Clean Up: Remove Pointless Tiger Variants from Series 2
+## Fix: Magnifying Lens Causing Scrollbar on Modal
 
-### Finding
-Tiger Stripe and Tiger Claw are exclusive to the `exotic` schema ("GPK Goes Exotic" collection). No templates in the `series2` schema have these variants. Adding them to `ALLOWED_SCHEMA_VARIANTS.series2` does nothing.
+### Problem
+The lens element is positioned with `absolute` and can extend beyond the right edge of its container. Since the `DialogContent` has `overflow-y: auto`, any horizontal overflow from the lens triggers a scrollbar and causes the content to jump.
 
-### Change
+### Fix
 
-**`src/hooks/useBinderTemplates.ts`**
-- Remove `'tiger stripe'` and `'tiger claw'` from `ALLOWED_SCHEMA_VARIANTS.series2` since no series2 templates use them
+**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**
 
-```ts
-series2: new Set([
-  'base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch',
-  // tiger stripe and tiger claw removed — they only exist in exotic schema
-  'returning', 'error', 'originalart', 'relic', 'promo',
-  'collector', 'golden',
-]),
+Add `overflow: hidden` to the outer container of `ImageWithLens` so the lens circle is clipped when it reaches the edges, preventing it from affecting the modal's scroll:
+
+```tsx
+// Line 63-69: Add overflow-hidden to the container div
+<div
+  ref={containerRef}
+  className={`relative overflow-hidden ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
+  ...
+>
 ```
 
-### Result
-- No visible change (those variants weren't matching any series2 templates anyway)
-- Cleaner, more accurate configuration
+This clips the lens at the image boundary, which is a clean visual behavior — the lens simply gets cut off at the card edge rather than poking out and triggering scrollbars.
 
