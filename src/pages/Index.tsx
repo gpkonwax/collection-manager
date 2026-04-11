@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
 import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye } from 'lucide-react';
-import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send } from 'lucide-react';
+import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -902,6 +902,9 @@ export default function SimpleAssetsPage() {
             </Button>
             <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
               <Upload className="h-4 w-4 mr-1" />Load Layout
+            </Button>
+            <Button onClick={() => { if (savedLayoutKey) localStorage.removeItem(savedLayoutKey); setSavedOrder(null); setLoadedLayoutName(null); toast.success('Layout cleared for this category'); }} variant="outline" size="sm" className="whitespace-nowrap border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 h-8">
+              <Trash2 className="h-4 w-4 mr-1" />Clear Layout
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
           </div>
