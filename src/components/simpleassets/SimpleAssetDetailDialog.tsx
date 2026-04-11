@@ -61,16 +61,8 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
   const bgX = isLandscape ? pos.y : pos.x;
   const bgY = isLandscape ? (100 - pos.x) : pos.y;
 
-  // Lens position relative to the outer (padded) container
-  const lensStyle = containerRef.current && innerRef.current
-    ? {
-        left: `calc(${PAD}px + ${pos.x}% * ${innerRef.current.offsetWidth / 100} - ${LENS_SIZE / 2}px)`,
-        top: `calc(${PAD}px + ${pos.y}% * ${innerRef.current.offsetHeight / 100} - ${LENS_SIZE / 2}px)`,
-      }
-    : {
-        left: `calc(${PAD}px + ${pos.x}% - ${LENS_SIZE / 2}px)`,
-        top: `calc(${PAD}px + ${pos.y}% - ${LENS_SIZE / 2}px)`,
-      };
+  const innerW = innerRef.current?.offsetWidth ?? 0;
+  const innerH = innerRef.current?.offsetHeight ?? 0;
 
   return (
     <div
