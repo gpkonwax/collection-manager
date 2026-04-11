@@ -18,7 +18,8 @@ export function useCardTilt({ disabled = false }: { disabled?: boolean } = {}) {
     rafId.current = requestAnimationFrame(() => {
       const rotateY = (x - 0.5) * MAX_TILT * 2;
       const rotateX = (0.5 - y) * MAX_TILT * 2;
-      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`;
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(0) scale(1.03)`;
+      card.style.backfaceVisibility = 'hidden';
       if (glareRef.current) {
         glareRef.current.style.opacity = '1';
         glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, hsla(0,0%,100%,0.12) 0%, transparent 50%)`;
@@ -30,6 +31,7 @@ export function useCardTilt({ disabled = false }: { disabled?: boolean } = {}) {
     if (!ref.current) return;
     cancelAnimationFrame(rafId.current);
     ref.current.style.transform = '';
+    ref.current.style.backfaceVisibility = '';
     if (glareRef.current) {
       glareRef.current.style.opacity = '0';
     }

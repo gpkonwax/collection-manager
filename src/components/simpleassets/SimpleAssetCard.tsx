@@ -59,7 +59,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   return (
     <div className={isStacked ? 'relative' : ''} ref={tiltRef}
       onMouseMove={tiltMouseMove} onMouseLeave={tiltMouseLeave}
-      style={{ transformStyle: 'preserve-3d', willChange: 'transform', transition: 'transform 0.15s ease' }}>
+      style={{ transformStyle: 'preserve-3d', willChange: 'transform', backfaceVisibility: 'hidden', transition: 'transform 0.15s ease' }}>
       {isStacked && (
         <>
           <div className="absolute inset-0 rounded-lg border border-border bg-card translate-x-1.5 translate-y-1.5 opacity-40" />
