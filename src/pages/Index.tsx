@@ -439,7 +439,7 @@ export default function SimpleAssetsPage() {
       const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
       if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if ((categoryFilter === 'series1' || categoryFilter === 'series2') && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
+      if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
@@ -466,7 +466,7 @@ export default function SimpleAssetsPage() {
     }
 
     let filteredTemplates = binderTemplates;
-    if ((categoryFilter === 'series1' || categoryFilter === 'series2') && !variantFilter.includes('all')) {
+    if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && !variantFilter.includes('all')) {
       filteredTemplates = binderTemplates.filter(t => variantFilter.includes(t.variant.toLowerCase()));
     }
 
@@ -1231,15 +1231,15 @@ export default function SimpleAssetsPage() {
                   <SelectItem value="atomicassets">Atomic Assets</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2') setVariantFilter(['all']); }}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2' && v !== 'exotic') setVariantFilter(['all']); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {(categoryFilter === 'series1' || categoryFilter === 'series2') && (() => {
-                const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : SERIES2_VARIANTS;
+              {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (() => {
+                const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : SERIES2_VARIANTS;
                 const isAll = variantFilter.includes('all');
                 const toggleVariant = (val: string) => {
                   if (val === 'all') {
