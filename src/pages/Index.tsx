@@ -76,13 +76,14 @@ const SERIES2_VARIANTS: { value: string; label: string }[] = [
 ];
 
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
-  exotic: 'series2',
+  exotic: 'exotic',
   five: 'series1',
 };
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
   GPKTWOA: 'series2', GPKTWOB: 'series2', GPKTWOC: 'series2',
+  EXOFIVE: 'exotic', EXOMEGA: 'exotic',
 };
 
 const ATOMIC_PACK_CATEGORY_MAP: Record<string, string> = {

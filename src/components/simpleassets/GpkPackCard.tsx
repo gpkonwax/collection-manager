@@ -22,11 +22,13 @@ const SERIES_2_IMAGES: Record<string, string> = {
 };
 
 const UNBOX_TYPE_MAP: Record<string, string> = {
-  GPKFIVE: 'five', GPKTWOA: 'gpktwoeight', GPKTWOB: 'gpktwo25', GPKTWOC: 'gpktwo55',
+  GPKFIVE: 'five', GPKMEGA: 'thirty', GPKTWOA: 'gpktwoeight', GPKTWOB: 'gpktwo25', GPKTWOC: 'gpktwo55',
+  EXOFIVE: 'exotic5', EXOMEGA: 'exotic25',
 };
 
 const EXPECTED_CARDS: Record<string, number> = {
-  GPKFIVE: 5, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
+  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
+  EXOFIVE: 5, EXOMEGA: 25,
 };
 
 interface GpkPackCardProps {
