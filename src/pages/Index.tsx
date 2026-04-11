@@ -207,6 +207,8 @@ export default function SimpleAssetsPage() {
     return combined;
   }, [saAssets, aaAssets]);
 
+  const { completion } = useCollectionCompletion(assets, packs, atomicPacks, accountName);
+
   const binderSchema = viewMode === 'binder' ? categoryFilter : null;
   const { templates: binderTemplates, isLoading: binderLoading } = useBinderTemplates(
     binderSchema !== 'all' ? binderSchema : null
