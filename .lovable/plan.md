@@ -1,59 +1,34 @@
 
-## Fix: Turn the card-detail magnifier into one shared lens for the whole image strip
 
-Your suggested behavior is the right fix: the lens should stop being per-image and become one free-floating lens across the full gallery area.
+## Fix: Lens Crossover Bug Between Front and Back Cards
 
-### What is wrong now
-- `ImageWithLens` is stateful per card, so hover ends at each individual image boundary.
-- The current padding trick is also per image, so right/bottom edges still get cut off.
-- When front/back sit side by side, the neighboring card can take over the lens near the seam.
+### Problem
+The magnified clone inside the lens uses hardcoded card widths (400/500px) and reconstructs the layout independently. This doesn't match the actual rendered strip pixel-for-pixel, so when the lens crosses from the front card to the back card, the magnified front image overlaps where the back image should appear.
 
-### Implementation plan
+### Root Cause
+The lens renders its own flex layout with `width: cardW * ZOOM` for each card, but the real strip's cards may render at different actual pixel widths (due to flex shrink, container constraints, etc.). The mismatch means the magnified seam doesn't align with the visual seam.
 
-**File:** `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
+### Fix
+Instead of reconstructing the strip layout inside the lens, measure each card image's actual bounding rect relative to the strip, then position each magnified background-image tile at exactly the right spot.
 
-1. **Move lens state up to the shared image area**
-   - Replace per-card hover/lens logic with one parent-level magnifier stage.
-   - Keep one hover state, one cursor position, and one lens element.
+### Changes — `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
 
-2. **Make the stage span both images plus the gap**
-   - Wrap the full front/back image strip in a single relative container.
-   - Remove per-card hover ownership and per-card clipping.
-   - Move the current `PAD` behavior from each card to this shared container.
+1. **Add refs for each card image container** — use a `useRef` array to capture each card's actual DOM element within the strip.
 
-3. **Allow edge magnification in every direction**
-   - Give the stage extra invisible hover room on the left/right/top.
-   - Keep real bottom padding so the lens can travel below the cards without colliding with the metadata section.
-   - This lets the lens be mostly or fully clipped before it disappears, so the outer edges and bottom edges stay magnifiable.
+2. **On mouse move, measure actual card positions** — for each card, get its `getBoundingClientRect()` relative to the strip's rect. This gives exact `left`, `top`, `width`, `height` for each card within the strip.
 
-4. **Render the lens from the whole stage, not a single card**
-   - Inside the circular lens, render a magnified clone of the entire image strip: front card, gap, and back card.
-   - Position that clone from stage-relative cursor coordinates.
-   - Result: the lens can float over the space between images and still show the correct enlarged content instead of switching cards.
+3. **Replace the flex-based magnified clone with absolutely positioned tiles** — inside the lens, render each card as an absolutely positioned `background-image` div using:
+   - `left: cardRect.left * ZOOM`  
+   - `top: cardRect.top * ZOOM`  
+   - `width: cardRect.width * ZOOM`  
+   - `height: cardRect.height * ZOOM`  
+   
+   This guarantees pixel-perfect alignment with the visible strip.
 
-5. **Preserve existing card-specific rendering**
-   - Keep the same portrait/landscape rules.
-   - Preserve the rotated Series 1 back-image behavior inside both the visible strip and the magnified clone.
-   - Reuse the same face-rendering structure so the normal view and magnified view stay visually identical.
+4. **Offset the tile container** so the cursor point is centered in the lens (same `magOffsetX/Y` logic but using strip dimensions from `getBoundingClientRect`).
 
-6. **Keep scrollbars controlled at the modal boundary**
-   - Keep `DialogContent` horizontal overflow hidden.
-   - Remove any image-level clipping that cuts the lens off too early.
-   - Let the shared stage be the only interaction boundary.
+### Result
+- The magnified view is an exact scaled replica of the visible strip
+- No overlap or gap at the seam between front and back cards
+- Edge magnification still works because the stage padding is unchanged
 
-### Technical shape
-
-```text
-DialogContent
-  Header
-  Shared magnifier stage
-    visible strip: [front]  gap  [back]
-    one free-floating circular lens over the whole strip
-  Metadata / raw JSON
-```
-
-### Expected result
-- You can magnify to the far right, far left, and bottom edges.
-- The lens can pass across the gap between front and back.
-- No more front/back crossover takeover near the seam.
-- The lens only disappears after leaving the larger shared stage, not when crossing an individual card edge.
