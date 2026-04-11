@@ -191,7 +191,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
                 left: baseLeft,
                 top: baseTop,
                 width: cardSize.width,
-                height: cardSize.height,
+                height: cardSize.height + 8,
                 zIndex: 100 - stackIdx,
                 transition: 'none',
               };
