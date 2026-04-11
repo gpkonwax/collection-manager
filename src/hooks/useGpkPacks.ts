@@ -14,9 +14,11 @@ const GPK_LABELS: Record<string, string> = {
   GPKTWOA: 'GPK Series 2A Pack',
   GPKTWOB: 'GPK Series 2B Pack',
   GPKTWOC: 'GPK Series 2C Pack',
+  EXOFIVE: 'Exotic Series 1 Pack',
+  EXOMEGA: 'Exotic Mega Pack',
 };
 
-const ALWAYS_VISIBLE: string[] = ['GPKFIVE', 'GPKMEGA', 'GPKTWOA', 'GPKTWOB', 'GPKTWOC'];
+const ALWAYS_VISIBLE: string[] = ['GPKFIVE', 'GPKMEGA', 'GPKTWOA', 'GPKTWOB', 'GPKTWOC', 'EXOFIVE', 'EXOMEGA'];
 
 export function useGpkPacks(accountName: string | null) {
   const [packs, setPacks] = useState<GpkPack[]>([]);
