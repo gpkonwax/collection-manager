@@ -61,7 +61,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
 
   return (
     <div
-      className={isStacked ? 'relative' : ''}
+      className="relative"
       ref={tiltRef}
       onMouseMove={tiltMouseMove}
       onMouseLeave={tiltMouseLeave}
