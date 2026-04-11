@@ -981,6 +981,7 @@ export default function SimpleAssetsPage() {
             rel="noopener noreferrer"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
+            <span className="text-xs text-muted-foreground">powered by</span>
             <img src={cheesehubLogo} alt="CheeseHub" className="h-7 w-7" />
             <span className="font-bold text-sm">
               <span className="text-cheese">CHEESE</span>
