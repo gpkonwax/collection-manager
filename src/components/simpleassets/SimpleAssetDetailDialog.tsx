@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
@@ -33,79 +33,148 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 
 const ZOOM = 4;
 const LENS_SIZE = 220;
-
 const PAD = Math.ceil(LENS_SIZE / 2);
 
-function ImageWithLens({ url, alt, isLandscape, className }: {
-  url: string;
-  alt: string;
-  isLandscape: boolean;
-  className?: string;
-}) {
-  const [hover, setHover] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
+function resolveUrl(url: string): string {
   const hash = url ? extractIpfsHash(url) : null;
   const cachedIdx = getCachedGatewayIndex(hash);
-  const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
+  return hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
+}
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const inner = innerRef.current?.getBoundingClientRect();
-    if (!inner) return;
-    const x = Math.max(0, Math.min(100, ((e.clientX - inner.left) / inner.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - inner.top) / inner.height) * 100));
+interface ImageStripProps {
+  images: string[];
+  asset: SimpleAsset;
+  isSeries1: boolean;
+}
+
+function ImageStrip({ images, asset, isSeries1 }: ImageStripProps) {
+  const [hover, setHover] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const stageRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const rect = strip.getBoundingClientRect();
+    // position as fraction of the strip
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
     setPos({ x, y });
-  };
+  }, []);
 
-  const bgX = isLandscape ? pos.y : pos.x;
-  const bgY = isLandscape ? (100 - pos.x) : pos.y;
+  const stripW = stripRef.current?.offsetWidth ?? 0;
+  const stripH = stripRef.current?.offsetHeight ?? 0;
 
-  const innerW = innerRef.current?.offsetWidth ?? 0;
-  const innerH = innerRef.current?.offsetHeight ?? 0;
+  // lens center relative to stage (strip offset by PAD)
+  const lensCenterX = PAD + pos.x * stripW;
+  const lensCenterY = PAD + pos.y * stripH;
+
+  // For the magnified view inside the lens, we render the strip scaled up
+  // and offset so the cursor point is centered in the lens
+  const magStripW = stripW * ZOOM;
+  const magStripH = stripH * ZOOM;
+  const magOffsetX = LENS_SIZE / 2 - pos.x * magStripW;
+  const magOffsetY = LENS_SIZE / 2 - pos.y * magStripH;
+
+  const hasLandscapeBack = isSeries1 && images.length > 1;
+
+  // Build resolved URLs for background images in the lens
+  const resolvedUrls = images.map(resolveUrl);
+  const anyReal = resolvedUrls.some(u => u && !u.includes('placeholder'));
 
   return (
     <div
-      ref={containerRef}
+      ref={stageRef}
       className="relative"
       style={{ padding: PAD, margin: -PAD, cursor: hover ? 'crosshair' : 'default' }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onMouseMove={handleMouseMove}
     >
+      {/* Visible strip */}
       <div
-        ref={innerRef}
-        className={`relative w-full ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}
+        ref={stripRef}
+        className={`flex flex-row gap-4 items-start justify-center ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}
       >
-        <IpfsMedia
-          url={url}
-          alt={alt}
-          className={`w-full h-full ${className || ''}`}
-          context="detail"
-          showSkeleton
-        />
+        {images.map((imgUrl, i) => {
+          const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
+          const isBack = i === 1;
+          const isLandscape = isBack && isSeries1;
+
+          return (
+            <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
+              <p className="text-xs font-semibold text-cheese text-center">{label}</p>
+              <div className={`relative w-full ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg overflow-hidden flex items-center justify-center`}>
+                <IpfsMedia
+                  url={imgUrl}
+                  alt={`${asset.name} - ${label}`}
+                  className={`w-full h-full ${isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}`}
+                  context="detail"
+                  showSkeleton
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
-      {hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
+
+      {/* Shared lens */}
+      {hover && anyReal && (
         <div
           className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50 overflow-hidden"
           style={{
             width: LENS_SIZE,
             height: LENS_SIZE,
-            left: PAD + (pos.x / 100) * innerW - LENS_SIZE / 2,
-            top: PAD + (pos.y / 100) * innerH - LENS_SIZE / 2,
+            left: lensCenterX - LENS_SIZE / 2,
+            top: lensCenterY - LENS_SIZE / 2,
           }}
         >
+          {/* Magnified clone of the entire strip */}
           <div
             style={{
-              width: '100%',
-              height: '100%',
-              backgroundImage: `url(${resolvedUrl})`,
-              backgroundSize: `${ZOOM * 100}%`,
-              backgroundPosition: `${bgX}% ${bgY}%`,
-              backgroundRepeat: 'no-repeat',
-              ...(isLandscape ? { transform: 'rotate(90deg) scale(1.33)' } : {}),
+              position: 'absolute',
+              left: magOffsetX,
+              top: magOffsetY,
+              width: magStripW,
+              height: magStripH,
+              display: 'flex',
+              flexDirection: 'row',
+              gap: 4 * ZOOM, // gap-4 = 16px scaled
+              alignItems: 'flex-start',
+              justifyContent: 'center',
             }}
-          />
+          >
+            {images.map((imgUrl, i) => {
+              const isBack = i === 1;
+              const isLandscape = isBack && isSeries1;
+              const cardW = isLandscape ? 500 : 400;
+              const labelH = 24; // approximate label height
+              const aspectH = isLandscape ? cardW * (3 / 4) : cardW * (4 / 3);
+              const resolved = resolvedUrls[i];
+
+              return (
+                <div key={i} style={{ width: cardW * ZOOM, flexShrink: 0 }}>
+                  {/* Label spacer */}
+                  <div style={{ height: labelH * ZOOM }} />
+                  {/* Card image */}
+                  <div
+                    style={{
+                      width: cardW * ZOOM,
+                      height: aspectH * ZOOM,
+                      borderRadius: 8 * ZOOM,
+                      overflow: 'hidden',
+                      backgroundImage: resolved ? `url(${resolved})` : undefined,
+                      backgroundSize: isLandscape ? 'cover' : 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      ...(isLandscape ? { transform: 'rotate(90deg) scale(1.33)', transformOrigin: 'center' } : {}),
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -140,25 +209,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
         </DialogHeader>
-        <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center overflow-hidden ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
-          {images.map((imgUrl, i) => {
-            const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
-            const isBack = i === 1;
-            const isLandscape = isBack && isSeries1;
 
-            return (
-              <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
-                <p className="text-xs font-semibold text-cheese text-center">{label}</p>
-                <ImageWithLens
-                  url={imgUrl}
-                  alt={`${asset.name} - ${label}`}
-                  isLandscape={isLandscape}
-                  className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
-                />
-              </div>
-            );
-          })}
+        <div className="overflow-hidden">
+          <ImageStrip images={images} asset={asset} isSeries1={isSeries1} />
         </div>
+
         {mintDisplay && (
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-cheese">Mint</span>
