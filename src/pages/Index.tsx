@@ -852,7 +852,7 @@ export default function SimpleAssetsPage() {
 
     return (
       <>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 flex-1">
             <p className="text-sm text-muted-foreground">{validAssets.length} card{validAssets.length !== 1 ? 's' : ''} in saved layout</p>
             {renderSelectButton()}
