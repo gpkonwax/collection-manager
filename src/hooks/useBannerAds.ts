@@ -35,16 +35,17 @@ function getDayBounds(): { start: number; end: number } {
 }
 
 function resolveActiveBanner(rows: BannerAdRow[], position: number): ActiveBanner | null {
-  const { end } = getDayBounds();
+  const { start, end } = getDayBounds();
 
   // Filter to this position, sorted newest-first
   const positionRows = rows
     .filter(r => r.position === position)
     .sort((a, b) => b.time - a.time);
 
-  // Walk newest-first, skip future rows, find first valid banner
+  // Walk newest-first, only consider today's rentals
   for (const row of positionRows) {
     if (row.time >= end) continue;       // future row
+    if (row.time < start) continue;      // expired (not today)
     if (row.suspended === 1) continue;   // suspended
 
     // Resolve ipfs_hash: use row's own, or search earlier rows for same user, or any earlier row

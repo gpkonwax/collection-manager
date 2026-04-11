@@ -82,7 +82,7 @@ function BannerAdComponent() {
         <div className="flex justify-center gap-4">
           <div
             onClick={() => requestNavigation('https://cheesehubwax.github.io/cheesehub/bannerads')}
-            className="max-w-[580px] w-full h-[150px] rounded-lg border border-dashed border-cheese/20 bg-card/50 flex items-center justify-center text-xs text-muted-foreground hover:border-cheese/40 transition-colors cursor-pointer"
+            className="w-[580px] h-[150px] rounded-lg border border-dashed border-cheese/20 bg-card/50 flex items-center justify-center text-xs text-muted-foreground hover:border-cheese/40 transition-colors cursor-pointer"
           >
             Advertise here — CheeseHub Banner Ads
           </div>
@@ -99,7 +99,7 @@ function BannerAdComponent() {
           <BannerSlot
             key={banner.position}
             banner={banner}
-            className="max-w-[580px] w-full h-[150px]"
+            className="w-[580px] h-[150px]"
             onLinkClick={requestNavigation}
           />
         ))}
