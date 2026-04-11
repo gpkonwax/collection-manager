@@ -35,6 +35,8 @@ import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
+import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
+import { Progress } from '@/components/ui/progress';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -121,6 +123,7 @@ export default function SimpleAssetsPage() {
   const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(accountName);
 
   const { executeRawTransaction } = useWaxTransaction(session);
+  const { completion } = useCollectionCompletion(assets, packs, atomicPacks, accountName);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
