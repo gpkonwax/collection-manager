@@ -663,6 +663,8 @@ export default function SimpleAssetsPage() {
       </div>
     );
   };
+
+  const renderBinderSections = (grid: NonNullable<typeof binderGrid>, useGrouped: boolean) => {
     const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
     const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
     const collectors = grid.filter(s => s.template.variant === 'collector');
