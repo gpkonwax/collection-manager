@@ -1,126 +1,46 @@
 
-## Fix the persistent Food Fight unpack error
 
-### Do I know what the issue is?
-Yes.
+## Fix Food Fight Pack Reveal: Slow Minting, Missing Cards, and Interrupted Animation
 
-The failing pack in your session is **template 59490** (Food Fight WinterCon Day 2). The app is still opening it with the **wrong flow**:
+### Problems identified
 
-- current app: sends the pack to `atomicpacksx` with memo `unbox`
-- official Topps flow: sends the pack to **`unbox.nft`** with memo **`open pack`**, then calls **`unbox.nft::unbox`** with the pack’s `box_id`
+1. **Slow minting detection**: The `unbox.nft` polling uses the Atomic API to detect new assets by comparing snapshots. The Atomic API has indexing lag (sometimes 30-60+ seconds), and the current timeout messages are passive — there's no hard timeout or retry logic if the API endpoints themselves time out (which the console logs confirm is happening repeatedly).
 
-That mismatch is why you still get:
+2. **Not all 3 cards revealed**: The `unbox.nft` flow calls `onComplete(null)` immediately when all cards are flip-revealed (line 288), passing `null` as txId. In `handlePackOpened` (Index.tsx line 247), `if (txId)` is falsy for `null`, so `pendingAnimationRef` is never set. The card deal animation never triggers.
 
-`The transferred asset's template does not belong to any pack`
+3. **Site refresh cutting off reveal**: The `onComplete(null)` call triggers `handlePackOpened` which runs `refetchAtomicPacks()` + `refetchAa()`. These refetches cause state changes that re-render the page. Combined with the 1.5-second auto-close timer, the dialog closes and components remount before the reveal animation finishes. The refetch can also cause Vite HMR or React state resets that appear as a "refresh".
 
-I verified this from:
-- your live inventory request showing template **59490**
-- `toppsgpk.io`’s shipped unbox JS
-- `sale-data.wdny.io/gpk.topps/unbox.json`, which lists **59489–59492** as Food Fight WinterCon boxes
+### Root cause summary
+The `unbox_nft` path skips the "Collect Assets" step and jumps straight to `done`, calling `onComplete(null)`. This:
+- Gives no txId, so the card deal animation is never queued
+- Triggers refetches immediately, destabilizing the page during the reveal
+- Auto-closes the dialog after 1.5s regardless of whether the user saw all cards
 
-## What to change
+### Changes
 
-### 1) Replace the incorrect WinterCon Food Fight mapping
-**File:** `src/hooks/useGpkAtomicPacks.ts`
+**`src/components/simpleassets/AtomicPackRevealDialog.tsx`**
+1. For `unbox_nft` mode, after all cards are flip-revealed, transition to a `'collect'`-like phase that shows a "Done" button instead of auto-completing — this lets the user see all cards before dismissing
+2. Pass a synthetic transaction marker (e.g., `"unbox_nft_complete"`) instead of `null` to `onComplete` so `handlePackOpened` can set up the card deal animation
+3. Increase the polling timeout tolerance and add a longer wait message after 90 seconds
+4. Only snapshot 50 most recent assets — increase to 100 to avoid missing cards in large collections
 
-Update pack config so **59489–59492** no longer use the generic `atomicpacksx` path.
+**`src/pages/Index.tsx`**
+1. Update `handlePackOpened` to accept the `"unbox_nft_complete"` marker as a valid txId for triggering the deal animation
+2. Defer the refetch calls until after the reveal dialog fully closes, not immediately on `onComplete`
 
-Instead of only storing `contract` + `cards`, expand config to support a real **open strategy**, for example:
+### Technical detail
 
-- direct-transfer packs (current Crash Gordon / Bernventures / Mittens behavior)
-- `unbox.nft` packs (Food Fight WinterCon)
-
-This avoids forcing all atomic packs through the same contract flow.
-
-### 2) Update pack opening actions to support `unbox.nft`
-**Files:**
-- `src/components/simpleassets/AtomicPackCard.tsx`
-- `src/components/simpleassets/AtomicPackBrowserDialog.tsx`
-
-For Food Fight WinterCon packs, opening should become a **2-action transaction**:
-
-1. `atomicassets::transfer`
-   - `to: "unbox.nft"`
-   - `memo: "open pack"`
-2. `unbox.nft::unbox`
-   - `collection_name: "gpk.topps"`
-   - `from: actor`
-   - `box_id: templateId`
-
-Both the single-pack button and the multi-pack browser need to use the same strategy-specific open logic so they stay in sync.
-
-### 3) Fix the reveal/claim path for `unbox.nft`
-**File:** `src/components/simpleassets/AtomicPackRevealDialog.tsx`
-
-Right now this dialog assumes the pack uses the `unboxassets` / `claimunboxed` flow. That is correct for some pack contracts, but not for the proven WinterCon Food Fight route.
-
-I’ll update this to support **strategy-specific reveal handling**:
-- keep the existing flow for packs that truly use `unboxassets`
-- add the proper `unbox.nft` pending/claim flow for Food Fight WinterCon
-
-If the cleanest implementation is a separate reveal adapter for `unbox.nft`, I’ll split that logic instead of overloading one code path.
-
-### 4) Audit the remaining “Food Fight / GameStonk” templates while fixing this
-**File:** `src/hooks/useGpkAtomicPacks.ts`
-
-The proven failing pack is **59490**, so that gets fixed first.
-
-While I’m in the config, I’ll also re-check:
-- `59489`
-- `59491`
-- `59492`
-- `59072`
-- `53187`
-
-If any of those are not confirmed with a valid open route, I’ll avoid leaving them on a broken path. If needed, I’ll temporarily disable their opener instead of letting users hit failing transactions.
-
-### 5) Clean up the new pack browser dialog warnings
-**Files:**
-- `src/components/simpleassets/AtomicPackBrowserDialog.tsx`
-- possibly `src/components/ui/dialog.tsx`
-
-The console also shows:
-- `Function components cannot be given refs` around `DialogHeader`
-- missing dialog description / `aria-describedby`
-
-While fixing the opener, I’ll clean those warnings so the dialog is accessible and quieter in dev.
-
-## Technical approach
-I’ll refactor atomic pack config from:
-
+Current broken flow:
 ```text
-template -> { contract, cards }
+flip reveal ends → setPhase('done') + onComplete(null) → handlePackOpened(null) 
+  → txId is falsy, no animation queued → refetch all → page destabilizes 
+  → 1.5s auto-close → user sees partial reveal + no deal animation
 ```
 
-to something closer to:
-
+Fixed flow:
 ```text
-template -> {
-  cards,
-  openMode,
-  openContract,
-  transferMemo,
-  boxId?,
-  collectionName?,
-  revealMode
-}
+flip reveal ends → show "View in Collection" button → user clicks 
+  → onComplete('unbox_nft_complete') → handlePackOpened sets up deal animation 
+  → dialog closes → refetch detects new assets → deal animation plays
 ```
 
-That keeps all pack-specific blockchain behavior in one place and prevents more “wrong contract for this template” regressions.
-
-## Expected result after implementation
-For Food Fight WinterCon packs (like your Mint #2227 / template 59490):
-
-1. Click Open
-2. App sends pack to `unbox.nft` with `open pack`
-3. App calls `unbox.nft::unbox`
-4. Reveal/claim uses the correct backend flow
-5. No more template assertion failure
-
-## QA I’ll run after implementation
-- Open a **Food Fight WinterCon** pack end-to-end from the multi-pack browser
-- Verify no assertion error
-- Verify reveal appears and claim works
-- Verify mint labels still show correctly in “Open Packs”
-- Verify Crash Gordon / Bernventures / Mittens still open normally
-- Verify the plural “Open Packs” flow still works on desktop and mobile
