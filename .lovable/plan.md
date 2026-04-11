@@ -1,38 +1,23 @@
 
 
-## Add CheeseHub Logo, Info Dialog, and Detailed Features List
+## Fix Card Clipping During Deal Animation
 
-### Overview
-Three changes to `src/pages/Index.tsx`:
-1. Add the CheeseHub logo (already copied to `src/assets/cheesehub-logo.png`) to the top-left header -- visible in both connected and disconnected states
-2. Add an Info button (ℹ icon) to the left of the Connect Wallet / wallet dropdown, opening a dialog with a detailed feature list
-3. Expand the landing page feature descriptions with more detail focused on flexibility
+### Problem
+Cards in the deal animation stack are clipped at the bottom. The card container is set to the exact grid cell dimensions with `overflow-hidden`, and the name overlay at the bottom can make it look like content is being cut off. The image fills `w-full h-full` but needs a bit of breathing room for the bottom overlay.
 
-### 1. Persistent Header Bar
-Currently the sticky header only renders when connected (line 971). Change to always render a header bar:
-- **Left side**: CheeseHub logo (h-7 w-7) + "CHEESE" (yellow) "Hub" (white) text, linking to `https://cheesehubwax.github.io/cheesehub/` (opens in new tab via trusted URL)
-- **Right side**: Info button + wallet dropdown (connected) or Info button + Connect Wallet button (disconnected)
-- Same styling as CheeseHub's header: `sticky top-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50`
+### Solution
+Two small changes in `src/components/simpleassets/CardDealAnimation.tsx`:
 
-### 2. Info Button + Features Dialog
-- Add an `Info` icon button (from lucide-react) to the left of the login/wallet button
-- Opens a Dialog with a scrollable list of features, organized into sections:
-  - **Collection Views**: Classic View, Collector Binder, Saved Collection with drag-and-drop
-  - **Pack Openings**: All Topps packs supported, card-by-card reveal animation, card-deal sequence, skip anytime
-  - **Flexibility**: Both SimpleAssets and AtomicAssets, multi-account support, any GPK sub-collection, filter by series/variant, sort options
-  - **Puzzle Builder**: Series 2 puzzle pieces, drag/rotate/arrange, save/load progress
-  - **Inspection & Magnification**: Click-to-zoom, magnifying lens on hover
-  - **Transfer & Management**: Transfer SimpleAssets between accounts, bulk selection
-  - **Import/Export**: Save layouts as JSON, import/export collection arrangements
-  - **Community**: Free to use, built by $CHEESE, banner ads via CheeseHub
+1. **Add `relative` to the card container** so the absolute-positioned name overlay is properly contained
+2. **Make the image not fill the full height** — use `object-cover` on the image and reserve space for the name overlay by adjusting the image area, or simply add slight padding at the bottom of the card height calculation
 
-### 3. Files Changed
-- `src/pages/Index.tsx` -- restructure header, add Info dialog state, add info button, import logo image
+Specifically:
+- On the card wrapper div (line 201-202), add `relative` to the className
+- Change the image from `className="w-full h-full"` to `className="w-full h-full object-cover"` to ensure proper scaling
+- Add a small buffer (e.g. 8px) to the card height in the stack to prevent bottom clipping: change `height: cardSize.height` to `height: cardSize.height + 8` for the stack position, or adjust `STACK_Y` slightly
 
-### Technical Details
-- Import: `import cheesehubLogo from '@/assets/cheesehub-logo.png'` and `import { Info } from 'lucide-react'`
-- Add state: `const [showInfoDialog, setShowInfoDialog] = useState(false)`
-- The header block (lines 971-1037) will be restructured to always show, with the logo on the left and wallet controls on the right
-- Remove the duplicate "Connect Wallet" button from inside the landing page hero since it will now be in the header
-- Keep the bottom "Connect Wallet" CTA in the landing page
+The simplest effective fix: increase the rendered card height by a few pixels so the bottom border and overlay aren't clipped, and ensure `object-cover` is applied to the media so the image scales correctly within the taller container.
+
+### File Changed
+- `src/components/simpleassets/CardDealAnimation.tsx`
 
