@@ -1506,9 +1506,9 @@ export default function SimpleAssetsPage() {
       </div>
 
       <footer className="border-t border-cheese/20 mt-12 py-8">
-        <div className="container text-center space-y-4">
-          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            This Project was built by the $CHEESE team for the GPK and WAX Communities and is completely free to use. If you appreciate these efforts please consider a donation to help cover costs and time consumed. Any amount is appreciated.
+        <div className="container text-left space-y-4">
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            This project was built by $CHEESE for the gpk and WAX Community and is completely free to use. This was peak WAX. If you appreciate these efforts please consider a donation to help cover costs and time consumed. Accepting WAX, CHEESE and gpk packs any amount is appreciated
           </p>
           <Button
             onClick={() => setDonateDialogOpen(true)}
