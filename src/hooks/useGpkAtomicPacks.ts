@@ -52,6 +52,19 @@ const PACK_CONFIG: Record<string, PackConfig> = {
   '59492':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
 };
 
+/** Fallback metadata for packs when user owns 0 (so we can still show the artwork) */
+const PACK_DEFAULTS: Record<string, { name: string; image: string; description: string }> = {
+  '13778':  { name: 'Crash Gordon', image: 'QmZqocZjBbcauqXcbqBGkECrqiLLBkfXPMfXXojEWJ9R49', description: 'Crash Gordon Pack' },
+  '48479':  { name: "Bern's Adventures", image: 'QmPcXEuYM7mPfyYNaBzDdBEwWeFHAjEKqWKNrR3C9NMz8A', description: "Bern's Adventures Pack" },
+  '51437':  { name: 'Mittens', image: 'QmUHapYhXNjjTnmCqTkz6r1djC3fjb1NhkMx5sSrAXFU4n', description: 'Mittens Pack' },
+  '53187':  { name: 'Gamestonk', image: 'QmVKKBGDFj2QkgQi3iiaDJKNxzYQiZa2UfpRo9TvTjZKdx', description: 'Gamestonk Pack' },
+  '59072':  { name: 'Food Fight B', image: 'QmYV9jGwdE4J8xN5V3Z4tZc5e7KSKdYhXwAHXNhp7Q7mJF', description: 'Food Fight Pack' },
+  '59489':  { name: 'WinterCon 1', image: 'QmWintercon1placeholder', description: 'WinterCon Pack 1' },
+  '59490':  { name: 'WinterCon 2', image: 'QmWintercon2placeholder', description: 'WinterCon Pack 2' },
+  '59491':  { name: 'WinterCon 3', image: 'QmWintercon3placeholder', description: 'WinterCon Pack 3' },
+  '59492':  { name: 'WinterCon 4', image: 'QmWintercon4placeholder', description: 'WinterCon Pack 4' },
+};
+
 function resolveImage(raw: string | undefined): string {
   if (!raw) return '/placeholder.svg';
   if (raw.startsWith('http')) return raw;
