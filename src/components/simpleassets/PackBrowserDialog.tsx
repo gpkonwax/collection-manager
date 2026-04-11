@@ -9,7 +9,9 @@ import { PackRevealDialog } from './PackRevealDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 
 const UNBOX_TYPE_MAP: Record<string, string> = {
-  GPKFIVE: 'five', GPKTWOA: 'gpktwoeight', GPKTWOB: 'gpktwo25', GPKTWOC: 'gpktwo55',
+  GPKFIVE: 'five', GPKMEGA: 'thirty',
+  GPKTWOA: 'gpktwoeight', GPKTWOB: 'gpktwo25', GPKTWOC: 'gpktwo55',
+  EXOFIVE: 'exotic5', EXOMEGA: 'exotic25',
 };
 
 const PACKS_PER_PAGE = 10;
