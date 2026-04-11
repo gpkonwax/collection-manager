@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ATOMIC_API } from '@/lib/waxConfig';
-import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
+import { getTemplatesBySchema } from '@/lib/templateDataCache';
 
 export interface BinderTemplate {
   templateId: string;
@@ -57,42 +56,23 @@ export function useBinderTemplates(schema: string | null) {
     setIsLoading(true);
     try {
       const schemasToFetch = [schema, ...(EXTRA_SCHEMAS[schema] || [])];
-      const all: any[] = [];
+      const allRaw: any[] = [];
 
       for (const s of schemasToFetch) {
-        let page = 1;
-        let hasMore = true;
-        while (hasMore) {
-          const params = new URLSearchParams({
-            collection_name: 'gpk.topps',
-            schema_name: s,
-            limit: '100',
-            page: String(page),
-            order: 'asc',
-            sort: 'created',
-          });
-          const path = `${ATOMIC_API.paths.templates}?${params}`;
-          const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
-          const json = await response.json();
-          if (!json.success || !json.data) break;
-          all.push(...json.data);
-          hasMore = json.data.length === 100;
-          page++;
-        }
+        const cached = await getTemplatesBySchema(s);
+        allRaw.push(...cached);
       }
 
-      const filtered = all;
-
-      const parsed: BinderTemplate[] = filtered.map((t: any) => {
+      const parsed: BinderTemplate[] = allRaw.map((t: any) => {
         const data = t.immutable_data || {};
         return {
           templateId: t.template_id,
-          name: data.name || t.name || `Template #${t.template_id}`,
+          name: data.name || `Template #${t.template_id}`,
           image: resolveImage(data.img || data.image || data.icon || ''),
           cardid: String(data.cardid ?? ''),
           quality: String(data.quality ?? '').toLowerCase(),
           variant: normalizeGpkVariant(data.variant),
-          schema: t.schema?.schema_name || schema,
+          schema: t.schema_name || schema,
         };
       });
 
