@@ -733,7 +733,6 @@ export default function SimpleAssetsPage() {
         <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
         {renderSelectButton()}
         {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
-        {renderCompletionBar()}
         <Button
           onClick={handleSnapshotToSaved}
           variant="outline"
@@ -805,7 +804,6 @@ export default function SimpleAssetsPage() {
             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
             {binderLoading && ' (loading templates...)'}
           </p>
-          {renderCompletionBar()}
           {renderSelectButton()}
           {renderSelectAllCheckbox(visibleOwned)}
         </div>
@@ -1247,7 +1245,6 @@ export default function SimpleAssetsPage() {
                             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                             {binderLoading && ' (loading templates...)'}
                           </p>
-                          {renderCompletionBar()}
                           {renderSelectButton()}
                           {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
                         </div>
