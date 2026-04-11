@@ -244,10 +244,13 @@ export default function SimpleAssetsPage() {
   }, [assets]);
 
   const handlePackOpened = useCallback(async (txId?: string | null) => {
+    const isUnboxNft = txId === 'unbox_nft_complete';
     if (txId) {
       preCollectIdsRef.current = new Set(assetsRef.current.map(a => a.id));
-      pendingAnimationRef.current = { txId };
+      pendingAnimationRef.current = { txId: isUnboxNft ? 'unbox_nft' : txId };
     }
+    // Defer refetches slightly so the reveal dialog can close cleanly first
+    await new Promise(r => setTimeout(r, isUnboxNft ? 2000 : 300));
     await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
 
