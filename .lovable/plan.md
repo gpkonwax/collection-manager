@@ -1,50 +1,40 @@
 
 
-## Add 3D Card Depth Effect (Topps-style)
+## Fix Banner Ads Not Displaying
 
-### What It Does
-Instead of a flat image that tilts and blurs, the card will look like a physical trading card with visible thickness. When you tilt the card, you see its colored edges -- the top, bottom, left, and right sides of the card become visible, giving it a real 3D "slab" feel. The GPK title/info area at the bottom also pops forward slightly, creating depth separation between the image and the text area.
+### Root Cause Analysis
 
-### How It Works
+Two bugs in `src/hooks/useBannerAds.ts`:
 
-The technique uses four extra divs positioned behind the card face, each representing one edge of the card. These edge divs are rotated 90 degrees on their respective axes and translated to line up with the card face, creating the illusion of a solid object with about 4-6px of thickness.
+**Bug 1 -- Row limit truncates newest data.** The contract table grows by 2 rows/day. The fetch uses `limit: 200` and WAX returns rows in ascending order by default. With 200+ rows in the table, the newest rows (including today's) get cut off -- we never see them.
 
-```text
-  Top edge (rotateX(-90deg) at top)
-  ┌──────────────────────┐
-  │                      │ ← Left edge (rotateY(90deg))
-  │    Card face         │ ← Right edge (rotateY(-90deg))
-  │    (the image)       │
-  │                      │
-  ├──────────────────────┤ ← Info area pushed forward with translateZ
-  │  GPK title / info    │
-  └──────────────────────┘
-  Bottom edge (rotateX(90deg) at bottom)
-```
+**Bug 2 -- IPFS hash fallback is too restrictive.** When the most recent row for a position has an empty `ipfs_hash` (common for `cheesebannad` placeholder rows), the fallback only looks for earlier rows from the *same user*. Since `cheesebannad` never has a hash, it returns null. The correct behavior is to fall back to any earlier row for that position that has a valid hash, regardless of user.
 
-### Files Changed
+### Changes
 
-**1. `src/hooks/useCardTilt.ts`**
-- Reduce `scale` from 1.03 to 1.0 (no scaling = no blur from sub-pixel interpolation)
-- Increase perspective to 1200px for a gentler, more realistic depth
-- Round rotation values to 1 decimal place to reduce re-rasterization jitter
-- Remove the `transition` on the wrapper during active hover (instant updates via RAF), re-apply only on mouse leave for smooth snap-back
+**File: `src/hooks/useBannerAds.ts`**
 
-**2. `src/components/simpleassets/SimpleAssetCard.tsx`**
-- Add four "edge" divs inside the tilt wrapper, behind the card face, using `transform-style: preserve-3d`
-- Each edge is a narrow strip (4-6px tall/wide) colored to match the card background, rotated 90deg on the appropriate axis, and translated to align with the card's edges
-- Add a small `translateZ(2px)` to the CardContent (info section) so the title/metadata appears to float slightly above the card surface
-- Remove the permanent `transition: transform` from the wrapper style; instead, `useCardTilt` will apply transition only during mouse-leave reset
-- Keep `overflow: hidden` on the Card itself but set `overflow: visible` on the outer 3D wrapper so edges can be seen
+1. **Fetch newest rows first** -- Add `reverse: true` to the `fetchTableRows` call so we get the most recent rows first, and reduce limit since we only need recent data (last ~30 days at most).
 
-**3. `src/components/simpleassets/IpfsMedia.tsx`**
-- For `context="card"`, add `image-rendering: auto` and `backface-visibility: hidden` to prevent blur during 3D transforms on all card images (not just GIFs)
+2. **Update `fetchTableRows` params** -- Need to check if `waxRpcFallback.ts` supports the `reverse` parameter. If not, add it to the `TableRowsParams` interface.
 
-### Visual Result
-- Cards appear as solid slabs that tilt in 3D space
-- Hovering near the top shows the bottom edge; hovering left shows the right edge
-- The info text pops forward slightly from the card surface
-- The glare overlay still works on top
-- No more blur because there is no scaling and transforms update without CSS transition interference
-- Drag-and-drop still works (tilt is disabled during drag)
+3. **Fix `resolveActiveBanner` fallback logic** -- When the current row has no `ipfs_hash`, search ALL earlier rows for that position (not just same-user) to find the most recent valid hash. When no row for today/before today has a hash directly, walk backwards through sorted position rows until finding one with a valid `ipfs_hash`.
+
+4. **Simplify the resolution** -- Instead of finding one "current row" then trying to patch its missing hash, iterate through position rows (newest first) and return the first one that has (or can resolve) a valid `ipfs_hash`.
+
+**File: `src/lib/waxRpcFallback.ts`**
+
+5. Add `reverse?: boolean` to the `TableRowsParams` interface so `fetchTableRows` can pass it to the RPC call.
+
+### Technical Details
+
+The updated `resolveActiveBanner` will:
+- Filter rows for the position, sorted newest-first
+- Skip rows in the future (time >= end of today)
+- For each row from today or earlier: check if it has an `ipfs_hash`, or look for any earlier row for the same user with a hash
+- If found, build and return the banner
+- If the row is a placeholder (`cheesebannad` with no hash), skip it and continue to the next older row
+- This ensures we always show the most recent valid ad
+
+The `fetchBannerAds` call will use `reverse: true` and a limit of 60 (covers ~30 days), ensuring we always get the freshest rows without being cut off by table size.
 
