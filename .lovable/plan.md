@@ -1,38 +1,23 @@
 
 
-## Add CheeseHub Logo, Info Dialog, and Detailed Features List
+## Add Card Deal Animation to Collector Binder View
 
 ### Overview
-Three changes to `src/pages/Index.tsx`:
-1. Add the CheeseHub logo (already copied to `src/assets/cheesehub-logo.png`) to the top-left header -- visible in both connected and disconnected states
-2. Add an Info button (ℹ icon) to the left of the Connect Wallet / wallet dropdown, opening a dialog with a detailed feature list
-3. Expand the landing page feature descriptions with more detail focused on flexibility
+Currently, the card deal animation only works in the Classic view because only that view registers `gridCellRefs` for each card slot and renders placeholder cells for in-flight cards. We need to extend the same logic to the Binder view so that when a pack is opened while the Collector Binder tab is active, newly acquired cards animate into their binder grid positions.
 
-### 1. Persistent Header Bar
-Currently the sticky header only renders when connected (line 971). Change to always render a header bar:
-- **Left side**: CheeseHub logo (h-7 w-7) + "CHEESE" (yellow) "Hub" (white) text, linking to `https://cheesehubwax.github.io/cheesehub/` (opens in new tab via trusted URL)
-- **Right side**: Info button + wallet dropdown (connected) or Info button + Connect Wallet button (disconnected)
-- Same styling as CheeseHub's header: `sticky top-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50`
+### Changes (all in `src/pages/Index.tsx`)
 
-### 2. Info Button + Features Dialog
-- Add an `Info` icon button (from lucide-react) to the left of the login/wallet button
-- Opens a Dialog with a scrollable list of features, organized into sections:
-  - **Collection Views**: Classic View, Collector Binder, Saved Collection with drag-and-drop
-  - **Pack Openings**: All Topps packs supported, card-by-card reveal animation, card-deal sequence, skip anytime
-  - **Flexibility**: Both SimpleAssets and AtomicAssets, multi-account support, any GPK sub-collection, filter by series/variant, sort options
-  - **Puzzle Builder**: Series 2 puzzle pieces, drag/rotate/arrange, save/load progress
-  - **Inspection & Magnification**: Click-to-zoom, magnifying lens on hover
-  - **Transfer & Management**: Transfer SimpleAssets between accounts, bulk selection
-  - **Import/Export**: Save layouts as JSON, import/export collection arrangements
-  - **Community**: Free to use, built by $CHEESE, banner ads via CheeseHub
+1. **Register `gridCellRefs` in the binder grid** — In `renderBinderCard`, attach the same `ref` callback to owned card elements so the deal animation knows where each card lives in the DOM.
 
-### 3. Files Changed
-- `src/pages/Index.tsx` -- restructure header, add Info dialog state, add info button, import logo image
+2. **Show placeholder slots for in-flight cards in the binder** — When a card is currently being dealt (`dealingCardIds.has(id) && !dealtIds.has(id)`), render a pulsing dashed placeholder instead of the normal card, mirroring what the Classic view does.
+
+3. **Apply "just landed" glow styling** — When a card has just been dealt (`dealtIds.has(id)`), apply the same cheese-glow ring effect used in Classic view.
+
+4. **Ensure binder includes dealing cards in its grid** — The binder grid filters by owned assets. Cards that are being dealt are already in the `assets` array (they were fetched after the pack open), so they should naturally appear in `binderGrid`. We just need to make sure they render as placeholders rather than full cards when in-flight.
 
 ### Technical Details
-- Import: `import cheesehubLogo from '@/assets/cheesehub-logo.png'` and `import { Info } from 'lucide-react'`
-- Add state: `const [showInfoDialog, setShowInfoDialog] = useState(false)`
-- The header block (lines 971-1037) will be restructured to always show, with the logo on the left and wallet controls on the right
-- Remove the duplicate "Connect Wallet" button from inside the landing page hero since it will now be in the header
-- Keep the bottom "Connect Wallet" CTA in the landing page
+
+- **`renderBinderCard`**: Add a ref callback on the owned card's wrapper that registers/unregisters from `gridCellRefs` using the asset ID. Check `dealingCardIds` and `dealtIds` to decide whether to render a placeholder, a glowing card, or a normal card.
+- No changes needed to `CardDealAnimation.tsx` itself — it already works with any `gridCellRefs` map.
+- The `visibleCount = Infinity` trick during dealing already applies globally, but the binder doesn't paginate the same way, so no special handling is needed there.
 
