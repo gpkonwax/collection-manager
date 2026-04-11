@@ -1,23 +1,28 @@
 
 
-## Add Card Deal Animation to Collector Binder View
+## Improve Binder Deal Animation: Frozen Silhouette Placeholders + Slot-Based Refs
 
-### Overview
-Currently, the card deal animation only works in the Classic view because only that view registers `gridCellRefs` for each card slot and renders placeholder cells for in-flight cards. We need to extend the same logic to the Binder view so that when a pack is opened while the Collector Binder tab is active, newly acquired cards animate into their binder grid positions.
+### Problem
+1. During dealing, the binder shows a generic pulsing dashed box instead of the card's grayscale silhouette — the card appears to land on "nothing" rather than visually replacing a recognizable shape.
+2. Only `owned[0]` gets a ref registered, so duplicate/stacked cards from demo packs can't find their target and get skipped or misplaced.
 
 ### Changes (all in `src/pages/Index.tsx`)
 
-1. **Register `gridCellRefs` in the binder grid** — In `renderBinderCard`, attach the same `ref` callback to owned card elements so the deal animation knows where each card lives in the DOM.
+**1. Replace pulsing placeholder with frozen silhouette**
+When a binder slot has an in-flight card, render a static version of `MissingCardPlaceholder`'s visual (the grayscale image with no overlay/animation) instead of the dashed box. This gives the card a recognizable silhouette to "land on top of." The ref for the animation target attaches to this frozen silhouette element.
 
-2. **Show placeholder slots for in-flight cards in the binder** — When a card is currently being dealt (`dealingCardIds.has(id) && !dealtIds.has(id)`), render a pulsing dashed placeholder instead of the normal card, mirroring what the Classic view does.
+**2. Register refs for all owned asset IDs in a slot**
+Loop through the entire `owned` array and register every asset ID to the same DOM element in `gridCellRefs`. Check if *any* ID in the slot is in-flight or just-landed, not just `owned[0]`. This fixes demo packs where duplicate copies need different IDs to resolve to the same binder cell.
 
-3. **Apply "just landed" glow styling** — When a card has just been dealt (`dealtIds.has(id)`), apply the same cheese-glow ring effect used in Classic view.
+### Technical Detail
 
-4. **Ensure binder includes dealing cards in its grid** — The binder grid filters by owned assets. Cards that are being dealt are already in the `assets` array (they were fetched after the pack open), so they should naturally appear in `binderGrid`. We just need to make sure they render as placeholders rather than full cards when in-flight.
+In `renderBinderCard` (line ~599):
+- Derive `allIds = owned.map(a => a.id)`
+- `isAnyInFlight = allIds.some(id => dealingCardIds.has(id) && !dealtIds.has(id))`
+- `anyJustLanded = allIds.some(id => dealtIds.has(id))`
+- Ref callback registers/unregisters all IDs in `allIds`
+- When `isAnyInFlight`, render the template's grayscale image (same as MissingCardPlaceholder but without the "Buy" overlay, hover effects, or pulse animation) with the ref attached
+- When `anyJustLanded`, apply the glow class to the rendered card
 
-### Technical Details
-
-- **`renderBinderCard`**: Add a ref callback on the owned card's wrapper that registers/unregisters from `gridCellRefs` using the asset ID. Check `dealingCardIds` and `dealtIds` to decide whether to render a placeholder, a glowing card, or a normal card.
-- No changes needed to `CardDealAnimation.tsx` itself — it already works with any `gridCellRefs` map.
-- The `visibleCount = Infinity` trick during dealing already applies globally, but the binder doesn't paginate the same way, so no special handling is needed there.
+No changes to `CardDealAnimation.tsx` or `MissingCardPlaceholder.tsx`.
 
