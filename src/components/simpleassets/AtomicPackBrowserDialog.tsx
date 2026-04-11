@@ -27,20 +27,23 @@ export function AtomicPackBrowserDialog({
   const [revealOpen, setRevealOpen] = useState(false);
   const [openedAssetId, setOpenedAssetId] = useState<string | null>(null);
   const [localAssetIds, setLocalAssetIds] = useState<string[]>(pack.assetIds);
+  const [localMints, setLocalMints] = useState<number[]>(pack.mints ?? []);
   const { executeTransaction } = useWaxTransaction(session);
 
   // Sync when pack data changes externally
   useEffect(() => {
     setLocalAssetIds(pack.assetIds);
-  }, [pack.assetIds]);
+    setLocalMints(pack.mints ?? []);
+  }, [pack.assetIds, pack.mints]);
 
   const handleOpenChange = useCallback((v: boolean) => {
     if (v) {
       setLocalAssetIds(pack.assetIds);
+      setLocalMints(pack.mints ?? []);
     }
     setPage(0);
     onOpenChange(v);
-  }, [pack.assetIds, onOpenChange]);
+  }, [pack.assetIds, pack.mints, onOpenChange]);
 
   const localCount = localAssetIds.length;
   const totalPages = Math.ceil(localCount / PACKS_PER_PAGE);
@@ -66,6 +69,7 @@ export function AtomicPackBrowserDialog({
       if (result.success) {
         setOpenedAssetId(assetId);
         setLocalAssetIds(prev => prev.filter(id => id !== assetId));
+        setLocalMints(prev => prev.filter((_, i) => localAssetIds[i] !== assetId));
         setRevealOpen(true);
         // Adjust page if we removed the last item on this page
         if (visibleCount === 1 && page > 0) setPage(p => p - 1);
@@ -73,7 +77,7 @@ export function AtomicPackBrowserDialog({
     } finally {
       setOpeningIdx(null);
     }
-  }, [session, startIdx, localAssetIds, pack, executeTransaction, visibleCount, page]);
+  }, [session, startIdx, localAssetIds, localMints, pack, executeTransaction, visibleCount, page]);
 
   const handleRevealComplete = useCallback((txId?: string | null) => {
     onSuccess?.(txId);
@@ -97,7 +101,7 @@ export function AtomicPackBrowserDialog({
                 <Card key={localAssetIds[globalIdx]} className="bg-card border-border hover:border-primary/40 transition-colors">
                   <CardContent className="p-3 flex flex-col items-center text-center space-y-2">
                     <img src={pack.image} alt={pack.name} className="w-3/4 h-auto rounded mx-auto" />
-                    <p className="text-xs text-muted-foreground">#{globalIdx + 1}</p>
+                    <p className="text-xs text-muted-foreground">Mint #{localMints[globalIdx] || globalIdx + 1}</p>
                     <Button size="sm" variant="outline" className="w-full text-xs"
                       disabled={!session || openingIdx !== null}
                       onClick={() => handleOpen(i)}>

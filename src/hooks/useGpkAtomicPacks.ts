@@ -10,6 +10,7 @@ export interface AtomicPack {
   description: string;
   count: number;
   assetIds: string[];
+  mints: number[];
   unpackContract: string;
   cardsPerPack: number;
 }
@@ -17,6 +18,7 @@ export interface AtomicPack {
 interface AtomicAssetRaw {
   asset_id: string;
   template?: { template_id: string; immutable_data: Record<string, string> };
+  template_mint?: string;
   data: Record<string, string>;
   name: string;
 }
@@ -81,13 +83,17 @@ export function useGpkAtomicPacks(accountName: string | null) {
         const idata = template?.immutable_data || {};
         const data = assets[0]?.data || {};
         const combined = { ...idata, ...data };
+        const mints = assets.map((a) => parseInt(a.template_mint || '0', 10));
+        // Sort by mint number and keep assetIds in sync
+        const sorted = assets.map((a, i) => ({ asset: a, mint: mints[i] })).sort((a, b) => a.mint - b.mint);
         result.push({
           templateId: tid,
           name: combined.name || `Pack #${tid}`,
           image: resolveImage(combined.img || combined.image),
           description: combined.description || '',
-          count: assets.length,
-          assetIds: assets.map((a) => a.asset_id),
+          count: sorted.length,
+          assetIds: sorted.map((s) => s.asset.asset_id),
+          mints: sorted.map((s) => s.mint),
           unpackContract: config.contract,
           cardsPerPack: config.cards,
         });
