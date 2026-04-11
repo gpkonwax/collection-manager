@@ -1230,6 +1230,11 @@ export default function SimpleAssetsPage() {
               </Tabs>
             </div>
 
+            {/* Collection Completion - centered beneath view switch */}
+            <div className="flex justify-center mt-2">
+              {renderCompletionBar()}
+            </div>
+
             {!isLoading && !error && (
               categoryFilter === 'series2' && viewMode !== 'saved' ? (
                 <Tabs value={series2SubTab} onValueChange={setSeries2SubTab} className="w-full">
