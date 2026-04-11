@@ -1188,6 +1188,25 @@ export default function SimpleAssetsPage() {
               )}
             </div>
 
+            {/* Collection Completion Bar */}
+            {accountName && (() => {
+              const key = categoryFilter === 'all' ? 'overall' : categoryFilter;
+              const entry = completion[key];
+              if (!entry) return null;
+              const label = categoryFilter === 'all' ? 'Overall' : (CATEGORY_LABELS[categoryFilter] || categoryFilter);
+              return (
+                <div className="flex items-center gap-3 justify-end mt-1">
+                  <span className="text-sm font-medium text-cheese whitespace-nowrap">
+                    {label}: {entry.percent}%
+                  </span>
+                  <Progress value={entry.percent} className="w-32 h-2 bg-muted" />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {entry.owned}/{entry.total}
+                  </span>
+                </div>
+              );
+            })()}
+
             <div className="flex justify-center mt-2">
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-auto">
                 <TabsList className="h-8 bg-muted/50 border border-cheese/20">
