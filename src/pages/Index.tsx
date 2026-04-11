@@ -273,14 +273,15 @@ export default function SimpleAssetsPage() {
     if (demoAssets.length === 0) return;
     const cat = demoAssets[0].category;
     if (cat) setCategoryFilter(cat);
-    setViewMode('classic');
+    // Keep current view mode (classic or binder) so deal animation targets the active grid
+    if (viewMode === 'saved') setViewMode('classic');
     setSearch('');
     setSourceFilter('all');
     setVisibleCount(Number.POSITIVE_INFINITY);
     setDealingCards(demoAssets);
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
-  }, []);
+  }, [viewMode]);
 
   useEffect(() => {
     if (!accountName) { setShowCollectUnclaimed(false); return; }
