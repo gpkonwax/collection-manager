@@ -281,7 +281,15 @@ export function AtomicPackRevealDialog({
   }, [phase, revealedCount, newCards.length]);
 
   useEffect(() => {
-    if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0 && rollIds.length > 0) setPhase('collect');
+    if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
+      // For unbox_nft: no claim needed, skip straight to done
+      if (openMode === 'unbox_nft') {
+        setPhase('done');
+        onComplete(null);
+      } else if (rollIds.length > 0) {
+        setPhase('collect');
+      }
+    }
   }, [phase, revealedCount, newCards.length, rollIds]);
 
   // Auto-close dialog after cards are collected
