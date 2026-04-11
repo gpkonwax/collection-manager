@@ -100,9 +100,8 @@ async function fetchTemplateImage(templateId: number): Promise<{ name: string; i
 async function fetchUnboxResults(contract: string, packAssetId: string): Promise<UnboxResultRow[]> {
   try {
     const result = await fetchTableRows<UnboxResultRow>({
-      code: contract, scope: contract, table: 'unboxassets',
-      index_position: 2, key_type: 'i64',
-      lower_bound: packAssetId, upper_bound: packAssetId, limit: 100,
+      code: contract, scope: packAssetId, table: 'unboxassets',
+      limit: 100,
     });
     return result.rows;
   } catch (e) {

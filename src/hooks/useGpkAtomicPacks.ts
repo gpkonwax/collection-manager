@@ -27,12 +27,12 @@ const PACK_CONFIG: Record<string, { contract: string; cards: number }> = {
   '13778':  { contract: 'gpkcrashpack', cards: 5 },
   '48479':  { contract: 'burnieunpack', cards: 2 },
   '51437':  { contract: 'burnieunpack', cards: 5 },
-  '53187':  { contract: 'burnieunpack', cards: 5 },
-  '59072':  { contract: 'burnieunpack', cards: 3 },
-  '59489':  { contract: 'burnieunpack', cards: 3 },
-  '59490':  { contract: 'burnieunpack', cards: 3 },
-  '59491':  { contract: 'burnieunpack', cards: 3 },
-  '59492':  { contract: 'burnieunpack', cards: 3 },
+  '53187':  { contract: 'atomicpacksx', cards: 3 },
+  '59072':  { contract: 'atomicpacksx', cards: 3 },
+  '59489':  { contract: 'atomicpacksx', cards: 3 },
+  '59490':  { contract: 'atomicpacksx', cards: 3 },
+  '59491':  { contract: 'atomicpacksx', cards: 3 },
+  '59492':  { contract: 'atomicpacksx', cards: 3 },
 };
 
 function resolveImage(raw: string | undefined): string {
