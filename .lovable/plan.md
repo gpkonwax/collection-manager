@@ -1,40 +1,61 @@
 
 
-## Fix: Better Card Back Design for Pack Reveals
+## Fix: Crash Gordon Pack Reveal Polling
 
 ### Problem
-The card back shown before reveal is a gold/cheese gradient with a 🧀 emoji — looks cheap and placeholder-like.
+The `gpkcrashpack` contract's `unboxassets` table is being polled with `scope = packAssetId` (the NFT asset ID like `1099511932586`), but this contract likely uses `scope = accountName` (e.g. `guydgnjzgage`). Every poll returns empty rows, trapping the user forever.
 
-### Approach
-Replace the card back with a darkened, semi-transparent stencil of the pack image being opened. This gives each pack type a unique, contextual card back.
+### Root Cause
+In `AtomicPackRevealDialog.tsx`, `fetchUnboxResults()` always uses `scope: packAssetId`. This works for some contracts but not all. The `gpkcrashpack` contract appears to scope its `unboxassets` table by the user's account name instead.
 
-### Changes
+### Solution
+Try both scopes — first the pack asset ID, then fall back to the account name. Also add a timeout escape hatch so users are never permanently trapped.
 
-**Both `PackRevealDialog.tsx` and `AtomicPackRevealDialog.tsx`**:
+### Technical Details
 
-1. Pass `packImage` into the `RevealCardImage` / `AtomicRevealCardImage` component as a prop.
+**File: `src/components/simpleassets/AtomicPackRevealDialog.tsx`**
 
-2. Replace the current card back div (the cheese emoji gradient) with a styled card back that uses the pack image as a centered, semi-transparent silhouette:
+1. **Update `fetchUnboxResults` to accept and try both scopes**:
+   - First try `scope = packAssetId` (works for most contracts)
+   - If empty, retry with `scope = accountName`
+   - Return whichever has results
 
-```tsx
-<div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 
-  flex items-center justify-center shadow-md border border-zinc-700/50 rounded-sm"
-  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-  {packImage ? (
-    <img src={packImage} alt="card back" 
-      className="w-3/4 h-3/4 object-contain opacity-15 grayscale contrast-150"
-      style={{ filter: 'grayscale(1) contrast(1.5) brightness(0.8)' }} />
-  ) : (
-    <span className="text-4xl opacity-20">🃏</span>
-  )}
-  <div className="absolute inset-0 border border-zinc-600/30 rounded-sm" />
-</div>
+2. **Pass `accountName` into the polling logic for the fallback scope**:
+   - The poll function already has access to `accountName` — just pass it through to `fetchUnboxResults`
+
+3. **Add a 60-second escape hatch** (from the previously proposed plan):
+   - Add `showEscape` state, set `true` after 60s via `setTimeout`
+   - Render a "Close & Check Later" button in the waiting phase
+   - Wire to existing `handleClose`
+
+**File: `src/components/simpleassets/PackRevealDialog.tsx`**
+   - Same escape hatch addition (this dialog already uses account-scoped polling so the scope issue doesn't apply here)
+
+### Updated `fetchUnboxResults` signature
+
+```ts
+async function fetchUnboxResults(
+  contract: string, 
+  packAssetId: string, 
+  accountName?: string
+): Promise<UnboxResultRow[]> {
+  // Try pack asset ID scope first
+  const result = await fetchTableRows({ 
+    code: contract, scope: packAssetId, table: 'unboxassets', limit: 100 
+  });
+  if (result.rows.length > 0) return result.rows;
+  
+  // Fallback: try account name scope
+  if (accountName) {
+    const fallback = await fetchTableRows({ 
+      code: contract, scope: accountName, table: 'unboxassets', limit: 100 
+    });
+    return fallback.rows;
+  }
+  return [];
+}
 ```
 
-This creates a dark card back with a ghosted stencil outline of the pack wrapper — subtle, thematic, and unique per pack type. The `grayscale + contrast + low opacity` combination produces a stencil/silhouette effect.
-
-### Result
-- Each pack type gets a distinctive card back showing a faint outline of its pack art
-- Dark background looks premium instead of the garish gold/cheese gradient
-- Falls back to a subtle card emoji if no pack image is available
+### Immediate Action
+Refresh the page to escape the stuck modal. Your cards may have already been minted — they should appear in your collection after refresh.
 
