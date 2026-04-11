@@ -598,6 +598,19 @@ export default function SimpleAssetsPage() {
   const renderBinderCard = useCallback(({ template, owned }: { template: any; owned: SimpleAsset[] | null }) => {
     if (owned && owned.length > 0) {
       const asset = owned[0];
+      const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
+
+      if (isInFlight) {
+        return (
+          <div
+            key={`binder-${template.templateId}`}
+            ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
+            className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+          />
+        );
+      }
+
+      const justLanded = dealtIds.has(asset.id);
       const handleClick = () => {
         if (owned.length > 1 && !selectionMode) {
           setStackedAssets(owned);
@@ -616,13 +629,14 @@ export default function SimpleAssetsPage() {
           selectionMode={selectionMode}
           selected={selectedIds.has(asset.id)}
           onSelect={toggleSelection}
+          className={justLanded ? 'animate-card-glow' : ''}
         />
       );
     }
     return (
       <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
     );
-  }, [selectionMode, selectedIds, toggleSelection]);
+  }, [selectionMode, selectedIds, toggleSelection, dealingCardIds, dealtIds]);
 
   const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
