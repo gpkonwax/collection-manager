@@ -26,7 +26,7 @@ export function useCardTilt({ disabled = false }: { disabled?: boolean } = {}) {
         card.style.transition = 'none';
       }
 
-      card.style.transform = `perspective(${PERSPECTIVE}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(0)`;
+      card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
       card.style.backfaceVisibility = 'hidden';
 
       if (glareRef.current) {

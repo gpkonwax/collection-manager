@@ -125,8 +125,8 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           ${className || ''}`}
         style={{
           ...(isAnimatedGif ? { contentVisibility: 'auto', contain: 'layout paint style', containIntrinsicSize: '280px 360px' } : undefined),
-          backfaceVisibility: 'hidden',
-          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden' as const,
+          transform: `translateZ(${EDGE_DEPTH}px)`,
         }}
         onClick={handleClick}
         draggable={draggable}
