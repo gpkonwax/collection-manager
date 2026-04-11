@@ -1,4 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
