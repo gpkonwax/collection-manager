@@ -35,50 +35,59 @@ function getDayBounds(): { start: number; end: number } {
 }
 
 function resolveActiveBanner(rows: BannerAdRow[], position: number): ActiveBanner | null {
-  const { start, end } = getDayBounds();
+  const { end } = getDayBounds();
 
+  // Filter to this position, sorted newest-first
   const positionRows = rows
     .filter(r => r.position === position)
     .sort((a, b) => b.time - a.time);
 
-  // Find row for today or most recent before today
-  const currentRow = positionRows.find(r => (r.time >= start && r.time < end) || r.time < start);
-  if (!currentRow) return null;
-  if (currentRow.suspended === 1) return null;
+  // Walk newest-first, skip future rows, find first valid banner
+  for (const row of positionRows) {
+    if (row.time >= end) continue;       // future row
+    if (row.suspended === 1) continue;   // suspended
 
-  let ipfsHash = currentRow.ipfs_hash;
-  if (!ipfsHash) {
-    const earlierRow = positionRows.find(r => r.time < currentRow.time && r.ipfs_hash && r.user === currentRow.user);
-    if (earlierRow) ipfsHash = earlierRow.ipfs_hash;
-  }
-  if (!ipfsHash) return null;
-
-  const isShared = currentRow.rental_type === 1;
-
-  const banner: ActiveBanner = {
-    position,
-    user: currentRow.user,
-    ipfsHash,
-    websiteUrl: currentRow.website_url,
-    isShared,
-  };
-
-  if (isShared && currentRow.shared_user) {
-    let sharedIpfs = currentRow.shared_ipfs_hash;
-    if (!sharedIpfs) {
-      const earlierShared = positionRows.find(
-        r => r.time < currentRow.time && r.shared_ipfs_hash && r.shared_user === currentRow.shared_user
-      );
-      if (earlierShared) sharedIpfs = earlierShared.shared_ipfs_hash;
+    // Resolve ipfs_hash: use row's own, or search earlier rows for same user, or any earlier row
+    let ipfsHash = row.ipfs_hash;
+    if (!ipfsHash) {
+      // Try same-user fallback first
+      const sameUser = positionRows.find(r => r.time < row.time && r.ipfs_hash && r.user === row.user);
+      if (sameUser) {
+        ipfsHash = sameUser.ipfs_hash;
+      } else {
+        // Skip this row entirely — it's a placeholder with no content
+        continue;
+      }
     }
-    if (sharedIpfs) {
-      banner.sharedUser = currentRow.shared_user;
-      banner.sharedIpfsHash = sharedIpfs;
-      banner.sharedWebsiteUrl = currentRow.shared_website_url;
+
+    const isShared = row.rental_type === 1;
+    const banner: ActiveBanner = {
+      position,
+      user: row.user,
+      ipfsHash,
+      websiteUrl: row.website_url,
+      isShared,
+    };
+
+    if (isShared && row.shared_user) {
+      let sharedIpfs = row.shared_ipfs_hash;
+      if (!sharedIpfs) {
+        const earlierShared = positionRows.find(
+          r => r.time < row.time && r.shared_ipfs_hash && r.shared_user === row.shared_user
+        );
+        if (earlierShared) sharedIpfs = earlierShared.shared_ipfs_hash;
+      }
+      if (sharedIpfs) {
+        banner.sharedUser = row.shared_user;
+        banner.sharedIpfsHash = sharedIpfs;
+        banner.sharedWebsiteUrl = row.shared_website_url;
+      }
     }
+
+    return banner;
   }
 
-  return banner;
+  return null;
 }
 
 async function fetchBannerAds(): Promise<ActiveBanner[]> {
@@ -86,7 +95,8 @@ async function fetchBannerAds(): Promise<ActiveBanner[]> {
     code: 'cheesebannad',
     scope: 'cheesebannad',
     table: 'bannerads',
-    limit: 200,
+    limit: 60,
+    reverse: true,
   });
 
   const banners: ActiveBanner[] = [];
