@@ -160,6 +160,7 @@ export default function SimpleAssetsPage() {
   const [donateDialogOpen, setDonateDialogOpen] = useState(false);
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
