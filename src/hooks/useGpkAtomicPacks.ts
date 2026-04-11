@@ -130,6 +130,26 @@ export function useGpkAtomicPacks(accountName: string | null) {
           packConfig: config,
         });
       }
+
+      // Add placeholder entries for packs the user doesn't own (count: 0)
+      for (const [tid, config] of Object.entries(PACK_CONFIG)) {
+        if (grouped.has(tid)) continue;
+        const defaults = PACK_DEFAULTS[tid];
+        result.push({
+          templateId: tid,
+          name: defaults?.name || `Pack #${tid}`,
+          image: defaults ? resolveImage(defaults.image) : '/placeholder.svg',
+          description: defaults?.description || '',
+          count: 0,
+          assetIds: [],
+          mints: [],
+          unpackContract: config.contract,
+          cardsPerPack: config.cards,
+          openMode: config.openMode,
+          packConfig: config,
+        });
+      }
+
       setPacks(result);
     } catch (e) {
       console.warn('[GpkAtomicPacks] Fetch failed:', e);
