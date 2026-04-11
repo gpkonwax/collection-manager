@@ -273,13 +273,39 @@ export default function SimpleAssetsPage() {
   }, []);
 
   useEffect(() => {
-    if (!accountName) { setShowCollectUnclaimed(false); return; }
+    if (!accountName) { setShowCollectUnclaimed(false); setPendingAtomicClaims([]); return; }
     (async () => {
       try {
         const rows = await fetchPendingNfts(accountName);
         const unclaimed = rows.filter((r: any) => r.done === 0);
         setShowCollectUnclaimed(unclaimed.length > 0);
       } catch { }
+    })();
+    // Check transfer-mode atomic contracts for unclaimed unboxed cards
+    (async () => {
+      const TRANSFER_CONTRACTS = ['gpkcrashpack', 'burnieunpack', 'atomicpacksx'];
+      const claims: { contract: string; pack_asset_id: number; origin_roll_ids: number[] }[] = [];
+      for (const contract of TRANSFER_CONTRACTS) {
+        try {
+          const result = await fetchTableRows<UnboxResultRow>({
+            code: contract, scope: accountName, table: 'unboxassets', limit: 500,
+          });
+          if (result.rows.length > 0) {
+            const grouped = new Map<number, number[]>();
+            for (const row of result.rows) {
+              const ids = grouped.get(row.pack_asset_id) || [];
+              ids.push(row.origin_roll_id);
+              grouped.set(row.pack_asset_id, ids);
+            }
+            for (const [pack_asset_id, origin_roll_ids] of grouped) {
+              claims.push({ contract, pack_asset_id, origin_roll_ids });
+            }
+          }
+        } catch (e) {
+          console.warn(`[recovery] Failed to check ${contract} unboxassets`, e);
+        }
+      }
+      setPendingAtomicClaims(claims);
     })();
   }, [accountName]);
 
