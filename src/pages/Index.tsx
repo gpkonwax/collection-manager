@@ -1099,7 +1099,7 @@ export default function SimpleAssetsPage() {
               );
             })()}
 
-
+            {!packsLoading && packs.filter((p) => categoryFilter === 'all' || PACK_CATEGORY_MAP[p.symbol] === categoryFilter).length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-xl font-semibold text-foreground text-center">Packs</h2>
                 <div className="flex flex-wrap justify-center gap-4">
