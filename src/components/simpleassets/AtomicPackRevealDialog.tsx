@@ -12,8 +12,6 @@ import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
-import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
-import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 
 interface RevealCard {
   asset_id: string;
