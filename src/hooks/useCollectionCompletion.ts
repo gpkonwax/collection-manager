@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ATOMIC_API } from '@/lib/waxConfig';
-import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
+import { getAllTemplates } from '@/lib/templateDataCache';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
@@ -12,7 +11,7 @@ export interface CompletionEntry {
   percent: number;
 }
 
-// Schemas to fetch template counts for each category
+// Schemas to count per category
 const CATEGORY_SCHEMAS: Record<string, string[]> = {
   series1: ['series1'],
   series2: ['series2'],
@@ -57,44 +56,19 @@ const SCHEMA_TO_CATEGORY: Record<string, string> = {
 };
 
 async function fetchTemplateTotals(): Promise<Record<string, number>> {
+  const allTemplates = await getAllTemplates();
   const totals: Record<string, number> = {};
 
   for (const [category, schemas] of Object.entries(CATEGORY_SCHEMAS)) {
     let count = 0;
     const allowedVariants = ALLOWED_SCHEMA_VARIANTS[category];
+    const schemaSet = new Set(schemas);
 
-    for (const schema of schemas) {
-      let page = 1;
-      let hasMore = true;
-      while (hasMore) {
-        const params = new URLSearchParams({
-          collection_name: 'gpk.topps',
-          schema_name: schema,
-          limit: '100',
-          page: String(page),
-          order: 'asc',
-          sort: 'created',
-        });
-        const path = `${ATOMIC_API.paths.templates}?${params}`;
-        try {
-          const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
-          const json = await response.json();
-          if (!json.success || !json.data) break;
-
-          for (const t of json.data) {
-            const data = t.immutable_data || {};
-            const variant = normalizeGpkVariant(data.variant);
-            // Apply same variant filtering as the binder
-            if (allowedVariants && !allowedVariants.has(variant)) continue;
-            count++;
-          }
-
-          hasMore = json.data.length === 100;
-          page++;
-        } catch {
-          hasMore = false;
-        }
-      }
+    for (const t of allTemplates) {
+      if (!schemaSet.has(t.schema_name)) continue;
+      const variant = normalizeGpkVariant(t.immutable_data.variant);
+      if (allowedVariants && !allowedVariants.has(variant)) continue;
+      count++;
     }
 
     totals[category] = count;
@@ -112,7 +86,6 @@ export function useCollectionCompletion(
   const [templateTotals, setTemplateTotals] = useState<Record<string, number>>({});
   const [isFetching, setIsFetching] = useState(false);
 
-  // Fetch template totals once on mount
   useEffect(() => {
     let cancelled = false;
     setIsFetching(true);
@@ -130,7 +103,6 @@ export function useCollectionCompletion(
   const completion = useMemo<Record<string, CompletionEntry>>(() => {
     if (!accountName || Object.keys(templateTotals).length === 0) return {};
 
-    // Build set of owned unique template keys per category
     const ownedPerCategory: Record<string, Set<string>> = {};
     for (const cat of Object.keys(CATEGORY_SCHEMAS)) {
       ownedPerCategory[cat] = new Set();
@@ -139,7 +111,6 @@ export function useCollectionCompletion(
     for (const asset of assets) {
       const cat = SCHEMA_TO_CATEGORY[asset.category] || asset.category;
       if (!ownedPerCategory[cat]) continue;
-      // Use template_id if available, otherwise cardid+quality+variant
       const templateId = (asset.idata as Record<string, unknown>)?._template_id as string;
       const key = templateId
         ? `tid:${templateId}`
@@ -147,7 +118,6 @@ export function useCollectionCompletion(
       ownedPerCategory[cat].add(key);
     }
 
-    // Calculate per-category completion
     const result: Record<string, CompletionEntry> = {};
     let overallOwned = 0;
     let overallTotal = 0;
@@ -155,12 +125,10 @@ export function useCollectionCompletion(
     for (const [cat, totalTemplates] of Object.entries(templateTotals)) {
       const ownedCards = ownedPerCategory[cat]?.size ?? 0;
 
-      // Pack totals for this category
       const saPackSymbols = SA_PACK_CATEGORIES[cat] || [];
       const aaPackTemplates = AA_PACK_CATEGORIES[cat] || [];
       const totalPacks = saPackSymbols.length + aaPackTemplates.length;
 
-      // Owned packs
       let ownedPacks = 0;
       for (const sym of saPackSymbols) {
         const pack = packs.find((p) => p.symbol === sym);
