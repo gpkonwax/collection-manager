@@ -63,8 +63,6 @@ const SERIES2_VARIANTS: { value: string; label: string }[] = [
   { value: 'gum', label: 'Gum' },
   { value: 'vhs', label: 'VHS' },
   { value: 'sketch', label: 'Sketch' },
-  { value: 'tiger stripe', label: 'Tiger Stripe' },
-  { value: 'tiger claw', label: 'Tiger Claw' },
   { value: 'returning', label: 'Returning' },
   { value: 'error', label: 'Error' },
   { value: 'originalart', label: 'Original Art' },
