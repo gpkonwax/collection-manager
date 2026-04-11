@@ -150,6 +150,20 @@ export function useGpkAtomicPacks(accountName: string | null) {
         });
       }
 
+      // Custom sort: Food Fight packs in specific order, then others alphabetically
+      const SORT_ORDER: Record<string, number> = {
+        '59072': 1,   // Food Fight! Pack
+        '59489': 2,   // Food Fight! WinterCon Day 1
+        '59490': 3,   // Food Fight! WinterCon Day 2
+        '59491': 4,   // Food Fight! WinterCon Day 3
+        '59492': 5,   // Food Fight! WinterCon Day 4
+      };
+      result.sort((a, b) => {
+        const orderA = SORT_ORDER[a.templateId] ?? 999;
+        const orderB = SORT_ORDER[b.templateId] ?? 999;
+        return orderA - orderB || a.name.localeCompare(b.name);
+      });
+
       setPacks(result);
     } catch (e) {
       console.warn('[GpkAtomicPacks] Fetch failed:', e);
