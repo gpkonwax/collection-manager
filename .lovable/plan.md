@@ -1,40 +1,31 @@
 
 
-## Fix Banner Ads Not Displaying
+## Fix Banner Ad Display
 
-### Root Cause Analysis
-
-Two bugs in `src/hooks/useBannerAds.ts`:
-
-**Bug 1 -- Row limit truncates newest data.** The contract table grows by 2 rows/day. The fetch uses `limit: 200` and WAX returns rows in ascending order by default. With 200+ rows in the table, the newest rows (including today's) get cut off -- we never see them.
-
-**Bug 2 -- IPFS hash fallback is too restrictive.** When the most recent row for a position has an empty `ipfs_hash` (common for `cheesebannad` placeholder rows), the fallback only looks for earlier rows from the *same user*. Since `cheesebannad` never has a hash, it returns null. The correct behavior is to fall back to any earlier row for that position that has a valid hash, regardless of user.
+### Issues
+1. **Both positions always rendered** -- The code loops over positions `[1, 2]` and renders a banner for each one found. If only one position is rented on CheeseHub, the other position still resolves to an old/stale row and shows up.
+2. **Size not enforced** -- The banner uses `max-w-[580px] w-full h-[150px]` but when there's 1 banner vs 2, the layout should still maintain the exact 580x150 size per slot.
 
 ### Changes
 
-**File: `src/hooks/useBannerAds.ts`**
+**File: `src/components/BannerAd.tsx`**
+- Fix the banner slot sizing to use explicit `w-[580px] h-[150px]` instead of `max-w-[580px] w-full` so each slot is always exactly 580x150 regardless of how many banners exist.
+- When only 1 banner exists, render just that one centered. When 2 exist, render both side by side.
 
-1. **Fetch newest rows first** -- Add `reverse: true` to the `fetchTableRows` call so we get the most recent rows first, and reduce limit since we only need recent data (last ~30 days at most).
+**File: `src/hooks/useBannerAds.ts`**  
+- The resolution logic correctly returns `null` for positions with no valid ad. No change needed here -- the issue is purely in the rendering component showing a placeholder for empty positions or resolving stale rows incorrectly.
+- However, need to verify: if position 2 has no active rental but old rows exist in the table, `resolveActiveBanner` will still find them and return a banner. Fix: only return a banner if its resolved row's time falls within a reasonable active window (i.e., the row is for today or the most recent past booking that hasn't expired). Since each row represents a day rental (`time` = the day it's booked for), we should only return banners where `row.time >= start` (today's start), not just `< end`.
 
-2. **Update `fetchTableRows` params** -- Need to check if `waxRpcFallback.ts` supports the `reverse` parameter. If not, add it to the `TableRowsParams` interface.
+### Technical Detail
 
-3. **Fix `resolveActiveBanner` fallback logic** -- When the current row has no `ipfs_hash`, search ALL earlier rows for that position (not just same-user) to find the most recent valid hash. When no row for today/before today has a hash directly, walk backwards through sorted position rows until finding one with a valid `ipfs_hash`.
+In `resolveActiveBanner`, add a check: only consider rows where `row.time >= start` (today or later). Currently it only filters `row.time < end` (not future), which means any historical row from months ago could match. Adding `row.time >= start` ensures only today's active rentals are shown.
 
-4. **Simplify the resolution** -- Instead of finding one "current row" then trying to patch its missing hash, iterate through position rows (newest first) and return the first one that has (or can resolve) a valid `ipfs_hash`.
+```
+const { start, end } = getDayBounds();
+// ...
+if (row.time >= end) continue;    // future
+if (row.time < start) continue;   // expired (not today)
+```
 
-**File: `src/lib/waxRpcFallback.ts`**
-
-5. Add `reverse?: boolean` to the `TableRowsParams` interface so `fetchTableRows` can pass it to the RPC call.
-
-### Technical Details
-
-The updated `resolveActiveBanner` will:
-- Filter rows for the position, sorted newest-first
-- Skip rows in the future (time >= end of today)
-- For each row from today or earlier: check if it has an `ipfs_hash`, or look for any earlier row for the same user with a hash
-- If found, build and return the banner
-- If the row is a placeholder (`cheesebannad` with no hash), skip it and continue to the next older row
-- This ensures we always show the most recent valid ad
-
-The `fetchBannerAds` call will use `reverse: true` and a limit of 60 (covers ~30 days), ensuring we always get the freshest rows without being cut off by table size.
+This single change ensures that if position 2 isn't rented today, no banner appears for it.
 
