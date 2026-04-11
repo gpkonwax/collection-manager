@@ -1,23 +1,38 @@
 
 
-## Fix Card Clipping During Deal Animation
+## Reduce AtomicAssets API Calls
 
-### Problem
-Cards in the deal animation stack are clipped at the bottom. The card container is set to the exact grid cell dimensions with `overflow-hidden`, and the name overlay at the bottom can make it look like content is being cut off. The image fills `w-full h-full` but needs a bit of breathing room for the bottom overlay.
+### Current Situation
+Every page load makes **15-20+ API calls** to AtomicAssets. The main offenders:
+- `fetchTemplateTotals()` in `useCollectionCompletion` fetches templates across 8 categories (~10-12 calls) on every mount
+- `useBinderTemplates` fetches the same template endpoints independently (2-3 more calls)
+- None of this data is cached between page loads, even though template sets are essentially static
 
-### Solution
-Two small changes in `src/components/simpleassets/CardDealAnimation.tsx`:
+### Plan
 
-1. **Add `relative` to the card container** so the absolute-positioned name overlay is properly contained
-2. **Make the image not fill the full height** — use `object-cover` on the image and reserve space for the name overlay by adjusting the image area, or simply add slight padding at the bottom of the card height calculation
+**1. Create a shared template data store with sessionStorage caching**
+- New file: `src/lib/templateDataCache.ts`
+- Fetches all gpk.topps templates once, caches in memory + sessionStorage (TTL: 30 minutes)
+- Single function `getAllTemplates()` returns all templates grouped by schema
+- Both `useCollectionCompletion` and `useBinderTemplates` consume from this shared store
 
-Specifically:
-- On the card wrapper div (line 201-202), add `relative` to the className
-- Change the image from `className="w-full h-full"` to `className="w-full h-full object-cover"` to ensure proper scaling
-- Add a small buffer (e.g. 8px) to the card height in the stack to prevent bottom clipping: change `height: cardSize.height` to `height: cardSize.height + 8` for the stack position, or adjust `STACK_Y` slightly
+**2. Update `useCollectionCompletion`**
+- Replace `fetchTemplateTotals()` with a call to the shared store
+- Derive counts from the cached template list instead of making its own API calls
+- Eliminates ~10 redundant API calls
 
-The simplest effective fix: increase the rendered card height by a few pixels so the bottom border and overlay aren't clipped, and ensure `object-cover` is applied to the media so the image scales correctly within the taller container.
+**3. Update `useBinderTemplates`**
+- Consume from the shared store instead of fetching independently
+- Filter/sort the cached data for the active schema
+- Eliminates 1-3 more redundant API calls
 
-### File Changed
-- `src/components/simpleassets/CardDealAnimation.tsx`
+**4. Result**
+- First page load: **~3-5 API calls** (one paginated fetch for all templates + user assets + packs)
+- Subsequent loads within 30 min: **~2 API calls** (just user assets + packs, templates from cache)
+- Template data fetched once and shared, not duplicated across hooks
+
+### Files Changed
+- `src/lib/templateDataCache.ts` (new) — shared template fetch + sessionStorage cache
+- `src/hooks/useCollectionCompletion.ts` — use shared cache instead of own fetch loop
+- `src/hooks/useBinderTemplates.ts` — use shared cache instead of own fetch loop
 
