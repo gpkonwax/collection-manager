@@ -25,40 +25,32 @@ export interface ActiveBanner {
   sharedWebsiteUrl?: string;
 }
 
-function getDayBounds(): { start: number; end: number } {
-  const now = new Date();
-  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  return {
-    start: Math.floor(dayStart.getTime() / 1000),
-    end: Math.floor(dayStart.getTime() / 1000) + 86400,
-  };
-}
+const CONTRACT_ACCOUNT = 'cheesebannad';
+const SECONDS_PER_DAY = 86400;
 
 function resolveActiveBanner(rows: BannerAdRow[], position: number): ActiveBanner | null {
-  const { start, end } = getDayBounds();
+  const now = Math.floor(Date.now() / 1000);
 
-  // Filter to this position, sorted newest-first
   const positionRows = rows
     .filter(r => r.position === position)
     .sort((a, b) => b.time - a.time);
 
-  // Walk newest-first, only consider today's rentals
   for (const row of positionRows) {
-    if (row.time >= end) continue;       // future row
-    if (row.time < start) continue;      // expired (not today)
-    if (row.suspended === 1) continue;   // suspended
+    // Skip if not currently active (contract uses 24h window from row.time)
+    if (row.time > now || row.time + SECONDS_PER_DAY <= now) continue;
+    // Skip unrented slots (owned by contract account)
+    if (row.user === CONTRACT_ACCOUNT) continue;
+    // Skip suspended
+    if (row.suspended === 1) continue;
 
-    // Resolve ipfs_hash: use row's own, or search earlier rows for same user, or any earlier row
+    // Resolve ipfs_hash
     let ipfsHash = row.ipfs_hash;
     if (!ipfsHash) {
-      // Try same-user fallback first
-      const sameUser = positionRows.find(r => r.time < row.time && r.ipfs_hash && r.user === row.user);
-      if (sameUser) {
-        ipfsHash = sameUser.ipfs_hash;
-      } else {
-        // Skip this row entirely — it's a placeholder with no content
-        continue;
-      }
+      const fallback = positionRows.find(
+        r => r.time < row.time && r.ipfs_hash && r.user === row.user
+      );
+      if (fallback) ipfsHash = fallback.ipfs_hash;
+      else continue;
     }
 
     const isShared = row.rental_type === 1;
