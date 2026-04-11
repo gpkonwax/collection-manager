@@ -135,6 +135,8 @@ export default function SimpleAssetsPage() {
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
+  const [pendingAtomicClaims, setPendingAtomicClaims] = useState<{ contract: string; pack_asset_id: number; origin_roll_ids: number[] }[]>([]);
+  const [isClaimingAtomic, setIsClaimingAtomic] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
