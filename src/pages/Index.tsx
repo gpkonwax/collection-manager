@@ -352,6 +352,34 @@ export default function SimpleAssetsPage() {
     }
   }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks]);
 
+  const handleClaimAtomicUnboxed = useCallback(async () => {
+    if (!session || pendingAtomicClaims.length === 0) return;
+    setIsClaimingAtomic(true);
+    try {
+      const actor = String(session.actor);
+      const auth = [{ actor, permission: String(session.permission) }];
+      let lastTxId: string | null = null;
+      for (const claim of pendingAtomicClaims) {
+        const result = await executeRawTransaction([{
+          account: claim.contract,
+          name: 'claimunboxed',
+          authorization: auth,
+          data: { pack_asset_id: claim.pack_asset_id, origin_roll_ids: claim.origin_roll_ids },
+        }], { errorTitle: 'Claim Failed', showErrorToast: true });
+        lastTxId = result.resolved?.transaction.id?.toString() || null;
+      }
+      setPendingAtomicClaims([]);
+      if (lastTxId) {
+        setSuccessDialog({ open: true, title: 'Cards Claimed!', description: 'Your unboxed cards have been delivered to your wallet.', txId: lastTxId });
+      }
+      await Promise.all([refetchAa(), refetchAtomicPacks()]);
+    } catch (e) {
+      console.error('Claim atomic unboxed failed:', e);
+    } finally {
+      setIsClaimingAtomic(false);
+    }
+  }, [session, pendingAtomicClaims, executeRawTransaction, refetchAa, refetchAtomicPacks]);
+
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
   }, []);
