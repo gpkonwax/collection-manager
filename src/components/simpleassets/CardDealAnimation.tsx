@@ -199,10 +199,10 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           return (
             <div
               key={card.id}
-              className="rounded-lg overflow-hidden border border-border bg-card shadow-xl"
+              className="relative rounded-lg overflow-hidden border border-border bg-card shadow-xl"
               style={style}
             >
-              <IpfsMedia url={card.image} alt={card.name} className="w-full h-full" context="card" />
+              <IpfsMedia url={card.image} alt={card.name} className="w-full h-full object-cover" context="card" />
               <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                 <p className="text-xs font-semibold truncate" style={{ color: 'white' }}>{card.name}</p>
               </div>
