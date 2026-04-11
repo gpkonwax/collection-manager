@@ -27,6 +27,7 @@ const ALLOWED_SCHEMA_VARIANTS: Record<string, Set<string>> = {
   series1: new Set(['base', 'prism', 'sketch', 'collector', 'golden']),
   series2: new Set([
     'base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch',
+    'tiger stripe', 'tiger claw',
     'returning', 'error', 'originalart', 'relic', 'promo',
     'collector', 'golden',
   ]),
