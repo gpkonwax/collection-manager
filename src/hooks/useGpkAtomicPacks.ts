@@ -3,6 +3,18 @@ import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 
+export type PackOpenMode = 'transfer' | 'unbox_nft';
+
+export interface PackConfig {
+  contract: string;
+  cards: number;
+  openMode: PackOpenMode;
+  /** For unbox_nft mode: the contract to transfer to and call unbox on */
+  transferTo?: string;
+  transferMemo?: string;
+  collectionName?: string;
+}
+
 export interface AtomicPack {
   templateId: string;
   name: string;
@@ -13,6 +25,8 @@ export interface AtomicPack {
   mints: number[];
   unpackContract: string;
   cardsPerPack: number;
+  openMode: PackOpenMode;
+  packConfig: PackConfig;
 }
 
 interface AtomicAssetRaw {
@@ -23,16 +37,16 @@ interface AtomicAssetRaw {
   name: string;
 }
 
-const PACK_CONFIG: Record<string, { contract: string; cards: number }> = {
-  '13778':  { contract: 'gpkcrashpack', cards: 5 },
-  '48479':  { contract: 'burnieunpack', cards: 2 },
-  '51437':  { contract: 'burnieunpack', cards: 5 },
-  '53187':  { contract: 'atomicpacksx', cards: 3 },
-  '59072':  { contract: 'atomicpacksx', cards: 3 },
-  '59489':  { contract: 'atomicpacksx', cards: 3 },
-  '59490':  { contract: 'atomicpacksx', cards: 3 },
-  '59491':  { contract: 'atomicpacksx', cards: 3 },
-  '59492':  { contract: 'atomicpacksx', cards: 3 },
+const PACK_CONFIG: Record<string, PackConfig> = {
+  '13778':  { contract: 'gpkcrashpack', cards: 5, openMode: 'transfer' },
+  '48479':  { contract: 'burnieunpack', cards: 2, openMode: 'transfer' },
+  '51437':  { contract: 'burnieunpack', cards: 5, openMode: 'transfer' },
+  '53187':  { contract: 'atomicpacksx', cards: 3, openMode: 'transfer' },
+  '59072':  { contract: 'atomicpacksx', cards: 3, openMode: 'transfer' },
+  '59489':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
+  '59490':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
+  '59491':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
+  '59492':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
 };
 
 function resolveImage(raw: string | undefined): string {
@@ -96,6 +110,8 @@ export function useGpkAtomicPacks(accountName: string | null) {
           mints: sorted.map((s) => s.mint),
           unpackContract: config.contract,
           cardsPerPack: config.cards,
+          openMode: config.openMode,
+          packConfig: config,
         });
       }
       setPacks(result);
