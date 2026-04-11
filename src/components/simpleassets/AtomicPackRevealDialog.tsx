@@ -148,13 +148,24 @@ async function fetchTemplateImage(templateId: number): Promise<{ name: string; i
   return { name: `Card #${tid}`, image: null };
 }
 
-async function fetchUnboxResults(contract: string, packAssetId: string): Promise<UnboxResultRow[]> {
+async function fetchUnboxResults(contract: string, packAssetId: string, accountName?: string): Promise<UnboxResultRow[]> {
   try {
+    // Try scope = packAssetId first (works for most contracts)
     const result = await fetchTableRows<UnboxResultRow>({
       code: contract, scope: packAssetId, table: 'unboxassets',
       limit: 100,
     });
-    return result.rows;
+    if (result.rows.length > 0) return result.rows;
+
+    // Fallback: try scope = accountName (some contracts like gpkcrashpack use this)
+    if (accountName) {
+      const fallback = await fetchTableRows<UnboxResultRow>({
+        code: contract, scope: accountName, table: 'unboxassets',
+        limit: 100,
+      });
+      return fallback.rows;
+    }
+    return [];
   } catch (e) {
     console.error('[AtomicReveal] fetchUnboxResults error', e);
     return [];
@@ -172,6 +183,7 @@ export function AtomicPackRevealDialog({
   const [waitMessage, setWaitMessage] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
+  const [showEscape, setShowEscape] = useState(false);
   const pollStartRef = useRef<number>(0);
 
   usePackRevealAudio({ open, phase, isShaking, revealedCount });
@@ -179,7 +191,7 @@ export function AtomicPackRevealDialog({
   useEffect(() => {
     if (open) {
       setPhase('waiting'); setNewCards([]); setRollIds([]);
-      setRevealedCount(0); setWaitMessage(''); setCollectError(null);
+      setRevealedCount(0); setWaitMessage(''); setCollectError(null); setShowEscape(false);
       pollStartRef.current = Date.now();
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
@@ -253,7 +265,7 @@ export function AtomicPackRevealDialog({
           }
         } else {
           // Standard flow: poll unboxassets table
-          const rows = await fetchUnboxResults(unpackContract, packAssetId);
+          const rows = await fetchUnboxResults(unpackContract, packAssetId, accountName);
           if (cancelled) return;
           if (rows.length >= expectedCards) {
             clearInterval(interval);
@@ -353,6 +365,16 @@ export function AtomicPackRevealDialog({
               </div>
               <p className="text-xs text-muted-foreground/60">{waitMessage || 'This usually takes 2-15 seconds'}</p>
             </div>
+            {showEscape && (
+              <div className="flex flex-col items-center gap-2 pt-4">
+                <Button variant="outline" size="sm" onClick={handleClose}>
+                  Close & Check Later
+                </Button>
+                <p className="text-xs text-muted-foreground text-center max-w-xs">
+                  Your pack was sent — cards may still arrive. Check your collection or try again later.
+                </p>
+              </div>
+            )}
           </div>
         )}
         {(phase === 'revealing' || phase === 'collect' || phase === 'collecting' || phase === 'done') && (
