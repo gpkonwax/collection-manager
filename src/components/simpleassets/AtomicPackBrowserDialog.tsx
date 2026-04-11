@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
+import { buildOpenPackActions } from '@/lib/packOpenActions';
 
 const PACKS_PER_PAGE = 10;
 
@@ -30,7 +31,6 @@ export function AtomicPackBrowserDialog({
   const [localMints, setLocalMints] = useState<number[]>(pack.mints ?? []);
   const { executeTransaction } = useWaxTransaction(session);
 
-  // Sync when pack data changes externally
   useEffect(() => {
     setLocalAssetIds(pack.assetIds);
     setLocalMints(pack.mints ?? []);
@@ -61,17 +61,17 @@ export function AtomicPackBrowserDialog({
     const auth = [{ actor, permission: String(session.permission) }];
 
     try {
-      const result = await executeTransaction([{
-        account: 'atomicassets', name: 'transfer', authorization: auth,
-        data: { from: actor, to: pack.unpackContract, asset_ids: [assetId], memo: 'unbox' },
-      }], { successTitle: 'Pack Sent!', successDescription: `Your ${pack.name} has been sent for unboxing. Revealing cards...` });
+      const actions = buildOpenPackActions(pack, assetId, actor, auth);
+      const result = await executeTransaction(actions, {
+        successTitle: 'Pack Sent!',
+        successDescription: `Your ${pack.name} has been sent for unboxing. Revealing cards...`,
+      });
 
       if (result.success) {
         setOpenedAssetId(assetId);
         setLocalAssetIds(prev => prev.filter(id => id !== assetId));
         setLocalMints(prev => prev.filter((_, i) => localAssetIds[i] !== assetId));
         setRevealOpen(true);
-        // Adjust page if we removed the last item on this page
         if (visibleCount === 1 && page > 0) setPage(p => p - 1);
       }
     } finally {
@@ -92,6 +92,7 @@ export function AtomicPackBrowserDialog({
             <DialogTitle className="text-foreground">
               {pack.name} — {localCount} pack{localCount !== 1 ? 's' : ''}
             </DialogTitle>
+            <DialogDescription className="sr-only">Browse and open your {pack.name} packs</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {Array.from({ length: visibleCount }, (_, i) => {
@@ -127,7 +128,7 @@ export function AtomicPackBrowserDialog({
       </Dialog>
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
-        accountName={accountName} session={session} onComplete={handleRevealComplete} />
+        accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />
     </>
   );
 }
