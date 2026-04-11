@@ -652,7 +652,7 @@ export default function SimpleAssetsPage() {
     if (!entry) return null;
     const label = categoryFilter === 'all' ? 'Overall' : (CATEGORY_LABELS[categoryFilter] || categoryFilter);
     return (
-      <div className="flex items-center gap-2 mx-auto">
+      <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-cheese whitespace-nowrap">
           {label}: {entry.percent}%
         </span>
