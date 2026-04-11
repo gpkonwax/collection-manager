@@ -343,10 +343,15 @@ export default function SimpleAssetsPage() {
 
   const dealingCardIds = useMemo(() => new Set(dealingCards.map(c => c.id)), [dealingCards]);
 
+  const savedLayoutKey = useMemo(() => {
+    if (!accountName) return null;
+    return `gpk-saved-layout-${accountName}-${categoryFilter}`;
+  }, [accountName, categoryFilter]);
+
   const [savedOrder, setSavedOrder] = useState<string[] | null>(() => {
     if (!accountName) return null;
     try {
-      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}-${categoryFilter}`);
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.order ?? null;
@@ -357,7 +362,7 @@ export default function SimpleAssetsPage() {
   const [loadedLayoutName, setLoadedLayoutName] = useState<string | null>(() => {
     if (!accountName) return null;
     try {
-      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}-${categoryFilter}`);
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.name ?? null;
@@ -368,29 +373,36 @@ export default function SimpleAssetsPage() {
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Restore saved layout when account changes
+
+  // Restore saved layout when account or category changes
   useEffect(() => {
-    if (!accountName) return;
+    if (!savedLayoutKey) return;
     try {
-      const stored = localStorage.getItem(`gpk-saved-layout-${accountName}`);
+      const stored = localStorage.getItem(savedLayoutKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         setSavedOrder(parsed.order ?? null);
         setLoadedLayoutName(parsed.name ?? null);
+      } else {
+        setSavedOrder(null);
+        setLoadedLayoutName(null);
       }
-    } catch {}
-  }, [accountName]);
+    } catch {
+      setSavedOrder(null);
+      setLoadedLayoutName(null);
+    }
+  }, [savedLayoutKey]);
 
   // Persist saved layout to localStorage
   useEffect(() => {
-    if (!accountName || savedOrder === null) return;
+    if (!savedLayoutKey || savedOrder === null) return;
     try {
-      localStorage.setItem(`gpk-saved-layout-${accountName}`, JSON.stringify({
+      localStorage.setItem(savedLayoutKey, JSON.stringify({
         order: savedOrder,
         name: loadedLayoutName
       }));
     } catch {}
-  }, [savedOrder, loadedLayoutName, accountName]);
+  }, [savedOrder, loadedLayoutName, savedLayoutKey]);
 
   const categories = useMemo(() => {
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
@@ -465,7 +477,7 @@ export default function SimpleAssetsPage() {
 
   const handleExportLayout = useCallback(() => {
     if (!accountName || savedOrder === null) return;
-    const defaultFilename = `gpk-layout-${accountName}.json`;
+    const defaultFilename = `gpk-layout-${accountName}-${categoryFilter}.json`;
     const userFilename = window.prompt('Enter filename for your layout:', defaultFilename);
     if (!userFilename) return;
     const finalFilename = userFilename.toLowerCase().endsWith('.json') ? userFilename : `${userFilename}.json`;
@@ -474,13 +486,13 @@ export default function SimpleAssetsPage() {
     let lastReal = -1;
     for (let i = savedOrder.length - 1; i >= 0; i--) { if (savedOrder[i] !== EMPTY) { lastReal = i; break; } }
     const cleanOrder = firstReal === -1 ? [] : savedOrder.slice(firstReal, lastReal + 1);
-    const blob = new Blob([JSON.stringify({ account: accountName, orders: { saved: cleanOrder }, puzzle }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ account: accountName, category: categoryFilter, orders: { saved: cleanOrder }, puzzle }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = finalFilename; a.click();
     URL.revokeObjectURL(url);
     toast.success('Layout exported');
-  }, [accountName, savedOrder]);
+  }, [accountName, savedOrder, categoryFilter]);
 
   const handleImportLayout = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
