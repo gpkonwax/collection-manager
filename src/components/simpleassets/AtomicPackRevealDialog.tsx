@@ -371,7 +371,7 @@ export function AtomicPackRevealDialog({
               {newCards.map((card, i) => {
                 const isRevealed = i < revealedCount;
                 return (
-                  <AtomicRevealCardImage key={card.asset_id} card={card} isRevealed={isRevealed} />
+                  <AtomicRevealCardImage key={card.asset_id} card={card} isRevealed={isRevealed} packImage={packImage} />
                 );
               })}
             </div>
