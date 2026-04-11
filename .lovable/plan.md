@@ -1,34 +1,31 @@
 
 
-## Remove Tiger King Cards from Series 2 Binder
+## Fix: Allow Tiger King Variants in Both Series 2 and Exotic Binders
 
-### Root cause
+### The situation
+Tiger King cards likely exist in two places:
+- **`exotic` schema** — full Tiger King collection from exotic packs
+- **`series2` schema** — Tiger King promo cards that drop from regular Series 2 packs
 
-In `src/hooks/useBinderTemplates.ts`, the constant `EXTRA_SCHEMAS` tells the series2 binder to also fetch templates from the `exotic` schema:
-
-```ts
-const EXTRA_SCHEMAS: Record<string, string[]> = {
-  series2: ['exotic'],
-};
-```
-
-This was intentional when exotic was lumped under series2, but now that exotic has its own category, these cards should only appear in the exotic/Tiger King binder.
+The previous fix was too aggressive: it removed `exotic` from `EXTRA_SCHEMAS` (correct) but also removed `tiger stripe` and `tiger claw` from the Series 2 allowed variants (potentially wrong).
 
 ### Changes
 
 **`src/hooks/useBinderTemplates.ts`**
+- Add `'tiger stripe'` and `'tiger claw'` back to `ALLOWED_SCHEMA_VARIANTS.series2` so that any series2-schema templates with those variants still appear in the Series 2 binder
+- Keep `EXTRA_SCHEMAS` empty (don't re-add exotic) — this ensures the exotic schema's own cards stay separate
 
-1. Remove `exotic` from `EXTRA_SCHEMAS.series2` (or remove the series2 entry entirely)
-2. Add allowed variants for the `exotic` schema so the exotic binder works correctly:
-   ```ts
-   ALLOWED_SCHEMA_VARIANTS: {
-     exotic: new Set(['base', 'tiger stripe', 'tiger claw', ...]),
-   }
-   ```
-   — need to check what variants actually exist in the exotic schema to set this correctly. If unsure, omit the exotic entry so all exotic templates pass through unfiltered.
-3. Remove `EXOTIC_ONLY_VARIANTS` filtering since it's no longer needed (exotic templates won't be mixed into series2)
+```ts
+series2: new Set([
+  'base', 'raw', 'prism', 'slime', 'gum', 'vhs', 'sketch',
+  'tiger stripe', 'tiger claw',  // ← restored
+  'returning', 'error', 'originalart', 'relic', 'promo',
+  'collector', 'golden',
+]),
+```
 
 ### Result
-- Series 2 binder shows only series2 cards (no tiger stripe/tiger claw)
-- Selecting "Tiger King" in the dropdown shows exotic cards in both Classic View and Collector Binder
+- Series 2 binder shows series2-schema cards including any tiger variants that belong there
+- Exotic/Tiger King binder shows exotic-schema cards separately (no variant filter, so all pass through)
+- No cross-contamination between schemas — each binder only fetches its own schema's templates
 
