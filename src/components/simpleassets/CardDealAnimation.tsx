@@ -210,9 +210,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
               style={style}
             >
               <IpfsMedia url={card.image} alt={card.name} className="w-full h-full object-cover" context="card" />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                <p className="text-xs font-semibold truncate" style={{ color: 'white' }}>{card.name}</p>
-              </div>
             </div>
           );
         })}
