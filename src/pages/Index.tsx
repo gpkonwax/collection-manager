@@ -1085,6 +1085,7 @@ export default function SimpleAssetsPage() {
                   <li><strong>Collector Binder</strong> — Template-based completionist view with real-time completion percentage tracking. Owned cards appear in full color with checkmarks; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need. Duplicate cards are stacked and accessible via a stack dialog showing all copies. Completion stats update live as you open packs or receive transfers.</li>
                   <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards into any order you like, insert empty spacer slots for custom layouts, and build the perfect display of your collection. Layouts persist across sessions via localStorage, and can be exported as JSON to back up or share with other collectors. Import layouts to restore previous arrangements instantly.</li>
                 </ul>
+                <p className="text-muted-foreground mt-2">All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Switch seamlessly between them using a simple tab interface for unprecedented control over how you manage and view your collection.</p>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Package className="h-4 w-4" /> Pack Openings</h4>
