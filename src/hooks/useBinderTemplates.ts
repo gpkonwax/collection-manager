@@ -81,13 +81,7 @@ export function useBinderTemplates(schema: string | null) {
         }
       }
 
-      const filtered = all.filter((t: any) => {
-        if ((t.schema?.schema_name || '') === 'exotic') {
-          const v = normalizeGpkVariant(t.immutable_data?.variant);
-          return EXOTIC_ONLY_VARIANTS.has(v);
-        }
-        return true;
-      });
+      const filtered = all;
 
       const parsed: BinderTemplate[] = filtered.map((t: any) => {
         const data = t.immutable_data || {};
