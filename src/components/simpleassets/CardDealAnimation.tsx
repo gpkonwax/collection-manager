@@ -75,8 +75,15 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
       if (isFirstCardRef.current) {
         isFirstCardRef.current = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        const timer = setTimeout(() => setPhase('sitting'), 1500);
-        return () => clearTimeout(timer);
+        let elapsed = 0;
+        const interval = setInterval(() => {
+          elapsed += 50;
+          if (window.scrollY <= 1 || elapsed > 3000) {
+            clearInterval(interval);
+            setPhase('sitting');
+          }
+        }, 50);
+        return () => clearInterval(interval);
       } else {
         // Go straight to sitting, no scroll to top
         setPhase('sitting');
