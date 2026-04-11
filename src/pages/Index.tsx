@@ -1109,19 +1109,11 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Puzzle className="h-4 w-4" /> Series 2 Puzzle Builder</h4>
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                  <li>18 unique puzzle pieces (card IDs 55–60, 66–71, 75–80) hidden on the backs of Series 2 cards.</li>
-                  <li>Access unlocks once all 18 pieces are collected. While locked, a <strong>Puzzle Binder</strong> grid shows owned pieces in full color with checkmarks and missing pieces as greyscale placeholders with AtomicHub purchase links.</li>
-                  <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces. Pieces initialize at 90° and support rotation.</li>
-                  <li>Scramble pieces randomly to start fresh or fine-tune placements.</li>
+                  <li>Series 2 cards contain hidden puzzle pieces on their backs.</li>
+                  <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces.</li>
                   <li>Save and load your puzzle progress as JSON.</li>
-                  <li><strong>Timer Race Mode</strong> — Race the clock to assemble the puzzle, then receive an A–F grade based on a 100-point scoring system:
-                    <ul className="list-disc pl-5 mt-1 space-y-0.5">
-                      <li><strong>Speed</strong> (20 pts) — faster completion = higher score.</li>
-                      <li><strong>Rotation Accuracy</strong> (20 pts) — how close each piece is to its target 90° orientation.</li>
-                      <li><strong>Position Accuracy</strong> (40 pts) — centroid-based relative positioning measured against a 600px threshold.</li>
-                      <li><strong>Overlap Penalty</strong> (20 pts) — deductions for overlapping pieces (1.5 pts per pair, 20px inset tolerance).</li>
-                    </ul>
-                  </li>
+                  <li>Scramble pieces to start fresh or fine-tune placements.</li>
+                  <li><strong>Timer Race Mode</strong> — race the clock to assemble the puzzle and receive an A–F grade based on speed, accuracy, and overlap.</li>
                 </ul>
               </div>
               <div>
