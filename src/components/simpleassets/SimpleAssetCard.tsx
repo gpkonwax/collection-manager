@@ -35,8 +35,8 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
-const EDGE_DEPTH = 5;
-const EDGE_COLOR = 'hsl(var(--card))';
+const EDGE_DEPTH = 8;
+const EDGE_COLOR = 'hsl(var(--muted))';
 
 function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -60,12 +60,13 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isStacked = (stackCount ?? 0) > 1;
 
   return (
+    <div className="relative" style={{ perspective: '1200px' }}>
     <div
       className="relative"
       ref={tiltRef}
       onMouseMove={tiltMouseMove}
       onMouseLeave={tiltMouseLeave}
-      style={{ transformStyle: 'preserve-3d', willChange: 'transform', backfaceVisibility: 'hidden', perspective: '1200px' }}
+      style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
     >
       {isStacked && (
         <>
