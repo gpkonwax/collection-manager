@@ -1,30 +1,38 @@
 
 
-## Fix Card Clipping During Deal Animation
+## Add CheeseHub Logo, Info Dialog, and Detailed Features List
 
-### Problem
-The card elements in `CardDealAnimation.tsx` have `overflow-hidden` on the wrapper div (line 202), which clips the bottom of the card — particularly the name overlay gradient area.
+### Overview
+Three changes to `src/pages/Index.tsx`:
+1. Add the CheeseHub logo (already copied to `src/assets/cheesehub-logo.png`) to the top-left header -- visible in both connected and disconnected states
+2. Add an Info button (ℹ icon) to the left of the Connect Wallet / wallet dropdown, opening a dialog with a detailed feature list
+3. Expand the landing page feature descriptions with more detail focused on flexibility
 
-### Fix (in `src/components/simpleassets/CardDealAnimation.tsx`)
+### 1. Persistent Header Bar
+Currently the sticky header only renders when connected (line 971). Change to always render a header bar:
+- **Left side**: CheeseHub logo (h-7 w-7) + "CHEESE" (yellow) "Hub" (white) text, linking to `https://cheesehubwax.github.io/cheesehub/` (opens in new tab via trusted URL)
+- **Right side**: Info button + wallet dropdown (connected) or Info button + Connect Wallet button (disconnected)
+- Same styling as CheeseHub's header: `sticky top-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50`
 
-**Restructure the card layout** so the image and overlay don't get clipped:
+### 2. Info Button + Features Dialog
+- Add an `Info` icon button (from lucide-react) to the left of the login/wallet button
+- Opens a Dialog with a scrollable list of features, organized into sections:
+  - **Collection Views**: Classic View, Collector Binder, Saved Collection with drag-and-drop
+  - **Pack Openings**: All Topps packs supported, card-by-card reveal animation, card-deal sequence, skip anytime
+  - **Flexibility**: Both SimpleAssets and AtomicAssets, multi-account support, any GPK sub-collection, filter by series/variant, sort options
+  - **Puzzle Builder**: Series 2 puzzle pieces, drag/rotate/arrange, save/load progress
+  - **Inspection & Magnification**: Click-to-zoom, magnifying lens on hover
+  - **Transfer & Management**: Transfer SimpleAssets between accounts, bulk selection
+  - **Import/Export**: Save layouts as JSON, import/export collection arrangements
+  - **Community**: Free to use, built by $CHEESE, banner ads via CheeseHub
 
-1. **Remove `overflow-hidden`** from the outer card div and instead apply it only to the image container, keeping the card name overlay inside the bounded area properly.
+### 3. Files Changed
+- `src/pages/Index.tsx` -- restructure header, add Info dialog state, add info button, import logo image
 
-2. **Make the card wrapper `relative`** so the absolute-positioned name overlay is properly contained within the card's own dimensions rather than potentially overflowing.
-
-3. **Ensure the image fills the card without pushing content out** — use `object-cover` on the `IpfsMedia` element and constrain the image area so the overlay sits within bounds.
-
-The actual change is small — on line 202, replace:
-```
-className="rounded-lg overflow-hidden border border-border bg-card shadow-xl"
-```
-with:
-```
-className="relative rounded-lg border border-border bg-card shadow-xl overflow-hidden"
-```
-
-And ensure the `IpfsMedia` uses `object-cover` styling so it fills without distorting. The key fix is adding `relative` positioning context and verifying the image renders with `object-cover` to prevent it from pushing the container taller than the specified height, which causes the bottom to clip against the viewport or parent.
-
-If the root cause is actually that the measured `cardSize.height` is slightly too small (not accounting for the name overlay), we'll also add a small buffer (e.g., +8px) to the stack card height to accommodate the overlay text.
+### Technical Details
+- Import: `import cheesehubLogo from '@/assets/cheesehub-logo.png'` and `import { Info } from 'lucide-react'`
+- Add state: `const [showInfoDialog, setShowInfoDialog] = useState(false)`
+- The header block (lines 971-1037) will be restructured to always show, with the logo on the left and wallet controls on the right
+- Remove the duplicate "Connect Wallet" button from inside the landing page hero since it will now be in the header
+- Keep the bottom "Connect Wallet" CTA in the landing page
 

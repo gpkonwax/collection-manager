@@ -1,6 +1,4 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -275,15 +273,14 @@ export default function SimpleAssetsPage() {
     if (demoAssets.length === 0) return;
     const cat = demoAssets[0].category;
     if (cat) setCategoryFilter(cat);
-    // Keep current view mode (classic or binder) so deal animation targets the active grid
-    if (viewMode === 'saved') setViewMode('classic');
+    setViewMode('classic');
     setSearch('');
     setSourceFilter('all');
     setVisibleCount(Number.POSITIVE_INFINITY);
     setDealingCards(demoAssets);
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
-  }, [viewMode]);
+  }, []);
 
   useEffect(() => {
     if (!accountName) { setShowCollectUnclaimed(false); return; }
@@ -601,47 +598,6 @@ export default function SimpleAssetsPage() {
   const renderBinderCard = useCallback(({ template, owned }: { template: any; owned: SimpleAsset[] | null }) => {
     if (owned && owned.length > 0) {
       const asset = owned[0];
-      const allIds = owned.map(a => a.id);
-      const isAnyInFlight = allIds.some(id => dealingCardIds.has(id) && !dealtIds.has(id));
-      const anyJustLanded = allIds.some(id => dealtIds.has(id));
-
-      // Register ALL asset IDs in this slot to the same DOM element
-      const refCallback = (el: HTMLDivElement | null) => {
-        allIds.forEach(id => {
-          if (el) gridCellRefs.current.set(id, el);
-          else gridCellRefs.current.delete(id);
-        });
-      };
-
-      if (isAnyInFlight) {
-        // Frozen silhouette: grayscale image of the card, no overlay/animation
-        return (
-          <div
-            key={`binder-${template.templateId}`}
-            ref={refCallback}
-          >
-            <Card className="overflow-hidden bg-card/30 border-border/30 opacity-50">
-              <div className="aspect-square bg-muted/10 flex items-center justify-center overflow-hidden">
-                <IpfsMedia
-                  url={template.image}
-                  alt={template.name}
-                  className="w-full h-full grayscale brightness-50"
-                  context="card"
-                  loading="eager"
-                />
-              </div>
-              <CardContent className="p-3 space-y-1">
-                <p className="text-sm font-semibold text-foreground/50 truncate">{template.name}</p>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/50 text-accent-foreground/50">{template.variant || template.schema}</span>
-                  <span className="text-[10px] text-muted-foreground/50">#{template.cardid}{template.quality ? template.quality.toUpperCase() : ''}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-      }
-
       const handleClick = () => {
         if (owned.length > 1 && !selectionMode) {
           setStackedAssets(owned);
@@ -651,24 +607,22 @@ export default function SimpleAssetsPage() {
         }
       };
       return (
-        <div key={`binder-${template.templateId}`} ref={refCallback}>
-          <SimpleAssetCard
-            asset={asset}
-            onClick={handleClick}
-            draggable={false}
-            stackCount={owned.length}
-            selectionMode={selectionMode}
-            selected={selectedIds.has(asset.id)}
-            onSelect={toggleSelection}
-            className={anyJustLanded ? 'animate-card-glow' : ''}
-          />
-        </div>
+        <SimpleAssetCard
+          key={`binder-${template.templateId}`}
+          asset={asset}
+          onClick={handleClick}
+          draggable={false}
+          stackCount={owned.length}
+          selectionMode={selectionMode}
+          selected={selectedIds.has(asset.id)}
+          onSelect={toggleSelection}
+        />
       );
     }
     return (
       <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
     );
-  }, [selectionMode, selectedIds, toggleSelection, dealingCardIds, dealtIds]);
+  }, [selectionMode, selectedIds, toggleSelection]);
 
   const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
