@@ -112,6 +112,7 @@ export function PackRevealDialog({
   const [waitMessage, setWaitMessage] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
+  const [showEscape, setShowEscape] = useState(false);
   const pollStartRef = useRef<number>(0);
   const isDemo = !!(demoCards && demoCards.length > 0);
 
