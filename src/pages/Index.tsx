@@ -972,10 +972,35 @@ export default function SimpleAssetsPage() {
   return (
     <div className="min-h-screen relative">
       <BackgroundDecorations />
-      {isConnected && accountName && (
-        <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
-          <div className="container flex h-12 items-center justify-end">
-            <div className="flex items-center gap-2">
+      <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
+        <div className="container flex h-12 items-center justify-between">
+          {/* Left: Logo + branding */}
+          <a
+            href="https://cheesehubwax.github.io/cheesehub/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
+            <img src={cheesehubLogo} alt="CheeseHub" className="h-7 w-7" />
+            <span className="font-bold text-sm">
+              <span className="text-cheese">CHEESE</span>
+              <span className="text-foreground">Hub</span>
+            </span>
+          </a>
+
+          {/* Right: Info button + wallet controls */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-cheese/10"
+              onClick={() => setShowInfoDialog(true)}
+            >
+              <Info className="h-4 w-4 text-cheese" />
+              <span className="sr-only">Features Info</span>
+            </Button>
+
+            {isConnected && accountName ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="border-cheese/30 hover:border-cheese hover:bg-cheese/10 h-8 gap-2">
@@ -1035,10 +1060,97 @@ export default function SimpleAssetsPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+            ) : (
+              <Button onClick={login} size="sm" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground h-8">
+                <Wallet className="h-4 w-4 mr-1" />
+                Connect Wallet
+              </Button>
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Info Dialog */}
+      <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="text-cheese text-xl">GPK.Topps Pack Opener — Features</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[65vh] pr-4">
+            <div className="space-y-5 text-sm">
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Eye className="h-4 w-4" /> Collection Views</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection.</li>
+                  <li><strong>Collector Binder</strong> — Template-based completionist view. Owned cards appear in full color; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need.</li>
+                  <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards, add empty slots, and build the perfect display. Layouts persist across sessions.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Package className="h-4 w-4" /> Pack Openings</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>All Topps pack types supported — Series 1, Series 2, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight, and more.</li>
+                  <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
+                  <li>Card-by-card reveal animation with skip option.</li>
+                  <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Layers className="h-4 w-4" /> Flexibility</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Unified view for <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> — your entire GPK collection in one place regardless of which contract holds them.</li>
+                  <li>Multi-account support: add multiple WAX accounts and switch between them instantly.</li>
+                  <li>Filter by any GPK sub-collection (Series 1, Series 2, Crash Gordon, Tiger King, etc.).</li>
+                  <li>Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold, and more.</li>
+                  <li>Multiple sort options: natural order, name, variant rarity.</li>
+                  <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Puzzle className="h-4 w-4" /> Series 2 Puzzle Builder</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Series 2 cards contain hidden puzzle pieces on their backs.</li>
+                  <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces.</li>
+                  <li>Save and load your puzzle progress as JSON.</li>
+                  <li>Scramble pieces to start fresh or fine-tune placements.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><ZoomIn className="h-4 w-4" /> Inspection & Magnification</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Click any card to open a full-detail view with front/back toggle.</li>
+                  <li>Magnifying lens follows your cursor on hover, zooming into every line and detail.</li>
+                  <li>IPFS-sourced high-resolution images with automatic gateway fallback.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Send className="h-4 w-4" /> Transfer & Management</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Transfer SimpleAssets NFTs between WAX accounts directly from the app.</li>
+                  <li>Bulk selection mode for transferring multiple cards at once.</li>
+                  <li>Burn unwanted NFTs.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Download className="h-4 w-4" /> Import / Export</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Save your Saved Collection layouts as JSON files.</li>
+                  <li>Import layouts to restore or share your collection arrangements.</li>
+                  <li>Puzzle Builder progress is also exportable.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Users className="h-4 w-4" /> Community</h4>
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                  <li>Completely free to use — no fees, no sign-ups.</li>
+                  <li>Built by <span className="text-cheese font-semibold">$CHEESE</span>, the first project ever launched on the WAX blockchain.</li>
+                  <li>Banner ad slots available via CheeseHub for community projects.</li>
+                </ul>
+              </div>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
       <div className="container py-8 space-y-6">
         <BannerAd />
         <div className="mb-6" />
