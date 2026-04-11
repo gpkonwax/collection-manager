@@ -285,6 +285,16 @@ export function PackRevealDialog({
               </div>
               <p className="text-xs text-muted-foreground/60">{waitMessage || 'This usually takes 2-15 seconds'}</p>
             </div>
+            {showEscape && (
+              <div className="flex flex-col items-center gap-2 pt-4">
+                <Button variant="outline" size="sm" onClick={handleClose}>
+                  Close & Check Later
+                </Button>
+                <p className="text-xs text-muted-foreground text-center max-w-xs">
+                  Your pack was sent — cards may still arrive. Check your collection or try again later.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
