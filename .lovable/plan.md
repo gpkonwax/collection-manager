@@ -1,60 +1,32 @@
 
 
-## Add Collection Completion Score
+## Per-Category Saved Collections
 
 ### Overview
-Add a completion percentage for each category (Series 1, Series 2, Tiger King, etc.) displayed alongside the packs section. 100% = owning at least 1 of every unique card template in the set + 1 of every pack type (unopened). When "All Categories" is selected, show a combined total percentage.
+Make each category have its own independent saved collection layout, so users can build and maintain separate arrangements for Series 1, Series 2, Tiger King, etc. Each category stores its own layout in localStorage and can have its own imported/exported JSON file.
 
 ### How It Works
 
-**What counts toward 100%:**
-- Every unique card template in the gpk.topps collection for that schema (fetched from AtomicAssets API)
-- Every pack type mapped to that category (both SimpleAssets token packs and AtomicAssets NFT packs)
+**Storage key change**: Instead of a single `gpk-saved-layout-{account}`, use `gpk-saved-layout-{account}-{category}`. When the user switches categories while on the Saved Collection tab, the current category's layout loads automatically.
 
-**What the user owns:**
-- Unique templates matched from their `assets` array (by template_id or cardid+quality+variant key)
-- Pack types with amount > 0 (SimpleAssets) or count > 0 (AtomicAssets)
+**State becomes category-aware**: The single `savedOrder` / `loadedLayoutName` state pair will be keyed by `categoryFilter`. When category changes, persist the current layout and load the new category's layout from localStorage.
 
-### Technical Plan
+### Technical Details
 
-**1. New hook: `src/hooks/useCollectionCompletion.ts`**
-- Accepts: all assets, packs, atomicPacks, and the PACK/ATOMIC_PACK category maps
-- On mount, fetches template counts for all relevant schemas (`series1`, `series2`, `exotic`, `crashgordon`, `bernventures`, `mittens`, `gamestonk`, `foodfightb`) using the AtomicAssets templates endpoint with `&count=true` or paginated fetches
-- Uses the same `ALLOWED_SCHEMA_VARIANTS` filtering as the binder to get accurate totals
-- For each category, computes: `ownedUniqueCards / totalTemplates` + `ownedPackTypes / totalPackTypes`
-- Returns a `Record<string, { owned: number; total: number; percent: number }>` plus an `overall` entry
+**Single file: `src/pages/Index.tsx`**
 
-**2. UI in `src/pages/Index.tsx`**
-- Import the new hook and call it with existing data
-- Display a compact completion badge/bar to the right of the packs section heading, e.g.: `Series 1: 42%` with a small progress bar
-- When `categoryFilter === 'all'`, show the combined "Overall" percentage
-- Use the existing `Progress` component from `src/components/ui/progress.tsx` styled with cheese colors
+1. **Change localStorage key** to include category: `gpk-saved-layout-${accountName}-${categoryFilter}`
 
-### Schema-to-Category Mapping for Template Fetching
-```text
-series1     → schema "five" + "series1" (SA + AA)
-series2     → schema "series2"
-exotic      → schema "exotic"
-crashgordon → schema "crashgordon"
-bernventures→ schema "bernventures"
-mittens     → schema "mittens"
-gamestonk   → schema "gamestonk"
-foodfightb  → schema "foodfightb"
-```
+2. **Swap layout on category change**: Add an effect that saves the current `savedOrder` for the previous category and loads the new category's layout when `categoryFilter` changes.
 
-### Pack Types Per Category
-```text
-series1:      GPKFIVE, GPKMEGA
-series2:      GPKTWOA, GPKTWOB, GPKTWOC
-exotic:       EXOFIVE, EXOMEGA, template 13778 (if crashgordon maps here — no, it maps to crashgordon)
-crashgordon:  template 13778
-bernventures: template 48479
-mittens:      template 51437
-gamestonk:    template 53187
-foodfightb:   templates 59072, 59489, 59490, 59491, 59492
-```
+3. **Update export/import**: 
+   - Export filename default: `gpk-layout-${accountName}-${categoryFilter}.json`
+   - JSON payload includes `category` field
+   - Import works the same but stores to the current category's key
 
-### Files Changed
-1. **New**: `src/hooks/useCollectionCompletion.ts` — hook to fetch template totals and compute completion
-2. **Edit**: `src/pages/Index.tsx` — import hook, render completion % near the packs section
+4. **"Copy to Saved" scopes to current category**: Already uses `filtered` which is category-filtered, so this works as-is.
+
+5. **Initial state**: Read from `gpk-saved-layout-${accountName}-${categoryFilter}` on mount.
+
+6. **"All Categories" saved view**: Will have its own independent layout (key uses `all`), allowing a master arrangement if desired.
 
