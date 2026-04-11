@@ -59,7 +59,6 @@ const SERIES1_VARIANTS: { value: string; label: string }[] = [
 const SERIES2_VARIANTS: { value: string; label: string }[] = [
   { value: 'base', label: 'Base' },
   { value: 'raw', label: 'Raw' },
-  { value: 'prism', label: 'Prism' },
   { value: 'slime', label: 'Slime' },
   { value: 'gum', label: 'Gum' },
   { value: 'vhs', label: 'VHS' },
