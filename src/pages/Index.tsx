@@ -1080,7 +1080,26 @@ export default function SimpleAssetsPage() {
 
             {error && <p className="text-center text-destructive py-8">Error: {error}</p>}
 
-            {!packsLoading && packs.filter((p) => categoryFilter === 'all' || PACK_CATEGORY_MAP[p.symbol] === categoryFilter).length > 0 && (
+            {/* Collection Completion */}
+            {accountName && (() => {
+              const key = categoryFilter === 'all' ? 'overall' : categoryFilter;
+              const entry = completion[key];
+              if (!entry) return null;
+              const label = categoryFilter === 'all' ? 'Overall' : (CATEGORY_LABELS[categoryFilter] || categoryFilter);
+              return (
+                <div className="flex items-center gap-3 justify-end">
+                  <span className="text-sm font-medium text-cheese whitespace-nowrap">
+                    {label}: {entry.percent}%
+                  </span>
+                  <Progress value={entry.percent} className="w-32 h-2 bg-muted" />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {entry.owned}/{entry.total}
+                  </span>
+                </div>
+              );
+            })()}
+
+
               <div className="space-y-3">
                 <h2 className="text-xl font-semibold text-foreground text-center">Packs</h2>
                 <div className="flex flex-wrap justify-center gap-4">
