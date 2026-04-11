@@ -1,60 +1,25 @@
 
 
-## Add Collection Completion Score
+## Move Completion Bar & Add Variant-Level Filtering
 
-### Overview
-Add a completion percentage for each category (Series 1, Series 2, Tiger King, etc.) displayed alongside the packs section. 100% = owning at least 1 of every unique card template in the set + 1 of every pack type (unopened). When "All Categories" is selected, show a combined total percentage.
+### Changes
 
-### How It Works
+**1. `src/hooks/useCollectionCompletion.ts`** — Store per-variant template counts
 
-**What counts toward 100%:**
-- Every unique card template in the gpk.topps collection for that schema (fetched from AtomicAssets API)
-- Every pack type mapped to that category (both SimpleAssets token packs and AtomicAssets NFT packs)
+- Change `fetchTemplateTotals` to return per-category AND per-variant counts: `Record<string, { total: number; byVariant: Record<string, number> }>`
+- While iterating templates, track counts per normalized variant within each category
+- Update the `completion` memo to accept a `variantFilter: string[]` parameter
+- When variant filter is active (not `['all']`), sum only the matching variant template counts for the total, and only count owned assets whose quality matches the selected variants
+- When variant-filtered, exclude packs from the calculation (packs aren't variant-specific)
 
-**What the user owns:**
-- Unique templates matched from their `assets` array (by template_id or cardid+quality+variant key)
-- Pack types with amount > 0 (SimpleAssets) or count > 0 (AtomicAssets)
+**2. `src/pages/Index.tsx`** — Pass variant filter & relocate the bar
 
-### Technical Plan
+- Pass `variantFilter` to `useCollectionCompletion`
+- Move the completion bar block (lines 1083-1100) to render below the variant dropdown and above the "Copy to Saved" row — specifically inserting it between the filter row (line 1206, end of `</div>`) and the tabs row (line 1208)
+- Keep same styling: cheese-colored label, progress bar, owned/total count
 
-**1. New hook: `src/hooks/useCollectionCompletion.ts`**
-- Accepts: all assets, packs, atomicPacks, and the PACK/ATOMIC_PACK category maps
-- On mount, fetches template counts for all relevant schemas (`series1`, `series2`, `exotic`, `crashgordon`, `bernventures`, `mittens`, `gamestonk`, `foodfightb`) using the AtomicAssets templates endpoint with `&count=true` or paginated fetches
-- Uses the same `ALLOWED_SCHEMA_VARIANTS` filtering as the binder to get accurate totals
-- For each category, computes: `ownedUniqueCards / totalTemplates` + `ownedPackTypes / totalPackTypes`
-- Returns a `Record<string, { owned: number; total: number; percent: number }>` plus an `overall` entry
-
-**2. UI in `src/pages/Index.tsx`**
-- Import the new hook and call it with existing data
-- Display a compact completion badge/bar to the right of the packs section heading, e.g.: `Series 1: 42%` with a small progress bar
-- When `categoryFilter === 'all'`, show the combined "Overall" percentage
-- Use the existing `Progress` component from `src/components/ui/progress.tsx` styled with cheese colors
-
-### Schema-to-Category Mapping for Template Fetching
-```text
-series1     → schema "five" + "series1" (SA + AA)
-series2     → schema "series2"
-exotic      → schema "exotic"
-crashgordon → schema "crashgordon"
-bernventures→ schema "bernventures"
-mittens     → schema "mittens"
-gamestonk   → schema "gamestonk"
-foodfightb  → schema "foodfightb"
-```
-
-### Pack Types Per Category
-```text
-series1:      GPKFIVE, GPKMEGA
-series2:      GPKTWOA, GPKTWOB, GPKTWOC
-exotic:       EXOFIVE, EXOMEGA, template 13778 (if crashgordon maps here — no, it maps to crashgordon)
-crashgordon:  template 13778
-bernventures: template 48479
-mittens:      template 51437
-gamestonk:    template 53187
-foodfightb:   templates 59072, 59489, 59490, 59491, 59492
-```
-
-### Files Changed
-1. **New**: `src/hooks/useCollectionCompletion.ts` — hook to fetch template totals and compute completion
-2. **Edit**: `src/pages/Index.tsx` — import hook, render completion % near the packs section
+### Behavior
+- **No variant filter active** (or non-series category): shows full category completion including packs
+- **Variant filter active** (e.g. "Base" selected on Series 1): shows completion for only base variant templates; packs excluded from count since they aren't variant-specific
+- **"All Categories"**: shows overall completion across everything
 
