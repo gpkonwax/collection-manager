@@ -112,6 +112,7 @@ export function PackRevealDialog({
   const [waitMessage, setWaitMessage] = useState('');
   const [collectError, setCollectError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
+  const [showEscape, setShowEscape] = useState(false);
   const pollStartRef = useRef<number>(0);
   const isDemo = !!(demoCards && demoCards.length > 0);
 
@@ -124,7 +125,7 @@ export function PackRevealDialog({
     if (open) {
       setPhase('waiting'); setNewCards([]); setPendingRowIds([]);
       setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
-      setCollectError(null); pollStartRef.current = Date.now();
+      setCollectError(null); setShowEscape(false); pollStartRef.current = Date.now();
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
       return () => clearTimeout(shakeTimer);
@@ -132,6 +133,13 @@ export function PackRevealDialog({
       setIsShaking(false);
     }
   }, [open]);
+
+  // Escape hatch: show close button after 60s of waiting
+  useEffect(() => {
+    if (!open || phase !== 'waiting') { setShowEscape(false); return; }
+    const timer = setTimeout(() => setShowEscape(true), 60000);
+    return () => clearTimeout(timer);
+  }, [open, phase]);
 
   // Demo mode
   useEffect(() => {
@@ -277,6 +285,16 @@ export function PackRevealDialog({
               </div>
               <p className="text-xs text-muted-foreground/60">{waitMessage || 'This usually takes 2-15 seconds'}</p>
             </div>
+            {showEscape && (
+              <div className="flex flex-col items-center gap-2 pt-4">
+                <Button variant="outline" size="sm" onClick={handleClose}>
+                  Close & Check Later
+                </Button>
+                <p className="text-xs text-muted-foreground text-center max-w-xs">
+                  Your pack was sent — cards may still arrive. Check your collection or try again later.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
