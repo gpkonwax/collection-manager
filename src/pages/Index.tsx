@@ -733,7 +733,6 @@ export default function SimpleAssetsPage() {
         <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
         {renderSelectButton()}
         {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
-        {renderCompletionBar()}
         <Button
           onClick={handleSnapshotToSaved}
           variant="outline"
@@ -805,7 +804,6 @@ export default function SimpleAssetsPage() {
             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
             {binderLoading && ' (loading templates...)'}
           </p>
-          {renderCompletionBar()}
           {renderSelectButton()}
           {renderSelectAllCheckbox(visibleOwned)}
         </div>
@@ -1232,6 +1230,11 @@ export default function SimpleAssetsPage() {
               </Tabs>
             </div>
 
+            {/* Collection Completion - centered beneath view switch */}
+            <div className="flex justify-center mt-2">
+              {renderCompletionBar()}
+            </div>
+
             {!isLoading && !error && (
               categoryFilter === 'series2' && viewMode !== 'saved' ? (
                 <Tabs value={series2SubTab} onValueChange={setSeries2SubTab} className="w-full">
@@ -1247,7 +1250,6 @@ export default function SimpleAssetsPage() {
                             {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                             {binderLoading && ' (loading templates...)'}
                           </p>
-                          {renderCompletionBar()}
                           {renderSelectButton()}
                           {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
                         </div>
