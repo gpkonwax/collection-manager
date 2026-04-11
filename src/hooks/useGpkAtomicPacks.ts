@@ -52,6 +52,19 @@ const PACK_CONFIG: Record<string, PackConfig> = {
   '59492':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
 };
 
+/** Fallback metadata for packs when user owns 0 (so we can still show the artwork) */
+const PACK_DEFAULTS: Record<string, { name: string; image: string; description: string }> = {
+  '13778':  { name: 'GPK Pack - Crash Gordon', image: 'Qmf3d8Dj1E5RM4nyqcQVw2s2adSxBUkuBc4FiDh76vVE5n', description: 'Contains 5 digital cards from the "Crash Gordon" series' },
+  '48479':  { name: 'Bernventures Pack', image: 'QmZFv6fGryvQsU2k1dDY5fkJNvTakKxBwDyj8RDfEEmTvj', description: 'Bernventures Pack' },
+  '51437':  { name: 'Mitten Pack', image: 'QmTMWkmXo5o3ddn9XZ15zuh9Gz9LJDpDoox48crJkj8Mnp', description: 'Mitten Pack' },
+  '53187':  { name: 'GameStonk! Pack', image: 'QmUkRt94GkTDUa2tTgTCDAm7xne2xYTpzSQizw5mJPf61y/back.jpg', description: 'GameStonk! Pack' },
+  '59072':  { name: 'Food Fight! Pack', image: 'QmYiXshxX23h4J68Z8HUGVbVZmCwrrjEi3TKA41jW6hcSH/pack.png', description: 'Food Fight! Pack' },
+  '59489':  { name: 'Food Fight! WinterCon Day 1', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 1 Pack' },
+  '59490':  { name: 'Food Fight! WinterCon Day 2', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 2 Pack' },
+  '59491':  { name: 'Food Fight! WinterCon Day 3', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 3 Pack' },
+  '59492':  { name: 'Food Fight! WinterCon Day 4', image: 'QmUt1n6b5re5FhuP7dFj73BS57MGNBYPP3uZeTnvYDtiyN/FoodFightPackArt_WinterCon.png', description: 'WinterCon 2021 Day 4 Pack' },
+};
+
 function resolveImage(raw: string | undefined): string {
   if (!raw) return '/placeholder.svg';
   if (raw.startsWith('http')) return raw;
@@ -117,6 +130,26 @@ export function useGpkAtomicPacks(accountName: string | null) {
           packConfig: config,
         });
       }
+
+      // Add placeholder entries for packs the user doesn't own (count: 0)
+      for (const [tid, config] of Object.entries(PACK_CONFIG)) {
+        if (grouped.has(tid)) continue;
+        const defaults = PACK_DEFAULTS[tid];
+        result.push({
+          templateId: tid,
+          name: defaults?.name || `Pack #${tid}`,
+          image: defaults ? resolveImage(defaults.image) : '/placeholder.svg',
+          description: defaults?.description || '',
+          count: 0,
+          assetIds: [],
+          mints: [],
+          unpackContract: config.contract,
+          cardsPerPack: config.cards,
+          openMode: config.openMode,
+          packConfig: config,
+        });
+      }
+
       setPacks(result);
     } catch (e) {
       console.warn('[GpkAtomicPacks] Fetch failed:', e);
