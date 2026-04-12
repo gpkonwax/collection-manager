@@ -1,56 +1,37 @@
 
 
-## Rewrite Banner Ads to Match CheeseHub Implementation
+## Fix Shared Banner Slots to Match CheeseHub
 
 ### Problem
-Our `useBannerAds.ts` uses a custom "group by time, pick most recent group" algorithm that does not match CheeseHub's actual logic. CheeseHub uses a 24-hour window filter (`time <= now < time + 86400`) with **pre-processed content inheritance** across all rows before filtering. Our code also handles shared banners differently -- embedding shared data in one object instead of emitting separate banner entries for rotation.
+Two issues prevent shared banners from displaying correctly:
+
+1. **Missing placeholder emission**: When a shared slot has only one renter (no second renter), CheeseHub emits a `__placeholder__` banner with a static image. Our `useBannerAds.ts` does not emit this placeholder, so half-rented shared slots only show one banner with no rotation.
+
+2. **No placeholder image handling in UI**: Our `BannerAd.tsx` has no concept of `__placeholder__` banners. When a banner has `user === "__placeholder__"` and an empty `ipfsHash`, it tries to load from IPFS and fails silently.
 
 ### What Changes
 
-**1. Rewrite `src/hooks/useBannerAds.ts` to match CheeseHub exactly**
+**1. `src/hooks/useBannerAds.ts` — Add placeholder emission for half-rented shared slots**
 
-The CheeseHub algorithm:
-- Fetch `limit: 100` rows in natural order (no `reverse: true`)
-- Sort all rows by time ascending
-- **Content inheritance**: for any row where `user != contract` but `ipfs_hash` is empty, copy content fields from the most recent earlier row with same user + position
-- Filter to rows in the current 24h window: `nowSec >= row.time && nowSec < row.time + 86400`
-- Skip rows owned by the contract account or with empty `ipfs_hash` or suspended
-- For shared rentals (`rental_type === 1`):
-  - Emit primary banner + secondary banner (shared user's content) if second renter exists with content
-  - Emit primary + placeholder if no second renter
-- For exclusive rentals: emit single banner
-- Add `displayMode` ("full" | "shared") and `rentalType` fields to `ActiveBanner`
-
-**2. Rewrite `src/components/BannerAd.tsx` to match CheeseHub's display logic**
-
-- Separate banners by `displayMode`: "full" vs "shared"
-- Group shared banners by position and use a `SharedBannerRotator` that alternates between primary/secondary every 30 seconds
-- Handle placeholder banners (user `__placeholder__`) with a static fallback image linking to the banner ads page
-- Keep the external link warning dialog integration
-- Maintain 580x150px dimensions and the "Advertise with CheeseHub" link
-
-### Technical Details
-
-Key interface change for `ActiveBanner`:
-```text
-ActiveBanner {
-  time, position, user, ipfsHash, websiteUrl,
-  rentalType: "exclusive" | "shared",
-  displayMode: "full" | "shared",
-  sharedUser?, sharedIpfsHash?, sharedWebsiteUrl?
-}
+After emitting the primary banner for a shared rental, if there is no second renter (`!shared_user` or `shared_user === contract`), emit a placeholder banner:
 ```
-
-Content inheritance pseudocode (runs before filtering):
-```text
-sortedByTime = rows.sort(ascending by time)
-for each row in sortedByTime:
-  if row.user != contract AND row.ipfs_hash is empty:
-    find most recent earlier row with same position+user that has content
-    copy ipfs_hash, website_url, rental_type, shared fields from donor
+{ user: "__placeholder__", ipfsHash: "", websiteUrl: "bannerads-link", displayMode: "shared" }
 ```
+This matches CheeseHub's exact logic at lines 121-129 of their hook.
+
+**2. `src/components/BannerAd.tsx` — Handle `__placeholder__` banners with static image**
+
+- Save the user-uploaded `cheese_banner4.png` to `public/cheese-banner-placeholder.png`
+- In `SingleBanner` and `SharedBannerRotator`, detect `banner.user === "__placeholder__"` and render the static placeholder image instead of trying IPFS
+- Placeholder banners link to the banner ads page (`https://cheesehubwax.github.io/cheesehub/bannerads`)
+- Show "Ad (Shared)" badge on placeholder banners
+
+**3. Save placeholder banner image**
+
+- Copy `cheese_banner4.png` to `public/cheese-banner-placeholder.png` for use as the static fallback image in shared slots
 
 ### Files Changed
-- `src/hooks/useBannerAds.ts` -- full rewrite to match CheeseHub's fetch + inherit + 24h-window + shared-emit logic
-- `src/components/BannerAd.tsx` -- rewrite display to handle displayMode, SharedBannerRotator, and placeholder banners
+- `public/cheese-banner-placeholder.png` — new static placeholder image
+- `src/hooks/useBannerAds.ts` — add placeholder banner emission for half-rented shared slots
+- `src/components/BannerAd.tsx` — handle `__placeholder__` user with static image, matching CheeseHub's `BannerImage` component
 
