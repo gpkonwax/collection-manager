@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
 import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info } from 'lucide-react';
-import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2 } from 'lucide-react';
+import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -29,6 +29,7 @@ import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
+import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { BannerAd } from '@/components/BannerAd';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
@@ -157,6 +158,7 @@ export default function SimpleAssetsPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [burnDialogOpen, setBurnDialogOpen] = useState(false);
   const [donateDialogOpen, setDonateDialogOpen] = useState(false);
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
@@ -1133,7 +1135,7 @@ export default function SimpleAssetsPage() {
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                   <li>Transfer SimpleAssets NFTs between WAX accounts directly from the app.</li>
                   <li>Bulk selection mode for transferring multiple cards at once.</li>
-                  <li>Burn unwanted NFTs.</li>
+                  <li>Burn unwanted NFTs with confirmation safety check.</li>
                 </ul>
               </div>
               <div>
@@ -1573,12 +1575,26 @@ export default function SimpleAssetsPage() {
           setSuccessDialog({ open: true, title: 'Donation Sent!', description: 'Thank you for your generous donation to the $CHEESE team!', txId });
         }}
       />
+      <BurnDialog
+        open={burnDialogOpen}
+        onOpenChange={setBurnDialogOpen}
+        selectedAssets={selectedAssets}
+        onSuccess={(txId) => {
+          clearSelection();
+          refetchSa();
+          refetchAa();
+          setSuccessDialog({ open: true, title: 'NFTs Burned!', description: `Successfully burned ${selectedAssets.length} NFT(s).`, txId });
+        }}
+      />
 
       {selectionMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-cheese/50 rounded-lg shadow-2xl px-6 py-3 flex items-center gap-4">
           <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
           <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-primary-foreground" onClick={() => setTransferDialogOpen(true)}>
             <Send className="h-4 w-4 mr-1" />Transfer
+          </Button>
+          <Button size="sm" variant="destructive" onClick={() => setBurnDialogOpen(true)}>
+            <Flame className="h-4 w-4 mr-1" />Burn
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSelection}>
             <X className="h-4 w-4 mr-1" />Cancel
