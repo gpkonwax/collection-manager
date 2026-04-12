@@ -425,7 +425,14 @@ export function AtomicPackRevealDialog({
             {phase === 'collect' && (
               <div className="flex flex-col items-center gap-3 pt-2">
                 {collectError && <p className="text-xs text-destructive text-center">{collectError}</p>}
-                {openMode === 'unbox_nft' ? (
+                {isDemo ? (
+                  <>
+                    <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Download className="h-4 w-4 mr-2" />Collect Assets
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">Click to see your cards added to the collection</p>
+                  </>
+                ) : openMode === 'unbox_nft' ? (
                   <>
                     <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Sparkles className="h-4 w-4 mr-2" />View in Collection
