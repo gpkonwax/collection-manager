@@ -1,30 +1,20 @@
 
 
-## Show Front Card Image for Missing Puzzle Pieces + Fix AtomicHub Links
+## Fix Puzzle Builder Images Not Loading
 
 ### Problem
-The missing puzzle piece placeholders currently show card back images with broken AtomicHub links (AtomicHub can't filter by schema_name). The user wants to show the "a" side front image instead, which maps to a specific template — enabling working template-based AtomicHub links.
+The PuzzleBuilder renders puzzle piece images using plain `<img>` tags with a single hardcoded IPFS gateway URL (from `buildGpkCardBackUrl` → `getIpfsUrl`). If that first gateway (Pinata) is down or slow, all 18 images fail with no fallback. The `IpfsMedia` component (which handles gateway rotation) is not used here.
 
 ### Solution
-1. Show the front "a" card image using `buildGpkCardImageUrl('gpktwoeight', 'base', cardId, 'a')`
-2. Use template-based AtomicHub URLs (like `MissingCardPlaceholder` does) by looking up the template ID from binder templates
-3. Add a blurb noting that b and prism versions also contain the puzzle piece on the back
+Replace the plain `<img>` tags in PuzzleBuilder with the `IpfsMedia` component, which automatically rotates through IPFS gateways on error/timeout. This is the same component used throughout the rest of the app for reliable image loading.
 
 ### Changes
 
+**`src/components/simpleassets/PuzzleBuilder.tsx`**
+- Import `IpfsMedia` from `@/components/simpleassets/IpfsMedia`
+- Replace the `<img>` tag (line ~418-423) with `<IpfsMedia>`, passing `url={backUrl}`, `context="card"`, `loading="eager"`, and appropriate classes
+- Keep the `pointer-events-none` and `draggable={false}` behavior via wrapper styling
+
 **`src/components/simpleassets/MissingPuzzlePiecePlaceholder.tsx`**
-- Accept an optional `templateId` prop alongside `cardId`
-- Replace `buildGpkCardBackUrl` with `buildGpkCardImageUrl('gpktwoeight', 'base', cardId, 'a')` for the front image
-- When `templateId` is provided, use `https://atomichub.io/market?collection_name=gpk.topps&template_id=${templateId}&order=asc&sort=price` (same format as `MissingCardPlaceholder`)
-- Fall back to current URL format if no templateId
-- Keep the greyscale/dimmed styling + "Buy on AtomicHub" overlay + ExternalLinkWarningDialog
-
-**`src/pages/Index.tsx`** (lines ~1492-1514)
-- In the missing puzzle pieces section, look up each card ID's template from `binderTemplates` (already loaded)
-- Pass `templateId` to `MissingPuzzlePiecePlaceholder`
-- Add a blurb below the heading: *"The a, b, and prism versions of these cards all contain the puzzle piece on the back."*
-
-### Technical Details
-- `binderTemplates` from `useBinderTemplates` already contains `templateId` and `cardid` fields — we filter for matching cardid + variant "base" + quality "a" to find the right template
-- Image URL: `buildGpkCardImageUrl('gpktwoeight', 'base', cardId, 'a')` returns the IPFS URL for the front of the "a" side base variant
+- Similarly replace the plain `<img>` tag (line ~33-38) with `IpfsMedia` for consistent gateway fallback on the missing piece placeholders too
 
