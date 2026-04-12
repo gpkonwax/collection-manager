@@ -1,32 +1,16 @@
 
 
-## Center Rented Banner When Only One Slot is Active
+## Fix Blurry Card Text
 
 ### Problem
-Currently, both banner slots (position 1 and 2) are always rendered side-by-side. When only one slot is rented, the unrented slot shows a dashed placeholder outline. CheeseHub instead centers the single rented banner and hides the empty slot entirely.
+Text below cards (title, author, category) appears blurry at rest because the card face sits on `translateZ(8px)` and the `CardContent` adds another `translateZ(2px)`. Browsers anti-alias text differently inside 3D-transformed layers, causing visible blur until a repaint (triggered by hover).
 
 ### Fix
-In `src/components/BannerAd.tsx`, update `BannerAdComponent`:
+In `src/components/simpleassets/SimpleAssetCard.tsx`, add `will-change: transform` and `transform: translateZ(0)` to the `CardContent` element to force GPU rasterization at native resolution, and remove the separate `translateZ(2px)` which causes the sub-pixel rendering issue.
 
-1. Determine which positions have active banners (from `positionBanners` map)
-2. Only render slots that have banners — skip empty positions entirely (no `PlaceholderSlot`)
-3. The existing `flex justify-center gap-4` container will automatically center a single banner
-
-### Changes
-**`src/components/BannerAd.tsx`** — In `BannerAdComponent`, replace the hardcoded `renderSlot(1)` + `renderSlot(2)` with a dynamic loop that only renders occupied positions. Remove the `PlaceholderSlot` fallback from `renderSlot`. If no positions are occupied, show nothing (or a single centered placeholder).
-
-```
-// Instead of always rendering both slots:
-{renderSlot(1)}
-{renderSlot(2)}
-
-// Render only occupied slots:
-const occupiedPositions = [1, 2].filter(p => positionBanners.has(p));
-{occupiedPositions.length === 0
-  ? <PlaceholderSlot ... />
-  : occupiedPositions.map(p => renderSlot(p))}
-```
+**Changes in `SimpleAssetCard.tsx`:**
+- Line 163: Replace `style={{ transform: 'translateZ(2px)' }}` with `style={{ transform: 'translateZ(0)', willChange: 'contents' }}` on the `CardContent` element. This keeps text in a composited layer but avoids the sub-pixel offset that triggers blurry rendering.
 
 ### Files Changed
-- `src/components/BannerAd.tsx` — render only occupied banner slots, center when single
+- `src/components/simpleassets/SimpleAssetCard.tsx` — fix CardContent transform to eliminate text blur
 
