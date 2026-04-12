@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
 import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info } from 'lucide-react';
-import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2 } from 'lucide-react';
+import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -157,6 +157,7 @@ export default function SimpleAssetsPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [burnDialogOpen, setBurnDialogOpen] = useState(false);
   const [donateDialogOpen, setDonateDialogOpen] = useState(false);
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
@@ -1579,6 +1580,9 @@ export default function SimpleAssetsPage() {
           <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
           <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-primary-foreground" onClick={() => setTransferDialogOpen(true)}>
             <Send className="h-4 w-4 mr-1" />Transfer
+          </Button>
+          <Button size="sm" variant="destructive" onClick={() => setBurnDialogOpen(true)}>
+            <Flame className="h-4 w-4 mr-1" />Burn
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSelection}>
             <X className="h-4 w-4 mr-1" />Cancel
