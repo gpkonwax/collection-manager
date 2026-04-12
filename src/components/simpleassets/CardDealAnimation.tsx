@@ -154,19 +154,15 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     }
 
     if (phase === 'landed') {
-      const landAudio = new Audio(landSfx);
-      landAudio.play().catch(() => {});
       const timer = setTimeout(() => {
+        const landAudio = new Audio(landSfx);
+        landAudio.play().catch(() => {});
         onCardDealt(cards[dealIndex].id);
         setFlyTarget(null);
         setDealIndex(i => i + 1);
         setPhase('idle');
       }, LAND_PAUSE);
-      return () => {
-        clearTimeout(timer);
-        landAudio.pause();
-        landAudio.currentTime = 0;
-      };
+      return () => clearTimeout(timer);
     }
   }, [dealIndex, phase, cards, gridCellRefs, onCardDealt, onComplete, scrollToElement]);
 
