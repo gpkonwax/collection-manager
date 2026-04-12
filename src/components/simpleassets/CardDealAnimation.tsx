@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import shuffleSfx from '@/assets/card-shuffle.mp3';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface CardDealAnimationProps {
