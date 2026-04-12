@@ -191,7 +191,7 @@ export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = 
     }
   };
 
-  const hasPacks = gpkPacks.length > 0 || atomicPacks.length > 0;
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
