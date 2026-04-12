@@ -1,31 +1,39 @@
 
 
-## Fix: First Card Lands Off-Target When Scrolled Down
+## Add Burn NFTs Feature
 
-### Root Cause
-When the demo button is pressed while scrolled down the page, the animation starts by smooth-scrolling to top (line 77). It then waits a fixed 1500ms before proceeding. If the page was scrolled far enough down, the smooth scroll hasn't finished in 1500ms, so the grid cell coordinates measured for the first card's flight target are wrong — they're based on a mid-scroll viewport position.
+### What It Does
+Adds a "Burn" button next to the existing "Transfer" button in the selection mode bar. When clicked, it opens a confirmation dialog showing the selected NFTs and requires the user to confirm before burning. Supports both SimpleAssets (`burn` action on `simpleassets` contract) and AtomicAssets (`burnasset` action on `atomicassets` contract) in a single transaction.
 
-### Fix
-In `src/components/simpleassets/CardDealAnimation.tsx`, replace the fixed 1500ms timeout for the first card's scroll-to-top with a poll that waits until `window.scrollY` is actually 0 (or near 0) before advancing to the `'sitting'` phase. This ensures the scroll has fully settled regardless of how far down the user was.
+### Changes
 
-```typescript
-// Replace fixed timeout with scroll-settle check
-if (isFirstCardRef.current) {
-  isFirstCardRef.current = false;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  // Poll until scroll reaches top
-  let elapsed = 0;
-  const interval = setInterval(() => {
-    elapsed += 50;
-    if (window.scrollY <= 1 || elapsed > 3000) {
-      clearInterval(interval);
-      setPhase('sitting');
-    }
-  }, 50);
-  return () => clearInterval(interval);
-}
-```
+**1. Update `burnNFTs` in `src/context/WaxContext.tsx`**
+The existing `burnNFTs` only handles AtomicAssets. Update it to also handle SimpleAssets by checking the asset source and building the correct action for each contract:
+- SimpleAssets: `{ account: 'simpleassets', name: 'burn', data: { owner, assetids: [...] } }`
+- AtomicAssets: `{ account: 'atomicassets', name: 'burnasset', data: { asset_owner, asset_id } }` (one per asset)
 
-### File Changed
-- `src/components/simpleassets/CardDealAnimation.tsx` — replace fixed 1500ms delay with scroll-position polling
+The function signature changes to accept `SimpleAsset[]` instead of just `string[]` so it can distinguish the source.
+
+**2. Create `src/components/simpleassets/BurnDialog.tsx`**
+A new dialog modeled after `TransferDialog` but simpler (no recipient/memo fields). It will:
+- Show the list of selected NFTs with thumbnails
+- Display a count breakdown (SimpleAssets vs AtomicAssets)
+- Include a prominent warning: "This action is irreversible. Burned NFTs cannot be recovered."
+- Require typing "BURN" to confirm (safety measure)
+- Execute the burn transaction on confirm
+- Call `onSuccess` with the transaction ID
+
+**3. Update `src/pages/Index.tsx`**
+- Add `burnDialogOpen` state
+- Import and render `BurnDialog`
+- Add a red "Burn" button (with `Flame` icon) next to the Transfer button in the selection mode bottom bar
+- Wire up success handler to clear selection, refresh assets, and show the transaction success dialog
+
+### Also
+- Update the info blurb: remove "Burn unwanted NFTs." from the aspirational list since it will now be a real feature, or keep it as-is since it will be accurate.
+
+### Files Changed
+- `src/context/WaxContext.tsx` — update `burnNFTs` to handle both contract types
+- `src/components/simpleassets/BurnDialog.tsx` (new) — burn confirmation dialog
+- `src/pages/Index.tsx` — add burn button and dialog
 
