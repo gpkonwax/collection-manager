@@ -176,7 +176,9 @@ async function fetchUnboxResults(contract: string, packAssetId: string, accountN
 export function AtomicPackRevealDialog({
   open, onOpenChange, packName, packImage, packAssetId,
   unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
+  demoCards, onDemoCollect,
 }: AtomicPackRevealDialogProps) {
+  const isDemo = !!(demoCards && demoCards.length > 0);
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
   const [rollIds, setRollIds] = useState<number[]>([]);
