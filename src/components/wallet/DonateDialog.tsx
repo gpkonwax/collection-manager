@@ -17,11 +17,13 @@ import { getTransactPlugins, closeWharfkitModals } from '@/lib/wharfKit';
 import { toast } from 'sonner';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
-import gpkSeries1Img from '@/assets/gpk_pack_series_1.png';
-import gpkSeries2aImg from '@/assets/gpk_pack_series_2a.png';
-import gpkSeries2bImg from '@/assets/gpk_pack_series_2b.png';
-import gpkSeries2cImg from '@/assets/gpk_pack_series_2c.png';
-import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega.jpg';
+import gpkSeries1Img from '@/assets/gpk_pack_series_1_geepeekay.jpg';
+import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega_geepeekay.jpg';
+import gpkSeries2aImg from '@/assets/gpk_pack_series_2a_geepeekay.jpg';
+import gpkSeries2bImg from '@/assets/gpk_pack_series_2b_geepeekay.jpg';
+import gpkSeries2cImg from '@/assets/gpk_pack_series_2c_geepeekay.jpg';
+import gpkExoticImg from '@/assets/gpk_pack_exotic.jpeg';
+import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpeg';
 
 const DONATE_ACCOUNT = 'gpkcheesegpk';
 
@@ -36,6 +38,8 @@ const PACK_IMAGES: Record<string, string> = {
   GPKTWOA: gpkSeries2aImg,
   GPKTWOB: gpkSeries2bImg,
   GPKTWOC: gpkSeries2cImg,
+  EXOFIVE: gpkExoticImg,
+  EXOMEGA: gpkExoticMegaImg,
 };
 
 interface DonateDialogProps {
