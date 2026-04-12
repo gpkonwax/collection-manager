@@ -1091,16 +1091,16 @@ export default function SimpleAssetsPage() {
             <div className="space-y-5 text-sm">
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Eye className="h-4 w-4" /> Collection Views</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection as it is. Supports pagination for large collections and instant search across all card names.</li>
                   <li><strong>Collector Binder</strong> — Template-based completionist view with real-time completion percentage tracking. Owned cards appear in full color with checkmarks; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need. Duplicate cards are stacked and accessible via a stack dialog showing all copies. Completion stats update live as you open packs or receive transfers.</li>
                   <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards into any order you like, insert empty spacer slots for custom layouts, and build the perfect display of your collection. Layouts persist across sessions via localStorage, and can be exported as JSON to back up or share with other collectors. Import layouts to restore previous arrangements instantly.</li>
                 </ul>
-                <p className="text-muted-foreground mt-2">All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Switch seamlessly between them using a simple tab interface for unprecedented control over how you manage and view your collection.</p>
+                <p className="text-foreground mt-2">All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Switch seamlessly between them using a simple tab interface for unprecedented control over how you manage and view your collection.</p>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Package className="h-4 w-4" /> Pack Openings</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic) and Food Fight  with Crash Gordon, Bernventures, Mittens, GameStonk likely soon</li>
                   <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                   <li>Card-by-card reveal animation</li>
@@ -1111,7 +1111,7 @@ export default function SimpleAssetsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Layers className="h-4 w-4" /> Flexibility</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Unified view for <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> — your entire GPK collection in one place regardless of which contract holds them.</li>
                   <li>Multi-account support: add multiple WAX accounts and switch between them instantly.</li>
                   <li>Filter by any GPK sub-collection (Series 1, Series 2, Crash Gordon, Tiger King, etc.).</li>
@@ -1122,7 +1122,7 @@ export default function SimpleAssetsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Puzzle className="h-4 w-4" /> Series 2 Puzzle Builder</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Series 2 cards contain hidden puzzle pieces on their backs.</li>
                   <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces.</li>
                   <li>Save and load your puzzle progress as JSON.</li>
@@ -1132,7 +1132,7 @@ export default function SimpleAssetsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><ZoomIn className="h-4 w-4" /> Inspection & Magnification</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Click any card to open a full-detail view with front/back toggle.</li>
                   <li>Magnifying lens follows your cursor on hover, zooming into every line and detail.</li>
                   <li>Interactive 3D tilt effect on card hover — cards respond to your mouse with realistic depth and perspective.</li>
@@ -1141,7 +1141,7 @@ export default function SimpleAssetsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Send className="h-4 w-4" /> Transfer & Burn</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Transfer NFTs between WAX accounts — supports both SimpleAssets and AtomicAssets in one transaction.</li>
                   <li>Bulk selection mode for transferring or burning multiple cards at once.</li>
                   <li>Burn unwanted NFTs permanently with a "type BURN to confirm" safety check.</li>
@@ -1150,7 +1150,7 @@ export default function SimpleAssetsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Download className="h-4 w-4" /> Import / Export</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Save your Saved Collection layouts as JSON files.</li>
                   <li>Import layouts to restore or share your collection arrangements.</li>
                   <li>Puzzle Builder progress is also exportable.</li>
@@ -1158,7 +1158,7 @@ export default function SimpleAssetsPage() {
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Users className="h-4 w-4" /> Community</h4>
-                <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Completely free to use — no fees, no sign-ups.</li>
                   <li>Built by <span className="text-cheese font-semibold">$CHEESE</span>, the first project ever launched on the WAX blockchain.</li>
                   <li>Banner ad slots available via CheeseHub for community projects.</li>
@@ -1185,10 +1185,10 @@ export default function SimpleAssetsPage() {
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-tight max-w-3xl">
                 The Ultimate GPK Collection Manager
               </h2>
-               <p className="text-lg text-muted-foreground max-w-2xl">
+               <p className="text-lg text-foreground max-w-2xl">
                  Flexible gpk.topps SimpleAssets and AtomicAssets collection manager. Includes pack openings with animation, transfer of SimpleAssets NFTs between accounts, a first of its kind Series 2 Puzzle Builder, collection binder option with placeholder AtomicHub links, and a special magnification tool to see, sort, and enjoy your digital GPK cards like never before!
                </p>
-               <p className="text-lg text-muted-foreground max-w-2xl mt-2">
+               <p className="text-lg text-foreground max-w-2xl mt-2">
                  Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
                </p>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
@@ -1227,7 +1227,7 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div className="text-center md:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Openings</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-muted-foreground text-sm">
+                  <ul className="list-disc pl-5 space-y-1 text-foreground text-sm">
                     <li><strong>Supported now:</strong> Series 1, Series 2, Tiger King (Exotic), and all Food Fight packs.</li>
                     <li><strong>Possibly soon:</strong> Crash Gordon, Bernventures, Mittens, GameStonk, and more.</li>
                     <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
@@ -1248,7 +1248,7 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div className="text-center md:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-foreground">
                     Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder gives you a free-form canvas to drag, rotate, and arrange your puzzle pieces. Scramble them, line them up, and save your progress as JSON. Can you complete the red border puzzle?
                   </p>
                 </div>
@@ -1293,7 +1293,7 @@ export default function SimpleAssetsPage() {
             </div>
 
             <div className="text-center space-y-4">
-              <p className="text-muted-foreground">Connect your WAX wallet to get started — it only takes a few seconds.</p>
+              <p className="text-foreground">Connect your WAX wallet to get started — it only takes a few seconds.</p>
               <Button onClick={login} className="bg-cheese hover:bg-cheese/90 text-cheese-foreground">
                 <Wallet className="h-4 w-4 mr-2" />
                 Connect Wallet
