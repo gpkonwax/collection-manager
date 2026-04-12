@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import shuffleSfx from '@/assets/card-shuffle.mp3';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface CardDealAnimationProps {
@@ -19,8 +20,15 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
+    // Play shuffle sound as we scroll up to the card pile
+    const shuffleAudio = new Audio(shuffleSfx);
+    shuffleAudio.play().catch(() => {});
+
     return () => {
       document.body.style.overflow = prev;
+      shuffleAudio.pause();
+      shuffleAudio.currentTime = 0;
     };
   }, []);
 
