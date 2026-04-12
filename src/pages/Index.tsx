@@ -197,9 +197,17 @@ export default function SimpleAssetsPage() {
 
   useEffect(() => {
     if (dealingCards.length > 0) {
-      setVisibleCount(Infinity);
+      // Instead of rendering the entire collection, find the furthest dealing card
+      // position in filtered list and only render up to that + a buffer
+      const allAssets = [...saAssets, ...aaAssets];
+      let maxIdx = 0;
+      for (const dc of dealingCards) {
+        const idx = allAssets.findIndex(f => f.id === dc.id);
+        if (idx > maxIdx) maxIdx = idx;
+      }
+      setVisibleCount(maxIdx + 12);
     }
-  }, [dealingCards]);
+  }, [dealingCards, saAssets, aaAssets]);
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
