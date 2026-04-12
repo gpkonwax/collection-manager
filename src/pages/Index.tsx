@@ -1332,7 +1332,7 @@ export default function SimpleAssetsPage() {
                 </div>
               ) : (
                 <div key={item.pack.templateId} className="w-[calc(50%-0.5rem)] sm:w-48">
-                  <AtomicPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} />
+                  <AtomicPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const cat = ATOMIC_PACK_CATEGORY_MAP[item.pack.templateId]; return cat && a.category === cat; })} />
                 </div>
               );
               return (

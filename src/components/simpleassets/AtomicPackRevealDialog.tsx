@@ -38,8 +38,9 @@ interface AtomicPackRevealDialogProps {
   session: Session | null;
   onComplete: (txId?: string | null) => void;
   openMode?: PackOpenMode;
+  demoCards?: { asset_id: string; name: string; image: string | null; rarity: string }[];
+  onDemoCollect?: () => void;
 }
-
 /** Result row from unbox.nft's results table */
 interface UnboxNftResultRow {
   template_id: number;
@@ -175,7 +176,9 @@ async function fetchUnboxResults(contract: string, packAssetId: string, accountN
 export function AtomicPackRevealDialog({
   open, onOpenChange, packName, packImage, packAssetId,
   unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
+  demoCards, onDemoCollect,
 }: AtomicPackRevealDialogProps) {
+  const isDemo = !!(demoCards && demoCards.length > 0);
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
   const [rollIds, setRollIds] = useState<number[]>([]);
@@ -208,11 +211,18 @@ export function AtomicPackRevealDialog({
     return () => clearTimeout(timer);
   }, [open, phase]);
 
+  // Demo mode: skip polling, show cards after shake
+  useEffect(() => {
+    if (!open || phase !== 'waiting' || !isDemo) return;
+    const timer = setTimeout(() => { setNewCards(demoCards!); setPhase('revealing'); }, 4000);
+    return () => clearTimeout(timer);
+  }, [open, phase, isDemo, demoCards]);
+
   // Snapshot asset IDs before opening so we can detect new ones for unbox_nft
   const preOpenAssetIdsRef = useRef<Set<string>>(new Set());
   
   useEffect(() => {
-    if (!open || !packAssetId || phase !== 'waiting') return;
+    if (!open || !packAssetId || phase !== 'waiting' || isDemo) return;
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | undefined;
 
@@ -307,14 +317,15 @@ export function AtomicPackRevealDialog({
 
   useEffect(() => {
     if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
-      if (openMode === 'unbox_nft') {
-        // Show a "Done" button instead of auto-completing — no claim needed
+      if (isDemo) {
+        setPhase('collect');
+      } else if (openMode === 'unbox_nft') {
         setPhase('collect');
       } else if (rollIds.length > 0) {
         setPhase('collect');
       }
     }
-  }, [phase, revealedCount, newCards.length, rollIds, openMode]);
+  }, [phase, revealedCount, newCards.length, rollIds, openMode, isDemo]);
 
   // Auto-close dialog after cards are collected (standard mode only)
   useEffect(() => {
@@ -327,6 +338,13 @@ export function AtomicPackRevealDialog({
   }, [phase, onOpenChange]);
 
   const handleCollect = useCallback(async () => {
+    // Demo mode: just close and trigger callback
+    if (isDemo) {
+      setPhase('done');
+      onOpenChange(false);
+      onDemoCollect?.();
+      return;
+    }
     // For unbox_nft: no blockchain claim needed, just close with a marker
     if (openMode === 'unbox_nft') {
       setPhase('done');
@@ -351,7 +369,7 @@ export function AtomicPackRevealDialog({
       setCollectError(e instanceof Error ? e.message : 'Transaction failed');
       setPhase('collect');
     }
-  }, [session, packAssetId, rollIds, unpackContract, onComplete, openMode, onOpenChange]);
+  }, [session, packAssetId, rollIds, unpackContract, onComplete, openMode, onOpenChange, isDemo, onDemoCollect]);
 
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
@@ -407,7 +425,14 @@ export function AtomicPackRevealDialog({
             {phase === 'collect' && (
               <div className="flex flex-col items-center gap-3 pt-2">
                 {collectError && <p className="text-xs text-destructive text-center">{collectError}</p>}
-                {openMode === 'unbox_nft' ? (
+                {isDemo ? (
+                  <>
+                    <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Download className="h-4 w-4 mr-2" />Collect Assets
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">Click to see your cards added to the collection</p>
+                  </>
+                ) : openMode === 'unbox_nft' ? (
                   <>
                     <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Sparkles className="h-4 w-4 mr-2" />View in Collection
