@@ -102,7 +102,16 @@ export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = 
     });
   }, []);
 
-  const totalPacks = useMemo(() => {
+  const sortedGpkPacks = useMemo(() =>
+    [...gpkPacks].sort((a, b) => (GPK_SORT_ORDER[a.symbol] ?? 99) - (GPK_SORT_ORDER[b.symbol] ?? 99)),
+    [gpkPacks]
+  );
+
+  const sortedAtomicPacks = useMemo(() =>
+    [...atomicPacks].sort((a, b) => (ATOMIC_SORT_ORDER[a.templateId] ?? 99) - (ATOMIC_SORT_ORDER[b.templateId] ?? 99)),
+    [atomicPacks]
+  );
+
     let total = 0;
     gpkPackQtys.forEach(v => { total += v; });
     atomicPackQtys.forEach(v => { total += v; });
