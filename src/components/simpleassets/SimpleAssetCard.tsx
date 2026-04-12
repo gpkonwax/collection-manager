@@ -160,7 +160,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
             context="card"
           />
         </div>
-        <CardContent className="p-3 space-y-1" style={{ transform: 'translateZ(2px)' }}>
+        <CardContent className="p-3 space-y-1" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
           <div className="flex items-center gap-1.5">
             <p className="text-sm font-semibold text-foreground truncate">{asset.name}</p>
             {asset.cardid && (
