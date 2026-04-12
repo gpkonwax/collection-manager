@@ -1105,7 +1105,7 @@ export default function SimpleAssetsPage() {
                   <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                   <li>Card-by-card reveal animation</li>
                   <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions with an option to skip animation</li>
-                  <li>Immersive sound design — pack shake, pack rip, and card bell noises synchronized to the animations.</li>
+<li>Immersive sound design — packs shake, packs rip, and card reveal noises synchronized to the animations. When the cards are dealt listen to your new cards fuse to your collection</li>
                   <li>View your SimpleAssets packs using the original placeholder artwork.</li>
                 </ul>
               </div>
@@ -1232,7 +1232,7 @@ export default function SimpleAssetsPage() {
                     <li><strong>Possibly soon:</strong> Crash Gordon, Bernventures, Mittens, GameStonk, and more.</li>
                     <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                     <li>Card-by-card reveal animation with choreographed card-deal sequence animating revealed cards into their sorted collection positions — skip anytime or sit back and enjoy the show.</li>
-                    <li>Immersive sound design — pack shake, pack rip, and card bell noises synchronized to the animations.</li>
+                    <li>Immersive sound design — packs shake, packs rip, and card reveal noises synchronized to the animations. When the cards are dealt listen to your new cards fuse to your collection</li>
                     <li>Demo openings available to preview the experience without spending any packs.</li>
                     <li>View your SimpleAssets packs using the original placeholder artwork.</li>
                   </ul>
