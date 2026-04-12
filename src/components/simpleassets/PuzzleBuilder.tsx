@@ -403,6 +403,52 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
             Scramble
           </Button>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {loadedFileName && (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded flex items-center gap-1">
+              📄 {loadedFileName}
+              <button onClick={handleClearJson} className="hover:text-foreground ml-1" title="Clear layout">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={handleSaveJson}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Save JSON
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={handleLoadJson}
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            Load JSON
+          </Button>
+          {loadedFileName && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10"
+              onClick={handleClearJson}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </div>
       </div>
 
       {ratingResult && (
