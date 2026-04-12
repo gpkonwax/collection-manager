@@ -369,7 +369,7 @@ export function AtomicPackRevealDialog({
       setCollectError(e instanceof Error ? e.message : 'Transaction failed');
       setPhase('collect');
     }
-  }, [session, packAssetId, rollIds, unpackContract, onComplete, openMode, onOpenChange]);
+  }, [session, packAssetId, rollIds, unpackContract, onComplete, openMode, onOpenChange, isDemo, onDemoCollect]);
 
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
