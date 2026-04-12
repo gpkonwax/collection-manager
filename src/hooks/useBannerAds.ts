@@ -109,17 +109,30 @@ async function fetchBannerAds(): Promise<ActiveBanner[]> {
       displayMode: isShared ? 'shared' : 'full',
     });
 
-    // For shared rentals, emit secondary banner if shared user has content
-    if (isShared && row.shared_user && row.shared_ipfs_hash) {
-      banners.push({
-        time: row.time,
-        position,
-        user: row.shared_user,
-        ipfsHash: row.shared_ipfs_hash,
-        websiteUrl: row.shared_website_url,
-        rentalType,
-        displayMode: 'shared',
-      });
+    // For shared rentals, emit secondary banner or placeholder
+    if (isShared) {
+      if (row.shared_user && row.shared_user !== CONTRACT_ACCOUNT && row.shared_ipfs_hash) {
+        banners.push({
+          time: row.time,
+          position,
+          user: row.shared_user,
+          ipfsHash: row.shared_ipfs_hash,
+          websiteUrl: row.shared_website_url,
+          rentalType,
+          displayMode: 'shared',
+        });
+      } else {
+        // Half-rented: emit placeholder for the vacant shared half
+        banners.push({
+          time: row.time,
+          position,
+          user: '__placeholder__',
+          ipfsHash: '',
+          websiteUrl: 'https://cheesehubwax.github.io/cheesehub/bannerads',
+          rentalType,
+          displayMode: 'shared',
+        });
+      }
     }
   }
 
