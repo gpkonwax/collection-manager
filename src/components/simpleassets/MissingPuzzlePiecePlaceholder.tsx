@@ -1,19 +1,24 @@
 import { Card } from '@/components/ui/card';
 import { ExternalLink, Puzzle } from 'lucide-react';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
-import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
+import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
 
 interface MissingPuzzlePiecePlaceholderProps {
   cardId: number;
+  templateId?: string;
 }
 
-function getAtomicHubSearchUrl(cardId: number): string {
+function getAtomicHubUrl(templateId: string): string {
+  return `https://atomichub.io/market?collection_name=gpk.topps&template_id=${templateId}&order=asc&sort=price`;
+}
+
+function getAtomicHubFallbackUrl(cardId: number): string {
   return `https://wax.atomichub.io/market?collection_name=gpk.topps&schema_name=series2&order=asc&sort=price&search_type=sales&immutable_data.cardid=${cardId}`;
 }
 
-export function MissingPuzzlePiecePlaceholder({ cardId }: MissingPuzzlePiecePlaceholderProps) {
-  const buyUrl = getAtomicHubSearchUrl(cardId);
-  const backUrl = buildGpkCardBackUrl('gpktwoeight', cardId);
+export function MissingPuzzlePiecePlaceholder({ cardId, templateId }: MissingPuzzlePiecePlaceholderProps) {
+  const buyUrl = templateId ? getAtomicHubUrl(templateId) : getAtomicHubFallbackUrl(cardId);
+  const imageUrl = buildGpkCardImageUrl('gpktwoeight', 'base', cardId, 'a');
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
   return (
@@ -23,9 +28,9 @@ export function MissingPuzzlePiecePlaceholder({ cardId }: MissingPuzzlePiecePlac
         onClick={() => requestNavigation(buyUrl)}
       >
         <div className="aspect-[5/7] bg-muted/10 flex items-center justify-center overflow-hidden relative">
-          {backUrl ? (
+          {imageUrl ? (
             <img
-              src={backUrl}
+              src={imageUrl}
               alt={`Puzzle piece #${cardId}`}
               className="w-full h-full object-cover grayscale brightness-50"
               loading="lazy"
