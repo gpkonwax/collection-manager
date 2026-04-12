@@ -49,7 +49,7 @@ function SingleBanner({ banner, className = '', onLinkClick }: SingleBannerProps
       <img
         src={imgSrc}
         alt={placeholder ? 'Advertise here' : 'Advertisement'}
-        className="w-full h-full object-cover transition-opacity duration-300"
+className="w-full h-full object-contain transition-opacity duration-300"
         onError={handleError}
         loading="lazy"
       />
@@ -115,7 +115,7 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
         key={`${banner.ipfsHash || 'placeholder'}-${currentIndex}`}
         src={imgSrc}
         alt={placeholder ? 'Advertise here' : 'Advertisement'}
-        className="w-full h-full object-cover transition-opacity duration-300"
+className="w-full h-full object-contain transition-opacity duration-300"
         onError={handleError}
         loading="lazy"
       />
