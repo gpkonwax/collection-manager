@@ -29,6 +29,7 @@ import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
+import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { BannerAd } from '@/components/BannerAd';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
