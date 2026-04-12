@@ -40,12 +40,16 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
   const demoAssetsSample = useMemo(() => {
     if (collectionAssets.length === 0) return [];
     const shuffled = [...collectionAssets].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, pack.cardsPerPack);
+    const result: SimpleAsset[] = [];
+    for (let i = 0; i < pack.cardsPerPack; i++) {
+      result.push(shuffled[i % shuffled.length]);
+    }
+    return result;
   }, [collectionAssets, pack.cardsPerPack]);
 
   const demoCards = useMemo((): RevealCard[] => {
-    return demoAssetsSample.map((a) => ({
-      asset_id: `demo-${a.id}`, name: a.name, image: a.image || null, rarity: a.quality || '',
+    return demoAssetsSample.map((a, i) => ({
+      asset_id: `demo-${a.id}-${i}`, name: a.name, image: a.image || null, rarity: a.quality || '',
     }));
   }, [demoAssetsSample]);
 

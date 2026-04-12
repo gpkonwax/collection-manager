@@ -71,12 +71,16 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
   const demoAssetsSample = useMemo(() => {
     if (collectionAssets.length === 0) return [];
     const shuffled = [...collectionAssets].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, expectedCount);
+    const result: SimpleAsset[] = [];
+    for (let i = 0; i < expectedCount; i++) {
+      result.push(shuffled[i % shuffled.length]);
+    }
+    return result;
   }, [collectionAssets, expectedCount]);
 
   const demoCards = useMemo((): RevealCard[] => {
-    return demoAssetsSample.map((a) => ({
-      asset_id: `demo-${a.id}`, name: a.name, image: a.image || null, rarity: a.quality || '',
+    return demoAssetsSample.map((a, i) => ({
+      asset_id: `demo-${a.id}-${i}`, name: a.name, image: a.image || null, rarity: a.quality || '',
     }));
   }, [demoAssetsSample]);
 
