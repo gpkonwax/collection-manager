@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 export interface PieceState {
@@ -415,11 +416,12 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
             >
               <div className={`w-full h-full rounded-md overflow-hidden border-2 transition-colors ${isSelected ? 'border-cheese shadow-lg shadow-cheese/20' : 'border-border'}`}>
                 {backUrl ? (
-                  <img
-                    src={backUrl}
+                  <IpfsMedia
+                    url={backUrl}
                     alt={`Card ${cardid}`}
                     className="w-full h-full object-cover pointer-events-none"
-                    draggable={false}
+                    context="card"
+                    loading="eager"
                   />
                 ) : (
                   <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">No image</div>
