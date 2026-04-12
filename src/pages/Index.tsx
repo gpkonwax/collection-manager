@@ -1221,7 +1221,7 @@ export default function SimpleAssetsPage() {
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Openings</h3>
                   <ul className="list-disc pl-5 space-y-1 text-muted-foreground text-sm">
                     <li><strong>Supported now:</strong> Series 1, Series 2, Tiger King (Exotic), and all Food Fight packs.</li>
-                    <li><strong>Coming soon:</strong> Crash Gordon, Bernventures, Mittens, GameStonk, and more.</li>
+                    <li><strong>Possibly soon:</strong> Crash Gordon, Bernventures, Mittens, GameStonk, and more.</li>
                     <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                     <li>Card-by-card reveal animation with choreographed card-deal sequence animating revealed cards into their sorted collection positions — skip anytime or sit back and enjoy the show.</li>
                     <li>Immersive sound design — pack shake, pack rip, and card bell noises synchronized to the animations.</li>
