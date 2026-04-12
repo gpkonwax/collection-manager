@@ -1127,6 +1127,7 @@ export default function SimpleAssetsPage() {
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                   <li>Click any card to open a full-detail view with front/back toggle.</li>
                   <li>Magnifying lens follows your cursor on hover, zooming into every line and detail.</li>
+                  <li>Interactive 3D tilt effect on card hover — cards respond to your mouse with realistic depth and perspective.</li>
                   <li>IPFS-sourced high-resolution images with automatic gateway fallback.</li>
                 </ul>
               </div>
@@ -1247,7 +1248,7 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   icon={<ZoomIn className="h-6 w-6 text-cheese" />}
                   title="Inspect Every Detail"
-                  description="Click any card to see it in full detail. Hover over the image and a magnifying lens follows your cursor, zooming in so you can see every line, every detail, every variant difference up close."
+                  description="Click any card to see it in full detail. Hover over the image and a magnifying lens follows your cursor, zooming in so you can see every line, every detail, every variant difference up close. Cards also feature an interactive 3D tilt effect that responds to your mouse with realistic depth and perspective."
                 />
                 <FeatureCard
                   icon={<Filter className="h-6 w-6 text-cheese" />}
