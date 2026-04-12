@@ -1264,7 +1264,7 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   icon={<Filter className="h-6 w-6 text-cheese" />}
                   title="Filter by Series & Variant"
-                  description="Filter by Series 1, Series 2, and all sub-collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more."
+                  description="Filter by Series 1, Series 2, and all other collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more. Available in all 3 view options."
                 />
                 <FeatureCard
                   icon={<Layers className="h-6 w-6 text-cheese" />}
