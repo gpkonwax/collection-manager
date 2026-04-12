@@ -38,8 +38,9 @@ interface AtomicPackRevealDialogProps {
   session: Session | null;
   onComplete: (txId?: string | null) => void;
   openMode?: PackOpenMode;
+  demoCards?: { asset_id: string; name: string; image: string | null; rarity: string }[];
+  onDemoCollect?: () => void;
 }
-
 /** Result row from unbox.nft's results table */
 interface UnboxNftResultRow {
   template_id: number;

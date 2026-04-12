@@ -1,30 +1,53 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
 import { AtomicPackBrowserDialog } from './AtomicPackBrowserDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
+import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+
+interface RevealCard {
+  asset_id: string;
+  name: string;
+  image: string | null;
+  rarity: string;
+}
 
 interface AtomicPackCardProps {
   pack: AtomicPack;
   session: Session | null;
   accountName: string;
   onSuccess?: (txId?: string | null) => void;
+  onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
+  collectionAssets?: SimpleAsset[];
 }
 
-export function AtomicPackCard({ pack, session, accountName, onSuccess }: AtomicPackCardProps) {
+export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [] }: AtomicPackCardProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
   const [openedAssetId, setOpenedAssetId] = useState<string | null>(null);
+  const [demoRevealOpen, setDemoRevealOpen] = useState(false);
   const { executeTransaction } = useWaxTransaction(session);
 
   const hasMultiple = pack.count > 1;
   const isDisabled = pack.packConfig.disabled === true;
+
+  const demoAssetsSample = useMemo(() => {
+    if (collectionAssets.length === 0) return [];
+    const shuffled = [...collectionAssets].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, pack.cardsPerPack);
+  }, [collectionAssets, pack.cardsPerPack]);
+
+  const demoCards = useMemo((): RevealCard[] => {
+    return demoAssetsSample.map((a) => ({
+      asset_id: `demo-${a.id}`, name: a.name, image: a.image || null, rarity: a.quality || '',
+    }));
+  }, [demoAssetsSample]);
 
   const handleOpenSingle = useCallback(async () => {
     if (!session || pack.assetIds.length === 0) return;
@@ -73,11 +96,20 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess }: Atomic
               {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
             </Button>
           )}
+          {demoCards.length > 0 && (
+            <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setDemoRevealOpen(true)}>
+              <Play className="h-3 w-3 mr-1" /> Demo Open
+            </Button>
+          )}
         </CardContent>
       </Card>
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
         accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />
+      <AtomicPackRevealDialog open={demoRevealOpen} onOpenChange={setDemoRevealOpen} packName={pack.name} packImage={pack.image}
+        packAssetId={null} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
+        accountName={accountName} session={session} onComplete={() => {}} openMode={pack.openMode}
+        demoCards={demoCards} onDemoCollect={() => onDemoCollect?.(demoAssetsSample)} />
       <AtomicPackBrowserDialog open={browserOpen} onOpenChange={setBrowserOpen} pack={pack}
         session={session} accountName={accountName} onSuccess={onSuccess} />
     </>
