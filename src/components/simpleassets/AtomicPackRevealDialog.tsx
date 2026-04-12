@@ -317,14 +317,15 @@ export function AtomicPackRevealDialog({
 
   useEffect(() => {
     if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
-      if (openMode === 'unbox_nft') {
-        // Show a "Done" button instead of auto-completing — no claim needed
+      if (isDemo) {
+        setPhase('collect');
+      } else if (openMode === 'unbox_nft') {
         setPhase('collect');
       } else if (rollIds.length > 0) {
         setPhase('collect');
       }
     }
-  }, [phase, revealedCount, newCards.length, rollIds, openMode]);
+  }, [phase, revealedCount, newCards.length, rollIds, openMode, isDemo]);
 
   // Auto-close dialog after cards are collected (standard mode only)
   useEffect(() => {
@@ -337,6 +338,13 @@ export function AtomicPackRevealDialog({
   }, [phase, onOpenChange]);
 
   const handleCollect = useCallback(async () => {
+    // Demo mode: just close and trigger callback
+    if (isDemo) {
+      setPhase('done');
+      onOpenChange(false);
+      onDemoCollect?.();
+      return;
+    }
     // For unbox_nft: no blockchain claim needed, just close with a marker
     if (openMode === 'unbox_nft') {
       setPhase('done');
