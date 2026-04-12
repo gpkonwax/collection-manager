@@ -1135,7 +1135,7 @@ export default function SimpleAssetsPage() {
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                   <li>Transfer SimpleAssets NFTs between WAX accounts directly from the app.</li>
                   <li>Bulk selection mode for transferring multiple cards at once.</li>
-                  <li>Burn unwanted NFTs.</li>
+                  <li>Burn unwanted NFTs with confirmation safety check.</li>
                 </ul>
               </div>
               <div>
