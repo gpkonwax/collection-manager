@@ -60,138 +60,88 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isStacked = (stackCount ?? 0) > 1;
 
   return (
-    <div className="relative" style={{ perspective: '1200px' }}>
-    <div
-      className="relative"
-      ref={tiltRef}
-      onMouseMove={tiltMouseMove}
-      onMouseLeave={tiltMouseLeave}
-      style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+    <Card
+      className={`overflow-hidden cursor-pointer bg-card border-border relative
+        ${isDragging ? 'opacity-50 scale-95' : 'hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10'}
+        ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
+        ${selected ? 'ring-2 ring-cheese shadow-lg shadow-cheese/20' : ''}
+        ${className || ''}`}
+      onClick={handleClick}
+      draggable={draggable}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onDragEnd={handleDragEnd}
     >
       {isStacked && (
-        <>
-          <div className="absolute inset-0 rounded-lg border border-border bg-card translate-x-1.5 translate-y-1.5 opacity-40" />
-          <div className="absolute inset-0 rounded-lg border border-border bg-card translate-x-0.5 translate-y-0.5 opacity-60" />
-        </>
+        <div className="absolute top-2 right-2 z-10 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
+          x{stackCount}
+        </div>
+      )}
+      {selectionMode && (
+        <div className="absolute top-2 left-2 z-10">
+          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+            ${selected ? 'bg-cheese border-cheese' : 'bg-background/80 border-muted-foreground/50'}`}>
+            {selected && <span className="text-xs text-primary-foreground font-bold">✓</span>}
+          </div>
+        </div>
       )}
 
-      {/* 3D edge strips */}
-      <div
-        className="absolute left-0 right-0 top-0 rounded-t-lg"
-        style={{
-          height: EDGE_DEPTH,
-          background: EDGE_COLOR,
-          transformOrigin: 'top center',
-          transform: `rotateX(-90deg)`,
-          backfaceVisibility: 'hidden',
-        }}
-      />
-      <div
-        className="absolute left-0 right-0 bottom-0 rounded-b-lg"
-        style={{
-          height: EDGE_DEPTH,
-          background: EDGE_COLOR,
-          transformOrigin: 'bottom center',
-          transform: `rotateX(90deg)`,
-          backfaceVisibility: 'hidden',
-        }}
-      />
-      <div
-        className="absolute top-0 bottom-0 left-0 rounded-l-lg"
-        style={{
-          width: EDGE_DEPTH,
-          background: EDGE_COLOR,
-          transformOrigin: 'left center',
-          transform: `rotateY(90deg)`,
-          backfaceVisibility: 'hidden',
-        }}
-      />
-      <div
-        className="absolute top-0 bottom-0 right-0 rounded-r-lg"
-        style={{
-          width: EDGE_DEPTH,
-          background: EDGE_COLOR,
-          transformOrigin: 'right center',
-          transform: `rotateY(-90deg)`,
-          backfaceVisibility: 'hidden',
-        }}
-      />
-
-      <Card
-        className={`overflow-hidden cursor-pointer bg-card border-border relative
-          ${isDragging ? 'opacity-50 scale-95' : 'hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10'}
-          ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
-          ${selected ? 'ring-2 ring-cheese shadow-lg shadow-cheese/20' : ''}
-          ${className || ''}`}
-        style={{
-          ...(isAnimatedGif ? { contentVisibility: 'auto', contain: 'layout paint style', containIntrinsicSize: '280px 360px' } : undefined),
-          backfaceVisibility: 'hidden' as const,
-          transform: `translateZ(${EDGE_DEPTH}px)`,
-        }}
-        onClick={handleClick}
-        draggable={draggable}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onDragEnd={handleDragEnd}
-      >
-        {isStacked && (
-          <div className="absolute top-2 right-2 z-10 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
-            x{stackCount}
-          </div>
-        )}
-        {selectionMode && (
-          <div className="absolute top-2 left-2 z-10">
-            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
-              ${selected ? 'bg-cheese border-cheese' : 'bg-background/80 border-muted-foreground/50'}`}>
-              {selected && <span className="text-xs text-primary-foreground font-bold">✓</span>}
-            </div>
-          </div>
-        )}
+      {/* 3D tilt artwork area */}
+      <div style={{ perspective: '1200px' }}>
         <div
-          className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none"
-          style={isAnimatedGif ? { contain: 'paint', transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : undefined}
+          ref={tiltRef}
+          onMouseMove={tiltMouseMove}
+          onMouseLeave={tiltMouseLeave}
+          className="relative"
+          style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
         >
-          <IpfsMedia
-            url={asset.image}
-            alt={asset.name}
-            className="w-full h-full"
-            context="card"
-          />
+          <div
+            className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none"
+            style={isAnimatedGif ? { contain: 'paint', transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : undefined}
+          >
+            <IpfsMedia
+              url={asset.image}
+              alt={asset.name}
+              className="w-full h-full"
+              context="card"
+            />
+          </div>
+          <div ref={glareRef} className="absolute inset-0 pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease' }} />
         </div>
-        <CardContent className="p-3 space-y-1" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
-          <div className="flex items-center gap-1.5">
-            <p className="text-sm font-semibold text-foreground truncate">{asset.name}</p>
-            {asset.cardid && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cheese/20 text-cheese shrink-0">
-                {asset.cardid}{asset.side || ''}{asset.quality ? ` ${asset.quality}` : ''}
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground truncate">by {asset.author}</p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{asset.category}</span>
-              <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
-                asset.source === 'atomicassets' ? 'bg-primary/15 text-primary' : 'bg-emerald-500/15 text-emerald-400'
-              }`}>
-                {asset.source === 'atomicassets' ? 'AA' : 'SA'}
-              </span>
-            </div>
-            <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
-          </div>
-          {(mintInfo || hasContained) && (
-            <div className="flex items-center gap-1.5 pt-0.5">
-              {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{mintInfo}</span>}
-              {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
-            </div>
+      </div>
+
+      {/* Flat text area — no 3D transforms */}
+      <CardContent className="p-3 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold text-foreground truncate">{asset.name}</p>
+          {asset.cardid && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cheese/20 text-cheese shrink-0">
+              {asset.cardid}{asset.side || ''}{asset.quality ? ` ${asset.quality}` : ''}
+            </span>
           )}
-        <div ref={glareRef} className="absolute inset-0 rounded-lg pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease' }} />
-        </CardContent>
-      </Card>
-    </div>
-    </div>
+        </div>
+        <p className="text-xs text-muted-foreground truncate">by {asset.author}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{asset.category}</span>
+            <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
+              asset.source === 'atomicassets' ? 'bg-primary/15 text-primary' : 'bg-emerald-500/15 text-emerald-400'
+            }`}>
+              {asset.source === 'atomicassets' ? 'AA' : 'SA'}
+            </span>
+          </div>
+          <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
+        </div>
+        {(mintInfo || hasContained) && (
+          <div className="flex items-center gap-1.5 pt-0.5">
+            {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{mintInfo}</span>}
+            {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
