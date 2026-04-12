@@ -1,25 +1,28 @@
 
-## Fix the card text blur properly
 
-### What I found
-The previous tweak is already present in `src/components/simpleassets/SimpleAssetCard.tsx`, so it did not fix the real cause. `CardContent` is flat now, but the whole card still sits inside a `preserve-3d` wrapper and the `<Card>` itself still uses `translateZ(8px)`. Because the title/metadata remain inside that 3D-transformed subtree, the browser keeps rendering the text softly until hover forces a repaint.
+## Add Demo Openings for Food Fight Atomic Packs
 
-### Fix
-Refactor `SimpleAssetCard` so only the artwork shell gets the 3D tilt. The text/footer will render outside the 3D subtree as normal 2D content, so it stays sharp all the time.
+### Problem
+Token-based packs (Series 1, 2, Tiger King) have a "Demo Open" button that simulates the pack opening experience using sample cards from the collection. Atomic packs (including all Food Fight packs) lack this feature.
 
-### Technical details
-- Keep `useCardTilt`, but attach it to a dedicated artwork wrapper instead of the entire card
-- Remove `transform: translateZ(8px)` from the `<Card>` itself
-- Move the glare overlay into the tilted artwork area
-- Render `CardContent` with no transform and no `will-change`
-- Preserve existing selection, drag/drop, stack count, and hover ring behavior
-- If needed, recreate the depth look with flat offset layers/shadows so the card still feels dimensional without blurring text
+### Approach
+Mirror the demo mode pattern from `GpkPackCard` into `AtomicPackCard` and `AtomicPackRevealDialog`.
 
-### Files to change
-- `src/components/simpleassets/SimpleAssetCard.tsx` — split the 3D artwork area from the flat text area and remove the full-card 3D transform
+### Files to Change
 
-### QA
-- Verify the title, author, category, and mint text are sharp before hover, during hover, and after mouse leave
-- Check cards in Classic, Binder, Saved, and Binder Stack dialog views
-- Confirm selection mode, drag/drop, badges, and hover styling still work
-- If any browser still shows blur after the split, use the fallback of disabling tilt for `SimpleAssetCard`
+**1. `src/components/simpleassets/AtomicPackCard.tsx`**
+- Add new props: `onDemoCollect`, `collectionAssets`
+- Add `demoAssetsSample` and `demoCards` memos (same pattern as `GpkPackCard`)
+- Add `demoRevealOpen` state
+- Render a "Demo Open" button when `demoCards.length > 0`
+- Pass `demoCards` and `onDemoCollect` to `AtomicPackRevealDialog`
+
+**2. `src/components/simpleassets/AtomicPackRevealDialog.tsx`**
+- Add `demoCards` and `onDemoCollect` optional props
+- Add demo mode logic: skip real polling when `demoCards` is provided, show cards after shake animation, go to collect phase instead of blockchain claim
+- Wire "Collect" button to call `onDemoCollect` in demo mode
+
+**3. `src/pages/Index.tsx`**
+- In `renderPackItem` for atomic packs, pass `onDemoCollect={handleDemoCollect}` and `collectionAssets` filtered by `ATOMIC_PACK_CATEGORY_MAP[pack.templateId]`
+- Ensure `foodfightb` category assets are passed to Food Fight pack cards
+
