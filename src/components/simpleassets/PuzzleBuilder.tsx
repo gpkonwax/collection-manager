@@ -116,6 +116,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   }, [onPiecesChange, puzzleAssets]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const piecesRef = useRef(pieces);
