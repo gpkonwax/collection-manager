@@ -211,11 +211,18 @@ export function AtomicPackRevealDialog({
     return () => clearTimeout(timer);
   }, [open, phase]);
 
+  // Demo mode: skip polling, show cards after shake
+  useEffect(() => {
+    if (!open || phase !== 'waiting' || !isDemo) return;
+    const timer = setTimeout(() => { setNewCards(demoCards!); setPhase('revealing'); }, 4000);
+    return () => clearTimeout(timer);
+  }, [open, phase, isDemo, demoCards]);
+
   // Snapshot asset IDs before opening so we can detect new ones for unbox_nft
   const preOpenAssetIdsRef = useRef<Set<string>>(new Set());
   
   useEffect(() => {
-    if (!open || !packAssetId || phase !== 'waiting') return;
+    if (!open || !packAssetId || phase !== 'waiting' || isDemo) return;
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | undefined;
 
