@@ -181,7 +181,7 @@ export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = 
         <Tabs defaultValue="tokens" className="w-full">
           <TabsList className="w-full">
             <TabsTrigger value="tokens" className="flex-1">Tokens</TabsTrigger>
-            {hasPacks && <TabsTrigger value="packs" className="flex-1">Packs</TabsTrigger>}
+            <TabsTrigger value="packs" className="flex-1">Packs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tokens" className="space-y-4 mt-4">
@@ -223,77 +223,83 @@ export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = 
             </Button>
           </TabsContent>
 
-          {hasPacks && (
-            <TabsContent value="packs" className="space-y-4 mt-4">
-              <ScrollArea className="h-64 border border-border rounded-md p-2">
-                <div className="space-y-3">
-                  {gpkPacks.map(pack => {
-                    const qty = gpkPackQtys.get(pack.symbol) || 0;
-                    const img = PACK_IMAGES[pack.symbol];
-                    return (
-                      <div key={`gpk-${pack.symbol}`} className="flex items-center gap-3 p-2 rounded-md border border-border">
-                        {img ? (
-                          <img src={img} alt={pack.label} className="w-12 h-16 object-contain rounded" />
-                        ) : (
-                          <span className="text-2xl">📦</span>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{pack.label}</p>
-                          <p className="text-xs text-muted-foreground">Available: {pack.amount}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button size="sm" variant="outline" className="h-7 w-7 p-0"
-                            onClick={() => setGpkQty(pack.symbol, qty - 1, pack.amount)}
-                            disabled={qty <= 0}>−</Button>
-                          <span className="w-8 text-center text-sm font-mono text-foreground">{qty}</span>
-                          <Button size="sm" variant="outline" className="h-7 w-7 p-0"
-                            onClick={() => setGpkQty(pack.symbol, qty + 1, pack.amount)}
-                            disabled={qty >= pack.amount}>+</Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {atomicPacks.map(pack => {
-                    const qty = atomicPackQtys.get(pack.templateId) || 0;
-                    return (
-                      <div key={`aa-${pack.templateId}`} className="flex items-center gap-3 p-2 rounded-md border border-border">
-                        {pack.image ? (
-                          <img src={pack.image} alt={pack.name} className="w-12 h-16 object-contain rounded" />
-                        ) : (
-                          <span className="text-2xl">📦</span>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{pack.name}</p>
-                          <p className="text-xs text-muted-foreground">Available: {pack.count}</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button size="sm" variant="outline" className="h-7 w-7 p-0"
-                            onClick={() => setAtomicQty(pack.templateId, qty - 1, pack.count)}
-                            disabled={qty <= 0}>−</Button>
-                          <span className="w-8 text-center text-sm font-mono text-foreground">{qty}</span>
-                          <Button size="sm" variant="outline" className="h-7 w-7 p-0"
-                            onClick={() => setAtomicQty(pack.templateId, qty + 1, pack.count)}
-                            disabled={qty >= pack.count}>+</Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-              <Button
-                onClick={handleSendPacks}
-                disabled={totalPacks === 0 || isSendingPacks}
-                className="w-full bg-cheese hover:bg-cheese/90 text-primary-foreground"
-              >
-                {isSendingPacks ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+          <TabsContent value="packs" className="space-y-4 mt-4">
+            <ScrollArea className="h-64 border border-border rounded-md p-2">
+              <div className="space-y-3">
+                {gpkPacks.length === 0 && atomicPacks.length === 0 ? (
+                  <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                    No packs available to donate
+                  </div>
                 ) : (
-                  <><Send className="h-4 w-4 mr-2" />Donate {totalPacks} Pack{totalPacks !== 1 ? 's' : ''}</>
+                  <>
+                    {gpkPacks.map(pack => {
+                      const qty = gpkPackQtys.get(pack.symbol) || 0;
+                      const img = PACK_IMAGES[pack.symbol];
+                      return (
+                        <div key={`gpk-${pack.symbol}`} className="flex items-center gap-3 p-2 rounded-md border border-border">
+                          {img ? (
+                            <img src={img} alt={pack.label} className="w-12 h-16 object-contain rounded" />
+                          ) : (
+                            <span className="text-2xl">📦</span>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{pack.label}</p>
+                            <p className="text-xs text-muted-foreground">Available: {pack.amount}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="outline" className="h-7 w-7 p-0"
+                              onClick={() => setGpkQty(pack.symbol, qty - 1, pack.amount)}
+                              disabled={qty <= 0}>−</Button>
+                            <span className="w-8 text-center text-sm font-mono text-foreground">{qty}</span>
+                            <Button size="sm" variant="outline" className="h-7 w-7 p-0"
+                              onClick={() => setGpkQty(pack.symbol, qty + 1, pack.amount)}
+                              disabled={qty >= pack.amount}>+</Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {atomicPacks.map(pack => {
+                      const qty = atomicPackQtys.get(pack.templateId) || 0;
+                      return (
+                        <div key={`aa-${pack.templateId}`} className="flex items-center gap-3 p-2 rounded-md border border-border">
+                          {pack.image ? (
+                            <img src={pack.image} alt={pack.name} className="w-12 h-16 object-contain rounded" />
+                          ) : (
+                            <span className="text-2xl">📦</span>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{pack.name}</p>
+                            <p className="text-xs text-muted-foreground">Available: {pack.count}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button size="sm" variant="outline" className="h-7 w-7 p-0"
+                              onClick={() => setAtomicQty(pack.templateId, qty - 1, pack.count)}
+                              disabled={qty <= 0}>−</Button>
+                            <span className="w-8 text-center text-sm font-mono text-foreground">{qty}</span>
+                            <Button size="sm" variant="outline" className="h-7 w-7 p-0"
+                              onClick={() => setAtomicQty(pack.templateId, qty + 1, pack.count)}
+                              disabled={qty >= pack.count}>+</Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
                 )}
-              </Button>
-            </TabsContent>
-          )}
+              </div>
+            </ScrollArea>
+            <Button
+              onClick={handleSendPacks}
+              disabled={totalPacks === 0 || isSendingPacks}
+              className="w-full bg-cheese hover:bg-cheese/90 text-primary-foreground"
+            >
+              {isSendingPacks ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+              ) : (
+                <><Send className="h-4 w-4 mr-2" />Donate {totalPacks} Pack{totalPacks !== 1 ? 's' : ''}</>
+              )}
+            </Button>
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
