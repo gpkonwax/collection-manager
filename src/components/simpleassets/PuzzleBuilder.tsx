@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen, Download, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
