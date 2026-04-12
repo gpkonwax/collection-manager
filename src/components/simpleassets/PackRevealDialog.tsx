@@ -171,8 +171,8 @@ export function PackRevealDialog({
           grouped.set(r.unboxingid, arr);
         }
         const elapsed = Date.now() - pollStartRef.current;
-        if (elapsed > 60000) setWaitMessage('Taking longer than usual... still waiting for oracle');
-        else if (elapsed > 30000) setWaitMessage('Still waiting for the RNG oracle...');
+        if (elapsed > 60000) setWaitMessage('Almost there — the blockchain is a little busy right now. Your cards are safe and will appear shortly.');
+        else if (elapsed > 30000) setWaitMessage('Still working... the indexer is processing your cards. Sit tight!');
 
         let targetRows: PendingNftRow[] | null = null;
         let targetUnboxingId: number | null = null;
@@ -286,7 +286,7 @@ export function PackRevealDialog({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Waiting for cards to be minted...</span>
               </div>
-              <p className="text-xs text-muted-foreground/60">{waitMessage || 'This usually takes 2-15 seconds'}</p>
+              <p className="text-xs text-muted-foreground/60 max-w-sm text-center">{waitMessage || 'This can take a few seconds to 2–3 minutes depending on the indexer. Don\'t worry — your cards are on their way! You\'ll hear bell rings when they\'re revealed.'}</p>
             </div>
             {showEscape && (
               <div className="flex flex-col items-center gap-2 pt-4">
