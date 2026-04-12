@@ -15,7 +15,6 @@ const STACK_Y = 60;
 const SIT_DURATION = 2800;
 const FLY_DURATION = 2800;
 const LAND_PAUSE = 1400;
-const SCROLL_SETTLE = 800;
 
 export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
   useEffect(() => {
@@ -107,8 +106,8 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
     if (phase === 'scrolling') {
       const card = cards[dealIndex];
-      let flyTimer: ReturnType<typeof setTimeout> | null = null;
       let cancelled = false;
+      let pollInterval: ReturnType<typeof setInterval> | null = null;
 
       const rafTimer = setTimeout(() => {
         if (cancelled) return;
@@ -125,26 +124,42 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
         const absTop = roughRect.top + window.scrollY;
         scrollToElement(absTop, roughRect.height);
 
-        // Wait for scroll to settle, then measure fresh viewport coords
-        flyTimer = setTimeout(() => {
-          if (cancelled) return;
-          const el = gridCellRefs.current.get(card.id);
-          if (!el) {
-            onCardDealt(card.id);
-            setPhase('idle');
-            setDealIndex(i => i + 1);
-            return;
+        // Poll scrollY until stable instead of fixed timeout
+        let lastY = -1;
+        let stableCount = 0;
+        let elapsed = 0;
+        pollInterval = setInterval(() => {
+          if (cancelled) { clearInterval(pollInterval!); return; }
+          const y = window.scrollY;
+          if (Math.abs(y - lastY) < 2) stableCount++;
+          else stableCount = 0;
+          lastY = y;
+          elapsed += 50;
+          if (stableCount >= 2 || elapsed > 2000) {
+            clearInterval(pollInterval!);
+            pollInterval = null;
+            // Use rAF to ensure layout is painted before measuring
+            requestAnimationFrame(() => {
+              if (cancelled) return;
+              const el = gridCellRefs.current.get(card.id);
+              if (!el) {
+                onCardDealt(card.id);
+                setPhase('idle');
+                setDealIndex(i => i + 1);
+                return;
+              }
+              const freshRect = el.getBoundingClientRect();
+              setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
+              setPhase('flying');
+            });
           }
-          const freshRect = el.getBoundingClientRect();
-          setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
-          setPhase('flying');
-        }, SCROLL_SETTLE);
+        }, 50);
       }, 200);
 
       return () => {
         cancelled = true;
         clearTimeout(rafTimer);
-        if (flyTimer) clearTimeout(flyTimer);
+        if (pollInterval) clearInterval(pollInterval);
       };
     }
 
@@ -202,6 +217,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
                 width: flyTarget.width,
                 height: flyTarget.height,
                 zIndex: 200,
+                willChange: 'transform, left, top, width, height',
                 transition: `left ${FLY_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1), top ${FLY_DURATION}ms cubic-bezier(0.25, 0.1, 0.25, 1), width ${FLY_DURATION}ms ease, height ${FLY_DURATION}ms ease`,
               }
             : {
