@@ -1504,10 +1504,12 @@ export default function SimpleAssetsPage() {
                                 <Puzzle className="h-4 w-4" />
                                 Missing Puzzle Pieces ({missingIds.length} of {PUZZLE_CARD_IDS.length})
                               </h3>
+                              <p className="text-xs text-muted-foreground mb-3">The a, b, and prism versions of these cards all contain the puzzle piece on the back.</p>
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                {missingIds.map(id => (
-                                  <MissingPuzzlePiecePlaceholder key={id} cardId={id} />
-                                ))}
+                                {missingIds.map(id => {
+                                  const tpl = binderTemplates.find(t => t.cardid === String(id) && t.variant === 'base' && t.quality === 'a');
+                                  return <MissingPuzzlePiecePlaceholder key={id} cardId={id} templateId={tpl?.templateId} />;
+                                })}
                               </div>
                             </div>
                           );
