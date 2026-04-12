@@ -87,19 +87,24 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
   const banner = banners[currentIndex];
   if (!banner) return null;
 
+  const placeholder = isPlaceholderBanner(banner);
   const gatewayIdx = gatewayIdxMap[currentIndex] || 0;
   const safeUrl = sanitizeUrl(banner.websiteUrl);
 
   const handleError = () => {
-    setGatewayIdxMap(prev => ({
-      ...prev,
-      [currentIndex]: ((prev[currentIndex] || 0) + 1) % IPFS_GATEWAYS.length,
-    }));
+    if (!placeholder) {
+      setGatewayIdxMap(prev => ({
+        ...prev,
+        [currentIndex]: ((prev[currentIndex] || 0) + 1) % IPFS_GATEWAYS.length,
+      }));
+    }
   };
 
   const handleClick = () => {
     if (safeUrl) onLinkClick(safeUrl);
   };
+
+  const imgSrc = placeholder ? PLACEHOLDER_IMAGE : getIpfsImageUrl(banner.ipfsHash, gatewayIdx);
 
   return (
     <div
@@ -107,9 +112,9 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
       onClick={handleClick}
     >
       <img
-        key={`${banner.ipfsHash}-${currentIndex}`}
-        src={getIpfsImageUrl(banner.ipfsHash, gatewayIdx)}
-        alt="Advertisement"
+        key={`${banner.ipfsHash || 'placeholder'}-${currentIndex}`}
+        src={imgSrc}
+        alt={placeholder ? 'Advertise here' : 'Advertisement'}
         className="w-full h-full object-cover transition-opacity duration-300"
         onError={handleError}
         loading="lazy"
