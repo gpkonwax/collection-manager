@@ -123,7 +123,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
     <div className="rounded-xl border border-border bg-card p-6 space-y-3 hover:border-cheese/40 transition-colors">
       <div className="h-12 w-12 rounded-lg bg-cheese/10 flex items-center justify-center">{icon}</div>
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+      <p className="text-sm text-foreground leading-relaxed">{description}</p>
     </div>
   );
 }
