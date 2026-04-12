@@ -1091,10 +1091,10 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Package className="h-4 w-4" /> Pack Openings</h4>
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                  <li>All Topps pack types supported — Series 1, Series 2, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight, and more.</li>
+                  <li>Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic) and Food Fight  with Crash Gordon, Bernventures, Mittens, GameStonk likely soon</li>
                   <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
-                  <li>Card-by-card reveal animation with skip option.</li>
-                  <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions.</li>
+                  <li>Card-by-card reveal animation</li>
+                  <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions with an option to skip animation</li>
                   <li>Immersive sound design — pack shake, pack rip, and card bell noises synchronized to the animations.</li>
                   <li>View your SimpleAssets packs using the original placeholder artwork.</li>
                 </ul>
