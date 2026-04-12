@@ -42,8 +42,8 @@ interface AtomicAssetRaw {
 
 const PACK_CONFIG: Record<string, PackConfig> = {
   '13778':  { contract: 'gpkcrashpack', cards: 5, openMode: 'transfer', disabled: true, disabledReason: 'Oracle unreliable — opening temporarily disabled' },
-  '48479':  { contract: 'burnieunpack', cards: 2, openMode: 'transfer' },
-  '51437':  { contract: 'burnieunpack', cards: 5, openMode: 'transfer' },
+  '48479':  { contract: 'burnieunpack', cards: 2, openMode: 'transfer', disabled: true, disabledReason: 'Opening temporarily disabled' },
+  '51437':  { contract: 'burnieunpack', cards: 5, openMode: 'transfer', disabled: true, disabledReason: 'Opening temporarily disabled' },
   '53187':  { contract: 'atomicpacksx', cards: 3, openMode: 'transfer' },
   '59072':  { contract: 'atomicpacksx', cards: 3, openMode: 'transfer' },
   '59489':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
