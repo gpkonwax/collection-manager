@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import shuffleSfx from '@/assets/card-shuffle.mp3';
+import landSfx from '@/assets/card-land.mp3';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface CardDealAnimationProps {
@@ -153,13 +154,19 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     }
 
     if (phase === 'landed') {
+      const landAudio = new Audio(landSfx);
+      landAudio.play().catch(() => {});
       const timer = setTimeout(() => {
         onCardDealt(cards[dealIndex].id);
         setFlyTarget(null);
         setDealIndex(i => i + 1);
         setPhase('idle');
       }, LAND_PAUSE);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        landAudio.pause();
+        landAudio.currentTime = 0;
+      };
     }
   }, [dealIndex, phase, cards, gridCellRefs, onCardDealt, onComplete, scrollToElement]);
 
