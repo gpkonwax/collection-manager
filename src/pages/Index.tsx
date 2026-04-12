@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info } from 'lucide-react';
+import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -1252,9 +1252,14 @@ export default function SimpleAssetsPage() {
               <h3 className="text-2xl font-bold text-cheese text-center">More Features</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <FeatureCard
+                  icon={<Box className="h-6 w-6 text-cheese" />}
+                  title="3D Card Tilt Effect"
+                  description="Cards respond to your mouse with an interactive 3D tilt effect — realistic depth and perspective that brings your collection to life as you hover over each card."
+                />
+                <FeatureCard
                   icon={<ZoomIn className="h-6 w-6 text-cheese" />}
                   title="Inspect Every Detail"
-                  description="Click any card to see it in full detail. Hover over the image and a magnifying lens follows your cursor, zooming in so you can see every line, every detail, every variant difference up close. Cards also feature an interactive 3D tilt effect that responds to your mouse with realistic depth and perspective."
+                  description="Click any card to open a full-detail view with front/back toggle. A magnifying lens follows your cursor on hover, zooming in so you can see every line, every detail, every variant difference up close."
                 />
                 <FeatureCard
                   icon={<Filter className="h-6 w-6 text-cheese" />}
