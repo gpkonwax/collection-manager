@@ -7,10 +7,15 @@ import { ExternalLink } from 'lucide-react';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
 
 const ROTATION_INTERVAL = 30_000;
+const PLACEHOLDER_IMAGE = '/cheese-banner-placeholder.png';
 
 function getIpfsImageUrl(hash: string, gatewayIndex = 0): string {
   const gateway = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
   return `${gateway}${hash}`;
+}
+
+function isPlaceholderBanner(banner: ActiveBanner): boolean {
+  return banner.user === '__placeholder__';
 }
 
 interface SingleBannerProps {
@@ -21,15 +26,20 @@ interface SingleBannerProps {
 
 function SingleBanner({ banner, className = '', onLinkClick }: SingleBannerProps) {
   const [gatewayIdx, setGatewayIdx] = useState(0);
+  const placeholder = isPlaceholderBanner(banner);
   const safeUrl = sanitizeUrl(banner.websiteUrl);
 
   const handleError = () => {
-    setGatewayIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
+    if (!placeholder) {
+      setGatewayIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
+    }
   };
 
   const handleClick = () => {
     if (safeUrl) onLinkClick(safeUrl);
   };
+
+  const imgSrc = placeholder ? PLACEHOLDER_IMAGE : getIpfsImageUrl(banner.ipfsHash, gatewayIdx);
 
   return (
     <div
@@ -37,8 +47,8 @@ function SingleBanner({ banner, className = '', onLinkClick }: SingleBannerProps
       onClick={handleClick}
     >
       <img
-        src={getIpfsImageUrl(banner.ipfsHash, gatewayIdx)}
-        alt="Advertisement"
+        src={imgSrc}
+        alt={placeholder ? 'Advertise here' : 'Advertisement'}
         className="w-full h-full object-cover transition-opacity duration-300"
         onError={handleError}
         loading="lazy"
