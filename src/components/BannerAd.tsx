@@ -181,8 +181,9 @@ function BannerAdComponent() {
   return (
     <div className="w-full max-w-5xl mx-auto px-4 mb-4">
       <div className="flex justify-center gap-4">
-        {renderSlot(1)}
-        {renderSlot(2)}
+        {occupiedPositions.length === 0
+          ? <PlaceholderSlot onLinkClick={requestNavigation} className="w-[580px] h-[150px]" />
+          : occupiedPositions.map(p => renderSlot(p))}
       </div>
       <div className="flex justify-center mt-1">
         <span
