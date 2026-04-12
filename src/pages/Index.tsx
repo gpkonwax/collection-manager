@@ -199,15 +199,15 @@ export default function SimpleAssetsPage() {
     if (dealingCards.length > 0) {
       // Instead of rendering the entire collection, find the furthest dealing card
       // position in filtered list and only render up to that + a buffer
-      const filteredList = assets.filter(a => a.category !== 'packs');
+      const allAssets = [...saAssets, ...aaAssets];
       let maxIdx = 0;
       for (const dc of dealingCards) {
-        const idx = filteredList.findIndex(f => f.id === dc.id);
+        const idx = allAssets.findIndex(f => f.id === dc.id);
         if (idx > maxIdx) maxIdx = idx;
       }
       setVisibleCount(maxIdx + 12);
     }
-  }, [dealingCards, assets]);
+  }, [dealingCards, saAssets, aaAssets]);
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
