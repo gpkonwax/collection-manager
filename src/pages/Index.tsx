@@ -1219,9 +1219,14 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div className="text-center md:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">All Topps Packs Supported</h3>
-                  <p className="text-muted-foreground">
-                    Open Series 1 &amp; 2 packs, Crash Gordon, Bernventures, Mittens, GameStonk, Food Fight and more — both SimpleAssets and AtomicAssets formats. Watch each card reveal one by one with a full unboxing animation, then see them dealt out to their sorted positions in your collection with a choreographed card-deal sequence. Skip anytime or sit back and enjoy the show.
-                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-muted-foreground text-sm">
+                    <li>Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic) and Food Fight with Crash Gordon, Bernventures, Mittens, GameStonk likely soon.</li>
+                    <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
+                    <li>Card-by-card reveal animation with choreographed card-deal sequence animating revealed cards into their sorted collection positions — skip anytime or sit back and enjoy the show.</li>
+                    <li>Immersive sound design — pack shake, pack rip, and card bell noises synchronized to the animations.</li>
+                    <li>Demo openings available to preview the experience without spending any packs.</li>
+                    <li>View your SimpleAssets packs using the original placeholder artwork.</li>
+                  </ul>
                 </div>
               </div>
             </div>
