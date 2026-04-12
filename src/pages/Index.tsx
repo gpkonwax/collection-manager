@@ -1131,11 +1131,12 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Send className="h-4 w-4" /> Transfer & Management</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Send className="h-4 w-4" /> Transfer & Burn</h4>
                 <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                  <li>Transfer SimpleAssets NFTs between WAX accounts directly from the app.</li>
-                  <li>Bulk selection mode for transferring multiple cards at once.</li>
-                  <li>Burn unwanted NFTs with confirmation safety check.</li>
+                  <li>Transfer NFTs between WAX accounts — supports both SimpleAssets and AtomicAssets in one transaction.</li>
+                  <li>Bulk selection mode for transferring or burning multiple cards at once.</li>
+                  <li>Burn unwanted NFTs permanently with a "type BURN to confirm" safety check.</li>
+                  <li>Mixed selections work seamlessly — select SimpleAssets and AtomicAssets together and the correct contract actions are built automatically.</li>
                 </ul>
               </div>
               <div>
@@ -1257,6 +1258,11 @@ export default function SimpleAssetsPage() {
                   icon={<Layers className="h-6 w-6 text-cheese" />}
                   title="SimpleAssets & AtomicAssets"
                   description="Full support for both NFT standards on WAX. Your entire GPK collection in one unified view regardless of which contract holds them."
+                />
+                <FeatureCard
+                  icon={<Send className="h-6 w-6 text-cheese" />}
+                  title="Transfer & Burn"
+                  description="Select multiple NFTs and transfer them to any WAX account or burn them permanently — all in a single transaction. Supports both SimpleAssets and AtomicAssets contracts simultaneously."
                 />
                 <FeatureCard
                   icon={<Users className="h-6 w-6 text-cheese" />}
