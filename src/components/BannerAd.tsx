@@ -135,7 +135,7 @@ className="w-full h-full object-fill transition-opacity duration-300"
 function PlaceholderSlot({ onLinkClick, className = '' }: { onLinkClick: (url: string) => void; className?: string }) {
   return (
     <div
-      onClick={() => onLinkClick('https://cheesehubwax.github.io/cheesehub/bannerads')}
+      onClick={() => onLinkClick('https://cheesehubwax.github.io/cheesehub/farm')}
       className={`rounded-lg border border-dashed border-cheese/20 bg-card/50 flex items-center justify-center text-xs text-muted-foreground hover:border-cheese/40 transition-colors cursor-pointer ${className}`}
     >
       Advertise here — CheeseHub Banner Ads
@@ -187,7 +187,7 @@ function BannerAdComponent() {
       </div>
       <div className="flex justify-center mt-1">
         <span
-          onClick={() => requestNavigation('https://cheesehubwax.github.io/cheesehub/bannerads')}
+          onClick={() => requestNavigation('https://cheesehubwax.github.io/cheesehub/farm')}
           className="text-[10px] text-muted-foreground/60 hover:text-cheese/80 cursor-pointer transition-colors"
         >
           Advertise with CheeseHub
