@@ -1,28 +1,31 @@
 
 
-## Add Demo Openings for Food Fight Atomic Packs
+## Update Pack Opening Wait Messages Across All Dialogs
 
 ### Problem
-Token-based packs (Series 1, 2, Tiger King) have a "Demo Open" button that simulates the pack opening experience using sample cards from the collection. Atomic packs (including all Food Fight packs) lack this feature.
+Current messaging says "This usually takes 2-15 seconds" which sets wrong expectations — Food Fight packs can take 2-3 minutes. Users panic when it takes longer than promised.
 
-### Approach
-Mirror the demo mode pattern from `GpkPackCard` into `AtomicPackCard` and `AtomicPackRevealDialog`.
+### Changes
 
-### Files to Change
+**1. `src/components/simpleassets/PackRevealDialog.tsx`** (token-based packs)
+- Default message: change from "This usually takes 2-15 seconds" to something like "This can take anywhere from a few seconds to 2-3 minutes depending on the indexer. Don't worry — your cards are on their way! You'll hear bell rings when they're revealed."
+- 30s elapsed: "Still working... the indexer is processing your cards. Sit tight!"
+- 60s elapsed: "Almost there — the blockchain is a little busy right now. Your cards are safe and will appear shortly."
+- Escape timeout stays at 60s
 
-**1. `src/components/simpleassets/AtomicPackCard.tsx`**
-- Add new props: `onDemoCollect`, `collectionAssets`
-- Add `demoAssetsSample` and `demoCards` memos (same pattern as `GpkPackCard`)
-- Add `demoRevealOpen` state
-- Render a "Demo Open" button when `demoCards.length > 0`
-- Pass `demoCards` and `onDemoCollect` to `AtomicPackRevealDialog`
+**2. `src/components/simpleassets/AtomicPackRevealDialog.tsx`** (atomic/Food Fight packs)
+- Same default message update as above
+- 30s elapsed: "Still working... the indexer is processing your cards. Sit tight!"
+- 60s elapsed: "Almost there — the blockchain is a little busy right now. Your cards are safe and will appear shortly."
+- 90s elapsed: "The indexer is running behind, but don't worry — your cards are definitely coming. Hang in there!"
 
-**2. `src/components/simpleassets/AtomicPackRevealDialog.tsx`**
-- Add `demoCards` and `onDemoCollect` optional props
-- Add demo mode logic: skip real polling when `demoCards` is provided, show cards after shake animation, go to collect phase instead of blockchain claim
-- Wire "Collect" button to call `onDemoCollect` in demo mode
+**3. Demo mode in both dialogs**
+- During the 4-second demo wait, show the same reassuring default message so users get familiar with the tone before real openings
 
-**3. `src/pages/Index.tsx`**
-- In `renderPackItem` for atomic packs, pass `onDemoCollect={handleDemoCollect}` and `collectionAssets` filtered by `ATOMIC_PACK_CATEGORY_MAP[pack.templateId]`
-- Ensure `foodfightb` category assets are passed to Food Fight pack cards
+### Tone
+Friendly, reassuring, mentions bell rings on reveal. No alarming language like "unusually long."
+
+### Files Changed
+- `src/components/simpleassets/PackRevealDialog.tsx`
+- `src/components/simpleassets/AtomicPackRevealDialog.tsx`
 
