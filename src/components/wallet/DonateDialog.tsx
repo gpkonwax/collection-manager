@@ -112,6 +112,7 @@ export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = 
     [atomicPacks]
   );
 
+  const totalPacks = useMemo(() => {
     let total = 0;
     gpkPackQtys.forEach(v => { total += v; });
     atomicPackQtys.forEach(v => { total += v; });
