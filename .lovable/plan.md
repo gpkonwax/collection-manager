@@ -1,39 +1,18 @@
 
 
-## Add Burn NFTs Feature
+## Fix: Banner Ads Not Showing (Wrong Expiry Logic)
 
-### What It Does
-Adds a "Burn" button next to the existing "Transfer" button in the selection mode bar. When clicked, it opens a confirmation dialog showing the selected NFTs and requires the user to confirm before burning. Supports both SimpleAssets (`burn` action on `simpleassets` contract) and AtomicAssets (`burnasset` action on `atomicassets` contract) in a single transaction.
+### Problem
+Our `useBannerAds.ts` applies a strict 24-hour window filter (`row.time + 86400 <= now`) that expires banner rows after 24 hours. CheeseHub does **not** do this — it simply picks the most recent row group whose `time` is in the past. This means our code filters out all active banners once they're >24h old, falling back to the "Advertise here" placeholder.
 
-### Changes
+### Fix
+Replace the `resolveActiveBanner` logic in `src/hooks/useBannerAds.ts` to match CheeseHub's approach:
 
-**1. Update `burnNFTs` in `src/context/WaxContext.tsx`**
-The existing `burnNFTs` only handles AtomicAssets. Update it to also handle SimpleAssets by checking the asset source and building the correct action for each contract:
-- SimpleAssets: `{ account: 'simpleassets', name: 'burn', data: { owner, assetids: [...] } }`
-- AtomicAssets: `{ account: 'atomicassets', name: 'burnasset', data: { asset_owner, asset_id } }` (one per asset)
+1. Group rows by `time` value
+2. Find the most recent group where `time <= now`
+3. From that group, extract position 1 and position 2 banners (skip suspended, skip contract-owned)
+4. Remove the `SECONDS_PER_DAY` constant and the 24h window check entirely
 
-The function signature changes to accept `SimpleAsset[]` instead of just `string[]` so it can distinguish the source.
-
-**2. Create `src/components/simpleassets/BurnDialog.tsx`**
-A new dialog modeled after `TransferDialog` but simpler (no recipient/memo fields). It will:
-- Show the list of selected NFTs with thumbnails
-- Display a count breakdown (SimpleAssets vs AtomicAssets)
-- Include a prominent warning: "This action is irreversible. Burned NFTs cannot be recovered."
-- Require typing "BURN" to confirm (safety measure)
-- Execute the burn transaction on confirm
-- Call `onSuccess` with the transaction ID
-
-**3. Update `src/pages/Index.tsx`**
-- Add `burnDialogOpen` state
-- Import and render `BurnDialog`
-- Add a red "Burn" button (with `Flame` icon) next to the Transfer button in the selection mode bottom bar
-- Wire up success handler to clear selection, refresh assets, and show the transaction success dialog
-
-### Also
-- Update the info blurb: remove "Burn unwanted NFTs." from the aspirational list since it will now be a real feature, or keep it as-is since it will be accurate.
-
-### Files Changed
-- `src/context/WaxContext.tsx` — update `burnNFTs` to handle both contract types
-- `src/components/simpleassets/BurnDialog.tsx` (new) — burn confirmation dialog
-- `src/pages/Index.tsx` — add burn button and dialog
+### File Changed
+- `src/hooks/useBannerAds.ts` — rewrite `resolveActiveBanner` and `fetchBannerAds` to use "most recent past group" logic instead of 24h rolling window
 
