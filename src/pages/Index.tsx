@@ -1575,8 +1575,18 @@ export default function SimpleAssetsPage() {
           setSuccessDialog({ open: true, title: 'Donation Sent!', description: 'Thank you for your generous donation to the $CHEESE team!', txId });
         }}
       />
+      <BurnDialog
+        open={burnDialogOpen}
+        onOpenChange={setBurnDialogOpen}
+        selectedAssets={selectedAssets}
+        onSuccess={(txId) => {
+          clearSelection();
+          refetchSa();
+          refetchAa();
+          setSuccessDialog({ open: true, title: 'NFTs Burned!', description: `Successfully burned ${selectedAssets.length} NFT(s).`, txId });
+        }}
+      />
 
-      {selectionMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-cheese/50 rounded-lg shadow-2xl px-6 py-3 flex items-center gap-4">
           <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
           <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-primary-foreground" onClick={() => setTransferDialogOpen(true)}>
