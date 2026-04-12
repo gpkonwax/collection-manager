@@ -128,7 +128,7 @@ async function fetchBannerAds(): Promise<ActiveBanner[]> {
           position,
           user: '__placeholder__',
           ipfsHash: '',
-          websiteUrl: 'https://cheesehubwax.github.io/cheesehub/bannerads',
+          websiteUrl: 'https://cheesehubwax.github.io/cheesehub/farm',
           rentalType,
           displayMode: 'shared',
         });
