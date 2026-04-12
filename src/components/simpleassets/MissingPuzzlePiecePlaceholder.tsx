@@ -2,6 +2,7 @@ import { Card } from '@/components/ui/card';
 import { ExternalLink, Puzzle } from 'lucide-react';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
 import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
+import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 
 interface MissingPuzzlePiecePlaceholderProps {
   cardId: number;
@@ -29,12 +30,11 @@ export function MissingPuzzlePiecePlaceholder({ cardId, templateId }: MissingPuz
       >
         <div className="aspect-[5/7] bg-muted/10 flex items-center justify-center overflow-hidden relative">
           {imageUrl ? (
-            <img
-              src={imageUrl}
+            <IpfsMedia
+              url={imageUrl}
               alt={`Puzzle piece #${cardId}`}
               className="w-full h-full object-cover grayscale brightness-50"
               loading="lazy"
-              draggable={false}
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
