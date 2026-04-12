@@ -248,9 +248,9 @@ export function AtomicPackRevealDialog({
       try {
         if (cancelled) return;
         const elapsed = Date.now() - pollStartRef.current;
-        if (elapsed > 90000) setWaitMessage('This is taking unusually long — the blockchain indexer may be behind. Hang tight...');
-        else if (elapsed > 60000) setWaitMessage('Taking longer than usual... still waiting');
-        else if (elapsed > 30000) setWaitMessage('Still waiting for cards to be minted...');
+        if (elapsed > 90000) setWaitMessage('The indexer is running behind, but don\'t worry — your cards are definitely coming. Hang in there!');
+        else if (elapsed > 60000) setWaitMessage('Almost there — the blockchain is a little busy right now. Your cards are safe and will appear shortly.');
+        else if (elapsed > 30000) setWaitMessage('Still working... the indexer is processing your cards. Sit tight!');
 
         if (openMode === 'unbox_nft') {
           // For unbox.nft: poll the atomic assets API for new assets
@@ -388,7 +388,7 @@ export function AtomicPackRevealDialog({
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" /><span>Waiting for cards to be minted...</span>
               </div>
-              <p className="text-xs text-muted-foreground/60">{waitMessage || 'This usually takes 2-15 seconds'}</p>
+              <p className="text-xs text-muted-foreground/60 max-w-sm text-center">{waitMessage || 'This can take a few seconds to 2–3 minutes depending on the indexer. Don\'t worry — your cards are on their way! You\'ll hear bell rings when they\'re revealed.'}</p>
             </div>
             {showEscape && (
               <div className="flex flex-col items-center gap-2 pt-4">
