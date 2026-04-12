@@ -159,15 +159,14 @@ function BannerAdComponent() {
 
   const renderSlot = (position: number) => {
     const slotBanners = positionBanners.get(position);
-    if (!slotBanners || slotBanners.length === 0) {
-      return <PlaceholderSlot key={position} onLinkClick={requestNavigation} className="w-[580px] h-[150px]" />;
-    }
+    if (!slotBanners || slotBanners.length === 0) return null;
     if (slotBanners.length === 1 && slotBanners[0].displayMode === 'full') {
       return <SingleBanner key={position} banner={slotBanners[0]} className="w-[580px] h-[150px]" onLinkClick={requestNavigation} />;
     }
-    // Shared: rotate between primary + secondary
     return <SharedBannerRotator key={position} banners={slotBanners} className="w-[580px] h-[150px]" onLinkClick={requestNavigation} />;
   };
+
+  const occupiedPositions = [1, 2].filter(p => positionBanners.has(p));
 
   if (isLoading) {
     return (
