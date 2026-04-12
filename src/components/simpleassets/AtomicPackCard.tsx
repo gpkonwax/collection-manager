@@ -42,7 +42,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
     const shuffled = [...collectionAssets].sort(() => Math.random() - 0.5);
     const result: SimpleAsset[] = [];
     for (let i = 0; i < pack.cardsPerPack; i++) {
-      result.push(shuffled[i % shuffled.length]);
+      result.push({ ...shuffled[i % shuffled.length], id: `demo-${shuffled[i % shuffled.length].id}-${i}` });
     }
     return result;
   }, [collectionAssets, pack.cardsPerPack]);

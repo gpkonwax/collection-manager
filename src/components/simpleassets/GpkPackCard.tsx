@@ -73,7 +73,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
     const shuffled = [...collectionAssets].sort(() => Math.random() - 0.5);
     const result: SimpleAsset[] = [];
     for (let i = 0; i < expectedCount; i++) {
-      result.push(shuffled[i % shuffled.length]);
+      result.push({ ...shuffled[i % shuffled.length], id: `demo-${shuffled[i % shuffled.length].id}-${i}` });
     }
     return result;
   }, [collectionAssets, expectedCount]);
