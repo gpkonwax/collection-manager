@@ -264,6 +264,49 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     }
   }, [notifyParent]);
 
+  const handleSaveJson = useCallback(() => {
+    const data = toCardIdMap(pieces, puzzleAssets);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'puzzle-layout.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [pieces, puzzleAssets]);
+
+  const handleLoadJson = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string) as PuzzlePieceMap;
+        const next = applyImportedState(puzzleAssets, data);
+        setPieces(next);
+        notifyParent(next);
+        setLoadedFileName(file.name);
+      } catch {
+        console.error('Invalid puzzle JSON file');
+      }
+    };
+    reader.readAsText(file);
+    // Reset so same file can be re-loaded
+    e.target.value = '';
+  }, [puzzleAssets, notifyParent]);
+
+  const handleClearJson = useCallback(() => {
+    const next = buildDefaultLayout(puzzleAssets);
+    setPieces(next);
+    notifyParent(next);
+    setLoadedFileName(null);
+    setRatingResult(null);
+  }, [puzzleAssets, notifyParent]);
+
   const scramble = useCallback(() => {
     const canvasW = canvasRef.current?.clientWidth ?? 800;
     const canvasH = canvasRef.current?.clientHeight ?? 500;
