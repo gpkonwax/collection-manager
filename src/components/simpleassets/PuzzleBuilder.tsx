@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen, Download, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -116,6 +116,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   }, [onPiecesChange, puzzleAssets]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dragging = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const piecesRef = useRef(pieces);
@@ -262,6 +264,49 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     }
   }, [notifyParent]);
 
+  const handleSaveJson = useCallback(() => {
+    const data = toCardIdMap(pieces, puzzleAssets);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'puzzle-layout.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [pieces, puzzleAssets]);
+
+  const handleLoadJson = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string) as PuzzlePieceMap;
+        const next = applyImportedState(puzzleAssets, data);
+        setPieces(next);
+        notifyParent(next);
+        setLoadedFileName(file.name);
+      } catch {
+        console.error('Invalid puzzle JSON file');
+      }
+    };
+    reader.readAsText(file);
+    // Reset so same file can be re-loaded
+    e.target.value = '';
+  }, [puzzleAssets, notifyParent]);
+
+  const handleClearJson = useCallback(() => {
+    const next = buildDefaultLayout(puzzleAssets);
+    setPieces(next);
+    notifyParent(next);
+    setLoadedFileName(null);
+    setRatingResult(null);
+  }, [puzzleAssets, notifyParent]);
+
   const scramble = useCallback(() => {
     const canvasW = canvasRef.current?.clientWidth ?? 800;
     const canvasH = canvasRef.current?.clientHeight ?? 500;
@@ -357,6 +402,52 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
             <Shuffle className="h-4 w-4 mr-1" />
             Scramble
           </Button>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {loadedFileName && (
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded flex items-center gap-1">
+              📄 {loadedFileName}
+              <button onClick={handleClearJson} className="hover:text-foreground ml-1" title="Clear layout">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={handleSaveJson}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Save JSON
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+            onClick={handleLoadJson}
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            Load JSON
+          </Button>
+          {loadedFileName && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10"
+              onClick={handleClearJson}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleFileChange}
+          />
         </div>
       </div>
 
