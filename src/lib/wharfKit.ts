@@ -10,7 +10,7 @@ export const WAX_CHAIN_ID = '1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d1
 
 const waxChain = ChainDefinition.from({
   id: WAX_CHAIN_ID,
-  url: 'https://wax.eosphere.io',
+  url: 'https://wax.api.eosnation.io',
 });
 
 export const sessionKit = new SessionKit({

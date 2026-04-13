@@ -3,18 +3,28 @@
 
 // Hyperion endpoints for get_tokens (faster for balance queries)
 const HYPERION_ENDPOINTS = [
-  "https://wax.eosphere.io",    // Currently most reliable
+  "https://wax.api.eosnation.io",
+  "https://wax.eosphere.io",
+  "https://api.hivebp.io",
+  "https://wax.eosdac.io",
   "https://wax.pink.gg",
   "https://wax.eosusa.io",
   "https://api.wax.alohaeos.com",
 ];
 
 export const WAX_RPC_ENDPOINTS = [
-  "https://wax.eosphere.io",    // Currently most reliable
-  "https://api.waxsweden.org",  // Usually stable
-  "https://wax.pink.gg",
-  "https://wax.eosusa.io",      // Currently having issues
-  "https://api.wax.alohaeos.com",
+  "https://wax.api.eosnation.io",    // EOS Nation, top guild
+  "https://api.waxsweden.org",       // WAX Sweden, top guild
+  "https://wax.eosphere.io",         // EOSphere, usually reliable
+  "https://api.hivebp.io",           // Hive BP, Cloudflare
+  "https://wax.cryptolions.io",      // CryptoLions, Hetzner EU
+  "https://wax.eosdac.io",           // eosDAC, Cloudflare
+  "https://wax.eu.eosamsterdam.net", // EOSAmsterdam, Hetzner EU
+  "https://api-wax.eosauthority.com",// EOS Authority, Cloudflare
+  "https://wax.dapplica.io",         // dapplica, Hetzner EU
+  "https://api.wax.alohaeos.com",    // Aloha EOS, OVH US
+  "https://wax.pink.gg",             // pink.gg fallback
+  "https://wax.eosusa.io",           // EOSUSA fallback
   // Note: wax.greymass.com removed due to persistent CORS issues
 ];
 
