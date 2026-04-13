@@ -1185,6 +1185,9 @@ export default function SimpleAssetsPage() {
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-tight max-w-3xl">
                 The Ultimate GPK Collection Manager
               </h2>
+              <p className="text-lg text-foreground max-w-2xl">
+                Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
+              </p>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
                 <Wallet className="h-5 w-5 mr-2" />
                 Connect Wallet
