@@ -1,10 +1,15 @@
 export const WAX_CHAIN = {
   id: '1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4',
-  url: 'https://wax.greymass.com',
+  url: 'https://wax.api.eosnation.io',
   rpcUrls: [
-    'https://api.wax.alohaeos.com',
+    'https://wax.api.eosnation.io',
+    'https://api.waxsweden.org',
     'https://wax.eosphere.io',
-    'https://wax.greymass.com',
+    'https://api.hivebp.io',
+    'https://wax.cryptolions.io',
+    'https://wax.eosdac.io',
+    'https://wax.eu.eosamsterdam.net',
+    'https://api.wax.alohaeos.com',
     'https://wax.pink.gg',
   ],
 };
@@ -29,6 +34,11 @@ export const ATOMIC_API = {
     'https://wax.api.atomicassets.io',
     'https://atomic.wax.eosrio.io',
     'https://aa.wax.blacklusion.io',
+    'https://wax-aa.eosdac.io',
+    'https://aa-wax-public1.neftyblocks.com',
+    'https://wax-atomic.alcor.exchange',
+    'https://wax-atomic-api.eosphere.io',
+    'https://atomic.hivebp.io',
   ],
   baseUrl: 'https://wax.api.atomicassets.io',
   paths: {
