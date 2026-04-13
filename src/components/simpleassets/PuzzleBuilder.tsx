@@ -341,7 +341,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           You have {puzzleAssets.length} of {TOTAL_PUZZLE_PIECES} puzzle pieces
         </p>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Collect all {TOTAL_PUZZLE_PIECES} Series 2 puzzle pieces to unlock the Puzzle Builder. Check the Collection Binder to see which pieces you're missing!
+          Collect all {TOTAL_PUZZLE_PIECES} Series 2 puzzle pieces to unlock the Puzzle Builder. Once unlocked, your collected pieces auto-populate onto the canvas. Check the Collection Binder to see which pieces you're missing!
         </p>
         {onSwitchToBinder && (
           <Button
