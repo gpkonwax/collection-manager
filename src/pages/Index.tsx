@@ -1246,7 +1246,7 @@ export default function SimpleAssetsPage() {
                 <div className="text-center md:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
                   <p className="text-foreground">
-                    Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder gives you a free-form canvas to drag, rotate, and arrange your puzzle pieces. Scramble them, line them up, and save your progress as JSON. Can you complete the red border puzzle?
+                    Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder auto-populates your collected pieces onto a free-form canvas where you can drag, rotate, and arrange them. Scramble them, line them up, and save your progress as JSON. Can you complete the red border puzzle?
                   </p>
                 </div>
               </div>
