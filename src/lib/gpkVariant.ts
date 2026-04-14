@@ -11,6 +11,7 @@ export const GPK_VARIANT_ORDER = [
   'returning',
   'error',
   'originalart',
+  'artistssignature',
   'relic',
   'collector',
   'golden',
@@ -42,6 +43,9 @@ export function normalizeGpkVariant(variant: unknown): string {
     'original art': 'originalart',
     'tiger border': 'tiger stripe',
     'tiger scratch': 'tiger claw',
+    'artists signature': 'artistssignature',
+    'artist signature': 'artistssignature',
+    'artistsignature': 'artistssignature',
   };
 
   return aliasMap[normalized] ?? normalized;
