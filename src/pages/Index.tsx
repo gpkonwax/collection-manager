@@ -461,7 +461,7 @@ export default function SimpleAssetsPage() {
       const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
       if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
+      if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
@@ -488,7 +488,7 @@ export default function SimpleAssetsPage() {
     }
 
     let filteredTemplates = binderTemplates;
-    if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && !variantFilter.includes('all')) {
+    if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && !variantFilter.includes('all')) {
       filteredTemplates = binderTemplates.filter(t => variantFilter.includes(t.variant.toLowerCase()));
     }
 
