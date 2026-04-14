@@ -74,59 +74,95 @@ interface SharedBannerRotatorProps {
 
 function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBannerRotatorProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  const [fading, setFading] = useState(false);
   const [gatewayIdxMap, setGatewayIdxMap] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (banners.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % banners.length);
+      setCurrentIndex(prev => {
+        setPreviousIndex(prev);
+        setFading(true);
+        return (prev + 1) % banners.length;
+      });
     }, ROTATION_INTERVAL);
     return () => clearInterval(interval);
   }, [banners.length]);
 
+  useEffect(() => {
+    if (!fading) return;
+    const timeout = setTimeout(() => {
+      setFading(false);
+      setPreviousIndex(null);
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, [fading]);
+
   const banner = banners[currentIndex];
   if (!banner) return null;
 
-  const placeholder = isPlaceholderBanner(banner);
-  const gatewayIdx = gatewayIdxMap[currentIndex] || 0;
-  const safeUrl = sanitizeUrl(banner.websiteUrl);
+  const prevBanner = previousIndex !== null ? banners[previousIndex] : null;
 
-  const handleError = () => {
-    if (!placeholder) {
+  const getImgSrc = (b: ActiveBanner, idx: number) => {
+    const gIdx = gatewayIdxMap[idx] || 0;
+    return isPlaceholderBanner(b) ? PLACEHOLDER_IMAGE : getIpfsImageUrl(b.ipfsHash, gIdx);
+  };
+
+  const handleError = (idx: number, b: ActiveBanner) => {
+    if (!isPlaceholderBanner(b)) {
       setGatewayIdxMap(prev => ({
         ...prev,
-        [currentIndex]: ((prev[currentIndex] || 0) + 1) % IPFS_GATEWAYS.length,
+        [idx]: ((prev[idx] || 0) + 1) % IPFS_GATEWAYS.length,
       }));
     }
   };
 
+  const safeUrl = sanitizeUrl(banner.websiteUrl);
   const handleClick = () => {
     if (safeUrl) onLinkClick(safeUrl);
   };
-
-  const imgSrc = placeholder ? PLACEHOLDER_IMAGE : getIpfsImageUrl(banner.ipfsHash, gatewayIdx);
 
   return (
     <div
       className={`relative group overflow-hidden rounded-lg border border-cheese/20 bg-card ${safeUrl ? 'cursor-pointer' : ''} ${className}`}
       onClick={handleClick}
     >
+      {/* Previous banner fading out */}
+      {fading && prevBanner && previousIndex !== null && (
+        <img
+          key={`prev-${previousIndex}`}
+          src={getImgSrc(prevBanner, previousIndex)}
+          alt={isPlaceholderBanner(prevBanner) ? 'Advertise here' : 'Advertisement'}
+          className="absolute inset-0 w-full h-full object-fill transition-opacity duration-[3000ms] opacity-0"
+          onError={() => handleError(previousIndex, prevBanner)}
+        />
+      )}
+      {/* Current banner fading in */}
       <img
-        key={`${banner.ipfsHash || 'placeholder'}-${currentIndex}`}
-        src={imgSrc}
-        alt={placeholder ? 'Advertise here' : 'Advertisement'}
-className="w-full h-full object-fill transition-opacity duration-300"
-        onError={handleError}
+        key={`current-${currentIndex}`}
+        src={getImgSrc(banner, currentIndex)}
+        alt={isPlaceholderBanner(banner) ? 'Advertise here' : 'Advertisement'}
+        className={`w-full h-full object-fill transition-opacity duration-[3000ms] ${fading ? 'opacity-0' : 'opacity-100'}`}
+        onError={() => handleError(currentIndex, banner)}
         loading="lazy"
+        onLoad={(e) => {
+          if (fading) {
+            // Force reflow then set opacity to trigger the transition
+            const el = e.currentTarget;
+            el.getBoundingClientRect();
+            requestAnimationFrame(() => { el.style.opacity = '1'; });
+          }
+        }}
       />
       <Badge
         variant="secondary"
-        className="absolute top-1 right-1 text-[10px] px-1.5 py-0 opacity-60 group-hover:opacity-100 transition-opacity"
+        className="absolute top-1 right-1 text-[10px] px-1.5 py-0 opacity-60 group-hover:opacity-100 transition-opacity z-10"
       >
         Ad
       </Badge>
       {safeUrl && (
-        <ExternalLink className="absolute bottom-1 right-1 h-3 w-3 text-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <ExternalLink className="absolute bottom-1 right-1 h-3 w-3 text-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
       )}
     </div>
   );
