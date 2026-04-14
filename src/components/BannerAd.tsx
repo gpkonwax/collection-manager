@@ -87,37 +87,38 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
   const activeBanner = banners[activeIndex];
   if (!activeBanner) return null;
 
-  const safeUrl = sanitizeUrl(activeBanner.websiteUrl);
-  const handleClick = () => {
-    if (safeUrl) onLinkClick(safeUrl);
-  };
 
   return (
     <div
-      className={`relative group overflow-hidden rounded-lg border border-cheese/20 bg-card ${safeUrl ? 'cursor-pointer' : ''} ${className}`}
-      onClick={handleClick}
+      className={`relative group overflow-hidden rounded-lg border border-cheese/20 bg-card ${className}`}
     >
       {banners.map((banner, idx) => {
         const isActive = idx === activeIndex;
         const gIdx = gatewayIdxMap[idx] || 0;
         const imgSrc = isPlaceholderBanner(banner) ? PLACEHOLDER_IMAGE : getIpfsImageUrl(banner.ipfsHash, gIdx);
+        const bannerUrl = sanitizeUrl(banner.websiteUrl);
 
         return (
-          <img
+          <div
             key={`banner-${idx}-${banner.ipfsHash || 'placeholder'}`}
-            src={imgSrc}
-            alt={isPlaceholderBanner(banner) ? 'Advertise here' : 'Advertisement'}
-            className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-[3000ms] ease-in-out ${isActive ? 'opacity-100' : 'opacity-0'}`}
-            onError={() => {
-              if (!isPlaceholderBanner(banner)) {
-                setGatewayIdxMap(prev => ({
-                  ...prev,
-                  [idx]: ((prev[idx] || 0) + 1) % IPFS_GATEWAYS.length,
-                }));
-              }
-            }}
-            loading="lazy"
-          />
+            className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${isActive ? 'opacity-100 pointer-events-auto z-10' : 'opacity-0 pointer-events-none z-0'} ${bannerUrl ? 'cursor-pointer' : ''}`}
+            onClick={() => { if (bannerUrl) onLinkClick(bannerUrl); }}
+          >
+            <img
+              src={imgSrc}
+              alt={isPlaceholderBanner(banner) ? 'Advertise here' : 'Advertisement'}
+              className="w-full h-full object-fill"
+              onError={() => {
+                if (!isPlaceholderBanner(banner)) {
+                  setGatewayIdxMap(prev => ({
+                    ...prev,
+                    [idx]: ((prev[idx] || 0) + 1) % IPFS_GATEWAYS.length,
+                  }));
+                }
+              }}
+              loading="lazy"
+            />
+          </div>
         );
       })}
       {/* Invisible spacer to maintain container height */}
@@ -129,13 +130,11 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
       />
       <Badge
         variant="secondary"
-        className="absolute top-1 right-1 text-[10px] px-1.5 py-0 opacity-60 group-hover:opacity-100 transition-opacity z-10"
+        className="absolute top-1 right-1 text-[10px] px-1.5 py-0 opacity-60 group-hover:opacity-100 transition-opacity z-20"
       >
         Ad
       </Badge>
-      {safeUrl && (
-        <ExternalLink className="absolute bottom-1 right-1 h-3 w-3 text-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-      )}
+      <ExternalLink className="absolute bottom-1 right-1 h-3 w-3 text-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity z-20" />
     </div>
   );
 }
