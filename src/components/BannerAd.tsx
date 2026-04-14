@@ -87,10 +87,6 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
   const activeBanner = banners[activeIndex];
   if (!activeBanner) return null;
 
-  const safeUrl = sanitizeUrl(activeBanner.websiteUrl);
-  const handleClick = () => {
-    if (safeUrl) onLinkClick(safeUrl);
-  };
 
   return (
     <div
