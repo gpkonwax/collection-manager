@@ -128,7 +128,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerStart = useRef<number>(0);
-  const [ratingResult, setRatingResult] = useState<{ time: number; rotation: number; placement: number; overlap: number; total: number; grade: string } | null>(null);
+  
 
   useEffect(() => {
     if (!timerRunning) return;
@@ -146,79 +146,9 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${tenths}`;
   };
 
-  const computeRating = useCallback(() => {
-    const totalPieces = puzzleAssets.length;
-    if (totalPieces === 0) return;
-
-    const currentPieces = piecesRef.current;
-    const W = 120, H = 168;
-    const INSET = 20; // px tolerance for overlap detection
-
-    // Time score (0-20): 20 if under 30s, linear to 0 at 300s
-    const secs = elapsedMs / 1000;
-    const timeScore = secs <= 30 ? 20 : Math.max(0, 20 - ((secs - 30) / 270) * 20);
-
-    // Rotation score (0-20): % of pieces at 0°
-    const correctRotation = puzzleAssets.filter(a => (currentPieces.get(a.id)?.rotation ?? 0) === 90).length;
-    const rotationScore = (correctRotation / totalPieces) * 20;
-
-    // Position accuracy (0-40): relative to centroid, not absolute grid origin
-    const idealPositions = puzzleAssets.map(asset => {
-      const idx = PUZZLE_CARD_IDS.indexOf(getCardId(asset));
-      return { x: (idx % 6) * W, y: Math.floor(idx / 6) * H };
-    });
-    const avgIdealX = idealPositions.reduce((s, p) => s + p.x, 0) / totalPieces;
-    const avgIdealY = idealPositions.reduce((s, p) => s + p.y, 0) / totalPieces;
-
-    const actualPositions = puzzleAssets.map(a => currentPieces.get(a.id) ?? { x: 0, y: 0, rotation: 0 });
-    const avgActualX = actualPositions.reduce((s, p) => s + p.x, 0) / totalPieces;
-    const avgActualY = actualPositions.reduce((s, p) => s + p.y, 0) / totalPieces;
-
-    let totalDist = 0;
-    for (let i = 0; i < totalPieces; i++) {
-      const idealRelX = idealPositions[i].x - avgIdealX;
-      const idealRelY = idealPositions[i].y - avgIdealY;
-      const actualRelX = actualPositions[i].x - avgActualX;
-      const actualRelY = actualPositions[i].y - avgActualY;
-      totalDist += Math.sqrt(Math.pow(actualRelX - idealRelX, 2) + Math.pow(actualRelY - idealRelY, 2));
-    }
-    const avgDist = totalDist / totalPieces;
-    const positionScore = Math.max(0, 40 - (avgDist / 600) * 40);
-
-    // Overlap penalty (0-20): lose 1.5 per overlapping pair, with inset tolerance
-    let overlapCount = 0;
-    for (let i = 0; i < actualPositions.length; i++) {
-      for (let j = i + 1; j < actualPositions.length; j++) {
-        const a = actualPositions[i], b = actualPositions[j];
-        if (
-          a.x + INSET < b.x + W - INSET &&
-          a.x + W - INSET > b.x + INSET &&
-          a.y + INSET < b.y + H - INSET &&
-          a.y + H - INSET > b.y + INSET
-        ) {
-          overlapCount++;
-        }
-      }
-    }
-    const overlapScore = Math.max(0, 20 - overlapCount * 1.5);
-
-    const total = Math.round(timeScore + rotationScore + positionScore + overlapScore);
-    const grade = total >= 80 ? 'A' : total >= 65 ? 'B' : total >= 50 ? 'C' : total >= 35 ? 'D' : 'F';
-
-    setRatingResult({
-      time: Math.round(timeScore),
-      rotation: Math.round(rotationScore),
-      placement: Math.round(positionScore),
-      overlap: Math.round(overlapScore),
-      total,
-      grade,
-    });
-  }, [puzzleAssets, elapsedMs]);
-
   const handleFinish = useCallback(() => {
     setTimerRunning(false);
-    computeRating();
-  }, [computeRating]);
+  }, []);
 
   const getState = (id: string): PieceState => pieces.get(id) ?? { x: 0, y: 0, rotation: 0 };
 
@@ -304,7 +234,6 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     setPieces(next);
     notifyParent(next);
     setLoadedFileName(null);
-    setRatingResult(null);
   }, [puzzleAssets, notifyParent]);
 
   const scramble = useCallback(() => {
@@ -327,7 +256,6 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       timerStart.current = Date.now();
       setElapsedMs(0);
       setTimerRunning(true);
-      setRatingResult(null);
     }
   }, [notifyParent, timerEnabled]);
 
@@ -370,7 +298,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               checked={timerEnabled}
               onCheckedChange={(v) => {
                 setTimerEnabled(!!v);
-                if (!v) { setTimerRunning(false); setElapsedMs(0); setRatingResult(null); }
+                if (!v) { setTimerRunning(false); setElapsedMs(0); }
               }}
             />
             <Label htmlFor="timer-toggle" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
@@ -451,32 +379,6 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         </div>
       </div>
 
-      {ratingResult && (
-        <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-4 flex items-center gap-6">
-          <div className="text-5xl font-bold text-cheese">{ratingResult.grade}</div>
-          <div className="flex-1 grid grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Speed</p>
-              <p className="font-medium text-foreground">{ratingResult.time}/20</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Rotation</p>
-              <p className="font-medium text-foreground">{ratingResult.rotation}/20</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Position</p>
-              <p className="font-medium text-foreground">{ratingResult.placement}/40</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Overlap</p>
-              <p className="font-medium text-foreground">{ratingResult.overlap}/20</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-foreground">{ratingResult.total}<span className="text-sm text-muted-foreground">/100</span></p>
-          </div>
-        </div>
-      )}
       <div
         ref={canvasRef}
         className="relative border border-border rounded-lg bg-muted/20 overflow-auto"
