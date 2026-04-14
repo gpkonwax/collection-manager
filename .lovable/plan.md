@@ -1,25 +1,28 @@
 
 
-## Add 3-Second Fade Transition to Shared Banner Rotator
+## Fix Banner Ad Transition to Match CheeseHub
 
 ### Problem
-Currently the `SharedBannerRotator` swaps images instantly. The CheeseHub site has a smooth 3-second crossfade between shared ads.
+The crossfade feels abrupt/janky. CheeseHub uses a 500ms transition (not 3000ms) and handles click targets per-layer with `pointer-events-none` on inactive banners.
 
-### Approach
-Use a crossfade technique: render both the outgoing and incoming banners stacked via `absolute` positioning, and animate opacity over 3 seconds.
+### Root cause
+The current code has the right stacking approach but two issues:
+1. The 3000ms duration is too long — it creates a slow, noticeable blend rather than a clean swap
+2. The click handler is on the outer container using the current `activeBanner`, so clicks route incorrectly during transitions
 
 ### Changes
 
 **`src/components/BannerAd.tsx`** — Rework `SharedBannerRotator`:
-- Add a `fading` state and a `previousIndex` state
-- When `currentIndex` changes, set `fading = true` and track the previous index
-- Render both the previous and current banner images stacked with `absolute inset-0`
-- The outgoing image fades from `opacity-100` to `opacity-0` over 3s; the incoming fades from `opacity-0` to `opacity-100` over 3s
-- After the 3s transition completes, set `fading = false` and stop rendering the old image
-- Use `transition-opacity duration-[3000ms]` Tailwind classes for the fade
+
+1. Change `duration-[3000ms]` to `duration-500` (matching CheeseHub's 500ms fade)
+2. Add `pointer-events-auto z-10` to the active banner and `pointer-events-none z-0` to inactive banners
+3. Move the click handler from the outer container div into each banner layer, so only the active (visible) banner is clickable
+4. Remove `cursor-pointer` from the outer container since clicks are per-layer now
+5. Keep the invisible spacer image for height maintenance
 
 ### What stays
-- 30-second rotation interval unchanged
-- Gateway fallback logic unchanged
-- Badge, external link icon, click handling unchanged
+- 30-second rotation interval
+- Gateway fallback logic
+- Badge and external link icon overlays
+- `SingleBanner` component unchanged
 
