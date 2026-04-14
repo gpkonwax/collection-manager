@@ -1127,7 +1127,7 @@ export default function SimpleAssetsPage() {
                   <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces.</li>
                   <li>Save and load your puzzle progress as JSON.</li>
                   <li>Scramble pieces to start fresh or fine-tune placements.</li>
-                  <li><strong>Timer Race Mode</strong> — race the clock to assemble the puzzle and receive an A–F grade based on speed, accuracy, and overlap.</li>
+                  <li><strong>Timer Race Mode</strong> — race the clock to assemble the puzzle.</li>
                 </ul>
               </div>
               <div>
