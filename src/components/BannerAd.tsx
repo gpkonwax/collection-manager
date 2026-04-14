@@ -128,32 +128,36 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
       className={`relative group overflow-hidden rounded-lg border border-cheese/20 bg-card ${safeUrl ? 'cursor-pointer' : ''} ${className}`}
       onClick={handleClick}
     >
-      {/* Previous banner fading out */}
+      {/* Previous banner (stays visible underneath, fades out) */}
       {fading && prevBanner && previousIndex !== null && (
         <img
           key={`prev-${previousIndex}`}
           src={getImgSrc(prevBanner, previousIndex)}
           alt={isPlaceholderBanner(prevBanner) ? 'Advertise here' : 'Advertisement'}
-          className="absolute inset-0 w-full h-full object-fill transition-opacity duration-[3000ms] opacity-0"
+          className="absolute inset-0 w-full h-full object-fill z-0"
           onError={() => handleError(previousIndex, prevBanner)}
         />
       )}
-      {/* Current banner fading in */}
+      {/* Current banner (fades in over previous) */}
       <img
         key={`current-${currentIndex}`}
         src={getImgSrc(banner, currentIndex)}
         alt={isPlaceholderBanner(banner) ? 'Advertise here' : 'Advertisement'}
-        className={`w-full h-full object-fill transition-opacity duration-[3000ms] ${fading ? 'opacity-0' : 'opacity-100'}`}
-        onError={() => handleError(currentIndex, banner)}
-        loading="lazy"
-        onLoad={(e) => {
-          if (fading) {
-            // Force reflow then set opacity to trigger the transition
-            const el = e.currentTarget;
-            el.getBoundingClientRect();
-            requestAnimationFrame(() => { el.style.opacity = '1'; });
+        className={`w-full h-full object-fill transition-opacity duration-[3000ms] ease-in-out ${fading ? 'opacity-0' : 'opacity-100'}`}
+        style={fading ? { opacity: 1 } : undefined}
+        ref={(el) => {
+          if (el && fading) {
+            // Start at opacity 0 then transition to 1
+            el.style.opacity = '0';
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                el.style.opacity = '1';
+              });
+            });
           }
         }}
+        onError={() => handleError(currentIndex, banner)}
+        loading="lazy"
       />
       <Badge
         variant="secondary"
