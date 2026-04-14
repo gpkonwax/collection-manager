@@ -305,6 +305,9 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               <Timer className="h-3.5 w-3.5" /> Timer
             </Label>
           </div>
+          {timerEnabled && !timerRunning && elapsedMs === 0 && (
+            <span className="text-xs text-muted-foreground italic">*Press Scramble to start the timer</span>
+          )}
           {timerEnabled && (
             <span className={`font-mono text-sm tabular-nums ${timerRunning ? 'text-cheese' : 'text-muted-foreground'}`}>
               {formatTime(elapsedMs)}
