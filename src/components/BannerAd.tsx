@@ -73,52 +73,21 @@ interface SharedBannerRotatorProps {
 }
 
 function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBannerRotatorProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
-  const [fading, setFading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [gatewayIdxMap, setGatewayIdxMap] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (banners.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex(prev => {
-        setPreviousIndex(prev);
-        setFading(true);
-        return (prev + 1) % banners.length;
-      });
+      setActiveIndex(prev => (prev + 1) % banners.length);
     }, ROTATION_INTERVAL);
     return () => clearInterval(interval);
   }, [banners.length]);
 
-  useEffect(() => {
-    if (!fading) return;
-    const timeout = setTimeout(() => {
-      setFading(false);
-      setPreviousIndex(null);
-    }, 3000);
-    return () => clearTimeout(timeout);
-  }, [fading]);
+  const activeBanner = banners[activeIndex];
+  if (!activeBanner) return null;
 
-  const banner = banners[currentIndex];
-  if (!banner) return null;
-
-  const prevBanner = previousIndex !== null ? banners[previousIndex] : null;
-
-  const getImgSrc = (b: ActiveBanner, idx: number) => {
-    const gIdx = gatewayIdxMap[idx] || 0;
-    return isPlaceholderBanner(b) ? PLACEHOLDER_IMAGE : getIpfsImageUrl(b.ipfsHash, gIdx);
-  };
-
-  const handleError = (idx: number, b: ActiveBanner) => {
-    if (!isPlaceholderBanner(b)) {
-      setGatewayIdxMap(prev => ({
-        ...prev,
-        [idx]: ((prev[idx] || 0) + 1) % IPFS_GATEWAYS.length,
-      }));
-    }
-  };
-
-  const safeUrl = sanitizeUrl(banner.websiteUrl);
+  const safeUrl = sanitizeUrl(activeBanner.websiteUrl);
   const handleClick = () => {
     if (safeUrl) onLinkClick(safeUrl);
   };
@@ -128,36 +97,35 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
       className={`relative group overflow-hidden rounded-lg border border-cheese/20 bg-card ${safeUrl ? 'cursor-pointer' : ''} ${className}`}
       onClick={handleClick}
     >
-      {/* Previous banner (stays visible underneath, fades out) */}
-      {fading && prevBanner && previousIndex !== null && (
-        <img
-          key={`prev-${previousIndex}`}
-          src={getImgSrc(prevBanner, previousIndex)}
-          alt={isPlaceholderBanner(prevBanner) ? 'Advertise here' : 'Advertisement'}
-          className="absolute inset-0 w-full h-full object-fill z-0"
-          onError={() => handleError(previousIndex, prevBanner)}
-        />
-      )}
-      {/* Current banner (fades in over previous) */}
+      {banners.map((banner, idx) => {
+        const isActive = idx === activeIndex;
+        const gIdx = gatewayIdxMap[idx] || 0;
+        const imgSrc = isPlaceholderBanner(banner) ? PLACEHOLDER_IMAGE : getIpfsImageUrl(banner.ipfsHash, gIdx);
+
+        return (
+          <img
+            key={`banner-${idx}-${banner.ipfsHash || 'placeholder'}`}
+            src={imgSrc}
+            alt={isPlaceholderBanner(banner) ? 'Advertise here' : 'Advertisement'}
+            className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-[3000ms] ease-in-out ${isActive ? 'opacity-100' : 'opacity-0'}`}
+            onError={() => {
+              if (!isPlaceholderBanner(banner)) {
+                setGatewayIdxMap(prev => ({
+                  ...prev,
+                  [idx]: ((prev[idx] || 0) + 1) % IPFS_GATEWAYS.length,
+                }));
+              }
+            }}
+            loading="lazy"
+          />
+        );
+      })}
+      {/* Invisible spacer to maintain container height */}
       <img
-        key={`current-${currentIndex}`}
-        src={getImgSrc(banner, currentIndex)}
-        alt={isPlaceholderBanner(banner) ? 'Advertise here' : 'Advertisement'}
-        className={`w-full h-full object-fill transition-opacity duration-[3000ms] ease-in-out ${fading ? 'opacity-0' : 'opacity-100'}`}
-        style={fading ? { opacity: 1 } : undefined}
-        ref={(el) => {
-          if (el && fading) {
-            // Start at opacity 0 then transition to 1
-            el.style.opacity = '0';
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                el.style.opacity = '1';
-              });
-            });
-          }
-        }}
-        onError={() => handleError(currentIndex, banner)}
-        loading="lazy"
+        src={isPlaceholderBanner(activeBanner) ? PLACEHOLDER_IMAGE : getIpfsImageUrl(activeBanner.ipfsHash, gatewayIdxMap[activeIndex] || 0)}
+        alt=""
+        className="w-full h-full object-fill invisible"
+        aria-hidden="true"
       />
       <Badge
         variant="secondary"
