@@ -377,11 +377,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
         {metaFields.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-cheese">Metadata</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               {metaFields.map(([key, value]) => (
-                <div key={key} className="bg-muted/30 rounded p-2">
+                <div key={key} className="bg-muted/30 rounded px-2 py-1">
                   <span className="text-[10px] text-cheese uppercase">{key}</span>
-                  <p className="text-sm text-foreground truncate">{String(value)}</p>
+                  <p className="text-xs text-foreground truncate">{String(value)}</p>
                 </div>
               ))}
             </div>
