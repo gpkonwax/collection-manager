@@ -1118,7 +1118,7 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Layers className="h-4 w-4" /> Flexibility</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🎛️</span> Flexibility</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Unified view for <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> — your entire GPK collection in one place regardless of which contract holds them.</li>
                   <li>Multi-account support: add multiple WAX accounts and switch between them instantly.</li>
@@ -1129,7 +1129,7 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Puzzle className="h-4 w-4" /> Series 2 Puzzle Builder</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🧩</span> Series 2 Puzzle Builder</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Series 2 cards contain hidden puzzle pieces on their backs.</li>
                   <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces.</li>
@@ -1139,7 +1139,7 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><ZoomIn className="h-4 w-4" /> Inspection & Magnification</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔍</span> Inspection & Magnification</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Click any card to open a full-detail view with front/back both visible.</li>
                   <li>Magnifying lens follows your cursor on hover, zooming into every line and detail.</li>
@@ -1157,7 +1157,7 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Send className="h-4 w-4" /> Transfer & Burn</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔥</span> Transfer & Burn</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Transfer NFTs between WAX accounts — supports both SimpleAssets and AtomicAssets in one transaction.</li>
                   <li>Bulk selection mode for transferring or burning multiple cards at once.</li>
@@ -1166,7 +1166,7 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Download className="h-4 w-4" /> Import / Export</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">💾</span> Import / Export</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Save your Saved Collection layouts as JSON files.</li>
                   <li>Import layouts to restore or share your collection arrangements.</li>
@@ -1174,7 +1174,7 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Users className="h-4 w-4" /> Community</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🤝</span> Community</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Completely free to use — no fees, no sign-ups.</li>
                   <li>Built by <span className="text-cheese font-semibold">$CHEESE</span>, the first project ever launched on the WAX blockchain.</li>
