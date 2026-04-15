@@ -445,7 +445,11 @@ export default function SimpleAssetsPage() {
     const fromAssets = new Set(assets.map((a) => SCHEMA_TO_CATEGORY[a.category] || a.category).filter((c) => c !== 'packs'));
     for (const p of packs) { const cat = PACK_CATEGORY_MAP[p.symbol]; if (cat) fromAssets.add(cat); }
     for (const p of atomicPacks) { const cat = ATOMIC_PACK_CATEGORY_MAP[p.templateId]; if (cat) fromAssets.add(cat); }
+    // Always include all known categories so they appear in the dropdown even if user owns none
     const priority = ['all', 'series1', 'series2', 'exotic', 'crashgordon', 'bernventures', 'mittens', 'gamestonk', 'foodfightb', 'bonus', 'originalart', 'promo'];
+    for (const cat of priority) {
+      if (cat !== 'all') fromAssets.add(cat);
+    }
     return [...fromAssets].sort((a, b) => {
       const ai = priority.indexOf(a);
       const bi = priority.indexOf(b);
