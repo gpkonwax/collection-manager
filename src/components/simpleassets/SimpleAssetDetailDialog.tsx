@@ -130,7 +130,7 @@ function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorCha
               title={c.name}
               className={`w-5 h-5 rounded-full border-2 transition-transform ${color === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
               style={{ background: c.value }}
-              onClick={() => onColorChange?.(c.value)}
+              onClick={() => (onColorChange || setLocalColor)(c.value)}
             />
           ))}
           <button
