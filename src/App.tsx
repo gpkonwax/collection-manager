@@ -20,7 +20,7 @@ const App = () => {
         <WaxProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter basename="/collection-manager">
+          <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="*" element={<NotFound />} />
