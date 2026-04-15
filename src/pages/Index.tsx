@@ -41,6 +41,7 @@ import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
+import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
