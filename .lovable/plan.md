@@ -1,31 +1,33 @@
 
 
-## Plan: Add Social Links to Footer
+## Deploy to GitHub Pages
 
-Add a row of social/website links centered at the bottom of the footer, below the existing Donate button. Each link will use a recognizable icon and open in a new tab (via the external link warning dialog).
+### What I'll Do
+1. **Update `vite.config.ts`** — Set `base: '/collection-manager/'` so all assets load correctly from the GitHub Pages subpath
+2. **Create `.github/workflows/deploy.yml`** — Automated workflow that builds and deploys on every push
 
-### Links & Icons
-- **Website** (cheeseonwax.github.io) → `Globe` icon from lucide-react
-- **Telegram** → SVG inline icon (Telegram paper plane — lucide doesn't have one)
-- **CHEESEHub** → `Home` icon (or `LayoutGrid`) from lucide-react
-- **X / Twitter** → SVG inline icon (X logo — lucide doesn't have one)
+### What You Need to Do (Step by Step)
 
-### Implementation (single file: `src/pages/Index.tsx`)
+**Step 1: Connect to GitHub**
+- In the Lovable editor sidebar, click **Connectors** → **GitHub** → **Connect project**
+- Authorize Lovable when prompted
+- Select your **gpkonwax** GitHub account
+- Name the repo **collection-manager** and click **Create Repository**
 
-1. After the Donate button (line ~1604), add a centered `div` with flex row of icon links
-2. Each link will be a small icon button using `requestNavigation()` (the existing external link warning system) on click
-3. Style: muted foreground icons that brighten on hover to cheese yellow, small gap between them, centered via `flex justify-center`
-4. Telegram and X icons will be small inline SVGs; Website and CHEESEHub use lucide `Globe` and `Home`
-5. Add subtle label text below or as tooltip for accessibility
+**Step 2: Tell me it's connected**
+- Once the repo is created, come back and let me know — I'll then push the config changes
 
-### Visual Layout
-```text
-[existing footer text]
-[Donate button]
+**Step 3: Enable GitHub Pages**
+- Go to https://github.com/gpkonwax/collection-manager/settings/pages
+- Under **Source**, select **GitHub Actions**
+- Click **Save**
 
-  🌐  ✈️  🏠  𝕏
- Web  TG  Hub  X
-```
+**Step 4: Wait ~1-2 minutes**
+- The workflow will run automatically after the next push
+- Your site will be live at: **https://gpkonwax.github.io/collection-manager/**
 
-Icons will be ~20px, spaced evenly, centered below the donate button with a small `mt-4` gap.
+### Technical Details
+- `base` in Vite ensures JS/CSS/image paths include `/collection-manager/` prefix
+- The GitHub Actions workflow uses Node 20, installs dependencies, runs `npm run build`, and deploys the `dist/` folder
+- React Router paths will work thanks to a `404.html` redirect trick for SPA routing on GitHub Pages
 
