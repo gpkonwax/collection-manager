@@ -1,3 +1,5 @@
-# Welcome to your Lovable project
+# GPK Collection Manager
 
-TODO: Document your project here
+A WAX blockchain NFT viewer and pack opener for Garbage Pail Kids (GPK) digital collectibles.
+
+Built by the $CHEESE community.
