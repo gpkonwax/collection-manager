@@ -248,7 +248,6 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
 
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
-  const [drawMode, setDrawMode] = useState<number | null>(null);
   const [drawAll, setDrawAll] = useState(false);
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
@@ -256,7 +255,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   useEffect(() => {
     if (asset) {
       setShowRawJson(false);
-      setDrawMode(null);
       setDrawAll(false);
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
@@ -299,23 +297,12 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const isBack = i === 1;
             const isLandscape = isBack && isSeries1;
-            const isDrawing = isSeries1 ? drawAll : drawMode === i;
+            const isDrawing = isDrawable && drawAll;
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
                 <div className="flex items-center justify-center gap-1.5">
                   <p className="text-xs font-semibold text-cheese text-center">{label}</p>
-                  {isDrawable && !isSeries1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={() => setDrawMode(isDrawing ? null : i)}
-                      title={isDrawing ? 'Switch to magnifier' : 'Draw on card'}
-                    >
-                      {isDrawing ? <Search className="h-3 w-3 text-cheese" /> : <Pen className="h-3 w-3 text-cheese" />}
-                    </Button>
-                  )}
                 </div>
                 <ImageWithLens
                   url={imgUrl}
@@ -323,22 +310,21 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   isLandscape={isLandscape}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   drawEnabled={isDrawing}
-                  drawColor={isSeries1 ? unifiedColor : undefined}
-                  showPalette={!isSeries1}
-                  onColorChange={!isSeries1 ? undefined : undefined}
-                  canvasRegister={isSeries1 ? (canvas) => {
+                  drawColor={unifiedColor}
+                  showPalette={false}
+                  canvasRegister={(canvas) => {
                     if (canvas) {
                       if (!canvasRefs.current.includes(canvas)) canvasRefs.current.push(canvas);
                     } else {
                       canvasRefs.current = canvasRefs.current.filter(Boolean);
                     }
-                  } : undefined}
+                  }}
                 />
               </div>
             );
           })}
         </div>
-        {isSeries1 && isDrawable && images.length > 1 && (
+        {isDrawable && images.length > 1 && (
           <div className="flex flex-col items-center gap-1.5 mt-1">
             <div className="flex gap-1.5">
               <Button
