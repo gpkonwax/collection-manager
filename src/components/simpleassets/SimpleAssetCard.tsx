@@ -159,6 +159,10 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.selected === next.selected &&
     prev.draggable === next.draggable &&
     prev.className === next.className &&
-    prev.stackCount === next.stackCount
+    prev.stackCount === next.stackCount &&
+    prev.onDragStart === next.onDragStart &&
+    prev.onDragOver === next.onDragOver &&
+    prev.onDrop === next.onDrop &&
+    prev.onDragEnd === next.onDragEnd
   );
 });
