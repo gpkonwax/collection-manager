@@ -1098,7 +1098,7 @@ export default function SimpleAssetsPage() {
           <ScrollArea className="max-h-[65vh] pr-4">
             <div className="space-y-5 text-sm">
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Eye className="h-4 w-4" /> Collection Views</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection as it is. Supports pagination for large collections and instant search across all card names.</li>
                   <li><strong>Collector Binder</strong> — Template-based completionist view with real-time completion percentage tracking. Owned cards appear in full color with checkmarks; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need. Duplicate cards are stacked and accessible via a stack dialog showing all copies. Completion stats update live as you open packs or receive transfers.</li>
