@@ -21,6 +21,9 @@ const CATEGORY_SCHEMAS: Record<string, string[]> = {
   mittens: ['mittens'],
   gamestonk: ['gamestonk'],
   foodfightb: ['foodfightb'],
+  bonus: ['bonus'],
+  originalart: ['originalart'],
+  promo: ['promo'],
 };
 
 // Allowed variants per schema (same as binder filtering)
