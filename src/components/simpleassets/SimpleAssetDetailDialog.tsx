@@ -18,11 +18,11 @@ const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
 const DRAWABLE_CATEGORIES = new Set(['five', 'series1', 'series2']);
 const DRAW_COLORS = [
+  { name: 'Black', value: '#000000' },
   { name: 'Yellow', value: 'hsl(45, 97%, 54%)' },
   { name: 'White', value: '#ffffff' },
   { name: 'Red', value: '#ef4444' },
   { name: 'Blue', value: '#3b82f6' },
-  { name: 'Black', value: '#000000' },
 ];
 
 function getMintDisplay(asset: SimpleAsset): string | null {
