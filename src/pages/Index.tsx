@@ -1245,16 +1245,30 @@ export default function SimpleAssetsPage() {
               </div>
             </div>
 
-            {/* Section C — Puzzle Builder */}
-            <div className="max-w-5xl mx-auto">
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-8 flex flex-col md:flex-row items-center gap-6">
+            {/* Section C — Puzzle Builder + Draw & Write */}
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Puzzle Builder */}
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <Puzzle className="h-8 w-8 text-cheese" />
                 </div>
-                <div className="text-center md:text-left">
+                <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
-                  <p className="text-foreground">
+                  <p className="text-foreground text-sm">
                     Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder auto-populates your collected pieces onto a free-form canvas where you can drag, rotate, and arrange them. Scramble them, line them up, and save your progress as JSON. Can you complete the red border puzzle?
+                  </p>
+                </div>
+              </div>
+
+              {/* Draw & Write */}
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
+                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
+                  <span className="text-3xl">✏️</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-cheese mb-2">Draw & Write on Cards</h3>
+                  <p className="text-foreground text-sm">
+                    Unleash your inner GPK artist! Switch to pen mode on any card to doodle, scribble, and personalize your collection. Reward your friends and family members with the <span className="text-cheese font-semibold">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold">Late Late Late Show</span>, or just draw mustaches on everyone. Pick your color, go wild, and erase when you're done.
                   </p>
                 </div>
               </div>
