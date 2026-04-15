@@ -168,10 +168,15 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
 }) {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [wasDrawn, setWasDrawn] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hash = url ? extractIpfsHash(url) : null;
   const cachedIdx = getCachedGatewayIndex(hash);
   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
+
+  useEffect(() => {
+    if (drawEnabled && !wasDrawn) setWasDrawn(true);
+  }, [drawEnabled, wasDrawn]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -183,6 +188,8 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
 
   const bgX = isLandscape ? pos.y : pos.x;
   const bgY = isLandscape ? (100 - pos.x) : pos.y;
+
+  const showCanvas = drawEnabled || wasDrawn;
 
   return (
     <div
@@ -202,13 +209,14 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
           showSkeleton
         />
       </div>
-      {drawEnabled && (
+      {showCanvas && (
         <DrawCanvas
           isLandscape={isLandscape}
           color={drawColor}
-          showPalette={showPalette}
+          showPalette={showPalette && drawEnabled}
           onColorChange={onColorChange}
           canvasRegister={canvasRegister}
+          active={drawEnabled}
         />
       )}
       {!drawEnabled && hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
