@@ -1232,7 +1232,7 @@ export default function SimpleAssetsPage() {
                 />
               </div>
             </div>
-            <p className="max-w-5xl mx-auto text-center text-foreground text-sm">
+            <p className="max-w-5xl mx-auto text-center text-cheese text-base font-medium">
               All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Toggle between them instantly using a simple tab interface.
             </p>
 
