@@ -248,7 +248,6 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
 
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
-  const [drawMode, setDrawMode] = useState<number | null>(null);
   const [drawAll, setDrawAll] = useState(false);
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
@@ -256,7 +255,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   useEffect(() => {
     if (asset) {
       setShowRawJson(false);
-      setDrawMode(null);
       setDrawAll(false);
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
