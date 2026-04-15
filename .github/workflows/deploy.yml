@@ -23,13 +23,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      - run: npm ci
-      - run: npm run build
+      - run: bun install
+      - run: bun run build
 
       - name: Copy index.html to 404.html for SPA routing
         run: cp dist/index.html dist/404.html
