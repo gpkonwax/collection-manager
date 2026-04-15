@@ -269,6 +269,28 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             );
           })}
         </div>
+        {isSeries1 && isDrawable && images.length > 1 && (
+          <div className="flex justify-center gap-1.5 mt-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 rounded-md ${!drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
+              onClick={() => setDrawAll(false)}
+              title="Magnifier"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 rounded-md ${drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
+              onClick={() => setDrawAll(true)}
+              title="Draw on card"
+            >
+              <Pen className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         {mintDisplay && (
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-cheese">Mint</span>
