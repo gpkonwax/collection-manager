@@ -7,7 +7,7 @@ import { ExternalLink } from 'lucide-react';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
 
 const ROTATION_INTERVAL = 30_000;
-const PLACEHOLDER_IMAGE = '/cheese-banner-placeholder.png';
+const PLACEHOLDER_IMAGE = `${import.meta.env.BASE_URL}cheese-banner-placeholder.png`;
 
 function getIpfsImageUrl(hash: string, gatewayIndex = 0): string {
   const gateway = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
