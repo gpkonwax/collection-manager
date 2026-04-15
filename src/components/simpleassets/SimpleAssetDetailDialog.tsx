@@ -43,15 +43,17 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
-function DrawCanvas({ isLandscape, color, showPalette, onColorChange, canvasRegister }: {
+function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorChange, canvasRegister }: {
   isLandscape: boolean;
-  color: string;
+  color?: string;
   showPalette?: boolean;
   onColorChange?: (c: string) => void;
   canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
+  const [localColor, setLocalColor] = useState(DRAW_COLORS[0].value);
+  const color = externalColor || localColor;
   const lastPos = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
