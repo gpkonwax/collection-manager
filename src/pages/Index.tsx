@@ -1148,6 +1148,15 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-sm">✏️</span> Draw & Write on Cards</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Switch to pen mode on any card to doodle, scribble or write.</li>
+                  <li>Reward your friends and family members with the <strong>'Spaz Award'</strong>, permit them the right to stay up late and watch the <strong>Late Late Late Show</strong>, or just draw mustaches on everyone.</li>
+                  <li>After taking a screenshot just press the erase button or close the modal and your cards are as good as new!</li>
+                  <li>Pick from multiple colors and draw on both front and back images.</li>
+                </ul>
+              </div>
+              <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Send className="h-4 w-4" /> Transfer & Burn</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Transfer NFTs between WAX accounts — supports both SimpleAssets and AtomicAssets in one transaction.</li>
@@ -1268,8 +1277,8 @@ export default function SimpleAssetsPage() {
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Draw & Write on Cards</h3>
                   <p className="text-foreground text-sm">
-                    Unleash your inner GPK artist! Switch to pen mode on any card to doodle, scribble, and personalize your collection. Reward your friends and family members with the <span className="text-cheese font-semibold">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold">Late Late Late Show</span>, or just draw mustaches on everyone. Pick your color, go wild, and erase when you're done.
-                  </p>
+                     Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family members with the <span className="text-cheese font-semibold">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold">Late Late Late Show</span>, or just draw mustaches on everyone. Except now after taking a screenshot just press the erase button or close the modal and your cards are as good as new!
+                   </p>
                 </div>
               </div>
             </div>
