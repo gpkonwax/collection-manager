@@ -43,20 +43,27 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
-function DrawCanvas({ isLandscape }: { isLandscape: boolean }) {
+function DrawCanvas({ isLandscape, color, showPalette, onColorChange, canvasRegister }: {
+  isLandscape: boolean;
+  color: string;
+  showPalette?: boolean;
+  onColorChange?: (c: string) => void;
+  canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
-  const [color, setColor] = useState(DRAW_COLORS[0].value);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    canvasRegister?.(canvasRef.current);
+    return () => canvasRegister?.(null);
+  }, [canvasRegister]);
 
   const getPos = useCallback((e: React.PointerEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }, []);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
@@ -113,28 +120,30 @@ function DrawCanvas({ isLandscape }: { isLandscape: boolean }) {
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       />
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
-        {DRAW_COLORS.map((c) => (
+      {showPalette && (
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
+          {DRAW_COLORS.map((c) => (
+            <button
+              key={c.name}
+              title={c.name}
+              className={`w-5 h-5 rounded-full border-2 transition-transform ${color === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
+              style={{ background: c.value }}
+              onClick={() => onColorChange?.(c.value)}
+            />
+          ))}
           <button
-            key={c.name}
-            title={c.name}
-            className={`w-5 h-5 rounded-full border-2 transition-transform ${color === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
-            style={{ background: c.value }}
-            onClick={() => setColor(c.value)}
-          />
-        ))}
-        <button
-          title="Clear"
-          className="ml-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-cheese transition-colors"
-          onClick={() => {
-            const canvas = canvasRef.current;
-            const ctx = canvas?.getContext('2d');
-            if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
-          }}
-        >
-          <Eraser className="h-3.5 w-3.5" />
-        </button>
-      </div>
+            title="Clear"
+            className="ml-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-cheese transition-colors"
+            onClick={() => {
+              const canvas = canvasRef.current;
+              const ctx = canvas?.getContext('2d');
+              if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }}
+          >
+            <Eraser className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </>
   );
 }
