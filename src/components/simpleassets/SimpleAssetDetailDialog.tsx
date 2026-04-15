@@ -117,11 +117,15 @@ function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorCha
       <canvas
         ref={canvasRef}
         className="absolute inset-0 z-40 rounded-lg"
-        style={{ cursor: 'crosshair', touchAction: 'none' }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        style={{
+          cursor: active ? 'crosshair' : 'default',
+          touchAction: 'none',
+          pointerEvents: active ? 'auto' : 'none',
+        }}
+        onPointerDown={active ? onPointerDown : undefined}
+        onPointerMove={active ? onPointerMove : undefined}
+        onPointerUp={active ? onPointerUp : undefined}
+        onPointerLeave={active ? onPointerUp : undefined}
       />
       {showPalette && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
