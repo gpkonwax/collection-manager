@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { getCachedGatewayIndex } from '@/hooks/useIpfsMedia';
 import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
-import { Pen, Search } from 'lucide-react';
+import { Pen, Search, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface Props {
@@ -113,7 +113,7 @@ function DrawCanvas({ isLandscape }: { isLandscape: boolean }) {
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       />
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
         {DRAW_COLORS.map((c) => (
           <button
             key={c.name}
@@ -123,6 +123,17 @@ function DrawCanvas({ isLandscape }: { isLandscape: boolean }) {
             onClick={() => setColor(c.value)}
           />
         ))}
+        <button
+          title="Clear"
+          className="ml-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-cheese transition-colors"
+          onClick={() => {
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d');
+            if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }}
+        >
+          <Eraser className="h-3.5 w-3.5" />
+        </button>
       </div>
     </>
   );
