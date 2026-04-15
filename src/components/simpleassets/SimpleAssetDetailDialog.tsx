@@ -359,10 +359,10 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                 ))}
                 <button
                   title="Clear"
-                  className="ml-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-cheese transition-colors"
+                  className="ml-1 px-2 py-0.5 rounded-full bg-cheese text-black text-xs font-semibold hover:bg-cheese/80 transition-colors"
                   onClick={clearAllCanvases}
                 >
-                   <span className="text-xs">🧹</span>
+                  Clear
                 </button>
               </div>
             )}
