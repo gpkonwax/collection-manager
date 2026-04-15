@@ -1,35 +1,29 @@
 
 
-## Unify Pen/Magnifier Toggle for Series 1 Detail View
+## Unify Drawing Experience for Series 2 to Match Series 1
 
 ### What changes
 
-**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**:
+Currently Series 1 has a unified toggle (magnifier/pen) with a shared color palette and clear button below the images. Series 2 still uses per-image pen toggles with per-image color palettes. This plan makes Series 2 work identically.
 
-1. **Change `drawMode` from per-image (`number | null`) to a boolean** — when enabled, both front and back enter draw mode simultaneously (same as magnifier which already applies to whichever image you hover)
+### Changes in `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
 
-2. **Remove per-image pen icon from the label row** — for Series 1 (`isSeries1`), no pen/search toggle appears above the Front or Back labels
+1. **Use `drawAll` for all drawable categories** — remove the separate `drawMode` (per-image) state entirely. Both Series 1 and Series 2 use the single `drawAll` boolean.
 
-3. **Add a unified toggle below the images container** — only for Series 1, render a small row with Search and Pen icons side by side below the landscape back image area. The active mode gets a highlighted style (e.g. `bg-cheese/20 text-cheese` vs muted). Clicking toggles between magnifier and draw mode for all images at once.
+2. **Remove per-image pen toggle** — delete the `{isDrawable && !isSeries1 && ...}` block that renders per-image Pen/Search buttons above each image label (lines 308-318).
 
-4. **For Series 2** — keep the existing per-image pen toggle as-is (Series 2 is not affected by this change since `isSeries1` is false)
+3. **Extend unified toggle to all drawable categories** — change the condition on line 341 from `isSeries1 && isDrawable && images.length > 1` to just `isDrawable && images.length > 1`. This shows the magnifier/pen toggle + color palette + clear button below the images for both Series 1 and Series 2.
 
-### Layout sketch
-```text
-  [Front label]         [Back label]
-  ┌──────────┐    ┌──────────────────┐
-  │  front   │    │   back (landscape)│
-  │  image   │    │                  │
-  └──────────┘    └──────────────────┘
-                  [ 🔍  |  ✏️ ]  ← unified toggle, below back
-```
+4. **Pass unified color and canvas register to all drawable images** — remove the `isSeries1` guards on `drawColor`, `showPalette`, `onColorChange`, and `canvasRegister` props (lines 326-335). All drawable categories now use `unifiedColor` and register their canvases for the unified clear button.
 
-### Implementation detail
+5. **Hide per-image palette** — set `showPalette={false}` for all images since the palette is now always below the container.
 
-- `drawMode` becomes `boolean` state (default `false`)
-- In the `images.map` loop for Series 1: pass `drawEnabled={drawMode}` to both images, remove the per-image toggle button
-- After the images flex container, if `isSeries1 && isDrawable && images.length > 1`, render the toggle row:
-  - Two icon buttons (Search, Pen) with the active one highlighted
-  - Centered, positioned right after the images div
-- For non-Series-1 drawable categories, keep the existing per-image toggle unchanged
+6. **Clean up** — remove the `drawMode` state variable and its reset in useEffect since `drawAll` covers everything. The `isDrawing` variable simplifies to just `drawAll` for all drawable categories.
+
+### What stays the same
+- Series 2 images are portrait (not landscape) — no layout changes
+- Magnifier lens behavior unchanged
+- Drawing persistence when toggling modes
+- Eraser clears all canvases
+- Non-drawable categories unaffected
 
