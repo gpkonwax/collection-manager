@@ -1,33 +1,16 @@
 
 
-## Deploy to GitHub Pages
+## Fix GitHub Actions Workflow
 
-### What I'll Do
-1. **Update `vite.config.ts`** — Set `base: '/collection-manager/'` so all assets load correctly from the GitHub Pages subpath
-2. **Create `.github/workflows/deploy.yml`** — Automated workflow that builds and deploys on every push
+The "Multiple artifacts" error happens when you **re-run** a failed workflow job — GitHub creates duplicate artifacts. The fix is to trigger a **fresh run** instead. I'll also update the workflow to address the Node.js 20 deprecation warnings.
 
-### What You Need to Do (Step by Step)
+### Changes to `.github/workflows/deploy.yml`
+1. Remove `actions/setup-node@v4` — not needed since we use Bun
+2. Update action versions to latest (v5 where available) to avoid Node.js 20 deprecation
+3. Add `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` env to future-proof
 
-**Step 1: Connect to GitHub**
-- In the Lovable editor sidebar, click **Connectors** → **GitHub** → **Connect project**
-- Authorize Lovable when prompted
-- Select your **gpkonwax** GitHub account
-- Name the repo **collection-manager** and click **Create Repository**
-
-**Step 2: Tell me it's connected**
-- Once the repo is created, come back and let me know — I'll then push the config changes
-
-**Step 3: Enable GitHub Pages**
-- Go to https://github.com/gpkonwax/collection-manager/settings/pages
-- Under **Source**, select **GitHub Actions**
-- Click **Save**
-
-**Step 4: Wait ~1-2 minutes**
-- The workflow will run automatically after the next push
-- Your site will be live at: **https://gpkonwax.github.io/collection-manager/**
-
-### Technical Details
-- `base` in Vite ensures JS/CSS/image paths include `/collection-manager/` prefix
-- The GitHub Actions workflow uses Node 20, installs dependencies, runs `npm run build`, and deploys the `dist/` folder
-- React Router paths will work thanks to a `404.html` redirect trick for SPA routing on GitHub Pages
+### After the update
+- The push to GitHub will automatically trigger a **fresh** workflow run
+- Do NOT click "Re-run jobs" on the old failed run — that causes the duplicate artifact error
+- Just wait for the new run triggered by this commit
 
