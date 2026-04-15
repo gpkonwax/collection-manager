@@ -148,12 +148,16 @@ function DrawCanvas({ isLandscape, color, showPalette, onColorChange, canvasRegi
   );
 }
 
-function ImageWithLens({ url, alt, isLandscape, className, drawEnabled }: {
+function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColor, showPalette, onColorChange, canvasRegister }: {
   url: string;
   alt: string;
   isLandscape: boolean;
   className?: string;
   drawEnabled?: boolean;
+  drawColor?: string;
+  showPalette?: boolean;
+  onColorChange?: (c: string) => void;
+  canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -191,7 +195,15 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled }: {
           showSkeleton
         />
       </div>
-      {drawEnabled && <DrawCanvas isLandscape={isLandscape} />}
+      {drawEnabled && (
+        <DrawCanvas
+          isLandscape={isLandscape}
+          color={drawColor || DRAW_COLORS[0].value}
+          showPalette={showPalette}
+          onColorChange={onColorChange}
+          canvasRegister={canvasRegister}
+        />
+      )}
       {!drawEnabled && hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
         <div
           className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50 overflow-hidden"
