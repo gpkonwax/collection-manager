@@ -2,8 +2,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+
 export default defineConfig(({ mode }) => ({
-  base: '/collection-manager/',
+  base: isGitHubPages ? '/collection-manager/' : '/',
   server: {
     host: "::",
     port: 8080,

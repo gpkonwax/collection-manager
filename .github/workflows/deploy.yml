@@ -31,7 +31,7 @@ jobs:
           bun-version: latest
 
       - run: bun install
-      - run: bun run build
+      - run: GITHUB_PAGES=true bun run build
 
       - name: Copy index.html to 404.html for SPA routing
         run: cp dist/index.html dist/404.html
