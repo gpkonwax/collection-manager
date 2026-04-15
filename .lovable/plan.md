@@ -1,29 +1,31 @@
 
 
-## Unify Drawing Experience for Series 2 to Match Series 1
+## Plan: Add Social Links to Footer
 
-### What changes
+Add a row of social/website links centered at the bottom of the footer, below the existing Donate button. Each link will use a recognizable icon and open in a new tab (via the external link warning dialog).
 
-Currently Series 1 has a unified toggle (magnifier/pen) with a shared color palette and clear button below the images. Series 2 still uses per-image pen toggles with per-image color palettes. This plan makes Series 2 work identically.
+### Links & Icons
+- **Website** (cheeseonwax.github.io) → `Globe` icon from lucide-react
+- **Telegram** → SVG inline icon (Telegram paper plane — lucide doesn't have one)
+- **CHEESEHub** → `Home` icon (or `LayoutGrid`) from lucide-react
+- **X / Twitter** → SVG inline icon (X logo — lucide doesn't have one)
 
-### Changes in `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
+### Implementation (single file: `src/pages/Index.tsx`)
 
-1. **Use `drawAll` for all drawable categories** — remove the separate `drawMode` (per-image) state entirely. Both Series 1 and Series 2 use the single `drawAll` boolean.
+1. After the Donate button (line ~1604), add a centered `div` with flex row of icon links
+2. Each link will be a small icon button using `requestNavigation()` (the existing external link warning system) on click
+3. Style: muted foreground icons that brighten on hover to cheese yellow, small gap between them, centered via `flex justify-center`
+4. Telegram and X icons will be small inline SVGs; Website and CHEESEHub use lucide `Globe` and `Home`
+5. Add subtle label text below or as tooltip for accessibility
 
-2. **Remove per-image pen toggle** — delete the `{isDrawable && !isSeries1 && ...}` block that renders per-image Pen/Search buttons above each image label (lines 308-318).
+### Visual Layout
+```text
+[existing footer text]
+[Donate button]
 
-3. **Extend unified toggle to all drawable categories** — change the condition on line 341 from `isSeries1 && isDrawable && images.length > 1` to just `isDrawable && images.length > 1`. This shows the magnifier/pen toggle + color palette + clear button below the images for both Series 1 and Series 2.
+  🌐  ✈️  🏠  𝕏
+ Web  TG  Hub  X
+```
 
-4. **Pass unified color and canvas register to all drawable images** — remove the `isSeries1` guards on `drawColor`, `showPalette`, `onColorChange`, and `canvasRegister` props (lines 326-335). All drawable categories now use `unifiedColor` and register their canvases for the unified clear button.
-
-5. **Hide per-image palette** — set `showPalette={false}` for all images since the palette is now always below the container.
-
-6. **Clean up** — remove the `drawMode` state variable and its reset in useEffect since `drawAll` covers everything. The `isDrawing` variable simplifies to just `drawAll` for all drawable categories.
-
-### What stays the same
-- Series 2 images are portrait (not landscape) — no layout changes
-- Magnifier lens behavior unchanged
-- Drawing persistence when toggling modes
-- Eraser clears all canvases
-- Non-drawable categories unaffected
+Icons will be ~20px, spaced evenly, centered below the donate button with a small `mt-4` gap.
 
