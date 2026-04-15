@@ -1,28 +1,34 @@
 
 
-## Fix Banner Ad Transition to Match CheeseHub
+## Add Draw/Annotate Mode to NFT Detail Dialog (Series 1 & 2 Only)
 
-### Problem
-The crossfade feels abrupt/janky. CheeseHub uses a 500ms transition (not 3000ms) and handles click targets per-layer with `pointer-events-none` on inactive banners.
+### Overview
+Add a toggleable pen/draw mode to the NFT detail view for Series 1 and Series 2 cards. Users can scribble names on awards, doodle on cards, etc. All drawings are temporary and cleared when the dialog closes.
 
-### Root cause
-The current code has the right stacking approach but two issues:
-1. The 3000ms duration is too long — it creates a slow, noticeable blend rather than a clean swap
-2. The click handler is on the outer container using the current `activeBanner`, so clicks route incorrectly during transitions
+### How It Works
+- A pen icon button appears next to each card image label (Front/Back) — only for Series 1 (`five`, `series1`) and Series 2 (`series2`) categories
+- Clicking the pen toggles between **magnifier mode** (default) and **draw mode**
+- In draw mode: the magnifying lens is disabled; instead, an HTML `<canvas>` overlay covers the card image and captures mouse/touch input for freehand drawing
+- Strokes render in a visible color (e.g. yellow/cheese) with a thin brush
+- When the dialog closes (or the asset changes), all canvas state is discarded — no persistence
 
-### Changes
+### Technical Approach
 
-**`src/components/BannerAd.tsx`** — Rework `SharedBannerRotator`:
+**`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**:
 
-1. Change `duration-[3000ms]` to `duration-500` (matching CheeseHub's 500ms fade)
-2. Add `pointer-events-auto z-10` to the active banner and `pointer-events-none z-0` to inactive banners
-3. Move the click handler from the outer container div into each banner layer, so only the active (visible) banner is clickable
-4. Remove `cursor-pointer` from the outer container since clicks are per-layer now
-5. Keep the invisible spacer image for height maintenance
+1. **New state**: `drawMode` — tracks which image index (if any) is in draw mode, or `null` for magnifier mode on all
+2. **Series check**: `const isDrawableCategory = isSeries1 || asset.category === 'series2'`
+3. **Toggle button**: Small `Pen`/`Search` (lucide-react) icon button next to each image label, only shown when `isDrawableCategory` is true
+4. **Modify `ImageWithLens`**: Accept a new `drawEnabled` boolean prop
+   - When `drawEnabled` is true: disable hover/lens behavior, overlay a transparent `<canvas>` element matching the container dimensions
+   - The canvas uses `pointerdown`/`pointermove`/`pointerup` events for drawing
+   - Use a `useRef` for the canvas, get 2D context, draw with `lineTo`/`stroke`
+   - Canvas has `position: absolute; inset: 0` over the image
+5. **Cleanup**: The `useEffect` that resets `showRawJson` on asset change also resets `drawMode` to `null`, which unmounts canvases and clears all drawings
+6. **Color picker** (optional simple touch): a small row of 4-5 color dots (yellow, white, red, blue, black) below the pen toggle so users can pick stroke color
 
-### What stays
-- 30-second rotation interval
-- Gateway fallback logic
-- Badge and external link icon overlays
-- `SingleBanner` component unchanged
+### What Stays
+- Magnifier lens behavior unchanged when not in draw mode
+- All existing metadata, layout, landscape rotation logic untouched
+- No data saved anywhere — purely ephemeral fun feature
 
