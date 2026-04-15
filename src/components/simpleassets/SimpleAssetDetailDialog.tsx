@@ -200,7 +200,7 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
       {drawEnabled && (
         <DrawCanvas
           isLandscape={isLandscape}
-          color={drawColor || DRAW_COLORS[0].value}
+          color={drawColor}
           showPalette={showPalette}
           onColorChange={onColorChange}
           canvasRegister={canvasRegister}
