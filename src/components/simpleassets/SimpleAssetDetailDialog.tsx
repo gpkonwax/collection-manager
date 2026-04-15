@@ -43,12 +43,13 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
-function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorChange, canvasRegister }: {
+function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorChange, canvasRegister, active }: {
   isLandscape: boolean;
   color?: string;
   showPalette?: boolean;
   onColorChange?: (c: string) => void;
   canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
+  active?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
@@ -116,11 +117,15 @@ function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorCha
       <canvas
         ref={canvasRef}
         className="absolute inset-0 z-40 rounded-lg"
-        style={{ cursor: 'crosshair', touchAction: 'none' }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        style={{
+          cursor: active ? 'crosshair' : 'default',
+          touchAction: 'none',
+          pointerEvents: active ? 'auto' : 'none',
+        }}
+        onPointerDown={active ? onPointerDown : undefined}
+        onPointerMove={active ? onPointerMove : undefined}
+        onPointerUp={active ? onPointerUp : undefined}
+        onPointerLeave={active ? onPointerUp : undefined}
       />
       {showPalette && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
@@ -163,10 +168,15 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
 }) {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [wasDrawn, setWasDrawn] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hash = url ? extractIpfsHash(url) : null;
   const cachedIdx = getCachedGatewayIndex(hash);
   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
+
+  useEffect(() => {
+    if (drawEnabled && !wasDrawn) setWasDrawn(true);
+  }, [drawEnabled, wasDrawn]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -178,6 +188,8 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
 
   const bgX = isLandscape ? pos.y : pos.x;
   const bgY = isLandscape ? (100 - pos.x) : pos.y;
+
+  const showCanvas = drawEnabled || wasDrawn;
 
   return (
     <div
@@ -197,13 +209,14 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
           showSkeleton
         />
       </div>
-      {drawEnabled && (
+      {showCanvas && (
         <DrawCanvas
           isLandscape={isLandscape}
           color={drawColor}
-          showPalette={showPalette}
+          showPalette={showPalette && drawEnabled}
           onColorChange={onColorChange}
           canvasRegister={canvasRegister}
+          active={drawEnabled}
         />
       )}
       {!drawEnabled && hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
