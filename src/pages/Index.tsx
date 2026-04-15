@@ -1107,7 +1107,7 @@ export default function SimpleAssetsPage() {
                 <p className="text-foreground mt-2">All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Switch seamlessly between them using a simple tab interface for unprecedented control over how you manage and view your collection.</p>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><Package className="h-4 w-4" /> Pack Openings</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📦</span> Pack Openings</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic) and Food Fight  with Crash Gordon, Bernventures, Mittens, GameStonk likely soon</li>
                   <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
