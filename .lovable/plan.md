@@ -1,20 +1,42 @@
 
 
-## Fix Placeholder Banner on GitHub Pages
+## Fix: NFT Cards Snapping Back When Dragged in Saved Collection
 
-The placeholder banner image path is hardcoded as `/cheese-banner-placeholder.png`. On GitHub Pages, the app lives under `/collection-manager/`, so root-relative paths miss the subpath and return 404.
+### Root Cause
 
-### Change
+The `SimpleAssetCard` component uses a custom `memo` comparator (lines 148–163) that **does not compare the drag handler props** (`onDragStart`, `onDragOver`, `onDrop`, `onDragEnd`). 
 
-In `src/components/BannerAd.tsx`, line 10, replace the hardcoded path with a Vite-aware base path:
+In the Saved Collection tab, each card gets freshly-created drag handlers on every render (e.g. `handleDrop(idx)` creates a new closure capturing the current `savedOrder`). But because memo skips comparing those props, the card keeps **stale closures** from the first render. When you drop a card, the old `handleDrop` reads the original `savedOrder` and produces the wrong swap — making the card appear to jump back.
+
+### Fix
+
+**`src/components/simpleassets/SimpleAssetCard.tsx`** — Add the four drag handler props to the memo comparator:
 
 ```tsx
-// Before
-const PLACEHOLDER_IMAGE = '/cheese-banner-placeholder.png';
-
-// After
-const PLACEHOLDER_IMAGE = `${import.meta.env.BASE_URL}cheese-banner-placeholder.png`;
+export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
+  return (
+    prev.asset.id === next.asset.id &&
+    prev.asset.image === next.asset.image &&
+    prev.asset.name === next.asset.name &&
+    prev.asset.author === next.asset.author &&
+    prev.asset.category === next.asset.category &&
+    prev.asset.quality === next.asset.quality &&
+    prev.asset.side === next.asset.side &&
+    prev.asset.source === next.asset.source &&
+    prev.selectionMode === next.selectionMode &&
+    prev.selected === next.selected &&
+    prev.draggable === next.draggable &&
+    prev.className === next.className &&
+    prev.stackCount === next.stackCount &&
+    prev.onDragStart === next.onDragStart &&
+    prev.onDragOver === next.onDragOver &&
+    prev.onDrop === next.onDrop &&
+    prev.onDragEnd === next.onDragEnd
+  );
+});
 ```
 
-`import.meta.env.BASE_URL` resolves to `/collection-manager/` in production (matching `vite.config.ts` base) and `/` in dev, so it works in both environments.
+This ensures that when `savedOrder` changes and new drag handlers are created, the card re-renders with the up-to-date closures, so swaps work correctly.
+
+### One file changed, four lines added
 
