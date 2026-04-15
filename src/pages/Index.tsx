@@ -1216,17 +1216,17 @@ export default function SimpleAssetsPage() {
               <h3 className="text-2xl font-bold text-cheese text-center">Three Ways to View, Sort and Show Your Collection</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <FeatureCard
-                  icon={<Eye className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">👁️</span>}
                   title="Classic View"
                   description="A read-only grid of your cards in natural sort order. Clean, simple, no clutter. Just your collection as it is."
                 />
                 <FeatureCard
-                  icon={<BookOpen className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">📖</span>}
                   title="Collector Binder"
                   description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. See exactly what you need."
                 />
                 <FeatureCard
-                  icon={<Save className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">💾</span>}
                   title="Saved Collection"
                   description="Your personal workspace. Import/export JSON layouts, drag-and-drop to rearrange, and build the perfect display of your collection."
                 />
@@ -1237,7 +1237,7 @@ export default function SimpleAssetsPage() {
             <div className="max-w-5xl mx-auto">
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-8 flex flex-col md:flex-row items-center gap-6">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <Package className="h-8 w-8 text-cheese" />
+                  <span className="text-3xl">📦</span>
                 </div>
                 <div className="text-center md:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Openings</h3>
@@ -1259,7 +1259,7 @@ export default function SimpleAssetsPage() {
               {/* Puzzle Builder */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <Puzzle className="h-8 w-8 text-cheese" />
+                  <span className="text-3xl">🧩</span>
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
@@ -1288,32 +1288,32 @@ export default function SimpleAssetsPage() {
               <h3 className="text-2xl font-bold text-cheese text-center">More Features</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <FeatureCard
-                  icon={<Box className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">📐</span>}
                   title="3D Card Tilt Effect"
                   description="Cards respond to your mouse with an interactive 3D tilt effect — realistic depth and perspective that brings your collection to life as you hover over each card."
                 />
                 <FeatureCard
-                  icon={<ZoomIn className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">🔍</span>}
                   title="Inspect Every Detail"
                   description="Click any card to open a full-detail view with front/back both visible. A magnifying lens follows your cursor on hover, zooming in so you can see every line, every detail, every variant difference up close."
                 />
                 <FeatureCard
-                  icon={<Filter className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">🎛️</span>}
                   title="Filter by Series & Variant"
                   description="Filter by Series 1, Series 2, and all other collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more. Available in all 3 view options."
                 />
                 <FeatureCard
-                  icon={<Layers className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">🔗</span>}
                   title="SimpleAssets & AtomicAssets"
                   description="Full support for both NFT standards on WAX. Your entire GPK collection in one unified view regardless of which contract holds them."
                 />
                 <FeatureCard
-                  icon={<Send className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">🔥</span>}
                   title="Transfer & Burn"
                   description="Select multiple NFTs and transfer them to any WAX account or burn them permanently — all in a single transaction. Supports both SimpleAssets and AtomicAssets contracts simultaneously."
                 />
                 <FeatureCard
-                  icon={<Users className="h-6 w-6 text-cheese" />}
+                  icon={<span className="text-2xl">🤝</span>}
                   title="Free Community Tool"
                   description="No fees, no sign-ups. A WAX community asset built by the $CHEESE team — the first project ever launched on the WAX blockchain."
                 />
