@@ -1,34 +1,35 @@
 
 
-## Add Draw/Annotate Mode to NFT Detail Dialog (Series 1 & 2 Only)
+## Unify Pen/Magnifier Toggle for Series 1 Detail View
 
-### Overview
-Add a toggleable pen/draw mode to the NFT detail view for Series 1 and Series 2 cards. Users can scribble names on awards, doodle on cards, etc. All drawings are temporary and cleared when the dialog closes.
-
-### How It Works
-- A pen icon button appears next to each card image label (Front/Back) — only for Series 1 (`five`, `series1`) and Series 2 (`series2`) categories
-- Clicking the pen toggles between **magnifier mode** (default) and **draw mode**
-- In draw mode: the magnifying lens is disabled; instead, an HTML `<canvas>` overlay covers the card image and captures mouse/touch input for freehand drawing
-- Strokes render in a visible color (e.g. yellow/cheese) with a thin brush
-- When the dialog closes (or the asset changes), all canvas state is discarded — no persistence
-
-### Technical Approach
+### What changes
 
 **`src/components/simpleassets/SimpleAssetDetailDialog.tsx`**:
 
-1. **New state**: `drawMode` — tracks which image index (if any) is in draw mode, or `null` for magnifier mode on all
-2. **Series check**: `const isDrawableCategory = isSeries1 || asset.category === 'series2'`
-3. **Toggle button**: Small `Pen`/`Search` (lucide-react) icon button next to each image label, only shown when `isDrawableCategory` is true
-4. **Modify `ImageWithLens`**: Accept a new `drawEnabled` boolean prop
-   - When `drawEnabled` is true: disable hover/lens behavior, overlay a transparent `<canvas>` element matching the container dimensions
-   - The canvas uses `pointerdown`/`pointermove`/`pointerup` events for drawing
-   - Use a `useRef` for the canvas, get 2D context, draw with `lineTo`/`stroke`
-   - Canvas has `position: absolute; inset: 0` over the image
-5. **Cleanup**: The `useEffect` that resets `showRawJson` on asset change also resets `drawMode` to `null`, which unmounts canvases and clears all drawings
-6. **Color picker** (optional simple touch): a small row of 4-5 color dots (yellow, white, red, blue, black) below the pen toggle so users can pick stroke color
+1. **Change `drawMode` from per-image (`number | null`) to a boolean** — when enabled, both front and back enter draw mode simultaneously (same as magnifier which already applies to whichever image you hover)
 
-### What Stays
-- Magnifier lens behavior unchanged when not in draw mode
-- All existing metadata, layout, landscape rotation logic untouched
-- No data saved anywhere — purely ephemeral fun feature
+2. **Remove per-image pen icon from the label row** — for Series 1 (`isSeries1`), no pen/search toggle appears above the Front or Back labels
+
+3. **Add a unified toggle below the images container** — only for Series 1, render a small row with Search and Pen icons side by side below the landscape back image area. The active mode gets a highlighted style (e.g. `bg-cheese/20 text-cheese` vs muted). Clicking toggles between magnifier and draw mode for all images at once.
+
+4. **For Series 2** — keep the existing per-image pen toggle as-is (Series 2 is not affected by this change since `isSeries1` is false)
+
+### Layout sketch
+```text
+  [Front label]         [Back label]
+  ┌──────────┐    ┌──────────────────┐
+  │  front   │    │   back (landscape)│
+  │  image   │    │                  │
+  └──────────┘    └──────────────────┘
+                  [ 🔍  |  ✏️ ]  ← unified toggle, below back
+```
+
+### Implementation detail
+
+- `drawMode` becomes `boolean` state (default `false`)
+- In the `images.map` loop for Series 1: pass `drawEnabled={drawMode}` to both images, remove the per-image toggle button
+- After the images flex container, if `isSeries1 && isDrawable && images.length > 1`, render the toggle row:
+  - Two icon buttons (Search, Pen) with the active one highlighted
+  - Centered, positioned right after the images div
+- For non-Series-1 drawable categories, keep the existing per-image toggle unchanged
 
