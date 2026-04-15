@@ -202,11 +202,13 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled }: {
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
   const [drawMode, setDrawMode] = useState<number | null>(null);
+  const [drawAll, setDrawAll] = useState(false);
 
   useEffect(() => {
     if (asset) {
       setShowRawJson(false);
       setDrawMode(null);
+      setDrawAll(false);
     }
   }, [asset?.id]);
 
@@ -237,13 +239,14 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const isBack = i === 1;
             const isLandscape = isBack && isSeries1;
-            const isDrawing = drawMode === i;
+            // Series 1: unified drawAll; Series 2+: per-image drawMode
+            const isDrawing = isSeries1 ? drawAll : drawMode === i;
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
                 <div className="flex items-center justify-center gap-1.5">
                   <p className="text-xs font-semibold text-cheese text-center">{label}</p>
-                  {isDrawable && (
+                  {isDrawable && !isSeries1 && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -266,6 +269,28 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             );
           })}
         </div>
+        {isSeries1 && isDrawable && images.length > 1 && (
+          <div className="flex justify-center gap-1.5 mt-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 rounded-md ${!drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
+              onClick={() => setDrawAll(false)}
+              title="Magnifier"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 rounded-md ${drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
+              onClick={() => setDrawAll(true)}
+              title="Draw on card"
+            >
+              <Pen className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         {mintDisplay && (
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-cheese">Mint</span>
