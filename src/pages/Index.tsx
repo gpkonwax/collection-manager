@@ -41,6 +41,7 @@ import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
+import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -171,6 +172,7 @@ export default function SimpleAssetsPage() {
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -1602,6 +1604,25 @@ export default function SimpleAssetsPage() {
             <Heart className="h-4 w-4 mr-2" />
             Donate
           </Button>
+          <div className="flex justify-center items-center gap-6 mt-4">
+            <button onClick={() => footerRequestNav('https://cheeseonwax.github.io/')} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-cheese transition-colors" title="Website">
+              <Globe className="h-5 w-5" />
+              <span className="text-[10px]">Web</span>
+            </button>
+            <button onClick={() => footerRequestNav('https://t.me/cheeseonwaxofficial')} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-cheese transition-colors" title="Telegram">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              <span className="text-[10px]">TG</span>
+            </button>
+            <button onClick={() => footerRequestNav('https://cheesehubwax.github.io/cheesehub')} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-cheese transition-colors" title="CHEESEHub">
+              <img src={cheesehubLogo} alt="CHEESEHub" className="h-5 w-5 rounded" />
+              <span className="text-[10px]">Hub</span>
+            </button>
+            <button onClick={() => footerRequestNav('https://x.com/cheesetoken')} className="flex flex-col items-center gap-1 text-muted-foreground hover:text-cheese transition-colors" title="X / Twitter">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              <span className="text-[10px]">X</span>
+            </button>
+          </div>
+          <ExternalLinkWarningDialog url={footerPendingUrl} onConfirm={footerConfirm} onCancel={footerCancel} />
         </div>
       </footer>
 
