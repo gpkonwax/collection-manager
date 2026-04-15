@@ -235,12 +235,16 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
   const [drawMode, setDrawMode] = useState<number | null>(null);
   const [drawAll, setDrawAll] = useState(false);
+  const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
+  const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   useEffect(() => {
     if (asset) {
       setShowRawJson(false);
       setDrawMode(null);
       setDrawAll(false);
+      setUnifiedColor(DRAW_COLORS[0].value);
+      canvasRefs.current = [];
     }
   }, [asset?.id]);
 
@@ -259,6 +263,15 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const hasLandscapeBack = isSeries1 && images.length > 1;
   const modalMaxWidth = hasLandscapeBack ? 'sm:max-w-[1100px]' : 'sm:max-w-[900px]';
 
+  const clearAllCanvases = () => {
+    canvasRefs.current.forEach((canvas) => {
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${modalMaxWidth} max-h-[90vh] overflow-y-auto overflow-x-hidden`}>
@@ -271,7 +284,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const isBack = i === 1;
             const isLandscape = isBack && isSeries1;
-            // Series 1: unified drawAll; Series 2+: per-image drawMode
             const isDrawing = isSeries1 ? drawAll : drawMode === i;
 
             return (
@@ -296,31 +308,63 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   isLandscape={isLandscape}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   drawEnabled={isDrawing}
+                  drawColor={isSeries1 ? unifiedColor : undefined}
+                  showPalette={!isSeries1}
+                  onColorChange={!isSeries1 ? undefined : undefined}
+                  canvasRegister={isSeries1 ? (canvas) => {
+                    if (canvas) {
+                      if (!canvasRefs.current.includes(canvas)) canvasRefs.current.push(canvas);
+                    } else {
+                      canvasRefs.current = canvasRefs.current.filter(Boolean);
+                    }
+                  } : undefined}
                 />
               </div>
             );
           })}
         </div>
         {isSeries1 && isDrawable && images.length > 1 && (
-          <div className="flex justify-center gap-1.5 mt-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-7 w-7 rounded-md ${!drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
-              onClick={() => setDrawAll(false)}
-              title="Magnifier"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-7 w-7 rounded-md ${drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
-              onClick={() => setDrawAll(true)}
-              title="Draw on card"
-            >
-              <Pen className="h-4 w-4" />
-            </Button>
+          <div className="flex flex-col items-center gap-1.5 mt-1">
+            <div className="flex gap-1.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 rounded-md ${!drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
+                onClick={() => setDrawAll(false)}
+                title="Magnifier"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 rounded-md ${drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
+                onClick={() => setDrawAll(true)}
+                title="Draw on card"
+              >
+                <Pen className="h-4 w-4" />
+              </Button>
+            </div>
+            {drawAll && (
+              <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
+                {DRAW_COLORS.map((c) => (
+                  <button
+                    key={c.name}
+                    title={c.name}
+                    className={`w-5 h-5 rounded-full border-2 transition-transform ${unifiedColor === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
+                    style={{ background: c.value }}
+                    onClick={() => setUnifiedColor(c.value)}
+                  />
+                ))}
+                <button
+                  title="Clear"
+                  className="ml-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-cheese transition-colors"
+                  onClick={clearAllCanvases}
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         )}
         {mintDisplay && (
