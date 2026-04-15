@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { getCachedGatewayIndex } from '@/hooks/useIpfsMedia';
 import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
+import { Pen, Search } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface Props {
@@ -15,6 +16,14 @@ interface Props {
 const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
+const DRAWABLE_CATEGORIES = new Set(['five', 'series1', 'series2']);
+const DRAW_COLORS = [
+  { name: 'Yellow', value: 'hsl(45, 97%, 54%)' },
+  { name: 'White', value: '#ffffff' },
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Black', value: '#000000' },
+];
 
 function getMintDisplay(asset: SimpleAsset): string | null {
   const combined = { ...asset.idata, ...asset.mdata };
@@ -34,11 +43,97 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
-function ImageWithLens({ url, alt, isLandscape, className }: {
+function DrawCanvas({ isLandscape }: { isLandscape: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const [color, setColor] = useState(DRAW_COLORS[0].value);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
+
+  const getPos = useCallback((e: React.PointerEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }, []);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    drawing.current = true;
+    lastPos.current = getPos(e);
+    canvasRef.current?.setPointerCapture(e.pointerId);
+  }, [getPos]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!drawing.current || !lastPos.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !canvas) return;
+    const pos = getPos(e);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastPos.current.x, lastPos.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastPos.current = pos;
+  }, [color, getPos]);
+
+  const onPointerUp = useCallback(() => {
+    drawing.current = false;
+    lastPos.current = null;
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+    const ro = new ResizeObserver(() => {
+      canvas.width = parent.clientWidth;
+      canvas.height = parent.clientHeight;
+    });
+    ro.observe(parent);
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <>
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 z-40 rounded-lg"
+        style={{ cursor: 'crosshair', touchAction: 'none' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+      />
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
+        {DRAW_COLORS.map((c) => (
+          <button
+            key={c.name}
+            title={c.name}
+            className={`w-5 h-5 rounded-full border-2 transition-transform ${color === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
+            style={{ background: c.value }}
+            onClick={() => setColor(c.value)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ImageWithLens({ url, alt, isLandscape, className, drawEnabled }: {
   url: string;
   alt: string;
   isLandscape: boolean;
   className?: string;
+  drawEnabled?: boolean;
 }) {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -55,7 +150,6 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
     setPos({ x, y });
   };
 
-  // For landscape (rotated) images, swap coordinates for the lens background
   const bgX = isLandscape ? pos.y : pos.x;
   const bgY = isLandscape ? (100 - pos.x) : pos.y;
 
@@ -63,10 +157,10 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
     <div
       ref={containerRef}
       className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
-      onMouseEnter={() => setHover(true)}
+      onMouseEnter={() => !drawEnabled && setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onMouseMove={handleMouseMove}
-      style={{ cursor: hover ? 'crosshair' : 'default' }}
+      onMouseMove={!drawEnabled ? handleMouseMove : undefined}
+      style={{ cursor: drawEnabled ? 'default' : hover ? 'crosshair' : 'default' }}
     >
       <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center">
         <IpfsMedia
@@ -77,7 +171,8 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
           showSkeleton
         />
       </div>
-      {hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
+      {drawEnabled && <DrawCanvas isLandscape={isLandscape} />}
+      {!drawEnabled && hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
         <div
           className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50 overflow-hidden"
           style={{
@@ -106,9 +201,13 @@ function ImageWithLens({ url, alt, isLandscape, className }: {
 
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
+  const [drawMode, setDrawMode] = useState<number | null>(null);
 
   useEffect(() => {
-    if (asset) setShowRawJson(false);
+    if (asset) {
+      setShowRawJson(false);
+      setDrawMode(null);
+    }
   }, [asset?.id]);
 
   if (!asset) return null;
@@ -116,6 +215,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const images = asset.images;
   const mintDisplay = getMintDisplay(asset);
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
+  const isDrawable = DRAWABLE_CATEGORIES.has(asset.category);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply'].includes(key)
   );
@@ -137,15 +237,30 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const isBack = i === 1;
             const isLandscape = isBack && isSeries1;
+            const isDrawing = drawMode === i;
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
-                <p className="text-xs font-semibold text-cheese text-center">{label}</p>
+                <div className="flex items-center justify-center gap-1.5">
+                  <p className="text-xs font-semibold text-cheese text-center">{label}</p>
+                  {isDrawable && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => setDrawMode(isDrawing ? null : i)}
+                      title={isDrawing ? 'Switch to magnifier' : 'Draw on card'}
+                    >
+                      {isDrawing ? <Search className="h-3 w-3 text-cheese" /> : <Pen className="h-3 w-3 text-cheese" />}
+                    </Button>
+                  )}
+                </div>
                 <ImageWithLens
                   url={imgUrl}
                   alt={`${asset.name} - ${label}`}
                   isLandscape={isLandscape}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
+                  drawEnabled={isDrawing}
                 />
               </div>
             );
