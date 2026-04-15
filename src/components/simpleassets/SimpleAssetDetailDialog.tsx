@@ -324,7 +324,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             );
           })}
         </div>
-        {isSeries1 && isDrawable && images.length > 1 && (
+        {isDrawable && images.length > 1 && (
           <div className="flex flex-col items-center gap-1.5 mt-1">
             <div className="flex gap-1.5">
               <Button
