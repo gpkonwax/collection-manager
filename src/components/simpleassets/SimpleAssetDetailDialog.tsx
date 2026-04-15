@@ -334,7 +334,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                 onClick={() => setDrawAll(false)}
                 title="Magnifier"
               >
-                <Search className="h-4 w-4" />
+                <span className="text-sm">🔍</span>
               </Button>
               <Button
                 variant="ghost"
@@ -343,7 +343,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                 onClick={() => setDrawAll(true)}
                 title="Draw on card"
               >
-                <Pen className="h-4 w-4" />
+                <span className="text-sm">✏️</span>
               </Button>
             </div>
             {drawAll && (
@@ -362,7 +362,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   className="ml-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-cheese transition-colors"
                   onClick={clearAllCanvases}
                 >
-                  <Eraser className="h-3.5 w-3.5" />
+                   <span className="text-xs">🧹</span>
                 </button>
               </div>
             )}
