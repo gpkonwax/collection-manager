@@ -202,6 +202,7 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled }: {
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
   const [drawMode, setDrawMode] = useState<number | null>(null);
+  const [drawAll, setDrawAll] = useState(false);
 
   useEffect(() => {
     if (asset) {
