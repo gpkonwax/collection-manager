@@ -1,60 +1,50 @@
 
 
-## Add `originalart` and `promo` as Standalone Categories + Move `bonus` to Bottom
+## Add Per-Category Refresh Button
 
-### Research Findings
+### Updated Mapping
 
-- **Original Art** (`originalart` schema): 2,467 assets across ~10+ templates. Cards have `cardid`, `quality` (a/b side), `variant` (base), `series`, `illustrator`, `colorist` fields. Created Feb 2021. **No associated pack contract** — these were distributed via AtomicHub drops or secondary market purchases, not openable packs.
+Based on your feedback, here's the corrected category → data source mapping:
 
-- **Promo** (`promo` schema): 1,955 assets across 2 templates ("Bernie Sticker" variant:sticker, "Bubble Gum" variant:food). Created Feb 2021 alongside Bernventures/Mittens. **No pack contract** — these were airdropped or given as bonuses with other purchases.
+| Category | Refetch |
+|---|---|
+| `series1`, `series2`, `exotic` | Both `refetchSa()` + `refetchAa()` |
+| All other AA-only categories | `refetchAa()` only |
+| `all` | Both `refetchSa()` + `refetchAa()` |
 
-- **Bonus** (`bonus` schema): Already in the labels map but currently sorts alphabetically among other categories.
-
-None of these three categories have openable packs, so no pack integration is needed.
-
-### What's Already Working
-
-The `useGpkAtomicAssets` hook already fetches ALL gpk.topps schemas (no schema filter), so assets from `originalart`, `promo`, and `bonus` already load into the collection. They just need proper category ordering and collection completion support.
+Series 1, Series 2, and Exotic (Tiger King) exist across both SimpleAssets and AtomicAssets contracts, so they need dual refresh.
 
 ### Changes
 
-**1. `src/pages/Index.tsx`** — Update category sort priority
+**`src/pages/Index.tsx`** — single file edit:
 
-The `categories` memo currently prioritizes `['all', 'series1', 'series2', 'exotic']` and sorts the rest alphabetically. Change the priority array to place `bonus`, `originalart`, and `promo` at the end:
+1. Import `RefreshCw` from lucide-react (if not already imported).
 
+2. Add a `handleCategoryRefresh` callback:
 ```tsx
-const priority = [
-  'all', 'series1', 'series2', 'exotic',
-  'crashgordon', 'bernventures', 'mittens', 'gamestonk', 'foodfightb',
-  'bonus', 'originalart', 'promo',
-];
+const handleCategoryRefresh = useCallback(() => {
+  const needsBoth = ['all', 'series1', 'series2', 'exotic'];
+  if (needsBoth.includes(categoryFilter)) {
+    refetchSa();
+    refetchAa();
+  } else {
+    refetchAa();
+  }
+}, [categoryFilter, refetchSa, refetchAa]);
 ```
 
-This gives explicit ordering to all known categories instead of relying on `localeCompare` for the tail.
-
-**2. `src/hooks/useCollectionCompletion.ts`** — Add completion tracking
-
-Add `originalart` and `promo` to `CATEGORY_SCHEMAS` so the completion bar works for them:
-
+3. Add a ghost icon button immediately after the category `<Select>`, styled with the cheese theme and a spin animation while loading:
 ```tsx
-const CATEGORY_SCHEMAS: Record<string, string[]> = {
-  // ...existing entries...
-  originalart: ['originalart'],
-  promo: ['promo'],
-  bonus: ['bonus'],
-};
+<Button
+  variant="ghost"
+  size="icon"
+  onClick={handleCategoryRefresh}
+  className="text-cheese hover:text-cheese/80"
+  title="Refresh category"
+>
+  <RefreshCw className={cn("h-4 w-4", (saLoading || aaLoading) && "animate-spin")} />
+</Button>
 ```
 
-No `ALLOWED_SCHEMA_VARIANTS` entry needed for these — they have no variant filtering (all templates count).
-
-**3. `src/hooks/useBinderTemplates.ts`** — Enable binder view
-
-The binder already works for any schema dynamically via `getTemplatesBySchema`. No code change needed here — it will fetch templates for `originalart` and `promo` when selected in binder mode, since there's no variant whitelist restriction blocking them.
-
-### Summary
-
-- 3 lines added to category priority array in `Index.tsx`
-- 3 lines added to `CATEGORY_SCHEMAS` in `useCollectionCompletion.ts`
-- No pack opening support needed (none exist for these categories)
-- Binder view works automatically
+The spin shows whenever either source is loading, giving clear feedback that the refresh is in progress.
 
