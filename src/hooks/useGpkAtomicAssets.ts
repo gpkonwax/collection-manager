@@ -13,7 +13,9 @@ interface AtomicAssetRaw {
   template?: {
     template_id: string;
     immutable_data?: Record<string, string>;
+    max_supply?: string;
   };
+  template_mint?: string;
   immutable_data: Record<string, string>;
   mutable_data: Record<string, string>;
   data: Record<string, string>;
