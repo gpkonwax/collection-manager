@@ -1456,7 +1456,7 @@ export default function SimpleAssetsPage() {
                 className="text-cheese hover:text-cheese/80"
                 title="Refresh category"
               >
-                <RefreshCw className={cn("h-4 w-4", (saLoading || aaLoading) && "animate-spin")} />
+                <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading) ? 'animate-spin' : ''}`} />
               </Button>
               {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && (() => {
                 const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : categoryFilter === 'foodfightb' ? FOODFIGHT_VARIANTS : SERIES2_VARIANTS;
