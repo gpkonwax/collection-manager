@@ -1,50 +1,23 @@
 
 
-## Add Per-Category Refresh Button
+## Show Mint Numbers on Cards
 
-### Updated Mapping
+### Problem
+AtomicAssets cards have mint numbers available via the API's `template_mint` field (e.g., mint #42 of a template), but this field isn't captured during fetch. The existing `getMintInfo` function on `SimpleAssetCard` already displays mint info — it just never finds it for AtomicAssets cards because the data isn't stored.
 
-Based on your feedback, here's the corrected category → data source mapping:
-
-| Category | Refetch |
-|---|---|
-| `series1`, `series2`, `exotic` | Both `refetchSa()` + `refetchAa()` |
-| All other AA-only categories | `refetchAa()` only |
-| `all` | Both `refetchSa()` + `refetchAa()` |
-
-Series 1, Series 2, and Exotic (Tiger King) exist across both SimpleAssets and AtomicAssets contracts, so they need dual refresh.
+SimpleAssets cards already work if they have `edition`/`mint` in their `idata`.
 
 ### Changes
 
-**`src/pages/Index.tsx`** — single file edit:
+**1. `src/hooks/useGpkAtomicAssets.ts`** — Capture `template_mint`
 
-1. Import `RefreshCw` from lucide-react (if not already imported).
+- Add `template_mint?: { template_mint_num?: string; max_supply?: string }` to the `AtomicAssetRaw` interface (this is what the AtomicAssets API returns).
+- When building the `idata` object, inject `mint: raw.template_mint?.template_mint_num` so the existing `getMintInfo` function picks it up. Also inject `maxsupply: raw.template?.max_supply` for the "X / Y" display.
 
-2. Add a `handleCategoryRefresh` callback:
-```tsx
-const handleCategoryRefresh = useCallback(() => {
-  const needsBoth = ['all', 'series1', 'series2', 'exotic'];
-  if (needsBoth.includes(categoryFilter)) {
-    refetchSa();
-    refetchAa();
-  } else {
-    refetchAa();
-  }
-}, [categoryFilter, refetchSa, refetchAa]);
-```
+**2. No other changes needed**
 
-3. Add a ghost icon button immediately after the category `<Select>`, styled with the cheese theme and a spin animation while loading:
-```tsx
-<Button
-  variant="ghost"
-  size="icon"
-  onClick={handleCategoryRefresh}
-  className="text-cheese hover:text-cheese/80"
-  title="Refresh category"
->
-  <RefreshCw className={cn("h-4 w-4", (saLoading || aaLoading) && "animate-spin")} />
-</Button>
-```
+The `getMintInfo` function in `SimpleAssetCard` already checks for `mint` in `idata`/`mdata` and formats it as `#X` or `#X / Y` if supply is available. The detail dialog also already checks these same keys. Both will automatically display mint numbers once the data is present.
 
-The spin shows whenever either source is loading, giving clear feedback that the refresh is in progress.
+### Result
+Cards will show a mint badge like `#42 / 500` (or `#42` if no max supply) on both the grid card and the detail dialog.
 
