@@ -136,7 +136,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         </div>
         {(mintInfo || hasContained) && (
           <div className="flex items-center gap-1.5 pt-0.5">
-            {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{mintInfo}</span>}
+            {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>}
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
