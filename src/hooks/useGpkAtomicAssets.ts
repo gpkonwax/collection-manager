@@ -14,6 +14,7 @@ interface AtomicAssetRaw {
     template_id: string;
     immutable_data?: Record<string, string>;
     max_supply?: string;
+    issued_supply?: string;
   };
   template_mint?: string;
   immutable_data: Record<string, string>;
@@ -87,7 +88,7 @@ export function useGpkAtomicAssets(account: string | null) {
           cardid: String(combined.cardid ?? ''),
           quality: normalizeGpkVariant(combined.variant),
           side: String(combined.quality ?? '').toLowerCase(),
-          idata: { ...templateData, ...raw.immutable_data, _template_id: raw.template?.template_id || '', mint: raw.template_mint || '', maxsupply: raw.template?.max_supply || '' } as Record<string, unknown>,
+          idata: { ...templateData, ...raw.immutable_data, _template_id: raw.template?.template_id || '', mint: raw.template_mint || '', maxsupply: raw.template?.issued_supply || '' } as Record<string, unknown>,
           mdata: raw.mutable_data as Record<string, unknown>,
           container: [], containerf: [],
           source: 'atomicassets' as const,
