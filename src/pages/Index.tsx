@@ -1445,6 +1445,19 @@ export default function SimpleAssetsPage() {
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const needsBoth = ['all', 'series1', 'series2', 'exotic'];
+                  if (needsBoth.includes(categoryFilter)) { refetchSa(); refetchAa(); }
+                  else { refetchAa(); }
+                }}
+                className="text-cheese hover:text-cheese/80"
+                title="Refresh category"
+              >
+                <RefreshCw className={cn("h-4 w-4", (saLoading || aaLoading) && "animate-spin")} />
+              </Button>
               {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && (() => {
                 const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : categoryFilter === 'foodfightb' ? FOODFIGHT_VARIANTS : SERIES2_VARIANTS;
                 const isAll = variantFilter.includes('all');
