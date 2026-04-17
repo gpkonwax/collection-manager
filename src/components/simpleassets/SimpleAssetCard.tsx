@@ -35,6 +35,20 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
+function getMintNumber(asset: SimpleAsset): number | null {
+  const combined = { ...asset.idata, ...asset.mdata };
+  const mintKeys = ['edition', 'mint', 'serial', 'num', 'mint_num'];
+  for (const key of mintKeys) {
+    const val = combined[key];
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      const str = String(val).split('/')[0].replace('#', '').trim();
+      const n = parseInt(str, 10);
+      if (!isNaN(n)) return n;
+    }
+  }
+  return null;
+}
+
 const EDGE_DEPTH = 8;
 const EDGE_COLOR = 'hsl(var(--muted))';
 
@@ -45,6 +59,8 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
 
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintInfo = getMintInfo(asset);
+  const mintNumber = getMintNumber(asset);
+  const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => { setIsDragging(true); onDragStart?.(e); };
@@ -65,6 +81,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         ${isDragging ? 'opacity-50 scale-95' : 'hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10'}
         ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
         ${selected ? 'ring-2 ring-cheese shadow-lg shadow-cheese/20' : ''}
+        ${isMintOne && !selected && !isDragOver ? 'ring-2 ring-cheese animate-pulse-glow shadow-lg shadow-cheese/40' : ''}
         ${className || ''}`}
       onClick={handleClick}
       draggable={draggable}
