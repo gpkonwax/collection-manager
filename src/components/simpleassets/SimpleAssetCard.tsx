@@ -35,6 +35,20 @@ function getMintInfo(asset: SimpleAsset): string | null {
   return null;
 }
 
+function getMintNumber(asset: SimpleAsset): number | null {
+  const combined = { ...asset.idata, ...asset.mdata };
+  const mintKeys = ['edition', 'mint', 'serial', 'num', 'mint_num'];
+  for (const key of mintKeys) {
+    const val = combined[key];
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      const str = String(val).split('/')[0].replace('#', '').trim();
+      const n = parseInt(str, 10);
+      if (!isNaN(n)) return n;
+    }
+  }
+  return null;
+}
+
 const EDGE_DEPTH = 8;
 const EDGE_COLOR = 'hsl(var(--muted))';
 
