@@ -81,6 +81,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         ${isDragging ? 'opacity-50 scale-95' : 'hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10'}
         ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
         ${selected ? 'ring-2 ring-cheese shadow-lg shadow-cheese/20' : ''}
+        ${isMintOne && !selected && !isDragOver ? 'ring-2 ring-cheese animate-pulse-glow shadow-lg shadow-cheese/40' : ''}
         ${className || ''}`}
       onClick={handleClick}
       draggable={draggable}
