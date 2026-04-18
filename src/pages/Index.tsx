@@ -615,51 +615,126 @@ export default function SimpleAssetsPage() {
     toast.success('Layout exported');
   }, [accountName, savedOrder, categoryFilter]);
 
-  const handleImportLayout = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !accountName) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result as string);
-        if (!data || typeof data !== 'object') { toast.error('Invalid layout file'); return; }
+  // Reusable apply for saved layout (called by router-driven multi-file import + Recent menu).
+  // Throws when the parsed file has no usable layout data.
+  const applyLayoutData = useCallback((data: DetectedLayout['parsed'], filename: string) => {
+    if (!accountName) throw new Error('Connect a wallet to import a layout');
 
-        let order: string[] | null = null;
-        if (data.orders) {
-          if (Array.isArray(data.orders.saved)) {
-            order = data.orders.saved;
-          } else if (typeof data.orders === 'object') {
-            const allIds: string[] = [];
-            const seen = new Set<string>();
-            for (const arr of Object.values(data.orders)) {
-              if (Array.isArray(arr)) {
-                for (const id of arr as string[]) {
-                  if (!seen.has(id)) { seen.add(id); allIds.push(id); }
-                }
-              }
+    let order: string[] | null = null;
+    if (data.orders) {
+      if (Array.isArray((data.orders as any).saved)) {
+        order = (data.orders as any).saved;
+      } else if (typeof data.orders === 'object') {
+        const allIds: string[] = [];
+        const seen = new Set<string>();
+        for (const arr of Object.values(data.orders)) {
+          if (Array.isArray(arr)) {
+            for (const id of arr as string[]) {
+              if (!seen.has(id)) { seen.add(id); allIds.push(id); }
             }
-            if (allIds.length > 0) order = allIds;
           }
         }
+        if (allIds.length > 0) order = allIds;
+      }
+    }
 
-        if (!order || order.length === 0) {
-          toast.error('No layout data found in file');
-          return;
-        }
+    if (!order || order.length === 0) {
+      throw new Error('No layout data found in file');
+    }
 
-        setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
-        setLoadedLayoutName(file.name);
-        setViewMode('saved');
+    setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
+    setLoadedLayoutName(filename);
+    setViewMode('saved');
 
-        if (data.puzzle && typeof data.puzzle === 'object') {
-          setImportedPuzzle(data.puzzle as PuzzlePieceMap);
-        }
-        toast.success('Layout imported — switch to Saved Collection tab to view');
-      } catch { toast.error('Failed to parse layout file'); }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+    const hasPuzzle = !!(data.puzzle && typeof data.puzzle === 'object');
+    if (hasPuzzle) {
+      setImportedPuzzle(data.puzzle as PuzzlePieceMap);
+    }
+    return { cards: order.length, hasPuzzle };
   }, [accountName]);
+
+  // Reusable apply for puzzle (called by router-driven multi-file import + Recent menu)
+  const applyPuzzleData = useCallback((data: PuzzlePieceMap) => {
+    setImportedPuzzle(data);
+    return { pieces: Object.keys(data).length };
+  }, []);
+
+  const summarizeRouteResults = useCallback((results: ReturnType<typeof routeOne>[]) => {
+    const ok = results.filter(r => r.ok);
+    const failed = results.filter(r => !r.ok);
+    const parts: string[] = [];
+
+    const alertsTotals = ok
+      .filter(r => r.kind === 'alerts' && r.alerts)
+      .reduce((acc, r) => {
+        acc.added += r.alerts!.added;
+        acc.updated += r.alerts!.updated;
+        acc.skipped += r.alerts!.skipped.length;
+        return acc;
+      }, { added: 0, updated: 0, skipped: 0 });
+    if (alertsTotals.added || alertsTotals.updated || alertsTotals.skipped) {
+      const a: string[] = [];
+      if (alertsTotals.added) a.push(`${alertsTotals.added} added`);
+      if (alertsTotals.updated) a.push(`${alertsTotals.updated} updated`);
+      if (alertsTotals.skipped) a.push(`${alertsTotals.skipped} skipped`);
+      parts.push(`Alerts: ${a.join(', ')}`);
+    }
+
+    const layoutOk = ok.find(r => r.kind === 'layout');
+    if (layoutOk?.layout) {
+      parts.push(`Layout: ${layoutOk.layout.cards} card${layoutOk.layout.cards !== 1 ? 's' : ''}${layoutOk.layout.hasPuzzle ? ' + puzzle' : ''}`);
+    }
+
+    const puzzleOk = ok.find(r => r.kind === 'puzzle');
+    if (puzzleOk?.puzzle && !layoutOk?.layout?.hasPuzzle) {
+      parts.push(`Puzzle: ${puzzleOk.puzzle.pieces} piece${puzzleOk.puzzle.pieces !== 1 ? 's' : ''}`);
+    }
+
+    if (ok.length > 0) {
+      toast.success(`Imported ${ok.length} file${ok.length !== 1 ? 's' : ''}${parts.length ? ` — ${parts.join(' · ')}` : ''}`);
+    }
+    for (const f of failed) {
+      toast.error(`${f.filename}: ${f.message || 'Could not import'}`);
+    }
+  }, []);
+
+  const routerHandlers = useMemo(() => ({
+    onAlerts: (raw: string) => applyAlertsRaw(raw),
+    onLayout: (parsed: DetectedLayout['parsed'], filename: string) => applyLayoutData(parsed, filename),
+    onPuzzle: (parsed: PuzzlePieceMap) => applyPuzzleData(parsed),
+  }), [applyAlertsRaw, applyLayoutData, applyPuzzleData]);
+
+  const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const results: ReturnType<typeof routeOne>[] = [];
+    for (const file of files) {
+      try {
+        const text = await file.text();
+        const result = routeOne(file.name, text, routerHandlers);
+        results.push(result);
+        if (result.ok && result.kind !== 'unknown') {
+          addRecentJson({ filename: file.name, kind: result.kind, raw: text });
+        }
+      } catch (err) {
+        results.push({
+          filename: file.name,
+          kind: 'unknown',
+          ok: false,
+          message: err instanceof Error ? err.message : 'Failed to read file',
+        });
+      }
+    }
+    setRecentRefreshKey(k => k + 1);
+    summarizeRouteResults(results);
+    e.target.value = '';
+  }, [routerHandlers, summarizeRouteResults]);
+
+  const handleApplyRecent = useCallback((entry: RecentJsonEntry) => {
+    const result = routeOne(entry.filename, entry.raw, routerHandlers);
+    summarizeRouteResults([result]);
+  }, [routerHandlers, summarizeRouteResults]);
+
 
   const handleDragStart = useCallback((idx: number) => (_e: DragEvent<HTMLDivElement>) => { dragSourceIdx.current = idx; }, []);
   const handleDragOver = useCallback((idx: number) => (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOverIdx(idx); }, []);
