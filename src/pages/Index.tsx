@@ -480,12 +480,12 @@ export default function SimpleAssetsPage() {
     if (!savedLayoutKey) { setSavedOrder(null); setLoadedLayoutName(null); return; }
 
     // If a pending import targets this exact key, apply it instead of reading localStorage.
-    const pending = pendingImportRef.current;
-    if (pending && pending.key === savedLayoutKey) {
+    const pending = pendingImportsRef.current.get(savedLayoutKey);
+    if (pending) {
       setSavedOrder(pending.order);
       setLoadedLayoutName(pending.name);
       if (pending.puzzle) setImportedPuzzle(pending.puzzle);
-      pendingImportRef.current = null;
+      pendingImportsRef.current.delete(savedLayoutKey);
       requestAnimationFrame(() => { restoringRef.current = false; });
       return;
     }
