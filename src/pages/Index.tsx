@@ -1070,23 +1070,22 @@ export default function SimpleAssetsPage() {
                 </span>
               )}
             </span>
-            <Button
-              onClick={handleCheckAlertsNow}
-              variant="outline"
-              size="sm"
-              disabled={alertsCheckingNow || cooldownActive || priceAlerts.length === 0}
-              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${alertsCheckingNow ? 'animate-spin' : ''}`} />
-              {cooldownActive ? `Wait ${Math.ceil(alertsCooldownRemaining / 1000)}s` : 'Check Alerts'}
-            </Button>
-            <Button onClick={handleExportAlerts} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Download className="h-4 w-4 mr-1" />Export Alerts
-            </Button>
-            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
-              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
-            </Button>
-            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
+            <JsonMenu
+              refreshKey={recentRefreshKey}
+              alertsCount={priceAlerts.length}
+              alertsMax={maxAlerts}
+              triggeredCount={triggeredCount}
+              alertsCheckingNow={alertsCheckingNow}
+              alertsCooldownMs={alertsCooldownRemaining}
+              onImportFiles={handleImportFiles}
+              onApplyRecent={handleApplyRecent}
+              onCheckAlertsNow={handleCheckAlertsNow}
+              onExportAlerts={handleExportAlerts}
+              onExportLayout={handleExportLayout}
+              onExportPuzzle={handleExportPuzzle}
+              layoutHasData={savedOrder !== null}
+              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+            />
           </div>
         </div>
         {renderBinderSections(binderGrid, categoryFilter === 'series2')}
