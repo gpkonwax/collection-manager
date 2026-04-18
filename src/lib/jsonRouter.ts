@@ -5,12 +5,12 @@ export type JsonKind = 'alerts' | 'layout' | 'puzzle' | 'unknown';
 export interface DetectedAlerts {
   kind: 'alerts';
   raw: string;
-  parsed: any;
+  parsed: unknown;
 }
 export interface DetectedLayout {
   kind: 'layout';
   raw: string;
-  parsed: { account?: string; category?: string; orders?: any; puzzle?: PuzzlePieceMap };
+  parsed: { account?: string; category?: string; orders?: unknown; puzzle?: PuzzlePieceMap };
 }
 export interface DetectedPuzzle {
   kind: 'puzzle';
