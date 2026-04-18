@@ -1485,6 +1485,10 @@ export default function SimpleAssetsPage() {
           </DialogHeader>
           <ScrollArea className="max-h-[65vh] pr-4">
             <div className="space-y-5 text-sm">
+              <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-3">
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔒</span> No New Smart Contracts</h4>
+                <p className="text-foreground">This manager is a pure front-end client. It does <strong>not</strong> deploy or rely on any custom smart contracts — every action is built from the existing, audited <strong>simpleassets</strong> and <strong>atomicassets</strong> tables and actions on WAX. That means a smaller attack surface, no extra contract risk, no token approvals to revoke, and full transparency: every transaction you sign goes directly to the standard contracts you already trust.</p>
+              </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
