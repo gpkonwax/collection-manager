@@ -44,7 +44,7 @@ export function kindLabel(kind: JsonKind): string {
  */
 export function detectKind(parsed: unknown): JsonKind {
   if (!parsed || typeof parsed !== 'object') return 'unknown';
-  const obj = parsed as Record<string, any>;
+  const obj = parsed as Record<string, unknown>;
 
   if (Array.isArray(obj.alerts)) return 'alerts';
   if (obj.orders && typeof obj.orders === 'object') return 'layout';
@@ -52,12 +52,11 @@ export function detectKind(parsed: unknown): JsonKind {
   // Puzzle: every value is { x:number, y:number, rotation:number }
   const entries = Object.entries(obj);
   if (entries.length > 0) {
-    const allPieces = entries.every(([, v]) =>
-      v && typeof v === 'object' &&
-      typeof (v as any).x === 'number' &&
-      typeof (v as any).y === 'number' &&
-      typeof (v as any).rotation === 'number'
-    );
+    const allPieces = entries.every(([, v]) => {
+      if (!v || typeof v !== 'object') return false;
+      const piece = v as Record<string, unknown>;
+      return typeof piece.x === 'number' && typeof piece.y === 'number' && typeof piece.rotation === 'number';
+    });
     if (allPieces) return 'puzzle';
   }
 
