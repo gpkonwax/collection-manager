@@ -44,6 +44,8 @@ import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
+import { routeOne, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
+import { RecentJsonsMenu } from '@/components/RecentJsonsMenu';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
