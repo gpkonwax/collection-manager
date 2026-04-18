@@ -1938,15 +1938,6 @@ export default function SimpleAssetsPage() {
         </div>
       )}
 
-      {/* Unified hidden file input for multi-file JSON imports (alerts / saved layout / puzzle) */}
-      <input
-        ref={importAllInputRef}
-        type="file"
-        accept=".json,application/json"
-        multiple
-        className="hidden"
-        onChange={handleImportFiles}
-      />
     </div>
   );
 }
