@@ -25,6 +25,12 @@ interface PuzzleBuilderProps {
   onPiecesChange?: (state: PuzzlePieceMap) => void;
   /** Called when user wants to switch to binder view to find missing pieces */
   onSwitchToBinder?: () => void;
+  /**
+   * Optional slot for a JSON import/export control rendered in the toolbar.
+   * Pass the unified <JsonMenu /> from the parent so import/export is consistent across views.
+   * When provided, the built-in Save/Load JSON buttons are hidden.
+   */
+  jsonMenuSlot?: ReactNode;
 }
 
 const TOTAL_PUZZLE_PIECES = 18;
