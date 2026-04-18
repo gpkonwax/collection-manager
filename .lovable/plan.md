@@ -1,24 +1,17 @@
 
 
-## Make JSON menu visible in Binder view for all categories
-
-### Problem
-In Binder view, the JsonMenu button is currently only visible when Series 1 is selected. When switching to Series 2, Food Fight, or any other category, the entire toolbar (including JsonMenu) disappears.
+## Restore JSON menu in Series 2 Binder view
 
 ### Root cause
-In `renderBinderView` (src/pages/Index.tsx), there's an early return when `binderGrid` is null/empty. The `binderGrid` only populates for categories that have binder templates loaded — Series 1 has them, but other categories may return null at the moment of render (no templates, loading, or unsupported schema), causing the whole toolbar to be skipped.
+Series 2 has a custom render branch in `src/pages/Index.tsx` (lines 1937-2018) that wraps the binder/classic view in a `Collection` / `Puzzle Builder` sub-tab. This branch bypasses `renderBinderView()` entirely and renders its own toolbar inline (lines 1946-1959). That custom toolbar contains a placeholder `<div className="flex-1" />` where the JsonMenu and alerts indicator should go — they were never added.
+
+The fix from the previous turn correctly patched `renderBinderView`, but Series 2 never reaches that function in Binder mode.
 
 ### Fix
-Restructure `renderBinderView` so the toolbar row containing the JsonMenu and alerts indicator always renders, regardless of `binderGrid` state. Only the grid body below shows the empty state message when `binderGrid` is unavailable.
-
-Specifically:
-1. Remove the early `return` when `binderGrid` is null.
-2. Always render the top toolbar `<div>` containing the JsonMenu.
-3. Conditionally hide binder-specific toolbar items (NFT count, select-all checkbox, completion bar) when `binderGrid` is null — but keep JsonMenu + alerts always visible.
-4. Below the toolbar, render either the binder sections OR a "Select a specific series / no templates available" message.
+In the Series 2 collection sub-tab toolbar (around line 1958), replace the empty `<div className="flex-1" />` with the same JsonMenu + alerts indicator block used in `renderBinderView`. This keeps Series 2's unique sub-tab layout intact while restoring the JSON button.
 
 ### File affected
-- **EDIT** `src/pages/Index.tsx` — refactor `renderBinderView` to always render the JsonMenu/alerts toolbar row, with conditional inner content for binder-specific controls and grid body.
+- **EDIT** `src/pages/Index.tsx` (lines ~1946-1959): replace the empty flex spacer with the alerts indicator span and `<JsonMenu />` (same props as in `renderBinderView`).
 
-No changes to JsonMenu component, price alerts hook, or other view modes.
+No changes to JsonMenu, alerts hook, or other view modes.
 
