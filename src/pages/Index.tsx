@@ -1183,24 +1183,31 @@ export default function SimpleAssetsPage() {
   );
 
   const renderBinderView = () => {
-    if (!binderGrid) return <p className="text-center text-muted-foreground py-12">Select a specific series to use Collector Binder.</p>;
-    const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
+    const visibleOwned = binderGrid ? binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []) : [];
     const triggeredCount = priceAlerts.filter(a => a.triggered).length;
     const cooldownActive = alertsCooldownRemaining > 0;
     return (
       <>
         <div className="flex items-center gap-3 relative z-10 mb-4 flex-wrap">
           <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-            <p className="text-sm text-muted-foreground">
-              {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
-              {binderLoading && ' (loading templates...)'}
-            </p>
-            {renderSelectButton()}
-            {renderSelectAllCheckbox(visibleOwned)}
+            {binderGrid ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
+                  {binderLoading && ' (loading templates...)'}
+                </p>
+                {renderSelectButton()}
+                {renderSelectAllCheckbox(visibleOwned)}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Select a specific series to use Collector Binder.</p>
+            )}
           </div>
-          <div className="flex-shrink-0">
-            {renderCompletionBar()}
-          </div>
+          {binderGrid && (
+            <div className="flex-shrink-0">
+              {renderCompletionBar()}
+            </div>
+          )}
           <div className="flex items-center justify-end gap-2 flex-1 min-w-[300px]">
             <span className="text-xs text-muted-foreground" title={`${priceAlerts.length} of ${maxAlerts} alerts used`}>
               {triggeredCount > 0 ? (
@@ -1231,7 +1238,11 @@ export default function SimpleAssetsPage() {
             />
           </div>
         </div>
-        {renderBinderSections(binderGrid, categoryFilter === 'series2')}
+        {binderGrid ? (
+          renderBinderSections(binderGrid, categoryFilter === 'series2')
+        ) : (
+          <p className="text-center text-muted-foreground py-12">Select a specific series (e.g., Series 1, Series 2, or Food Fight) to view the Collector Binder grid.</p>
+        )}
       </>
     );
   };
