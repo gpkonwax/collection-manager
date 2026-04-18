@@ -1952,7 +1952,30 @@ export default function SimpleAssetsPage() {
                     )}
                   </TabsContent>
                   <TabsContent value="puzzle">
-                    <PuzzleBuilder assets={filtered} initialPieceState={importedPuzzle} onPiecesChange={handlePuzzlePiecesChange} onSwitchToBinder={handleSwitchToBinder} />
+                    <PuzzleBuilder
+                      assets={filtered}
+                      initialPieceState={importedPuzzle}
+                      onPiecesChange={handlePuzzlePiecesChange}
+                      onSwitchToBinder={handleSwitchToBinder}
+                      jsonMenuSlot={
+                        <JsonMenu
+                          refreshKey={recentRefreshKey}
+                          alertsCount={priceAlerts.length}
+                          alertsMax={maxAlerts}
+                          triggeredCount={triggeredCount}
+                          alertsCheckingNow={alertsCheckingNow}
+                          alertsCooldownMs={alertsCooldownRemaining}
+                          onImportFiles={handleImportFiles}
+                          onApplyRecent={handleApplyRecent}
+                          onCheckAlertsNow={handleCheckAlertsNow}
+                          onExportAlerts={handleExportAlerts}
+                          onExportLayout={handleExportLayout}
+                          onExportPuzzle={handleExportPuzzle}
+                          layoutHasData={savedOrder !== null}
+                          puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+                        />
+                      }
+                    />
                   </TabsContent>
                 </Tabs>
               ) : viewMode === 'saved' ? (
