@@ -1138,7 +1138,6 @@ export default function SimpleAssetsPage() {
             <Button onClick={() => { if (savedLayoutKey) localStorage.removeItem(savedLayoutKey); setSavedOrder(null); setLoadedLayoutName(null); toast.success('Layout cleared for this category'); }} variant="outline" size="sm" className="whitespace-nowrap border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 h-8">
               <Trash2 className="h-4 w-4 mr-1" />Clear Layout
             </Button>
-            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
