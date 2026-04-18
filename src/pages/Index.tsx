@@ -42,6 +42,8 @@ import { getGpkVariantRank } from '@/lib/gpkVariant';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
+import { usePriceAlerts } from '@/hooks/usePriceAlerts';
+import { Bell, BellRing } from 'lucide-react';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -406,6 +408,79 @@ export default function SimpleAssetsPage() {
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const alertsFileInputRef = useRef<HTMLInputElement>(null);
+  const { alerts: priceAlerts, maxAlerts, lastManualCheckAt, manualCooldownMs, checkNow: checkAlertsNow, exportJson: exportAlertsJson, importJson: importAlertsJson } = usePriceAlerts();
+  const [alertsCheckingNow, setAlertsCheckingNow] = useState(false);
+  const [alertsCooldownRemaining, setAlertsCooldownRemaining] = useState(0);
+
+  useEffect(() => {
+    if (!lastManualCheckAt) { setAlertsCooldownRemaining(0); return; }
+    const tick = () => {
+      const remaining = Math.max(0, manualCooldownMs - (Date.now() - lastManualCheckAt));
+      setAlertsCooldownRemaining(remaining);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [lastManualCheckAt, manualCooldownMs]);
+
+  const handleCheckAlertsNow = useCallback(async () => {
+    setAlertsCheckingNow(true);
+    try {
+      const res = await checkAlertsNow();
+      if (!res.ok && res.remainingMs) {
+        toast.error(`Please wait ${Math.ceil(res.remainingMs / 1000)}s before checking again`);
+      } else if (res.ok) {
+        toast.success('Price alerts checked');
+      }
+    } finally {
+      setAlertsCheckingNow(false);
+    }
+  }, [checkAlertsNow]);
+
+  const handleExportAlerts = useCallback(() => {
+    if (priceAlerts.length === 0) {
+      toast.error('No alerts to export');
+      return;
+    }
+    const json = exportAlertsJson();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url;
+    a.download = `gpk-price-alerts-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${priceAlerts.length} alert${priceAlerts.length !== 1 ? 's' : ''}`);
+  }, [priceAlerts.length, exportAlertsJson]);
+
+  const handleImportAlerts = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = String(ev.target?.result || '');
+        const result = importAlertsJson(text);
+        const parts: string[] = [];
+        if (result.added) parts.push(`${result.added} added`);
+        if (result.updated) parts.push(`${result.updated} updated`);
+        if (result.skipped.length) parts.push(`${result.skipped.length} skipped (cap)`);
+        toast.success(parts.length ? `Imported: ${parts.join(', ')}` : 'No changes');
+        if (result.skipped.length) {
+          toast.error(`Cap is ${maxAlerts}. Skipped: ${result.skipped.slice(0, 5).join(', ')}${result.skipped.length > 5 ? '…' : ''}`);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to import alerts');
+      } finally {
+        if (alertsFileInputRef.current) alertsFileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }, [importAlertsJson, maxAlerts]);
 
   // Restore saved layout when account or category changes
   const restoringRef = useRef(false);
@@ -874,10 +949,12 @@ export default function SimpleAssetsPage() {
   const renderBinderView = () => {
     if (!binderGrid) return <p className="text-center text-muted-foreground py-12">Select a specific series to use Collector Binder.</p>;
     const visibleOwned = binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []);
+    const triggeredCount = priceAlerts.filter(a => a.triggered).length;
+    const cooldownActive = alertsCooldownRemaining > 0;
     return (
       <>
-        <div className="flex items-center gap-3 relative z-10 mb-4">
-          <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-3 relative z-10 mb-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-1 min-w-[280px]">
             <p className="text-sm text-muted-foreground">
               {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
               {binderLoading && ' (loading templates...)'}
@@ -888,7 +965,36 @@ export default function SimpleAssetsPage() {
           <div className="flex-shrink-0">
             {renderCompletionBar()}
           </div>
-          <div className="flex-1" />
+          <div className="flex items-center justify-end gap-2 flex-1 min-w-[300px]">
+            <span className="text-xs text-muted-foreground" title={`${priceAlerts.length} of ${maxAlerts} alerts used`}>
+              {triggeredCount > 0 ? (
+                <span className="text-destructive font-medium inline-flex items-center gap-1">
+                  <BellRing className="h-3 w-3" />{triggeredCount} triggered
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <Bell className="h-3 w-3" />{priceAlerts.length}/{maxAlerts}
+                </span>
+              )}
+            </span>
+            <Button
+              onClick={handleCheckAlertsNow}
+              variant="outline"
+              size="sm"
+              disabled={alertsCheckingNow || cooldownActive || priceAlerts.length === 0}
+              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${alertsCheckingNow ? 'animate-spin' : ''}`} />
+              {cooldownActive ? `Wait ${Math.ceil(alertsCooldownRemaining / 1000)}s` : 'Check Alerts'}
+            </Button>
+            <Button onClick={handleExportAlerts} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
+              <Download className="h-4 w-4 mr-1" />Export
+            </Button>
+            <Button onClick={() => alertsFileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
+              <Upload className="h-4 w-4 mr-1" />Import
+            </Button>
+            <input ref={alertsFileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportAlerts} />
+          </div>
         </div>
         {renderBinderSections(binderGrid, categoryFilter === 'series2')}
       </>
