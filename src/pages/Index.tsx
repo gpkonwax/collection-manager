@@ -410,7 +410,8 @@ export default function SimpleAssetsPage() {
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const alertsFileInputRef = useRef<HTMLInputElement>(null);
+  const importAllInputRef = useRef<HTMLInputElement>(null);
+  const [recentRefreshKey, setRecentRefreshKey] = useState(0);
   const { alerts: priceAlerts, maxAlerts, lastManualCheckAt, manualCooldownMs, checkNow: checkAlertsNow, exportJson: exportAlertsJson, importJson: importAlertsJson } = usePriceAlerts();
   const [alertsCheckingNow, setAlertsCheckingNow] = useState(false);
   const [alertsCooldownRemaining, setAlertsCooldownRemaining] = useState(0);
