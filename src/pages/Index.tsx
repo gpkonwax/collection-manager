@@ -1109,7 +1109,6 @@ export default function SimpleAssetsPage() {
               <Upload className="h-4 w-4 mr-2" />
               Import JSON(s)
             </Button>
-            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
           </div>
         </div>
       );
