@@ -460,30 +460,15 @@ export default function SimpleAssetsPage() {
     toast.success(`Exported ${priceAlerts.length} alert${priceAlerts.length !== 1 ? 's' : ''}`);
   }, [priceAlerts.length, exportAlertsJson]);
 
-  const handleImportAlerts = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const text = String(ev.target?.result || '');
-        const result = importAlertsJson(text);
-        const parts: string[] = [];
-        if (result.added) parts.push(`${result.added} added`);
-        if (result.updated) parts.push(`${result.updated} updated`);
-        if (result.skipped.length) parts.push(`${result.skipped.length} skipped (cap)`);
-        toast.success(parts.length ? `Imported: ${parts.join(', ')}` : 'No changes');
-        if (result.skipped.length) {
-          toast.error(`Cap is ${maxAlerts}. Skipped: ${result.skipped.slice(0, 5).join(', ')}${result.skipped.length > 5 ? '…' : ''}`);
-        }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to import alerts');
-      } finally {
-        if (alertsFileInputRef.current) alertsFileInputRef.current.value = '';
-      }
-    };
-    reader.readAsText(file);
+  // Reusable apply for alerts (called by router-driven multi-file import + Recent menu)
+  const applyAlertsRaw = useCallback((raw: string) => {
+    const result = importAlertsJson(raw);
+    if (result.skipped.length) {
+      toast.error(`Alert cap is ${maxAlerts}. Skipped: ${result.skipped.slice(0, 5).join(', ')}${result.skipped.length > 5 ? '…' : ''}`);
+    }
+    return result;
   }, [importAlertsJson, maxAlerts]);
+
 
   // Restore saved layout when account or category changes
   const restoringRef = useRef(false);
