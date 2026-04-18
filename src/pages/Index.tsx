@@ -614,6 +614,37 @@ export default function SimpleAssetsPage() {
     toast.success('Layout exported');
   }, [accountName, savedOrder, categoryFilter]);
 
+  const handleExportPuzzle = useCallback(async () => {
+    const puzzle = puzzleStateRef.current;
+    if (!puzzle || Object.keys(puzzle).length === 0) {
+      toast.error('No puzzle layout to export');
+      return;
+    }
+    const jsonStr = JSON.stringify(puzzle, null, 2);
+    const defaultFilename = `gpk-puzzle-${accountName || 'layout'}.json`;
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: defaultFilename,
+          types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonStr);
+        await writable.close();
+        toast.success('Puzzle layout exported');
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = defaultFilename; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Puzzle layout exported');
+  }, [accountName]);
+
   // Reusable apply for saved layout (called by router-driven multi-file import + Recent menu).
   // Throws when the parsed file has no usable layout data.
   const applyLayoutData = useCallback((data: DetectedLayout['parsed'], filename: string) => {
