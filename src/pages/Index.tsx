@@ -1558,11 +1558,21 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">💾</span> Import / Export</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔔</span> Price Alerts</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Save your Saved Collection layouts as JSON files.</li>
-                  <li>Import layouts to restore or share your collection arrangements.</li>
-                  <li>Puzzle Builder progress is also exportable.</li>
+                  <li>Set up to <strong>5 active price alerts</strong> in total across your entire collection (global cap, not per category).</li>
+                  <li>Pick any missing card from the Collector Binder and set your maximum target WAX price.</li>
+                  <li>Alerts run quietly in the background — get a toast notification the moment a listing drops below your threshold.</li>
+                  <li>Export and import all your alerts as JSON to back them up or move between devices.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📂</span> Import / Export &amp; Multi-File Load</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Save your Saved Collection layouts, Puzzle Builder progress, and Price Alerts as JSON files.</li>
+                  <li><strong>Multi-file import:</strong> drop or select multiple JSON files at once — load every saved category layout, your price alerts, and your puzzle formation in one easy step.</li>
+                  <li>Each file is auto-routed to the correct category, alert store, or puzzle layout — no manual sorting required.</li>
+                  <li>Recent imports are remembered for quick re-apply, and the unified JSON menu is available in both the main collection view and the Puzzle Builder.</li>
                 </ul>
               </div>
               <div>
