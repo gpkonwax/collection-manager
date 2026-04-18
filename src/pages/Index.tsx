@@ -45,7 +45,7 @@ import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
 import { routeOne, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
-import { RecentJsonsMenu } from '@/components/RecentJsonsMenu';
+import { JsonMenu } from '@/components/JsonMenu';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -409,7 +409,7 @@ export default function SimpleAssetsPage() {
   });
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const importAllInputRef = useRef<HTMLInputElement>(null);
+  
   const [recentRefreshKey, setRecentRefreshKey] = useState(0);
   const { alerts: priceAlerts, maxAlerts, lastManualCheckAt, manualCooldownMs, checkNow: checkAlertsNow, exportJson: exportAlertsJson, importJson: importAlertsJson } = usePriceAlerts();
   const [alertsCheckingNow, setAlertsCheckingNow] = useState(false);
@@ -613,6 +613,37 @@ export default function SimpleAssetsPage() {
     URL.revokeObjectURL(url);
     toast.success('Layout exported');
   }, [accountName, savedOrder, categoryFilter]);
+
+  const handleExportPuzzle = useCallback(async () => {
+    const puzzle = puzzleStateRef.current;
+    if (!puzzle || Object.keys(puzzle).length === 0) {
+      toast.error('No puzzle layout to export');
+      return;
+    }
+    const jsonStr = JSON.stringify(puzzle, null, 2);
+    const defaultFilename = `gpk-puzzle-${accountName || 'layout'}.json`;
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: defaultFilename,
+          types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonStr);
+        await writable.close();
+        toast.success('Puzzle layout exported');
+        return;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = defaultFilename; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Puzzle layout exported');
+  }, [accountName]);
 
   // Reusable apply for saved layout (called by router-driven multi-file import + Recent menu).
   // Throws when the parsed file has no usable layout data.
@@ -1039,23 +1070,22 @@ export default function SimpleAssetsPage() {
                 </span>
               )}
             </span>
-            <Button
-              onClick={handleCheckAlertsNow}
-              variant="outline"
-              size="sm"
-              disabled={alertsCheckingNow || cooldownActive || priceAlerts.length === 0}
-              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${alertsCheckingNow ? 'animate-spin' : ''}`} />
-              {cooldownActive ? `Wait ${Math.ceil(alertsCooldownRemaining / 1000)}s` : 'Check Alerts'}
-            </Button>
-            <Button onClick={handleExportAlerts} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Download className="h-4 w-4 mr-1" />Export Alerts
-            </Button>
-            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
-              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
-            </Button>
-            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
+            <JsonMenu
+              refreshKey={recentRefreshKey}
+              alertsCount={priceAlerts.length}
+              alertsMax={maxAlerts}
+              triggeredCount={triggeredCount}
+              alertsCheckingNow={alertsCheckingNow}
+              alertsCooldownMs={alertsCooldownRemaining}
+              onImportFiles={handleImportFiles}
+              onApplyRecent={handleApplyRecent}
+              onCheckAlertsNow={handleCheckAlertsNow}
+              onExportAlerts={handleExportAlerts}
+              onExportLayout={handleExportLayout}
+              onExportPuzzle={handleExportPuzzle}
+              layoutHasData={savedOrder !== null}
+              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+            />
           </div>
         </div>
         {renderBinderSections(binderGrid, categoryFilter === 'series2')}
@@ -1075,11 +1105,22 @@ export default function SimpleAssetsPage() {
             Load a previously exported JSON layout, or use "Copy to Saved" from the Classic tab to snapshot your current collection here for custom arrangement.
           </p>
           <div className="flex justify-center gap-3">
-            <Button onClick={() => importAllInputRef.current?.click()} className="bg-cheese hover:bg-cheese/90 text-primary-foreground">
-              <Upload className="h-4 w-4 mr-2" />
-              Import JSON(s)
-            </Button>
-            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
+            <JsonMenu
+              refreshKey={recentRefreshKey}
+              alertsCount={priceAlerts.length}
+              alertsMax={maxAlerts}
+              triggeredCount={priceAlerts.filter(a => a.triggered).length}
+              alertsCheckingNow={alertsCheckingNow}
+              alertsCooldownMs={alertsCooldownRemaining}
+              onImportFiles={handleImportFiles}
+              onApplyRecent={handleApplyRecent}
+              onCheckAlertsNow={handleCheckAlertsNow}
+              onExportAlerts={handleExportAlerts}
+              onExportLayout={handleExportLayout}
+              onExportPuzzle={handleExportPuzzle}
+              layoutHasData={savedOrder !== null}
+              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+            />
           </div>
         </div>
       );
@@ -1106,13 +1147,22 @@ export default function SimpleAssetsPage() {
                 📄 {loadedLayoutName}
               </span>
             )}
-            <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Download className="h-4 w-4 mr-1" />Save Layout
-            </Button>
-            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
-              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
-            </Button>
-            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
+            <JsonMenu
+              refreshKey={recentRefreshKey}
+              alertsCount={priceAlerts.length}
+              alertsMax={maxAlerts}
+              triggeredCount={priceAlerts.filter(a => a.triggered).length}
+              alertsCheckingNow={alertsCheckingNow}
+              alertsCooldownMs={alertsCooldownRemaining}
+              onImportFiles={handleImportFiles}
+              onApplyRecent={handleApplyRecent}
+              onCheckAlertsNow={handleCheckAlertsNow}
+              onExportAlerts={handleExportAlerts}
+              onExportLayout={handleExportLayout}
+              onExportPuzzle={handleExportPuzzle}
+              layoutHasData={savedOrder !== null}
+              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
@@ -1888,15 +1938,6 @@ export default function SimpleAssetsPage() {
         </div>
       )}
 
-      {/* Unified hidden file input for multi-file JSON imports (alerts / saved layout / puzzle) */}
-      <input
-        ref={importAllInputRef}
-        type="file"
-        accept=".json,application/json"
-        multiple
-        className="hidden"
-        onChange={handleImportFiles}
-      />
     </div>
   );
 }
