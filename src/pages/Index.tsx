@@ -1611,7 +1611,7 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   icon={<span className="text-2xl">📖</span>}
                   title="Collector Binder"
-                  description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. See exactly what you need."
+                  description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. Set price alerts on any missing card to get notified when it drops below your target. See exactly what you need."
                 />
                 <FeatureCard
                   icon={<span className="text-2xl">💾</span>}
