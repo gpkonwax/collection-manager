@@ -349,42 +349,46 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               </button>
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
-            onClick={handleSaveJson}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Save JSON
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
-            onClick={handleLoadJson}
-          >
-            <Upload className="h-4 w-4 mr-1" />
-            Load JSON
-          </Button>
-          {loadedFileName && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10"
-              onClick={handleClearJson}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
+          {jsonMenuSlot ? (
+            jsonMenuSlot
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+                onClick={handleSaveJson}
+              >
+                Save JSON
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+                onClick={handleLoadJson}
+              >
+                Load JSON
+              </Button>
+              {loadedFileName && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10"
+                  onClick={handleClearJson}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={handleFileChange}
-          />
         </div>
       </div>
 
