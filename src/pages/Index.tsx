@@ -687,16 +687,39 @@ export default function SimpleAssetsPage() {
       throw new Error('No layout data found in file');
     }
 
-    setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
-    setLoadedLayoutName(filename);
-    setViewMode('saved');
-
+    const paddedOrder = [...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
     const hasPuzzle = !!(data.puzzle && typeof data.puzzle === 'object');
-    if (hasPuzzle) {
-      setImportedPuzzle(data.puzzle as PuzzlePieceMap);
+    const puzzleData = hasPuzzle ? (data.puzzle as PuzzlePieceMap) : null;
+
+    // Detect target category from the file. Switch active category before applying so the
+    // restore effect runs first and the persist effect writes to the correct per-category key.
+    const rawCategory = typeof (data as any).category === 'string' ? (data as any).category.trim() : '';
+    const isKnown = rawCategory && (rawCategory === 'all' || rawCategory in CATEGORY_LABELS);
+    const targetCategory = isKnown ? rawCategory : null;
+
+    if (rawCategory && !isKnown) {
+      toast.message(`Layout's category '${rawCategory}' is unknown — applied to current view`);
     }
+
+    if (targetCategory && targetCategory !== categoryFilter) {
+      // Defer the layout writes until after category switch / restore-effect runs for the new key.
+      const newKey = `gpk-saved-layout-${accountName}-${targetCategory}`;
+      pendingImportRef.current = {
+        key: newKey,
+        order: paddedOrder,
+        name: filename,
+        puzzle: puzzleData,
+      };
+      setCategoryFilter(targetCategory);
+    } else {
+      setSavedOrder(paddedOrder);
+      setLoadedLayoutName(filename);
+      if (puzzleData) setImportedPuzzle(puzzleData);
+    }
+
+    setViewMode('saved');
     return { cards: order.length, hasPuzzle };
-  }, [accountName]);
+  }, [accountName, categoryFilter]);
 
   // Reusable apply for puzzle (called by router-driven multi-file import + Recent menu)
   const applyPuzzleData = useCallback((data: PuzzlePieceMap) => {
