@@ -45,7 +45,7 @@ import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
 import { routeOne, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
-import { RecentJsonsMenu } from '@/components/RecentJsonsMenu';
+import { JsonMenu } from '@/components/JsonMenu';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
