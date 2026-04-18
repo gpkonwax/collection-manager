@@ -661,11 +661,8 @@ export default function SimpleAssetsPage() {
     toast.success('Puzzle layout exported');
   }, [accountName]);
 
-  // Reusable apply for saved layout (called by router-driven multi-file import + Recent menu).
-  // Throws when the parsed file has no usable layout data.
-  const applyLayoutData = useCallback((data: DetectedLayout['parsed'], filename: string) => {
-    if (!accountName) throw new Error('Connect a wallet to import a layout');
-
+  // Extract a normalized order array from a parsed layout file. Returns null if no usable data.
+  const extractLayoutOrder = useCallback((data: DetectedLayout['parsed']): string[] | null => {
     let order: string[] | null = null;
     if (data.orders) {
       if (Array.isArray((data.orders as any).saved)) {
@@ -683,34 +680,36 @@ export default function SimpleAssetsPage() {
         if (allIds.length > 0) order = allIds;
       }
     }
+    return order && order.length > 0 ? order : null;
+  }, []);
 
-    if (!order || order.length === 0) {
-      throw new Error('No layout data found in file');
-    }
+  // Resolve target category from layout file. Returns null if missing/unknown (caller falls back to current).
+  const resolveTargetCategory = useCallback((data: DetectedLayout['parsed']): { target: string | null; rawUnknown: string | null } => {
+    const rawCategory = typeof (data as any).category === 'string' ? (data as any).category.trim() : '';
+    if (!rawCategory) return { target: null, rawUnknown: null };
+    const isKnown = rawCategory === 'all' || rawCategory in CATEGORY_LABELS;
+    return isKnown ? { target: rawCategory, rawUnknown: null } : { target: null, rawUnknown: rawCategory };
+  }, []);
+
+  // Single-file apply (also used by Recent menu). For multi-file imports, use applyLayoutDataBatch.
+  const applyLayoutData = useCallback((data: DetectedLayout['parsed'], filename: string) => {
+    if (!accountName) throw new Error('Connect a wallet to import a layout');
+
+    const order = extractLayoutOrder(data);
+    if (!order) throw new Error('No layout data found in file');
 
     const paddedOrder = [...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
     const hasPuzzle = !!(data.puzzle && typeof data.puzzle === 'object');
     const puzzleData = hasPuzzle ? (data.puzzle as PuzzlePieceMap) : null;
 
-    // Detect target category from the file. Switch active category before applying so the
-    // restore effect runs first and the persist effect writes to the correct per-category key.
-    const rawCategory = typeof (data as any).category === 'string' ? (data as any).category.trim() : '';
-    const isKnown = rawCategory && (rawCategory === 'all' || rawCategory in CATEGORY_LABELS);
-    const targetCategory = isKnown ? rawCategory : null;
-
-    if (rawCategory && !isKnown) {
-      toast.message(`Layout's category '${rawCategory}' is unknown — applied to current view`);
+    const { target: targetCategory, rawUnknown } = resolveTargetCategory(data);
+    if (rawUnknown) {
+      toast.message(`Layout's category '${rawUnknown}' is unknown — applied to current view`);
     }
 
     if (targetCategory && targetCategory !== categoryFilter) {
-      // Defer the layout writes until after category switch / restore-effect runs for the new key.
       const newKey = `gpk-saved-layout-${accountName}-${targetCategory}`;
-      pendingImportRef.current = {
-        key: newKey,
-        order: paddedOrder,
-        name: filename,
-        puzzle: puzzleData,
-      };
+      pendingImportsRef.current.set(newKey, { order: paddedOrder, name: filename, puzzle: puzzleData });
       setCategoryFilter(targetCategory);
     } else {
       setSavedOrder(paddedOrder);
@@ -720,7 +719,61 @@ export default function SimpleAssetsPage() {
 
     setViewMode('saved');
     return { cards: order.length, hasPuzzle };
-  }, [accountName, categoryFilter]);
+  }, [accountName, categoryFilter, extractLayoutOrder, resolveTargetCategory]);
+
+  // Batch apply for multi-file imports. Writes non-active categories straight to localStorage,
+  // queues all in pendingImportsRef, and switches to the FIRST layout's category (deterministic).
+  const applyLayoutDataBatch = useCallback((
+    items: Array<{ data: DetectedLayout['parsed']; filename: string }>
+  ): { applied: number; switchedTo: string | null; categories: string[] } => {
+    if (!accountName) throw new Error('Connect a wallet to import a layout');
+    if (items.length === 0) return { applied: 0, switchedTo: null, categories: [] };
+
+    let switchTarget: string | null = null;
+    const appliedCategories: string[] = [];
+
+    for (const { data, filename } of items) {
+      const order = extractLayoutOrder(data);
+      if (!order) continue;
+
+      const paddedOrder = [...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)];
+      const hasPuzzle = !!(data.puzzle && typeof data.puzzle === 'object');
+      const puzzleData = hasPuzzle ? (data.puzzle as PuzzlePieceMap) : null;
+
+      const { target } = resolveTargetCategory(data);
+      const effectiveCategory = target || categoryFilter;
+      const key = `gpk-saved-layout-${accountName}-${effectiveCategory}`;
+
+      // Queue in-memory so the restore effect (or current-category render) picks it up.
+      pendingImportsRef.current.set(key, { order: paddedOrder, name: filename, puzzle: puzzleData });
+
+      // Persist immediately to localStorage so non-active categories survive even without a state cycle.
+      try {
+        localStorage.setItem(key, JSON.stringify({ order: paddedOrder, name: filename }));
+      } catch {}
+
+      appliedCategories.push(effectiveCategory);
+      if (switchTarget === null) switchTarget = effectiveCategory;
+    }
+
+    if (switchTarget && switchTarget !== categoryFilter) {
+      setCategoryFilter(switchTarget);
+    } else if (switchTarget) {
+      // Same category — apply immediately from the pending entry so UI updates without a key change.
+      const key = `gpk-saved-layout-${accountName}-${switchTarget}`;
+      const pending = pendingImportsRef.current.get(key);
+      if (pending) {
+        setSavedOrder(pending.order);
+        setLoadedLayoutName(pending.name);
+        if (pending.puzzle) setImportedPuzzle(pending.puzzle);
+        pendingImportsRef.current.delete(key);
+      }
+    }
+
+    setViewMode('saved');
+    return { applied: appliedCategories.length, switchedTo: switchTarget, categories: appliedCategories };
+  }, [accountName, categoryFilter, extractLayoutOrder, resolveTargetCategory]);
+
 
   // Reusable apply for puzzle (called by router-driven multi-file import + Recent menu)
   const applyPuzzleData = useCallback((data: PuzzlePieceMap) => {
