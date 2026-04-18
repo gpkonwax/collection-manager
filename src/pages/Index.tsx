@@ -1955,7 +1955,29 @@ export default function SimpleAssetsPage() {
                           <div className="flex-shrink-0">
                             {renderCompletionBar()}
                           </div>
-                          <div className="flex-1" />
+                          <div className="flex items-center justify-end gap-2 flex-1 min-w-[200px]">
+                            {priceAlerts.filter(a => a.triggered).length > 0 && (
+                              <span className="text-xs text-destructive font-semibold whitespace-nowrap">
+                                {priceAlerts.filter(a => a.triggered).length} alert{priceAlerts.filter(a => a.triggered).length !== 1 ? 's' : ''} triggered
+                              </span>
+                            )}
+                            <JsonMenu
+                              refreshKey={recentRefreshKey}
+                              alertsCount={priceAlerts.length}
+                              alertsMax={maxAlerts}
+                              triggeredCount={priceAlerts.filter(a => a.triggered).length}
+                              alertsCheckingNow={alertsCheckingNow}
+                              alertsCooldownMs={alertsCooldownRemaining}
+                              onImportFiles={handleImportFiles}
+                              onApplyRecent={handleApplyRecent}
+                              onCheckAlertsNow={handleCheckAlertsNow}
+                              onExportAlerts={handleExportAlerts}
+                              onExportLayout={handleExportLayout}
+                              onExportPuzzle={handleExportPuzzle}
+                              layoutHasData={savedOrder !== null}
+                              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+                            />
+                          </div>
                         </div>
                         {renderBinderSections(binderGrid, true)}
 
