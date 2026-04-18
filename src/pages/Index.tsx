@@ -1485,6 +1485,10 @@ export default function SimpleAssetsPage() {
           </DialogHeader>
           <ScrollArea className="max-h-[65vh] pr-4">
             <div className="space-y-5 text-sm">
+              <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-3">
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔒</span> No New Smart Contracts</h4>
+                <p className="text-foreground">This manager is a pure front-end client. It does <strong>not</strong> deploy or rely on any custom smart contracts — every action is built from the existing, audited <strong>simpleassets</strong> and <strong>atomicassets</strong> tables and actions on WAX. That means a smaller attack surface, no extra contract risk, no token approvals to revoke, and full transparency: every transaction you sign goes directly to the standard contracts you already trust.</p>
+              </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
@@ -1554,11 +1558,21 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">💾</span> Import / Export</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔔</span> Price Alerts</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Save your Saved Collection layouts as JSON files.</li>
-                  <li>Import layouts to restore or share your collection arrangements.</li>
-                  <li>Puzzle Builder progress is also exportable.</li>
+                  <li>Set up to <strong>5 active price alerts</strong> in total across your entire collection (global cap, not per category).</li>
+                  <li>Pick any missing card from the Collector Binder and set your maximum target WAX price.</li>
+                  <li>Alerts run quietly in the background — get a toast notification the moment a listing drops below your threshold.</li>
+                  <li>Export and import all your alerts as JSON to back them up or move between devices.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📂</span> Import / Export &amp; Multi-File Load</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Save your Saved Collection layouts, Puzzle Builder progress, and Price Alerts as JSON files.</li>
+                  <li><strong>Multi-file import:</strong> drop or select multiple JSON files at once — load every saved category layout, your price alerts, and your puzzle formation in one easy step.</li>
+                  <li>Each file is auto-routed to the correct category, alert store, or puzzle layout — no manual sorting required.</li>
+                  <li>Recent imports are remembered for quick re-apply, and the unified JSON menu is available in both the main collection view and the Puzzle Builder.</li>
                 </ul>
               </div>
               <div>
@@ -1593,6 +1607,9 @@ export default function SimpleAssetsPage() {
               <p className="text-lg text-foreground max-w-2xl">
                 Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
               </p>
+              <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 px-4 py-3 text-sm text-foreground">
+                <span className="font-semibold text-cheese">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, no token approvals, smaller attack surface, fully transparent on-chain.
+              </div>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
                 <Wallet className="h-5 w-5 mr-2" />
                 Connect Wallet
