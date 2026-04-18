@@ -44,6 +44,8 @@ import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
+import { routeOne, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
+import { RecentJsonsMenu } from '@/components/RecentJsonsMenu';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -407,8 +409,8 @@ export default function SimpleAssetsPage() {
   });
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const alertsFileInputRef = useRef<HTMLInputElement>(null);
+  const importAllInputRef = useRef<HTMLInputElement>(null);
+  const [recentRefreshKey, setRecentRefreshKey] = useState(0);
   const { alerts: priceAlerts, maxAlerts, lastManualCheckAt, manualCooldownMs, checkNow: checkAlertsNow, exportJson: exportAlertsJson, importJson: importAlertsJson } = usePriceAlerts();
   const [alertsCheckingNow, setAlertsCheckingNow] = useState(false);
   const [alertsCooldownRemaining, setAlertsCooldownRemaining] = useState(0);
@@ -457,30 +459,15 @@ export default function SimpleAssetsPage() {
     toast.success(`Exported ${priceAlerts.length} alert${priceAlerts.length !== 1 ? 's' : ''}`);
   }, [priceAlerts.length, exportAlertsJson]);
 
-  const handleImportAlerts = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const text = String(ev.target?.result || '');
-        const result = importAlertsJson(text);
-        const parts: string[] = [];
-        if (result.added) parts.push(`${result.added} added`);
-        if (result.updated) parts.push(`${result.updated} updated`);
-        if (result.skipped.length) parts.push(`${result.skipped.length} skipped (cap)`);
-        toast.success(parts.length ? `Imported: ${parts.join(', ')}` : 'No changes');
-        if (result.skipped.length) {
-          toast.error(`Cap is ${maxAlerts}. Skipped: ${result.skipped.slice(0, 5).join(', ')}${result.skipped.length > 5 ? '…' : ''}`);
-        }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to import alerts');
-      } finally {
-        if (alertsFileInputRef.current) alertsFileInputRef.current.value = '';
-      }
-    };
-    reader.readAsText(file);
+  // Reusable apply for alerts (called by router-driven multi-file import + Recent menu)
+  const applyAlertsRaw = useCallback((raw: string) => {
+    const result = importAlertsJson(raw);
+    if (result.skipped.length) {
+      toast.error(`Alert cap is ${maxAlerts}. Skipped: ${result.skipped.slice(0, 5).join(', ')}${result.skipped.length > 5 ? '…' : ''}`);
+    }
+    return result;
   }, [importAlertsJson, maxAlerts]);
+
 
   // Restore saved layout when account or category changes
   const restoringRef = useRef(false);
@@ -627,51 +614,126 @@ export default function SimpleAssetsPage() {
     toast.success('Layout exported');
   }, [accountName, savedOrder, categoryFilter]);
 
-  const handleImportLayout = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !accountName) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result as string);
-        if (!data || typeof data !== 'object') { toast.error('Invalid layout file'); return; }
+  // Reusable apply for saved layout (called by router-driven multi-file import + Recent menu).
+  // Throws when the parsed file has no usable layout data.
+  const applyLayoutData = useCallback((data: DetectedLayout['parsed'], filename: string) => {
+    if (!accountName) throw new Error('Connect a wallet to import a layout');
 
-        let order: string[] | null = null;
-        if (data.orders) {
-          if (Array.isArray(data.orders.saved)) {
-            order = data.orders.saved;
-          } else if (typeof data.orders === 'object') {
-            const allIds: string[] = [];
-            const seen = new Set<string>();
-            for (const arr of Object.values(data.orders)) {
-              if (Array.isArray(arr)) {
-                for (const id of arr as string[]) {
-                  if (!seen.has(id)) { seen.add(id); allIds.push(id); }
-                }
-              }
+    let order: string[] | null = null;
+    if (data.orders) {
+      if (Array.isArray((data.orders as any).saved)) {
+        order = (data.orders as any).saved;
+      } else if (typeof data.orders === 'object') {
+        const allIds: string[] = [];
+        const seen = new Set<string>();
+        for (const arr of Object.values(data.orders)) {
+          if (Array.isArray(arr)) {
+            for (const id of arr as string[]) {
+              if (!seen.has(id)) { seen.add(id); allIds.push(id); }
             }
-            if (allIds.length > 0) order = allIds;
           }
         }
+        if (allIds.length > 0) order = allIds;
+      }
+    }
 
-        if (!order || order.length === 0) {
-          toast.error('No layout data found in file');
-          return;
-        }
+    if (!order || order.length === 0) {
+      throw new Error('No layout data found in file');
+    }
 
-        setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
-        setLoadedLayoutName(file.name);
-        setViewMode('saved');
+    setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...order, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
+    setLoadedLayoutName(filename);
+    setViewMode('saved');
 
-        if (data.puzzle && typeof data.puzzle === 'object') {
-          setImportedPuzzle(data.puzzle as PuzzlePieceMap);
-        }
-        toast.success('Layout imported — switch to Saved Collection tab to view');
-      } catch { toast.error('Failed to parse layout file'); }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+    const hasPuzzle = !!(data.puzzle && typeof data.puzzle === 'object');
+    if (hasPuzzle) {
+      setImportedPuzzle(data.puzzle as PuzzlePieceMap);
+    }
+    return { cards: order.length, hasPuzzle };
   }, [accountName]);
+
+  // Reusable apply for puzzle (called by router-driven multi-file import + Recent menu)
+  const applyPuzzleData = useCallback((data: PuzzlePieceMap) => {
+    setImportedPuzzle(data);
+    return { pieces: Object.keys(data).length };
+  }, []);
+
+  const summarizeRouteResults = useCallback((results: ReturnType<typeof routeOne>[]) => {
+    const ok = results.filter(r => r.ok);
+    const failed = results.filter(r => !r.ok);
+    const parts: string[] = [];
+
+    const alertsTotals = ok
+      .filter(r => r.kind === 'alerts' && r.alerts)
+      .reduce((acc, r) => {
+        acc.added += r.alerts!.added;
+        acc.updated += r.alerts!.updated;
+        acc.skipped += r.alerts!.skipped.length;
+        return acc;
+      }, { added: 0, updated: 0, skipped: 0 });
+    if (alertsTotals.added || alertsTotals.updated || alertsTotals.skipped) {
+      const a: string[] = [];
+      if (alertsTotals.added) a.push(`${alertsTotals.added} added`);
+      if (alertsTotals.updated) a.push(`${alertsTotals.updated} updated`);
+      if (alertsTotals.skipped) a.push(`${alertsTotals.skipped} skipped`);
+      parts.push(`Alerts: ${a.join(', ')}`);
+    }
+
+    const layoutOk = ok.find(r => r.kind === 'layout');
+    if (layoutOk?.layout) {
+      parts.push(`Layout: ${layoutOk.layout.cards} card${layoutOk.layout.cards !== 1 ? 's' : ''}${layoutOk.layout.hasPuzzle ? ' + puzzle' : ''}`);
+    }
+
+    const puzzleOk = ok.find(r => r.kind === 'puzzle');
+    if (puzzleOk?.puzzle && !layoutOk?.layout?.hasPuzzle) {
+      parts.push(`Puzzle: ${puzzleOk.puzzle.pieces} piece${puzzleOk.puzzle.pieces !== 1 ? 's' : ''}`);
+    }
+
+    if (ok.length > 0) {
+      toast.success(`Imported ${ok.length} file${ok.length !== 1 ? 's' : ''}${parts.length ? ` — ${parts.join(' · ')}` : ''}`);
+    }
+    for (const f of failed) {
+      toast.error(`${f.filename}: ${f.message || 'Could not import'}`);
+    }
+  }, []);
+
+  const routerHandlers = useMemo(() => ({
+    onAlerts: (raw: string) => applyAlertsRaw(raw),
+    onLayout: (parsed: DetectedLayout['parsed'], filename: string) => applyLayoutData(parsed, filename),
+    onPuzzle: (parsed: PuzzlePieceMap) => applyPuzzleData(parsed),
+  }), [applyAlertsRaw, applyLayoutData, applyPuzzleData]);
+
+  const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const results: ReturnType<typeof routeOne>[] = [];
+    for (const file of files) {
+      try {
+        const text = await file.text();
+        const result = routeOne(file.name, text, routerHandlers);
+        results.push(result);
+        if (result.ok && result.kind !== 'unknown') {
+          addRecentJson({ filename: file.name, kind: result.kind, raw: text });
+        }
+      } catch (err) {
+        results.push({
+          filename: file.name,
+          kind: 'unknown',
+          ok: false,
+          message: err instanceof Error ? err.message : 'Failed to read file',
+        });
+      }
+    }
+    setRecentRefreshKey(k => k + 1);
+    summarizeRouteResults(results);
+    e.target.value = '';
+  }, [routerHandlers, summarizeRouteResults]);
+
+  const handleApplyRecent = useCallback((entry: RecentJsonEntry) => {
+    const result = routeOne(entry.filename, entry.raw, routerHandlers);
+    summarizeRouteResults([result]);
+  }, [routerHandlers, summarizeRouteResults]);
+
 
   const handleDragStart = useCallback((idx: number) => (_e: DragEvent<HTMLDivElement>) => { dragSourceIdx.current = idx; }, []);
   const handleDragOver = useCallback((idx: number) => (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOverIdx(idx); }, []);
@@ -988,12 +1050,12 @@ export default function SimpleAssetsPage() {
               {cooldownActive ? `Wait ${Math.ceil(alertsCooldownRemaining / 1000)}s` : 'Check Alerts'}
             </Button>
             <Button onClick={handleExportAlerts} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Download className="h-4 w-4 mr-1" />Export
+              <Download className="h-4 w-4 mr-1" />Export Alerts
             </Button>
-            <Button onClick={() => alertsFileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Upload className="h-4 w-4 mr-1" />Import
+            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
+              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
             </Button>
-            <input ref={alertsFileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportAlerts} />
+            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
           </div>
         </div>
         {renderBinderSections(binderGrid, categoryFilter === 'series2')}
@@ -1013,12 +1075,12 @@ export default function SimpleAssetsPage() {
             Load a previously exported JSON layout, or use "Copy to Saved" from the Classic tab to snapshot your current collection here for custom arrangement.
           </p>
           <div className="flex justify-center gap-3">
-            <Button onClick={() => fileInputRef.current?.click()} className="bg-cheese hover:bg-cheese/90 text-primary-foreground">
+            <Button onClick={() => importAllInputRef.current?.click()} className="bg-cheese hover:bg-cheese/90 text-primary-foreground">
               <Upload className="h-4 w-4 mr-2" />
-              Load Layout
+              Import JSON(s)
             </Button>
+            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
           </div>
-          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
         </div>
       );
     }
@@ -1047,9 +1109,10 @@ export default function SimpleAssetsPage() {
             <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
               <Download className="h-4 w-4 mr-1" />Save Layout
             </Button>
-            <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Upload className="h-4 w-4 mr-1" />Load Layout
+            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
+              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
             </Button>
+            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
@@ -1074,7 +1137,6 @@ export default function SimpleAssetsPage() {
             <Button onClick={() => { if (savedLayoutKey) localStorage.removeItem(savedLayoutKey); setSavedOrder(null); setLoadedLayoutName(null); toast.success('Layout cleared for this category'); }} variant="outline" size="sm" className="whitespace-nowrap border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 h-8">
               <Trash2 className="h-4 w-4 mr-1" />Clear Layout
             </Button>
-            <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -1825,6 +1887,16 @@ export default function SimpleAssetsPage() {
           </Button>
         </div>
       )}
+
+      {/* Unified hidden file input for multi-file JSON imports (alerts / saved layout / puzzle) */}
+      <input
+        ref={importAllInputRef}
+        type="file"
+        accept=".json,application/json"
+        multiple
+        className="hidden"
+        onChange={handleImportFiles}
+      />
     </div>
   );
 }
