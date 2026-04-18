@@ -194,6 +194,9 @@ export default function SimpleAssetsPage() {
   const [importedPuzzle, setImportedPuzzle] = useState<PuzzlePieceMap | null>(null);
   const puzzleStateRef = useRef<PuzzlePieceMap>({});
   const handlePuzzlePiecesChange = useCallback((state: PuzzlePieceMap) => { puzzleStateRef.current = state; }, []);
+
+  // Buffer for layout imports that need to survive a category switch + restore-effect cycle.
+  const pendingImportRef = useRef<{ key: string; order: string[]; name: string; puzzle?: PuzzlePieceMap | null } | null>(null);
   const [series2SubTab, setSeries2SubTab] = useState<string>('collection');
 
   const handleSwitchToBinder = useCallback(() => {
