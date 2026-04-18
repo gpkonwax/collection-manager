@@ -477,6 +477,18 @@ export default function SimpleAssetsPage() {
   useEffect(() => {
     restoringRef.current = true;
     if (!savedLayoutKey) { setSavedOrder(null); setLoadedLayoutName(null); return; }
+
+    // If a pending import targets this exact key, apply it instead of reading localStorage.
+    const pending = pendingImportRef.current;
+    if (pending && pending.key === savedLayoutKey) {
+      setSavedOrder(pending.order);
+      setLoadedLayoutName(pending.name);
+      if (pending.puzzle) setImportedPuzzle(pending.puzzle);
+      pendingImportRef.current = null;
+      requestAnimationFrame(() => { restoringRef.current = false; });
+      return;
+    }
+
     try {
       const stored = localStorage.getItem(savedLayoutKey);
       if (stored) {
