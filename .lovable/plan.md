@@ -1,59 +1,56 @@
 
 
-## Fix per-series saved-layout JSON imports
+## Fix multi-file layout import race
 
 ### Root cause
-`applyLayoutData` (`src/pages/Index.tsx:650`) ignores the `category` field embedded in exported layout JSONs. It only sets the order and switches to Saved view, leaving `categoryFilter` unchanged.
+When importing N layout JSONs at once, `applyLayoutData` is called N times in the same tick. Each call:
+1. Computes a new `pendingImportRef` and overwrites the previous one (only the **last** survives).
+2. Calls `setCategoryFilter(targetCategory)` — React batches these, so only the **last** category wins.
+3. Calls `setViewMode('saved')`.
 
-Result: a Series 1 export imported while the user is on Tiger King fills `savedOrder` with Series 1 asset IDs, but the grid filters to Tiger King — every slot resolves as "Missing" (red squares). When the user then switches to the correct category, the restore effect (`useEffect` on `savedLayoutKey`) re-reads localStorage for the new category and overwrites the just-imported state — so Tiger King reads "No Saved Layout".
+Result with [Series 1, Series 2, Tiger King] selected:
+- `pendingImportRef` ends up holding **Tiger King's** order keyed to `savedLayoutKey` for Tiger King.
+- `categoryFilter` becomes Tiger King.
+- Restore effect runs once, applies Tiger King pending → Tiger King looks fine.
+- Series 1 & Series 2 imports are **silently lost** from the ref, but their persist effect never fires for them either, so localStorage for those categories is untouched (or worse: the persist effect for the active category writes Tiger King's order under whatever key was active when state settled).
+
+The user reports Series 2 "loaded correctly" — likely coincidence of ordering — and Series 1's order ended up briefly written under Tiger King's key, hence "Series 1 imported into Tiger King".
 
 ### Fix
 
 **EDIT** `src/pages/Index.tsx`
 
-1. In `applyLayoutData`, switch the active category **before** writing layout state, so the restore effect runs first and the persist effect writes under the correct key:
-
+1. **Change `pendingImportRef` from a single slot to a Map** keyed by `savedLayoutKey`:
    ```ts
-   const targetCategory = typeof data.category === 'string' && data.category.trim()
-     ? data.category.trim()
-     : null;
-
-   // Validate against known categories; fall back to current if unknown.
-   const isKnown = targetCategory && (
-     targetCategory === 'all' || targetCategory in CATEGORY_LABELS
-   );
-   if (isKnown && targetCategory !== categoryFilter) {
-     setCategoryFilter(targetCategory);
-   }
+   const pendingImportsRef = useRef<Map<string, { order: string[]; name: string; puzzle?: PuzzlePieceMap }>>(new Map());
    ```
+   Each `applyLayoutData` call writes its own entry — no overwrites.
 
-2. Because the restore effect (`useEffect([savedLayoutKey])`) runs **after** render and would clobber the freshly imported `savedOrder`, defer the layout writes until after the category change has propagated. Use a small "pending import" ref:
+2. **Persist directly to localStorage for non-active categories.** When a layout's target category ≠ current `categoryFilter`, also write `savedOrder` JSON straight into `localStorage` under that category's key immediately, so it survives even if the restore effect for that key never runs in this session. The Map entry is the in-memory fallback for whichever category becomes active.
 
-   ```ts
-   const pendingImportRef = useRef<{ key: string; order: string[]; name: string; puzzle?: PuzzlePieceMap } | null>(null);
-   ```
+3. **Restore effect**: when it fires for `savedLayoutKey`, check `pendingImportsRef.current.get(savedLayoutKey)`. If present, apply and `delete()` that entry (don't clear the whole map).
 
-   - In `applyLayoutData`: compute the new `savedLayoutKey` for the target category, store `{key, order, name, puzzle}` in `pendingImportRef`, and set the category. Don't call `setSavedOrder` directly here.
-   - Modify the restore effect: when it runs, if `pendingImportRef.current?.key === savedLayoutKey`, apply that pending import (setSavedOrder, setLoadedLayoutName, setImportedPuzzle) instead of reading localStorage, then clear the ref. This guarantees the import survives the category switch.
-   - If category didn't actually change, apply immediately (no pending dance needed).
+4. **Pick which category to switch to**: when multiple layouts are imported in one batch, switch to the **first** layout's category (most predictable), not the last. Track this with a "category already chosen this batch" guard — but since `applyLayoutData` doesn't know about batches, simpler: only call `setCategoryFilter` if `categoryFilter` is still the original value at call time (skip switch on later calls in the same tick by checking against a ref that records "we already queued a switch this tick").
 
-3. Always call `setViewMode('saved')` after queuing/applying.
+   Cleaner alternative: **batch-aware router**. Add `applyLayoutDataBatch(layouts: DetectedLayout['parsed'][])` that:
+   - Writes every non-active layout straight to its localStorage key.
+   - Picks the first layout's category as the switch target, queues only that one in `pendingImportsRef`, calls `setCategoryFilter` once.
+   - Returns a summary `{ applied: n, switchedTo: category }`.
 
-4. Add `categoryFilter` to `applyLayoutData`'s dependency array.
+   Update `JsonMenu` / route handler to collect all `layout` results from the batch and call `applyLayoutDataBatch` once instead of `applyLayoutData` per file.
+
+5. **Toast** updates: "Imported 3 layouts (Series 1, Series 2, Tiger King) — switched to Series 1. Others saved and ready when you switch categories."
 
 ### Why this works
-- The `category` field already lives in every exported layout (`handleExportLayout` line 589 writes it).
-- Switching category first means the user lands on the correct binder/saved view automatically — no more red "Missing" squares from category mismatch.
-- Routing the import through the restore-effect via `pendingImportRef` prevents the known race where `useEffect([savedLayoutKey])` overwrites freshly imported state.
-- Persist effect then writes the imported layout to the correct per-category localStorage key, so future visits restore it normally.
-
-### Edge cases
-- Layout JSON with no `category` field (legacy / hand-written): skip the switch, apply to current category as today.
-- Layout JSON with an unknown category string: skip the switch, show a toast: `"Layout's category '<x>' is unknown — applied to current view"`.
-- Recent-imports re-apply path uses the same `applyLayoutData`, so it's fixed in both flows.
+- Map prevents the single-ref overwrite race entirely.
+- Direct localStorage writes for non-active categories mean their data is durable even without state churn.
+- Switching to the first imported category (deterministic) matches user intent better than "whichever was processed last".
+- Single `setCategoryFilter` call avoids React batching collapsing multiple switches.
 
 ### Files
-- **EDIT** `src/pages/Index.tsx` — `applyLayoutData`, restore `useEffect`, add `pendingImportRef`.
+- **EDIT** `src/pages/Index.tsx` — convert `pendingImportRef` → Map, add `applyLayoutDataBatch`, persist non-active layouts to localStorage immediately.
+- **EDIT** `src/lib/jsonRouter.ts` — `routeOne` stays; add a thin batch grouping in the caller (or new `routeMany` helper that returns grouped results so `Index.tsx` can call `applyLayoutDataBatch` with the full layout list).
+- **EDIT** `src/components/JsonMenu.tsx` — call site for `onImportFiles` already passes the full `FileList`; ensure the handler in `Index.tsx` groups layouts and calls the batch variant.
 
-No other files need to change. Router, JsonMenu, and exporter logic remain untouched.
+No changes to export logic, puzzle, or alerts paths.
 
