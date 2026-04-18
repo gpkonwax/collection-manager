@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent } from 'react';
-import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen, Download, Upload, X } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent, type ReactNode } from 'react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,12 @@ interface PuzzleBuilderProps {
   onPiecesChange?: (state: PuzzlePieceMap) => void;
   /** Called when user wants to switch to binder view to find missing pieces */
   onSwitchToBinder?: () => void;
+  /**
+   * Optional slot for a JSON import/export control rendered in the toolbar.
+   * Pass the unified <JsonMenu /> from the parent so import/export is consistent across views.
+   * When provided, the built-in Save/Load JSON buttons are hidden.
+   */
+  jsonMenuSlot?: ReactNode;
 }
 
 const TOTAL_PUZZLE_PIECES = 18;
@@ -87,7 +93,7 @@ function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[
   return result;
 }
 
-export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder }: PuzzleBuilderProps) {
+export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder, jsonMenuSlot }: PuzzleBuilderProps) {
   const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
@@ -343,42 +349,46 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               </button>
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
-            onClick={handleSaveJson}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Save JSON
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
-            onClick={handleLoadJson}
-          >
-            <Upload className="h-4 w-4 mr-1" />
-            Load JSON
-          </Button>
-          {loadedFileName && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10"
-              onClick={handleClearJson}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
+          {jsonMenuSlot ? (
+            jsonMenuSlot
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+                onClick={handleSaveJson}
+              >
+                Save JSON
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10"
+                onClick={handleLoadJson}
+              >
+                Load JSON
+              </Button>
+              {loadedFileName && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10"
+                  onClick={handleClearJson}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={handleFileChange}
-          />
         </div>
       </div>
 
