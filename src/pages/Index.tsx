@@ -1962,7 +1962,7 @@ export default function SimpleAssetsPage() {
                           refreshKey={recentRefreshKey}
                           alertsCount={priceAlerts.length}
                           alertsMax={maxAlerts}
-                          triggeredCount={triggeredCount}
+                          triggeredCount={priceAlerts.filter(a => a.triggered).length}
                           alertsCheckingNow={alertsCheckingNow}
                           alertsCooldownMs={alertsCooldownRemaining}
                           onImportFiles={handleImportFiles}
