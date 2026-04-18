@@ -1105,10 +1105,22 @@ export default function SimpleAssetsPage() {
             Load a previously exported JSON layout, or use "Copy to Saved" from the Classic tab to snapshot your current collection here for custom arrangement.
           </p>
           <div className="flex justify-center gap-3">
-            <Button onClick={() => importAllInputRef.current?.click()} className="bg-cheese hover:bg-cheese/90 text-primary-foreground">
-              <Upload className="h-4 w-4 mr-2" />
-              Import JSON(s)
-            </Button>
+            <JsonMenu
+              refreshKey={recentRefreshKey}
+              alertsCount={priceAlerts.length}
+              alertsMax={maxAlerts}
+              triggeredCount={priceAlerts.filter(a => a.triggered).length}
+              alertsCheckingNow={alertsCheckingNow}
+              alertsCooldownMs={alertsCooldownRemaining}
+              onImportFiles={handleImportFiles}
+              onApplyRecent={handleApplyRecent}
+              onCheckAlertsNow={handleCheckAlertsNow}
+              onExportAlerts={handleExportAlerts}
+              onExportLayout={handleExportLayout}
+              onExportPuzzle={handleExportPuzzle}
+              layoutHasData={savedOrder !== null}
+              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+            />
           </div>
         </div>
       );
