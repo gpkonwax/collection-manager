@@ -1701,7 +1701,7 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   icon={<span className="text-2xl">🔔</span>}
                   title="Price Alerts"
-                  description="Set up to 5 price alerts across your entire collection on any missing card. We poll AtomicHub in the background and ping you the moment a listing drops below your target — never miss a deal on that one card you've been hunting."
+                  description="Set up to 5 price alerts across your entire collection on any missing card. Get pinged the moment a listing drops below your target — never miss a deal on that one card you've been hunting."
                 />
                 <FeatureCard
                   icon={<span className="text-2xl">📂</span>}
