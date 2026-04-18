@@ -1611,7 +1611,7 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   icon={<span className="text-2xl">📖</span>}
                   title="Collector Binder"
-                  description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. See exactly what you need."
+                  description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. Set price alerts on any missing card to get notified when it drops below your target. See exactly what you need."
                 />
                 <FeatureCard
                   icon={<span className="text-2xl">💾</span>}
@@ -1678,6 +1678,16 @@ export default function SimpleAssetsPage() {
             <div className="max-w-5xl mx-auto space-y-4">
               <h3 className="text-2xl font-bold text-cheese text-center">More Features</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <FeatureCard
+                  icon={<span className="text-2xl">🔔</span>}
+                  title="Price Alerts"
+                  description="Set up to 5 price alerts across your entire collection on any missing card. We poll AtomicHub in the background and ping you the moment a listing drops below your target — never miss a deal on that one card you've been hunting."
+                />
+                <FeatureCard
+                  icon={<span className="text-2xl">📂</span>}
+                  title="Multi-File JSON Import"
+                  description="Load all your saved collection layouts, price alerts, and puzzle formation in one easy step. Drop multiple JSON files at once — each lands in the right category automatically, with recent imports cached for instant re-apply."
+                />
                 <FeatureCard
                   icon={<span className="text-2xl">📐</span>}
                   title="3D Card Tilt Effect"
