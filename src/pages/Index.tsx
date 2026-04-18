@@ -1051,12 +1051,12 @@ export default function SimpleAssetsPage() {
               {cooldownActive ? `Wait ${Math.ceil(alertsCooldownRemaining / 1000)}s` : 'Check Alerts'}
             </Button>
             <Button onClick={handleExportAlerts} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Download className="h-4 w-4 mr-1" />Export
+              <Download className="h-4 w-4 mr-1" />Export Alerts
             </Button>
-            <Button onClick={() => alertsFileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Upload className="h-4 w-4 mr-1" />Import
+            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
+              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
             </Button>
-            <input ref={alertsFileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportAlerts} />
+            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
           </div>
         </div>
         {renderBinderSections(binderGrid, categoryFilter === 'series2')}
@@ -1076,12 +1076,12 @@ export default function SimpleAssetsPage() {
             Load a previously exported JSON layout, or use "Copy to Saved" from the Classic tab to snapshot your current collection here for custom arrangement.
           </p>
           <div className="flex justify-center gap-3">
-            <Button onClick={() => fileInputRef.current?.click()} className="bg-cheese hover:bg-cheese/90 text-primary-foreground">
+            <Button onClick={() => importAllInputRef.current?.click()} className="bg-cheese hover:bg-cheese/90 text-primary-foreground">
               <Upload className="h-4 w-4 mr-2" />
-              Load Layout
+              Import JSON(s)
             </Button>
+            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
           </div>
-          <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImportLayout} />
         </div>
       );
     }
@@ -1110,9 +1110,10 @@ export default function SimpleAssetsPage() {
             <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
               <Download className="h-4 w-4 mr-1" />Save Layout
             </Button>
-            <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Upload className="h-4 w-4 mr-1" />Load Layout
+            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
+              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
             </Button>
+            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
