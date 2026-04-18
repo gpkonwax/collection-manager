@@ -1,51 +1,38 @@
 
 
-## Price Alerts — Capped at 5 + API-Friendly Polling
+Agreed — keeping JSONs separate is the right call. Trying to bundle them would get messy as the user may also accumulate per-category/per-collection saved-layout JSONs, and a one-size bundle would force everything into one file when granularity is the whole point.
 
-### Cap
-- **Hard limit: 5 active alerts per browser.** Enforced in `usePriceAlerts.setAlert()` — at cap, returns error + toast: "Alert limit reached (5/5). Remove one to add another."
-- `PriceAlertDialog` shows count (e.g. "3 / 5 alerts used").
-- JSON import respects the cap — extras skipped with a toast listing them.
+## Plan: Streamline the existing per-file load flow instead
 
-### API-call reductions
+Keep all current JSON exports/imports separate and unchanged. Reduce the friction of loading multiple files by adding a **single multi-file picker** plus **remembered last-used files** — no bundling, no auto-apply of stale data.
 
-1. **Single batched request per cycle** — `template_whitelist=id1,...,id5` returns lowest WAX listings for all 5 in one call. Worst case: 1 request/hour.
-2. **Pause when no alerts exist** — interval doesn't run if `alerts.length === 0`.
-3. **Pause on hidden tab** — `document.visibilityState !== 'visible'` skips cycle. Resume only triggers a check if `>60 min` since `lastCheckedAt`.
-4. **Throttle manual "Check Now"** — 60s cooldown with countdown on button.
-5. **Skip triggered alerts** — once fired, exclude that `templateId` from future batches until user dismisses or updates.
-6. **ETag / 304 short-circuit** — store response ETag, send `If-None-Match` next cycle for near-free re-checks.
-7. **Reuse `fetchWithFallback`** — primary endpoint short-circuits on success.
+### 1. Multi-file import (one click, many files)
+- **EDIT** `src/pages/Index.tsx` (binder header) — change the existing Import buttons (alerts, saved layout, puzzle) into one **"Import JSON(s)"** button that opens a file picker with `multiple` enabled.
+- **NEW** `src/lib/jsonRouter.ts` — inspects each selected file and routes by shape:
+  - `version + alerts[]` → `usePriceAlerts.importJson`
+  - saved-layout shape → existing saved-layout loader
+  - puzzle shape (card-id → `{x,y,rotation}`) → existing puzzle loader
+  - unknown → skipped with a per-file toast
+- After processing, one summary toast: "Imported 3 files — 5 alerts, 12 saved cards, puzzle layout."
+- Keeps the per-feature Export buttons untouched (users still get clean, separate downloads).
 
-### Net effect
-With 5 alerts max: **1 request/hour while tab open** = ~24 requests/day worst case. Often fewer due to dedup + ETag.
+### 2. "Recent files" quick-load (optional convenience)
+- Browsers can't auto-read files from disk for security reasons, so true auto-load isn't possible without re-bundling. As the closest substitute:
+- **EDIT** `src/pages/Index.tsx` — after each successful import, store the file's **name + parsed contents** in `localStorage` under `gpk:recent-jsons` (cap: last 8, FIFO).
+- Add a small **"Recent" dropdown** next to the Import button listing those entries; clicking one re-applies the cached contents instantly (one click, no file dialog).
+- Each entry shows: filename, type badge (Alerts / Saved / Puzzle), and a remove (×) button.
+- Note in the dropdown: "Cached locally — re-import the file if you've edited it elsewhere."
 
 ### Files
+- **NEW** `src/lib/jsonRouter.ts` — shape detection + dispatch.
+- **NEW** `src/components/RecentJsonsMenu.tsx` — dropdown for cached recents.
+- **EDIT** `src/pages/Index.tsx` — replace 3 Import buttons with one multi-file Import + Recent dropdown; wire to existing hook setters.
 
-- **NEW** `src/hooks/usePriceAlerts.ts` — `MAX_ALERTS = 5`, localStorage key `gpk:price-alerts:v1`, hourly batched poll, visibility handling, manual `checkNow()` w/ cooldown, ETag cache, triggered-dedup, JSON export/import.
-- **NEW** `src/components/simpleassets/PriceAlertDialog.tsx` — set/edit/remove alert; shows count vs cap, last lowest known price, last-checked timestamp, "View on AtomicHub" link via `ExternalLinkWarningDialog`.
-- **EDIT** `src/components/simpleassets/MissingCardPlaceholder.tsx` — bell icon overlay (top-right). States: outline (none) / yellow `text-cheese` (set) / red `animate-pulse` (triggered). Click stops propagation, opens dialog.
-- **EDIT** `src/pages/Index.tsx` (binder header only) — three small buttons: **Check Alerts Now** (with cooldown), **Export Alerts** (downloads `gpk-price-alerts-YYYYMMDD.json`), **Import Alerts** (file picker, merges by `templateId`, newer `createdAt` wins, respects 5-cap).
-
-### Alert shape (localStorage)
-```ts
-{ templateId, name, image, schema, maxPrice, createdAt,
-  triggered, lowestPrice?, lastChecked? }
-```
-
-### JSON export format
-```json
-{
-  "version": 1,
-  "exportedAt": "2026-04-18T12:00:00Z",
-  "alerts": [
-    { "templateId": "12345", "name": "Adam Bomb", "maxPrice": 50, "createdAt": "..." }
-  ]
-}
-```
-Only persistent fields exported; runtime state re-evaluated on next poll.
+### Why this works for the per-category future
+- Multi-file picker scales to N saved-layout files without UI changes.
+- Recent list naturally surfaces the user's actual working set.
+- No bundle format means new JSON types (per-category, per-collection) just need a new branch in `jsonRouter.ts` — no migration headaches.
 
 ### Caveats
-- Polling only runs while a tab is open. JSON export = crash safety net.
-- Up to ~1 hour delay between a cheap listing appearing and alert firing; manual "Check Now" covers urgent cases.
+- Recent-file cache stores parsed JSON, not a file handle, so edits made outside the app aren't picked up automatically — user must re-pick the file. (The File System Access API could fix this but isn't supported in Safari/Firefox; not worth the cross-browser cost.)
 
