@@ -1147,13 +1147,22 @@ export default function SimpleAssetsPage() {
                 📄 {loadedLayoutName}
               </span>
             )}
-            <Button onClick={handleExportLayout} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
-              <Download className="h-4 w-4 mr-1" />Save Layout
-            </Button>
-            <Button onClick={() => importAllInputRef.current?.click()} variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8" title="Import alerts, saved layouts, and puzzle JSONs — multiple files at once">
-              <Upload className="h-4 w-4 mr-1" />Import JSON(s)
-            </Button>
-            <RecentJsonsMenu refreshKey={recentRefreshKey} onApply={handleApplyRecent} />
+            <JsonMenu
+              refreshKey={recentRefreshKey}
+              alertsCount={priceAlerts.length}
+              alertsMax={maxAlerts}
+              triggeredCount={priceAlerts.filter(a => a.triggered).length}
+              alertsCheckingNow={alertsCheckingNow}
+              alertsCooldownMs={alertsCooldownRemaining}
+              onImportFiles={handleImportFiles}
+              onApplyRecent={handleApplyRecent}
+              onCheckAlertsNow={handleCheckAlertsNow}
+              onExportAlerts={handleExportAlerts}
+              onExportLayout={handleExportLayout}
+              onExportPuzzle={handleExportPuzzle}
+              layoutHasData={savedOrder !== null}
+              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8">
