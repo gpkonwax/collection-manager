@@ -829,28 +829,79 @@ export default function SimpleAssetsPage() {
   const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const results: ReturnType<typeof routeOne>[] = [];
+
+    // Two-pass: first read & detect everything, then process layouts as a single batch
+    // (so multiple per-category layouts in one selection don't race each other).
+    type Pending =
+      | { kind: 'layout'; filename: string; raw: string; parsed: DetectedLayout['parsed'] }
+      | { kind: 'other'; filename: string; raw: string }
+      | { kind: 'error'; filename: string; message: string };
+
+    const pendings: Pending[] = [];
     for (const file of files) {
       try {
         const text = await file.text();
-        const result = routeOne(file.name, text, routerHandlers);
-        results.push(result);
-        if (result.ok && result.kind !== 'unknown') {
-          addRecentJson({ filename: file.name, kind: result.kind, raw: text });
+        const detected = parseAndDetect(text);
+        if (detected.kind === 'layout') {
+          pendings.push({ kind: 'layout', filename: file.name, raw: text, parsed: detected.parsed });
+        } else {
+          pendings.push({ kind: 'other', filename: file.name, raw: text });
         }
       } catch (err) {
-        results.push({
-          filename: file.name,
-          kind: 'unknown',
-          ok: false,
-          message: err instanceof Error ? err.message : 'Failed to read file',
-        });
+        pendings.push({ kind: 'error', filename: file.name, message: err instanceof Error ? err.message : 'Failed to read file' });
       }
     }
+
+    const results: ReturnType<typeof routeOne>[] = [];
+
+    // Process non-layout files via the existing per-file router.
+    for (const p of pendings) {
+      if (p.kind === 'other') {
+        const result = routeOne(p.filename, p.raw, routerHandlers);
+        results.push(result);
+        if (result.ok && result.kind !== 'unknown') {
+          addRecentJson({ filename: p.filename, kind: result.kind, raw: p.raw });
+        }
+      } else if (p.kind === 'error') {
+        results.push({ filename: p.filename, kind: 'unknown', ok: false, message: p.message });
+      }
+    }
+
+    // Process all layouts together via the batch path.
+    const layoutPendings = pendings.filter((p): p is Extract<Pending, { kind: 'layout' }> => p.kind === 'layout');
+    if (layoutPendings.length > 0) {
+      try {
+        const items = layoutPendings.map(p => ({ data: p.parsed, filename: p.filename }));
+        const summary = applyLayoutDataBatch(items);
+        for (const p of layoutPendings) {
+          const order = extractLayoutOrder(p.parsed) || [];
+          const hasPuzzle = !!(p.parsed.puzzle && typeof p.parsed.puzzle === 'object');
+          results.push({ filename: p.filename, kind: 'layout', ok: true, layout: { cards: order.length, hasPuzzle } });
+          addRecentJson({ filename: p.filename, kind: 'layout', raw: p.raw });
+        }
+        if (summary.applied > 1) {
+          const cats = Array.from(new Set(summary.categories)).map(c => CATEGORY_LABELS[c] || c).join(', ');
+          const switchedLabel = summary.switchedTo ? (CATEGORY_LABELS[summary.switchedTo] || summary.switchedTo) : null;
+          toast.success(
+            `Imported ${summary.applied} layouts (${cats})${switchedLabel ? ` — switched to ${switchedLabel}` : ''}. Others saved and ready when you switch categories.`
+          );
+        }
+      } catch (err) {
+        for (const p of layoutPendings) {
+          results.push({
+            filename: p.filename,
+            kind: 'layout',
+            ok: false,
+            message: err instanceof Error ? err.message : 'Failed to apply layout',
+          });
+        }
+      }
+    }
+
     setRecentRefreshKey(k => k + 1);
     summarizeRouteResults(results);
     e.target.value = '';
-  }, [routerHandlers, summarizeRouteResults]);
+  }, [routerHandlers, summarizeRouteResults, applyLayoutDataBatch, extractLayoutOrder]);
 
   const handleApplyRecent = useCallback((entry: RecentJsonEntry) => {
     const result = routeOne(entry.filename, entry.raw, routerHandlers);
