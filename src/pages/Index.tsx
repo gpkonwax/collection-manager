@@ -1608,7 +1608,7 @@ export default function SimpleAssetsPage() {
                 Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
               </p>
               <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 px-4 py-3 text-sm text-foreground">
-                <span className="font-semibold text-cheese">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, no token approvals, smaller attack surface, fully transparent on-chain.
+                <span className="font-semibold text-cheese">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.
               </div>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
                 <Wallet className="h-5 w-5 mr-2" />
