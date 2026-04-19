@@ -1,19 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, DEFAULT_GATEWAY_INDEX } from '@/lib/ipfsGateways';
+import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT } from '@/lib/ipfsGateways';
 
-// Module-level cache: maps IPFS hash → index of last successful gateway for THAT hash.
-// We intentionally do NOT track a global "last good gateway" anymore — that approach
-// poisoned the whole session whenever a single image happened to succeed on a slower
-// fallback gateway, biasing every new load toward a failing endpoint.
+// Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
+// Global last-known-good gateway so new hashes skip dead gateways
+let lastGoodGatewayIndex = 0;
 
 export function getCachedGatewayIndex(hash: string | null): number {
-  if (!hash) return DEFAULT_GATEWAY_INDEX;
-  return gatewayCache.get(hash) ?? DEFAULT_GATEWAY_INDEX;
+  if (!hash) return lastGoodGatewayIndex;
+  return gatewayCache.get(hash) ?? lastGoodGatewayIndex;
 }
 
 function setCachedGateway(hash: string, idx: number) {
   gatewayCache.set(hash, idx);
+  lastGoodGatewayIndex = idx;
   if (gatewayCache.size > 500) {
     const first = gatewayCache.keys().next().value;
     if (first) gatewayCache.delete(first);
@@ -84,17 +84,14 @@ export function useIpfsMedia(
   }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled]);
 
   const advance = useCallback(() => {
-    setTriedCount(prev => {
-      const next = prev + 1;
-      if (next >= IPFS_GATEWAYS.length) {
-        setFailed(true);
-        setIsLoading(false);
-        return prev;
-      }
-      setGwIdx(g => (g + 1) % IPFS_GATEWAYS.length);
-      return next;
-    });
-  }, []);
+    if (triedCount + 1 >= IPFS_GATEWAYS.length) {
+      setFailed(true);
+      setIsLoading(false);
+    } else {
+      setTriedCount(prev => prev + 1);
+      setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
+    }
+  }, [triedCount]);
 
   const onError = useCallback(() => {
     advance();

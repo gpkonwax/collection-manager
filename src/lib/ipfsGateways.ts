@@ -1,34 +1,24 @@
 // Unified IPFS gateway configuration
-// Ordered by reliability and speed (based on real-world testing, April 2026)
-// atomichub-ipfs is the official AtomicHub gateway — most reliable for GPK assets
-// NOTE: Cloudflare removed from default rotation — its tunnel errors were poisoning the
-// shared session cache and biasing new image loads toward a failing endpoint.
+// Ordered by reliability and speed (based on real-world testing)
 export const IPFS_GATEWAYS = [
-  'https://atomichub-ipfs.com/ipfs/',
-  'https://ipfs.atomichub.io/ipfs/',
   'https://gateway.pinata.cloud/ipfs/',
-  'https://nftstorage.link/ipfs/',
   'https://dweb.link/ipfs/',
+  'https://nftstorage.link/ipfs/',
   'https://ipfs.io/ipfs/',
+  'https://cloudflare-ipfs.com/ipfs/', // Moved to last - experiencing tunnel errors
 ];
 
-// The preferred starting gateway index for any new image load.
-// Kept stable so unrelated successes on slower gateways do not bias new loads.
-export const DEFAULT_GATEWAY_INDEX = 0;
-
 // Timeout configuration for different contexts
-// More forgiving — IPFS gateways routinely take 3-5s on first hit; failing earlier
-// just causes unnecessary rotation and visible placeholder flicker.
 export const IMAGE_LOAD_TIMEOUT = {
-  card: 6000,        // 6 seconds for cards
-  detail: 6000,      // 6 seconds for detail page
+  card: 6000,        // 6 seconds for cards – skip dead gateways faster
+  detail: 5000,      // 5 seconds for detail page (only 2 images)
   increment: 1500,   // Add 1.5s per retry
-  max: 9000,         // Max 9 seconds
+  max: 8000,         // Max 8 seconds
 };
 
 // Helper to get primary IPFS gateway URL
 export function getIpfsUrl(hash: string): string {
-  return `${IPFS_GATEWAYS[DEFAULT_GATEWAY_INDEX]}${hash}`;
+  return `${IPFS_GATEWAYS[0]}${hash}`;
 }
 
 // Helper to extract IPFS hash from various URL formats
@@ -56,8 +46,6 @@ export function extractIpfsHash(url: string): string | null {
     /cloudflare-ipfs\.com\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
     /dweb\.link\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
     /nftstorage\.link\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
-    /atomichub-ipfs\.com\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
-    /ipfs\.atomichub\.io\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
   ];
   
   for (const pattern of patterns) {
