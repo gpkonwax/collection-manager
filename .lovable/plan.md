@@ -1,62 +1,61 @@
 
-Goal: make main-grid media reliable past ~150 cards, add automatic/manual retries for failed cards and grayscale AtomicHub placeholders, and remove the remaining Lovable placeholder paths.
+The user is right — pagination is a regression in UX vs. AtomicHub's infinite scroll. Let me explain why we moved to pages and what AtomicHub actually does, then propose getting infinite scroll back without the crashes.
 
-1. Root cause to address
-- The main page still accumulates too many mounted cards via `visibleCount` + “Show More”, so by ~150 cards the grid keeps far more media elements alive than the browser/IPFS gateways handle comfortably.
-- `card` media is more fragile than `detail` media: lower priority, more contention, and failure is treated too permanently. The detail dialog succeeds because it mounts only 1–2 eager images with far less competition.
-- Several asset/template resolvers still return `"/placeholder.svg"` directly, so fallback behavior is inconsistent across the app.
-- Failed binder placeholders currently have no recovery action.
+## Why we moved to pages
 
-2. Implementation plan
-- Stabilize the media hook in `src/hooks/useIpfsMedia.ts`
-  - Add a real retry cycle instead of treating one failed pass as final.
-  - Keep the last successfully loaded source visible when possible instead of immediately swapping to fallback after a later re-fetch miss.
-  - Expose retry state + `retry()` callback from the hook so the UI can trigger a fresh attempt.
-  - Separate “never loaded” failure from “loaded once, later re-fetch missed” so already-seen art is preserved better.
-  - Make card retries use backoff and continue automatically while mounted.
+The crash at ~150 cards wasn't IPFS being slow — it was that every card we'd ever scrolled past stayed mounted in the DOM. Each mounted card holds:
+- An `<img>` element the browser keeps trying to keep "live"
+- A concurrency slot in our IPFS limiter (until loaded)
+- An IntersectionObserver
+- Memory for decoded image data
 
-- Add retry UI in `src/components/simpleassets/IpfsMedia.tsx`
-  - Show a small retry overlay/button when a card truly fails.
-  - Stop propagation on the retry button so clicking it does not open the card/detail dialog.
-  - Show the same retry affordance for grayscale binder/AtomicHub placeholders because they also use `IpfsMedia`.
-  - Keep skeleton/loading states distinct from failure states.
+By card #150 the browser was juggling 150+ live image elements competing for ~12 concurrent network slots and tens of MB of decoded pixels. Pagination "fixed" it by unmounting old cards — but at the cost of losing the scroll-and-keep-browsing feel.
 
-- Reduce grid pressure in `src/pages/Index.tsx`
-  - Replace endless accumulation with true page-based rendering for Classic, Binder, and Saved views so off-screen cards unmount instead of stacking up forever.
-  - Preserve the existing 36-items-per-page behavior from project memory, but switch the controls from “Show More” to bounded paging.
-  - This is the key fix for “fails around 150”.
+## What AtomicHub actually does
 
-- Standardize all fallback sources away from Lovable placeholders
-  - Update:
-    - `src/hooks/useSimpleAssets.ts`
-    - `src/hooks/useGpkAtomicAssets.ts`
-    - `src/hooks/useBinderTemplates.ts`
-    - `src/components/simpleassets/PriceAlertDialog.tsx`
-    - any remaining `"/placeholder.svg"` media fallbacks found in the NFT flow
-  - Use the neutral `card-fallback.svg` consistently.
+It's not really "endless scrolling" in the naive sense. AtomicHub uses **windowed/virtualized rendering**: only the cards currently in (or near) the viewport exist in the DOM. Cards you've scrolled past get unmounted; cards far below haven't been mounted yet. The scroll bar is sized as if everything is rendered, but at any moment only ~30-60 cards are actually live.
 
-3. Why detail works when the main page fails
-- Detail view mounts only one or two images at a time, uses `context="detail"`, and avoids the massive grid contention.
-- The main page is competing across many visible cards plus binder placeholders, so timeouts/rotation happen under load even though the underlying asset is still valid.
-- After the paging change + stronger retry logic, main and detail behavior should become much more consistent.
+This is the same pattern used by Twitter, Discord, and every large list on the web. The library term is "virtual scrolling" or "windowing."
 
-4. Files likely involved
-- `src/hooks/useIpfsMedia.ts`
-- `src/components/simpleassets/IpfsMedia.tsx`
-- `src/pages/Index.tsx`
-- `src/hooks/useSimpleAssets.ts`
-- `src/hooks/useGpkAtomicAssets.ts`
-- `src/hooks/useBinderTemplates.ts`
-- `src/components/simpleassets/PriceAlertDialog.tsx`
+## Proposed fix: virtualized infinite scroll
 
-5. Expected result
-- Scrolling past 150 cards no longer causes widespread card failures.
-- Failed cards and grayscale AtomicHub placeholders show a retry button and also keep retrying automatically while mounted.
-- Detail view and main-grid view behave consistently for the same asset.
-- No Lovable-branded placeholder art appears anywhere in the NFT experience.
+Replace the paginated grid with a virtualized grid using **`@tanstack/react-virtual`** (already a peer of libraries we use, tiny, framework-agnostic, no layout assumptions).
 
-6. QA after implementation
-- Load 200+ cards in Classic view, page forward/back, and confirm cards keep loading.
-- Check Binder placeholders and puzzle placeholders: failed images should show retry and recover.
-- Open an asset that failed in-grid and confirm it now either already works in-grid or can be retried there.
-- Scroll away and back to verify previously loaded art does not regress to placeholder/fallback unnecessarily.
+How it would work:
+1. Compute row height + columns from current viewport (responsive: 2 / 3 / 4 / 5 / 6 columns).
+2. Render only the rows currently visible plus a small overscan buffer (e.g. 2 rows above/below).
+3. As the user scrolls, mounted rows get recycled — old cards unmount, new cards mount.
+4. Scroll position, scroll-back behavior, and "feel" all match AtomicHub.
+5. No "Show More" button, no Prev/Next, no page numbers.
+
+Combined with the IPFS hardening already in place (slot limiter, retry, last-good-src preservation), this gives:
+- AtomicHub-style endless scrolling
+- Constant ~30-60 mounted cards regardless of collection size
+- No more 150-card cliff
+- Cards that scroll back into view re-mount and re-request — but the browser HTTP cache and our gateway cache make that nearly instant
+
+## What changes
+
+- `src/pages/Index.tsx` — replace pagination controls + sliced lists with a virtualized grid wrapper for Classic, Binder, and Saved views. Keep filters/sort/search exactly as they are.
+- New small component `src/components/VirtualGrid.tsx` — generic virtualizer wrapping any card array, responsive columns, overscan tuned for IPFS.
+- Add `@tanstack/react-virtual` to dependencies.
+- Pagination memory rule (36 items/page) gets superseded — I'll update `mem://features/pagination` to record the move to virtualized infinite scroll.
+
+## What stays
+
+- Existing IPFS hook with retry/backoff/last-good-src
+- Concurrency limiter (still important — virtualization reduces but doesn't eliminate contention)
+- Retry button overlay on failed cards
+- Card-fallback.svg neutral placeholder
+- All filters, sorting, search, view modes
+
+## What you'll feel
+
+- Scroll smoothly through 1000+ cards like on AtomicHub
+- No page buttons, no "Show More"
+- Cards near the viewport load; cards far away don't waste resources
+- Scroll-back stays smooth because previously-loaded gateways are cached per-hash
+
+## Trade-off to acknowledge
+
+Virtualization makes Ctrl+F / browser find-in-page only match what's currently mounted. AtomicHub has the same limitation. If you want global search the existing search bar already covers it.
