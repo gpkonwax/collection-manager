@@ -76,6 +76,10 @@ export function useIpfsMedia(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  // Track the active attempt; stale onError/timeouts are ignored
+  const attemptRef = useRef(0);
+  // Track whether this hash has ever successfully rendered in this hook instance
+  const hasLoadedRef = useRef(!!cachedLoadedUrl);
 
   // Reset state when URL changes
   useEffect(() => {
@@ -87,9 +91,15 @@ export function useIpfsMedia(
     setFailed(false);
     setIsLoading(!newCached);
     setNonce(0);
+    hasLoadedRef.current = !!newCached;
+    attemptRef.current += 1;
     if (retryTimerRef.current) {
       clearTimeout(retryTimerRef.current);
       retryTimerRef.current = null;
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
   }, [originalUrl, hash]);
 
@@ -98,27 +108,49 @@ export function useIpfsMedia(
     return () => {
       mountedRef.current = false;
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
-  // Timeout-based fallback — only when enabled
+  // Stop all timers when disabled or already loaded
+  useEffect(() => {
+    if (!enabled || hasLoadedRef.current || cachedLoadedUrl) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    }
+  }, [enabled, cachedLoadedUrl]);
+
+  // Timeout-based fallback — only when enabled and not yet loaded
   useEffect(() => {
     if (!enabled || failed || !isLoading || !hash) return;
+    if (hasLoadedRef.current) return; // sticky: already loaded once
     if (timerRef.current) clearTimeout(timerRef.current);
 
     const timeout = Math.min(baseTimeout + triedCount * IMAGE_LOAD_TIMEOUT.increment, IMAGE_LOAD_TIMEOUT.max);
+    const myAttempt = attemptRef.current;
 
     timerRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
+      if (myAttempt !== attemptRef.current) return; // stale timer
       advance();
     }, timeout);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled]);
 
   const advance = useCallback(() => {
+    // Don't rotate if we've already successfully loaded this hash
+    if (hasLoadedRef.current) return;
+    attemptRef.current += 1;
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
       // Finished a full rotation — schedule a delayed retry instead of giving up.
       if (retryRound + 1 >= MAX_RETRY_ROUNDS) {
@@ -131,6 +163,7 @@ export function useIpfsMedia(
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       retryTimerRef.current = setTimeout(() => {
         if (!mountedRef.current) return;
+        if (hasLoadedRef.current) return;
         setRetryRound(r => r + 1);
         setTriedCount(0);
         setGwIdx(0);
@@ -144,8 +177,11 @@ export function useIpfsMedia(
   }, [triedCount, retryRound]);
 
   const onError = useCallback(() => {
+    // Ignore errors once we've already loaded successfully (sticky URL)
+    if (hasLoadedRef.current) return;
+    if (!enabled) return; // ignore cancellations from being disabled
     advance();
-  }, [advance]);
+  }, [advance, enabled]);
 
   let src: string;
   if (cachedLoadedUrl) {
@@ -165,8 +201,17 @@ export function useIpfsMedia(
   }
 
   const onLoadFinal = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    hasLoadedRef.current = true;
     setIsLoading(false);
+    setFailed(false);
     if (hash) {
       setCachedGateway(hash, gwIdx);
       setCachedLoadedUrl(hash, src);
@@ -177,7 +222,7 @@ export function useIpfsMedia(
     src,
     onError,
     onLoad: onLoadFinal,
-    isLoading: cachedLoadedUrl ? false : (enabled ? isLoading : true),
-    failed,
+    isLoading: cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
+    failed: hasLoadedRef.current ? false : failed,
   };
 }
