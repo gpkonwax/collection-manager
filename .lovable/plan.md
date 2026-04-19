@@ -1,71 +1,36 @@
 
-Diagnosed from your console/network data:
+The user wants failed card images to auto-retry until they load, instead of showing the placeholder permanently.
 
-- The alert check is running.
-- The request is `GET /atomicmarket/v1/sales?...template_whitelist=184,191...`
-- But the response contains unrelated `blueeyesdesc` sales with template `671561`.
+Looking at `useIpfsMedia.ts`:
+- It rotates through all gateways in `IPFS_GATEWAYS` (likely ~6-8 gateways)
+- Once `triedCount + 1 >= IPFS_GATEWAYS.length`, sets `failed = true` and stops
+- After failure, `src` becomes `/placeholder.svg` permanently
 
-That means the current API query is not reliably filtering by the requested template IDs. So the previous fix did not address the real root cause: the batched `template_whitelist` strategy is returning wrong market data, so `cheapestByTemplate.get(yourTemplateId)` stays empty and no alert triggers.
+The fix: instead of giving up after one full rotation, keep retrying with backoff until success. Need to be careful not to hammer gateways infinitely or burn CPU.
 
-## Fix plan
+## Plan: Auto-retry failed card images
 
-### 1. Replace the batched whitelist request with per-template checks
-Edit `src/hooks/usePriceAlerts.ts`:
+### Change to `src/hooks/useIpfsMedia.ts`
 
-- Stop using one shared request with `template_whitelist=...`
-- For each active alert, fetch the cheapest listing for that exact template instead:
-  - `collection_name=gpk.topps`
-  - `template_id=<alert template id>`
-  - `state=1`
-  - `symbol=WAX`
-  - `sort=price`
-  - `order=asc`
-  - `limit=1`
+Instead of permanently failing after one full gateway rotation, restart the rotation with exponential backoff:
 
-Why: max alerts is only 5, so a few precise requests are safer than one unreliable bulk query.
+1. Add a `retryRound` counter (starts at 0).
+2. When `triedCount + 1 >= IPFS_GATEWAYS.length`:
+   - Don't set `failed = true` permanently.
+   - Schedule a delayed retry: `setTimeout(() => { resetTriedCount, increment retryRound, restart from gateway 0 }, backoffMs)`.
+   - Backoff: `Math.min(2000 * 2^retryRound, 30000)` — 2s, 4s, 8s, 16s, capped at 30s.
+3. Cap `retryRound` at e.g. 10 to avoid truly infinite loops on permanently-broken hashes (after that, show placeholder).
+4. Only retry while the component is mounted and `enabled` is true (skip when offscreen).
+5. Clear retry timer on unmount and on URL change.
+6. During the backoff wait, keep showing placeholder but `failed` stays false so the UI doesn't lock in a "broken" look — or briefly show placeholder with a subtle loading state. Simplest: show placeholder while waiting, then resume loading.
 
-### 2. Filter to the GPK collection explicitly
-Even with exact template checks, keep `collection_name=gpk.topps` in the request so unrelated collections can never satisfy an alert.
+### Why this approach
+- IPFS failures are usually transient (gateway hiccup, slow pin propagation). Auto-retry recovers them without user action.
+- Exponential backoff prevents hammering already-overloaded gateways.
+- 10-round cap (~5 minutes total wait) prevents runaway retries on truly missing hashes.
 
-### 3. Update trigger logic per alert
-For each alert response:
+### Files affected
+- **EDIT** `src/hooks/useIpfsMedia.ts` — convert terminal `failed = true` into a delayed retry with bounded rounds.
 
-- Read the first returned sale only
-- Parse the WAX price
-- Set `lowestPrice` and `lastChecked`
-- Mark `triggered=true` when `lowest <= maxPrice`
-- Fire the toast once per session as before
-
-### 4. Make failures isolated
-If one alert request fails, do not abort all alerts.
-Only mark that alert as unchecked/unchanged and continue checking the others.
-
-### 5. Keep the diagnostic logs, but make them specific
-Log per-template checks like:
-
-- template id requested
-- final request URL
-- collection returned
-- lowest listing found
-- comparison against max price
-
-This will make it obvious if an endpoint ever returns wrong data again.
-
-## Files to edit
-- `src/hooks/usePriceAlerts.ts` — replace `template_whitelist` batching with exact per-template market checks
-- `src/lib/waxConfig.ts` — only if needed, to switch sales path from `v1` to `v2` after verifying which endpoint behaves correctly with `template_id`
-
-## Validation after implementation
-Test with the exact scenario you described:
-
-1. Set an alert above an already-listed card price
-2. Click “Check Now”
-3. Confirm:
-   - toast appears immediately
-   - bell switches to triggered state
-   - dialog shows the lowest seen WAX price
-   - console logs show the exact template id matched, not unrelated collections
-
-## Technical note
-Previous attempts focused on encoding/caching. Your latest logs prove the deeper issue is query correctness, not just caching:
-`template_whitelist=184,191` returned `blueeyesdesc / 671561`, so the server response is not honoring the intended template filter. The safest fix is to stop relying on that bulk filter entirely.
+### Validation
+Refresh the page; cards that initially fail should reload themselves within a few seconds without manual interaction.
