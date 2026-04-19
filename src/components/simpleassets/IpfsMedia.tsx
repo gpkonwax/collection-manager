@@ -72,6 +72,21 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
 
   const videoSrc = videoUrl || (isVideo ? src : null);
 
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const loadingRef = useRef(false);
+  loadingRef.current = isLoading && !failed;
+
+  // On unmount: if a load was still in-flight, clear the src so the browser
+  // aborts the request and frees the underlying socket. This prevents zombie
+  // fetches from holding HTTP/2 streams while the user keeps scrolling.
+  useEffect(() => {
+    return () => {
+      if (loadingRef.current && imgRef.current) {
+        try { imgRef.current.src = ''; } catch { /* noop */ }
+      }
+    };
+  }, []);
+
   const handleRetry = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -110,6 +125,7 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
       )}
       {ready && (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           className={`w-full h-full object-contain ${isLoading && showSkeleton ? 'opacity-0' : ''}`}

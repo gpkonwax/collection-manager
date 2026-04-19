@@ -74,6 +74,35 @@ function VirtualGridInner<T>(
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // Track scroll velocity. During fast scrolling, drop overscan to avoid
+  // queuing IPFS loads for cards the user is flying past.
+  const [fastScrolling, setFastScrolling] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let lastY = window.scrollY;
+    let lastT = performance.now();
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const onScroll = () => {
+      const now = performance.now();
+      const dt = now - lastT;
+      const dy = Math.abs(window.scrollY - lastY);
+      // px/ms — anything above ~2.5 px/ms (≈2500 px/s) is a flick.
+      const velocity = dt > 0 ? dy / dt : 0;
+      if (velocity > 2.5) {
+        setFastScrolling(true);
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => setFastScrolling(false), 180);
+      }
+      lastY = window.scrollY;
+      lastT = now;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (idleTimer) clearTimeout(idleTimer);
+    };
+  }, []);
+
   // Pack items into rows: full-width items get their own row, cards are chunked by `columns`.
   type Row =
     | { kind: 'cards'; key: string; cards: { key: string; data: T; absoluteIndex: number }[] }
@@ -108,14 +137,12 @@ function VirtualGridInner<T>(
   // shown by SimpleAssetCard / binder cards.
   const estimatedCardRowHeight = useMemo(() => {
     if (typeof window === 'undefined') return estimateRowHeight;
-    // We can't easily know the parent width before render; approximate using a
-    // typical content max width (1536px container minus padding). In practice
-    // the virtualizer remeasures real DOM heights via measureElement, so this
-    // only affects the very first frame.
     const approxWidth = Math.min(window.innerWidth, 1536) - 64;
     const cardWidth = (approxWidth - gap * (columns - 1)) / columns;
     return Math.max(180, Math.round(cardWidth + 80));
   }, [columns, gap, estimateRowHeight]);
+
+  const effectiveOverscan = fastScrolling ? 0 : overscan;
 
   const virtualizer = useWindowVirtualizer({
     count: rows.length,
@@ -125,7 +152,7 @@ function VirtualGridInner<T>(
       if (row.kind === 'full') return estimateHeadingHeight;
       return estimatedCardRowHeight;
     },
-    overscan,
+    overscan: effectiveOverscan,
     scrollMargin: parentRef.current?.offsetTop ?? 0,
     getItemKey: (index) => rows[index]?.key ?? index,
   });
