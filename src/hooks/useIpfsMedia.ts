@@ -1,19 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT } from '@/lib/ipfsGateways';
+import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, DEFAULT_GATEWAY_INDEX } from '@/lib/ipfsGateways';
 
-// Module-level cache: maps IPFS hash → index of last successful gateway
+// Module-level cache: maps IPFS hash → index of last successful gateway for THAT hash.
+// We intentionally do NOT track a global "last good gateway" anymore — that approach
+// poisoned the whole session whenever a single image happened to succeed on a slower
+// fallback gateway, biasing every new load toward a failing endpoint.
 const gatewayCache = new Map<string, number>();
-// Global last-known-good gateway so new hashes skip dead gateways
-let lastGoodGatewayIndex = 0;
 
 export function getCachedGatewayIndex(hash: string | null): number {
-  if (!hash) return lastGoodGatewayIndex;
-  return gatewayCache.get(hash) ?? lastGoodGatewayIndex;
+  if (!hash) return DEFAULT_GATEWAY_INDEX;
+  return gatewayCache.get(hash) ?? DEFAULT_GATEWAY_INDEX;
 }
 
 function setCachedGateway(hash: string, idx: number) {
   gatewayCache.set(hash, idx);
-  lastGoodGatewayIndex = idx;
   if (gatewayCache.size > 500) {
     const first = gatewayCache.keys().next().value;
     if (first) gatewayCache.delete(first);
