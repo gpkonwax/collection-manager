@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT } from '@/lib/ipfsGateways';
+import { acquireSlot, releaseSlot, shardIndexForHash } from '@/lib/ipfsConcurrency';
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
@@ -8,7 +9,10 @@ let lastGoodGatewayIndex = 0;
 
 export function getCachedGatewayIndex(hash: string | null): number {
   if (!hash) return lastGoodGatewayIndex;
-  return gatewayCache.get(hash) ?? lastGoodGatewayIndex;
+  const cached = gatewayCache.get(hash);
+  if (cached !== undefined) return cached;
+  // Shard new hashes across all gateways instead of stampeding the last-good one
+  return shardIndexForHash(hash, IPFS_GATEWAYS.length);
 }
 
 function setCachedGateway(hash: string, idx: number) {
@@ -49,8 +53,10 @@ export function useIpfsMedia(
   const [triedCount, setTriedCount] = useState(0);
   const [failed, setFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasSlot, setHasSlot] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  const slotHeldRef = useRef(false);
 
   // Reset state when URL changes
   useEffect(() => {
@@ -63,8 +69,38 @@ export function useIpfsMedia(
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      if (slotHeldRef.current) {
+        releaseSlot();
+        slotHeldRef.current = false;
+      }
+    };
   }, []);
+
+  // Acquire a global concurrency slot before allowing the <img> to mount.
+  // This caps how many IPFS requests are in flight at once across the page.
+  useEffect(() => {
+    if (!enabled || failed || !hash) {
+      if (slotHeldRef.current) {
+        releaseSlot();
+        slotHeldRef.current = false;
+        setHasSlot(false);
+      }
+      return;
+    }
+    if (slotHeldRef.current) return;
+    let cancelled = false;
+    acquireSlot().then(() => {
+      if (cancelled || !mountedRef.current) {
+        releaseSlot();
+        return;
+      }
+      slotHeldRef.current = true;
+      setHasSlot(true);
+    });
+    return () => { cancelled = true; };
+  }, [enabled, failed, hash]);
 
   // Timeout-based fallback — only when enabled
   useEffect(() => {
