@@ -259,6 +259,11 @@ export function usePriceAlerts() {
     setModuleAlerts(moduleAlerts.filter(a => a.templateId !== templateId));
   }, []);
 
+  const clearAll = useCallback(() => {
+    moduleSessionTriggered.clear();
+    setModuleAlerts([]);
+  }, []);
+
   const clearTriggered = useCallback((templateId: string) => {
     const next = moduleAlerts.map(a => a.templateId === templateId ? { ...a, triggered: false } : a);
     moduleSessionTriggered.delete(templateId);
@@ -356,6 +361,7 @@ export function usePriceAlerts() {
     getAlert,
     setAlert,
     removeAlert,
+    clearAll,
     clearTriggered,
     checkNow,
     exportJson,
