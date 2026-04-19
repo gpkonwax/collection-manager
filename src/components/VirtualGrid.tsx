@@ -202,3 +202,9 @@ function VirtualGridInner<T>(
     </div>
   );
 }
+
+// forwardRef wrapper that preserves the generic type parameter `T`.
+export const VirtualGrid = forwardRef(VirtualGridInner) as <T>(
+  props: VirtualGridProps<T> & { ref?: React.Ref<VirtualGridHandle> },
+) => ReturnType<typeof VirtualGridInner>;
+
