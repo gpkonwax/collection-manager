@@ -147,14 +147,11 @@ export function useIpfsMedia(
     advance();
   }, [advance]);
 
-  const onLoad = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setIsLoading(false);
-    if (hash) setCachedGateway(hash, gwIdx);
-  }, [hash, gwIdx]);
-
   let src: string;
-  if (!enabled) {
+  if (cachedLoadedUrl) {
+    // Already successfully loaded once — reuse the exact known-good URL (browser HTTP cache will serve it)
+    src = cachedLoadedUrl;
+  } else if (!enabled) {
     // Not visible yet — return placeholder, don't trigger any loading
     src = '/placeholder.svg';
   } else if (failed || !originalUrl) {
@@ -167,5 +164,20 @@ export function useIpfsMedia(
     src = originalUrl;
   }
 
-  return { src, onError, onLoad, isLoading: enabled ? isLoading : true, failed };
+  const onLoadFinal = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setIsLoading(false);
+    if (hash) {
+      setCachedGateway(hash, gwIdx);
+      setCachedLoadedUrl(hash, src);
+    }
+  }, [hash, gwIdx, src]);
+
+  return {
+    src,
+    onError,
+    onLoad: onLoadFinal,
+    isLoading: cachedLoadedUrl ? false : (enabled ? isLoading : true),
+    failed,
+  };
 }
