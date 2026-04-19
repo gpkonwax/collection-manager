@@ -1,5 +1,10 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, ReactNode, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
+
+export interface VirtualGridHandle {
+  /** Scroll so the row containing the given absolute card index is visible. */
+  scrollToCardIndex: (cardIndex: number, align?: 'start' | 'center' | 'end') => void;
+}
 
 /**
  * A virtualized grid that uses the page (window) as the scroll container so
