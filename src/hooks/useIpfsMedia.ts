@@ -84,14 +84,17 @@ export function useIpfsMedia(
   }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled]);
 
   const advance = useCallback(() => {
-    if (triedCount + 1 >= IPFS_GATEWAYS.length) {
-      setFailed(true);
-      setIsLoading(false);
-    } else {
-      setTriedCount(prev => prev + 1);
-      setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
-    }
-  }, [triedCount]);
+    setTriedCount(prev => {
+      const next = prev + 1;
+      if (next >= IPFS_GATEWAYS.length) {
+        setFailed(true);
+        setIsLoading(false);
+        return prev;
+      }
+      setGwIdx(g => (g + 1) % IPFS_GATEWAYS.length);
+      return next;
+    });
+  }, []);
 
   const onError = useCallback(() => {
     advance();
