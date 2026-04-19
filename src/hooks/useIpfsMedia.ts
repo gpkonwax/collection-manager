@@ -140,18 +140,25 @@ export function useIpfsMedia(
   const onLoad = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setIsLoading(false);
+    setHasLoadedOnce(true);
     if (hash) setCachedGateway(hash, gwIdx);
-    // NOTE: do NOT release the slot here. Releasing causes hasSlot→false,
-    // which would unmount the <img>. The slot is released on unmount or failure.
+    // Release slot — image is decoded and cached by the browser; no more network needed.
+    if (slotHeldRef.current) {
+      releaseSlot();
+      slotHeldRef.current = false;
+    }
   }, [hash, gwIdx]);
 
-  // When we exhaust gateways and fail, release the slot
+  // Release slot on failure too
   useEffect(() => {
     if (failed && slotHeldRef.current) {
       releaseSlot();
       slotHeldRef.current = false;
     }
   }, [failed]);
+
+  // Once loaded, stay rendered. Otherwise need both enabled + slot held.
+  const ready = enabled && (hasLoadedOnce || hasSlot || failed || !hash);
 
   const ready = enabled && (hasSlot || failed || !hash);
 
