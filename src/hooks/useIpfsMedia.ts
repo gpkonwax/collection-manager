@@ -124,6 +124,13 @@ export function useIpfsMedia(
   }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled, hasSlot]);
 
   const advance = useCallback(() => {
+    // If image already loaded successfully once, don't cascade through every gateway
+    // on a browser-driven re-fetch. Just mark failed → neutral placeholder.
+    if (hasLoadedOnce) {
+      setFailed(true);
+      setIsLoading(false);
+      return;
+    }
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
       setFailed(true);
       setIsLoading(false);
@@ -131,7 +138,7 @@ export function useIpfsMedia(
       setTriedCount(prev => prev + 1);
       setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
     }
-  }, [triedCount]);
+  }, [triedCount, hasLoadedOnce]);
 
   const onError = useCallback(() => {
     advance();
@@ -162,11 +169,12 @@ export function useIpfsMedia(
 
   
 
+  const FALLBACK = `${import.meta.env.BASE_URL}card-fallback.svg`;
   let src: string;
   if (!enabled) {
-    src = '/placeholder.svg';
+    src = FALLBACK;
   } else if (failed || !originalUrl) {
-    src = '/placeholder.svg';
+    src = FALLBACK;
   } else if (hash) {
     src = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
   } else {
