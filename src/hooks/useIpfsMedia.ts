@@ -137,11 +137,25 @@ export function useIpfsMedia(
     if (timerRef.current) clearTimeout(timerRef.current);
     setIsLoading(false);
     if (hash) setCachedGateway(hash, gwIdx);
+    if (slotHeldRef.current) {
+      releaseSlot();
+      slotHeldRef.current = false;
+      setHasSlot(false);
+    }
   }, [hash, gwIdx]);
 
+  // When we exhaust gateways and fail, also release the slot
+  useEffect(() => {
+    if (failed && slotHeldRef.current) {
+      releaseSlot();
+      slotHeldRef.current = false;
+      setHasSlot(false);
+    }
+  }, [failed]);
+
   let src: string;
-  if (!enabled) {
-    // Not visible yet — return placeholder, don't trigger any loading
+  if (!enabled || !hasSlot) {
+    // Not visible yet, or waiting for a concurrency slot — placeholder, no request
     src = '/placeholder.svg';
   } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
