@@ -1,6 +1,8 @@
 // Unified IPFS gateway configuration
 // Ordered by reliability and speed (based on real-world testing, April 2026)
 // atomichub-ipfs is the official AtomicHub gateway — most reliable for GPK assets
+// NOTE: Cloudflare removed from default rotation — its tunnel errors were poisoning the
+// shared session cache and biasing new image loads toward a failing endpoint.
 export const IPFS_GATEWAYS = [
   'https://atomichub-ipfs.com/ipfs/',
   'https://ipfs.atomichub.io/ipfs/',
@@ -8,21 +10,25 @@ export const IPFS_GATEWAYS = [
   'https://nftstorage.link/ipfs/',
   'https://dweb.link/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/', // Last resort - experiencing tunnel errors
 ];
 
+// The preferred starting gateway index for any new image load.
+// Kept stable so unrelated successes on slower gateways do not bias new loads.
+export const DEFAULT_GATEWAY_INDEX = 0;
+
 // Timeout configuration for different contexts
-// Tightened to fail fast and rotate to healthy gateways quickly
+// More forgiving — IPFS gateways routinely take 3-5s on first hit; failing earlier
+// just causes unnecessary rotation and visible placeholder flicker.
 export const IMAGE_LOAD_TIMEOUT = {
-  card: 4000,        // 4 seconds for cards – skip dead gateways aggressively
-  detail: 4000,      // 4 seconds for detail page
-  increment: 1000,   // Add 1s per retry
-  max: 6000,         // Max 6 seconds
+  card: 6000,        // 6 seconds for cards
+  detail: 6000,      // 6 seconds for detail page
+  increment: 1500,   // Add 1.5s per retry
+  max: 9000,         // Max 9 seconds
 };
 
 // Helper to get primary IPFS gateway URL
 export function getIpfsUrl(hash: string): string {
-  return `${IPFS_GATEWAYS[0]}${hash}`;
+  return `${IPFS_GATEWAYS[DEFAULT_GATEWAY_INDEX]}${hash}`;
 }
 
 // Helper to extract IPFS hash from various URL formats
