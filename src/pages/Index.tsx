@@ -1184,79 +1184,81 @@ export default function SimpleAssetsPage() {
     );
   };
 
-  const renderClassicView = () => (
-    <>
-      <div className="flex items-center gap-3 relative z-10 mb-4">
-        <div className="flex items-center gap-3 flex-1">
-          <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-          {renderSelectButton()}
-          {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
+  const renderClassicView = () => {
+    const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(currentPage, totalPages);
+    const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
+    const pageItems = filtered.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+    return (
+      <>
+        <div className="flex items-center gap-3 relative z-10 mb-4">
+          <div className="flex items-center gap-3 flex-1">
+            <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+            {renderSelectButton()}
+            {selectionMode && renderSelectAllCheckbox(pageItems.map(a => a.id))}
+          </div>
+          <div className="flex-shrink-0">
+            {renderCompletionBar()}
+          </div>
+          <div className="flex items-center justify-end flex-1">
+            <Button
+              onClick={handleSnapshotToSaved}
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+              title="Copy current view to Saved Collection for custom arrangement"
+            >
+              <Save className="h-4 w-4 mr-1" />
+              Copy to Saved
+            </Button>
+          </div>
         </div>
-        <div className="flex-shrink-0">
-          {renderCompletionBar()}
-        </div>
-        <div className="flex items-center justify-end flex-1">
-          <Button
-            onClick={handleSnapshotToSaved}
-            variant="outline"
-            size="sm"
-            className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
-            title="Copy current view to Saved Collection for custom arrangement"
-          >
-            <Save className="h-4 w-4 mr-1" />
-            Copy to Saved
-          </Button>
-        </div>
-      </div>
-      {filtered.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">
-          {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
-        </p>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {filtered.slice(0, visibleCount).map((asset) => {
-              const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
-              if (isInFlight) {
+        {filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">
+            {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {pageItems.map((asset) => {
+                const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
+                if (isInFlight) {
+                  return (
+                    <div
+                      key={asset.id}
+                      ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
+                      className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                    />
+                  );
+                }
+
+                const justLanded = dealtIds.has(asset.id);
                 return (
-                  <div
+                  <SimpleAssetCard
                     key={asset.id}
-                    ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
-                    className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                    asset={asset}
+                    onClick={() => setSelectedAsset(asset)}
+                    className={justLanded ? 'animate-card-glow' : ''}
+                    draggable={false}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(asset.id)}
+                    onSelect={toggleSelection}
                   />
                 );
-              }
-
-              const justLanded = dealtIds.has(asset.id);
-              return (
-                <SimpleAssetCard
-                  key={asset.id}
-                  asset={asset}
-                  onClick={() => setSelectedAsset(asset)}
-                  className={justLanded ? 'animate-card-glow' : ''}
-                  draggable={false}
-                  selectionMode={selectionMode}
-                  selected={selectedIds.has(asset.id)}
-                  onSelect={toggleSelection}
-                />
-              );
-            })}
-          </div>
-          {filtered.length > visibleCount && (
-            <div className="flex justify-center pt-4">
-              <Button
-                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-                variant="outline"
-                className="border-cheese/50 text-cheese hover:bg-cheese/10"
-              >
-                Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
-              </Button>
+              })}
             </div>
-          )}
-        </>
-      )}
-    </>
-  );
+            <PaginationControls
+              currentPage={safePage}
+              totalPages={totalPages}
+              totalItems={filtered.length}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
+      </>
+    );
+  };
 
   const renderBinderView = () => {
     const visibleOwned = binderGrid ? binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []) : [];
@@ -1433,45 +1435,51 @@ export default function SimpleAssetsPage() {
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {savedGridSlots.slice(0, visibleCount).map((slotId, idx) => {
-            if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+        {(() => {
+          const totalPages = Math.max(1, Math.ceil(savedGridSlots.length / ITEMS_PER_PAGE));
+          const safePage = Math.min(currentPage, totalPages);
+          const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
+          const pageSlots = savedGridSlots.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+          return (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {pageSlots.map((slotId, localIdx) => {
+                  const idx = startIdx + localIdx;
+                  if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
 
-            const asset = allAssetMap.get(slotId);
-            if (!asset || !filteredIdSet.has(asset.id)) return (
-              <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">Missing</span>
+                  const asset = allAssetMap.get(slotId);
+                  if (!asset || !filteredIdSet.has(asset.id)) return (
+                    <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">Missing</span>
+                    </div>
+                  );
+
+                  return (
+                    <SimpleAssetCard
+                      key={asset.id}
+                      asset={asset}
+                      onClick={() => setSelectedAsset(asset)}
+                      draggable={!selectionMode}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(asset.id)}
+                      onSelect={toggleSelection}
+                      onDragStart={handleDragStart(idx)}
+                      onDragOver={handleDragOver(idx)}
+                      onDrop={handleDrop(idx)}
+                      onDragEnd={handleDragEnd}
+                    />
+                  );
+                })}
               </div>
-            );
-
-            return (
-              <SimpleAssetCard
-                key={asset.id}
-                asset={asset}
-                onClick={() => setSelectedAsset(asset)}
-                draggable={!selectionMode}
-                selectionMode={selectionMode}
-                selected={selectedIds.has(asset.id)}
-                onSelect={toggleSelection}
-                onDragStart={handleDragStart(idx)}
-                onDragOver={handleDragOver(idx)}
-                onDrop={handleDrop(idx)}
-                onDragEnd={handleDragEnd}
+              <PaginationControls
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={savedGridSlots.length}
+                onPageChange={setCurrentPage}
               />
-            );
-          })}
-        </div>
-        {savedGridSlots.length > visibleCount && (
-          <div className="flex justify-center pt-4">
-            <Button
-              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-              variant="outline"
-              className="border-cheese/50 text-cheese hover:bg-cheese/10"
-            >
-              Show More ({Math.min(visibleCount, savedGridSlots.length)} of {savedGridSlots.length})
-            </Button>
-          </div>
-        )}
+            </>
+          );
+        })()}
       </>
     );
   };
