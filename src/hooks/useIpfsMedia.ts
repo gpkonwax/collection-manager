@@ -3,14 +3,22 @@ import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT } from '@/lib/ipfsGa
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
+// Module-level cache: maps IPFS hash → exact URL that successfully loaded
+const loadedUrlCache = new Map<string, string>();
 // Global last-known-good gateway so new hashes skip dead gateways
 let lastGoodGatewayIndex = 0;
 
 const MAX_RETRY_ROUNDS = 10;
+const LOADED_CACHE_MAX = 2000;
 
 export function getCachedGatewayIndex(hash: string | null): number {
   if (!hash) return lastGoodGatewayIndex;
   return gatewayCache.get(hash) ?? lastGoodGatewayIndex;
+}
+
+export function getCachedLoadedUrl(hash: string | null): string | null {
+  if (!hash) return null;
+  return loadedUrlCache.get(hash) ?? null;
 }
 
 function setCachedGateway(hash: string, idx: number) {
@@ -19,6 +27,14 @@ function setCachedGateway(hash: string, idx: number) {
   if (gatewayCache.size > 500) {
     const first = gatewayCache.keys().next().value;
     if (first) gatewayCache.delete(first);
+  }
+}
+
+function setCachedLoadedUrl(hash: string, url: string) {
+  loadedUrlCache.set(hash, url);
+  if (loadedUrlCache.size > LOADED_CACHE_MAX) {
+    const first = loadedUrlCache.keys().next().value;
+    if (first) loadedUrlCache.delete(first);
   }
 }
 
