@@ -3,14 +3,22 @@ import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT } from '@/lib/ipfsGa
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
+// Module-level cache: maps IPFS hash → exact URL that successfully loaded
+const loadedUrlCache = new Map<string, string>();
 // Global last-known-good gateway so new hashes skip dead gateways
 let lastGoodGatewayIndex = 0;
 
 const MAX_RETRY_ROUNDS = 10;
+const LOADED_CACHE_MAX = 2000;
 
 export function getCachedGatewayIndex(hash: string | null): number {
   if (!hash) return lastGoodGatewayIndex;
   return gatewayCache.get(hash) ?? lastGoodGatewayIndex;
+}
+
+export function getCachedLoadedUrl(hash: string | null): string | null {
+  if (!hash) return null;
+  return loadedUrlCache.get(hash) ?? null;
 }
 
 function setCachedGateway(hash: string, idx: number) {
@@ -19,6 +27,14 @@ function setCachedGateway(hash: string, idx: number) {
   if (gatewayCache.size > 500) {
     const first = gatewayCache.keys().next().value;
     if (first) gatewayCache.delete(first);
+  }
+}
+
+function setCachedLoadedUrl(hash: string, url: string) {
+  loadedUrlCache.set(hash, url);
+  if (loadedUrlCache.size > LOADED_CACHE_MAX) {
+    const first = loadedUrlCache.keys().next().value;
+    if (first) loadedUrlCache.delete(first);
   }
 }
 
@@ -45,6 +61,7 @@ export function useIpfsMedia(
   const baseTimeout = context === 'detail' ? IMAGE_LOAD_TIMEOUT.detail : IMAGE_LOAD_TIMEOUT.card;
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
+  const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
 
   const [gwIdx, setGwIdx] = useState(startIdx);
@@ -52,7 +69,8 @@ export function useIpfsMedia(
   const [retryRound, setRetryRound] = useState(0);
   // `failed` only becomes true after MAX_RETRY_ROUNDS are exhausted
   const [failed, setFailed] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // If we already have a known-good URL for this hash, skip loading state entirely
+  const [isLoading, setIsLoading] = useState(!cachedLoadedUrl);
   // Cache-busting nonce so the browser actually refetches between rounds
   const [nonce, setNonce] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,12 +79,13 @@ export function useIpfsMedia(
 
   // Reset state when URL changes
   useEffect(() => {
+    const newCached = getCachedLoadedUrl(hash);
     const newStart = getCachedGatewayIndex(hash);
     setGwIdx(newStart);
     setTriedCount(0);
     setRetryRound(0);
     setFailed(false);
-    setIsLoading(true);
+    setIsLoading(!newCached);
     setNonce(0);
     if (retryTimerRef.current) {
       clearTimeout(retryTimerRef.current);
@@ -128,14 +147,11 @@ export function useIpfsMedia(
     advance();
   }, [advance]);
 
-  const onLoad = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setIsLoading(false);
-    if (hash) setCachedGateway(hash, gwIdx);
-  }, [hash, gwIdx]);
-
   let src: string;
-  if (!enabled) {
+  if (cachedLoadedUrl) {
+    // Already successfully loaded once — reuse the exact known-good URL (browser HTTP cache will serve it)
+    src = cachedLoadedUrl;
+  } else if (!enabled) {
     // Not visible yet — return placeholder, don't trigger any loading
     src = '/placeholder.svg';
   } else if (failed || !originalUrl) {
@@ -148,5 +164,20 @@ export function useIpfsMedia(
     src = originalUrl;
   }
 
-  return { src, onError, onLoad, isLoading: enabled ? isLoading : true, failed };
+  const onLoadFinal = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setIsLoading(false);
+    if (hash) {
+      setCachedGateway(hash, gwIdx);
+      setCachedLoadedUrl(hash, src);
+    }
+  }, [hash, gwIdx, src]);
+
+  return {
+    src,
+    onError,
+    onLoad: onLoadFinal,
+    isLoading: cachedLoadedUrl ? false : (enabled ? isLoading : true),
+    failed,
+  };
 }

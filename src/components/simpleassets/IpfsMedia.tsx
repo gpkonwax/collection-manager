@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, useRef, useEffect } from 'react';
-import { useIpfsMedia } from '@/hooks/useIpfsMedia';
-import { isVideoUrl } from '@/lib/ipfsGateways';
+import { useIpfsMedia, getCachedLoadedUrl } from '@/hooks/useIpfsMedia';
+import { isVideoUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface IpfsMediaProps {
@@ -40,11 +40,14 @@ function useIntersectionVisible(rootMargin = '400px'): [React.RefObject<HTMLDivE
 }
 
 function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSkeleton = false, videoUrl, style, loading }: IpfsMediaProps) {
-  const isLazy = loading === 'lazy' || (!loading && context === 'card');
+  const hash = url ? extractIpfsHash(url) : null;
+  const alreadyLoaded = !!getCachedLoadedUrl(hash);
+  // If this hash has previously loaded successfully, skip lazy gating entirely so the cached URL renders instantly on remount.
+  const isLazy = !alreadyLoaded && (loading === 'lazy' || (!loading && context === 'card'));
   const [sentinelRef, isVisible] = useIntersectionVisible('400px');
   
-  // For eager or detail context, always enabled. For lazy, wait for visibility.
-  const enabled = loading === 'eager' || context === 'detail' || isVisible;
+  // For eager, detail context, or already-cached hashes, always enabled. For lazy, wait for visibility.
+  const enabled = alreadyLoaded || loading === 'eager' || context === 'detail' || isVisible;
   
   const { src, onError, onLoad, isLoading, failed } = useIpfsMedia(url, { context, enabled });
 
