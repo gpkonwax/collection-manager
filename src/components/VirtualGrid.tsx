@@ -50,15 +50,18 @@ function getColumnsForWidth(width: number): number {
   return 2;
 }
 
-export function VirtualGrid<T>({
-  items,
-  renderCard,
-  estimateRowHeight = 320,
-  estimateHeadingHeight = 56,
-  overscan = 4,
-  gap = 16,
-  className,
-}: VirtualGridProps<T>) {
+function VirtualGridInner<T>(
+  {
+    items,
+    renderCard,
+    estimateRowHeight = 320,
+    estimateHeadingHeight = 56,
+    overscan = 4,
+    gap = 16,
+    className,
+  }: VirtualGridProps<T>,
+  forwardedRef: React.Ref<VirtualGridHandle>,
+) {
   const parentRef = useRef<HTMLDivElement | null>(null);
   const [columns, setColumns] = useState<number>(() =>
     typeof window === 'undefined' ? 6 : getColumnsForWidth(window.innerWidth),
