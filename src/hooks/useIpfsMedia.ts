@@ -160,7 +160,7 @@ export function useIpfsMedia(
   // Once loaded, stay rendered. Otherwise need both enabled + slot held.
   const ready = enabled && (hasLoadedOnce || hasSlot || failed || !hash);
 
-  const ready = enabled && (hasSlot || failed || !hash);
+  
 
   let src: string;
   if (!enabled) {
