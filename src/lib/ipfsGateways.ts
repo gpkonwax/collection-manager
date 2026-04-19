@@ -50,6 +50,8 @@ export function extractIpfsHash(url: string): string | null {
     /cloudflare-ipfs\.com\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
     /dweb\.link\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
     /nftstorage\.link\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
+    /atomichub-ipfs\.com\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
+    /ipfs\.atomichub\.io\/ipfs\/([a-zA-Z0-9]+(?:\/[^?#]*)?)/,
   ];
   
   for (const pattern of patterns) {
