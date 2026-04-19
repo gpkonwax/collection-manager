@@ -6,6 +6,8 @@ const gatewayCache = new Map<string, number>();
 // Global last-known-good gateway so new hashes skip dead gateways
 let lastGoodGatewayIndex = 0;
 
+const MAX_RETRY_ROUNDS = 10;
+
 export function getCachedGatewayIndex(hash: string | null): number {
   if (!hash) return lastGoodGatewayIndex;
   return gatewayCache.get(hash) ?? lastGoodGatewayIndex;
@@ -47,9 +49,14 @@ export function useIpfsMedia(
 
   const [gwIdx, setGwIdx] = useState(startIdx);
   const [triedCount, setTriedCount] = useState(0);
+  const [retryRound, setRetryRound] = useState(0);
+  // `failed` only becomes true after MAX_RETRY_ROUNDS are exhausted
   const [failed, setFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  // Cache-busting nonce so the browser actually refetches between rounds
+  const [nonce, setNonce] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
   // Reset state when URL changes
@@ -57,13 +64,22 @@ export function useIpfsMedia(
     const newStart = getCachedGatewayIndex(hash);
     setGwIdx(newStart);
     setTriedCount(0);
+    setRetryRound(0);
     setFailed(false);
     setIsLoading(true);
+    setNonce(0);
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
   }, [originalUrl, hash]);
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
   }, []);
 
   // Timeout-based fallback — only when enabled
@@ -85,13 +101,28 @@ export function useIpfsMedia(
 
   const advance = useCallback(() => {
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
-      setFailed(true);
-      setIsLoading(false);
+      // Finished a full rotation — schedule a delayed retry instead of giving up.
+      if (retryRound + 1 >= MAX_RETRY_ROUNDS) {
+        setFailed(true);
+        setIsLoading(false);
+        return;
+      }
+      const backoff = Math.min(2000 * Math.pow(2, retryRound), 30000);
+      setIsLoading(false); // pause loading during the wait
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setRetryRound(r => r + 1);
+        setTriedCount(0);
+        setGwIdx(0);
+        setNonce(n => n + 1);
+        setIsLoading(true);
+      }, backoff);
     } else {
       setTriedCount(prev => prev + 1);
       setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
     }
-  }, [triedCount]);
+  }, [triedCount, retryRound]);
 
   const onError = useCallback(() => {
     advance();
@@ -110,7 +141,9 @@ export function useIpfsMedia(
   } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
   } else if (hash) {
-    src = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
+    const base = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
+    // Append cache-buster only on retry rounds so browsers refetch
+    src = nonce > 0 ? `${base}${base.includes('?') ? '&' : '?'}_r=${nonce}` : base;
   } else {
     src = originalUrl;
   }
