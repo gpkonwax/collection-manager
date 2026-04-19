@@ -2,6 +2,11 @@ import { memo, useMemo, useState, DragEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
+import { Bell, BellRing } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { usePriceAlerts } from '@/hooks/usePriceAlerts';
+import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
+import type { BinderTemplate } from '@/hooks/useBinderTemplates';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface SimpleAssetCardProps {
@@ -17,6 +22,7 @@ interface SimpleAssetCardProps {
   onDragOver?: (e: DragEvent<HTMLDivElement>) => void;
   onDrop?: (e: DragEvent<HTMLDivElement>) => void;
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
+  priceAlertTemplate?: BinderTemplate;
 }
 
 function getMintInfo(asset: SimpleAsset): string | null {
@@ -49,19 +55,23 @@ function getMintNumber(asset: SimpleAsset): number | null {
   return null;
 }
 
-const EDGE_DEPTH = 8;
-const EDGE_COLOR = 'hsl(var(--muted))';
-
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
   const { ref: tiltRef, glareRef, onMouseMove: tiltMouseMove, onMouseLeave: tiltMouseLeave } = useCardTilt({ disabled: isDragging });
+  const { getAlert } = usePriceAlerts();
 
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintInfo = getMintInfo(asset);
   const mintNumber = getMintNumber(asset);
   const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
+
+  const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
+  const hasAlert = Boolean(alert);
+  const isAlertTriggered = Boolean(alert?.triggered);
+  const showAlertButton = Boolean(priceAlertTemplate) && !selectionMode;
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => { setIsDragging(true); onDragStart?.(e); };
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(true); onDragOver?.(e); };
@@ -76,6 +86,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isStacked = (stackCount ?? 0) > 1;
 
   return (
+    <>
     <Card
       className={`overflow-hidden cursor-pointer bg-card border-border relative
         ${isDragging ? 'opacity-50 scale-95' : 'hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10'}
@@ -91,6 +102,24 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
       onDrop={handleDrop}
       onDragEnd={handleDragEnd}
     >
+      {showAlertButton && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setAlertOpen(true); }}
+          className={cn(
+            "absolute top-1.5 left-1.5 z-20 h-7 w-7 rounded-full flex items-center justify-center bg-background/80 backdrop-blur-sm border transition-colors",
+            isAlertTriggered
+              ? "border-destructive text-destructive animate-pulse"
+              : hasAlert
+                ? "border-cheese/50 text-cheese hover:bg-cheese/10"
+                : "border-border/60 text-muted-foreground hover:text-cheese hover:border-cheese/50"
+          )}
+          aria-label={hasAlert ? "Edit price alert" : "Set price alert"}
+          title={hasAlert ? `Alert: max ${alert!.maxPrice.toFixed(2)} WAX` : "Set price alert"}
+        >
+          {isAlertTriggered ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+        </button>
+      )}
       {isStacked && (
         <div className="absolute top-2 right-2 z-10 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
           x{stackCount}
@@ -159,6 +188,10 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         )}
       </CardContent>
     </Card>
+    {priceAlertTemplate && (
+      <PriceAlertDialog template={priceAlertTemplate} open={alertOpen} onOpenChange={setAlertOpen} />
+    )}
+    </>
   );
 }
 
@@ -177,6 +210,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.draggable === next.draggable &&
     prev.className === next.className &&
     prev.stackCount === next.stackCount &&
+    prev.priceAlertTemplate?.templateId === next.priceAlertTemplate?.templateId &&
     prev.onDragStart === next.onDragStart &&
     prev.onDragOver === next.onDragOver &&
     prev.onDrop === next.onDrop &&

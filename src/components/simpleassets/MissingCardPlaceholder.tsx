@@ -36,7 +36,7 @@ export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps
           type="button"
           onClick={(e) => { e.stopPropagation(); setAlertOpen(true); }}
           className={cn(
-            "absolute top-1.5 right-1.5 z-20 h-7 w-7 rounded-full flex items-center justify-center bg-background/80 backdrop-blur-sm border transition-colors",
+            "absolute top-1.5 left-1.5 z-20 h-7 w-7 rounded-full flex items-center justify-center bg-background/80 backdrop-blur-sm border transition-colors",
             isTriggered
               ? "border-destructive text-destructive animate-pulse"
               : hasAlert
