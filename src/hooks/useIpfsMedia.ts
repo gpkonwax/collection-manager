@@ -102,9 +102,9 @@ export function useIpfsMedia(
     return () => { cancelled = true; };
   }, [enabled, failed, hash]);
 
-  // Timeout-based fallback — only when enabled
+  // Timeout-based fallback — only when enabled and we hold a slot (i.e., actually loading)
   useEffect(() => {
-    if (!enabled || failed || !isLoading || !hash) return;
+    if (!enabled || failed || !isLoading || !hash || !hasSlot) return;
     if (timerRef.current) clearTimeout(timerRef.current);
 
     const timeout = Math.min(baseTimeout + triedCount * IMAGE_LOAD_TIMEOUT.increment, IMAGE_LOAD_TIMEOUT.max);
@@ -117,7 +117,7 @@ export function useIpfsMedia(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled]);
+  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled, hasSlot]);
 
   const advance = useCallback(() => {
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
