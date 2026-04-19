@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, useRef, useEffect } from 'react';
-import { useIpfsMedia } from '@/hooks/useIpfsMedia';
-import { isVideoUrl } from '@/lib/ipfsGateways';
+import { useIpfsMedia, getCachedLoadedUrl } from '@/hooks/useIpfsMedia';
+import { isVideoUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface IpfsMediaProps {
@@ -16,11 +16,15 @@ interface IpfsMediaProps {
   loading?: 'lazy' | 'eager';
 }
 
-function useIntersectionVisible(rootMargin = '400px'): [React.RefObject<HTMLDivElement | null>, boolean] {
+function useIntersectionVisible(rootMargin = '400px', skip = false): [React.RefObject<HTMLDivElement | null>, boolean] {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(skip);
 
   useEffect(() => {
+    if (skip) {
+      setVisible(true);
+      return;
+    }
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -34,17 +38,24 @@ function useIntersectionVisible(rootMargin = '400px'): [React.RefObject<HTMLDivE
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [rootMargin]);
+  }, [rootMargin, skip]);
 
   return [ref, visible];
 }
 
 function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSkeleton = false, videoUrl, style, loading }: IpfsMediaProps) {
   const isLazy = loading === 'lazy' || (!loading && context === 'card');
-  const [sentinelRef, isVisible] = useIntersectionVisible('400px');
 
-  // For eager or detail context, always enabled. For lazy, wait for visibility.
-  const enabled = loading === 'eager' || context === 'detail' || isVisible;
+  // If this hash already loaded successfully in this session, skip the visibility gate
+  // so re-mounting (e.g. virtualizer recycle) renders the img immediately and the
+  // browser HTTP cache serves it without a placeholder flash.
+  const hash = url ? extractIpfsHash(url) : null;
+  const alreadyLoaded = !!getCachedLoadedUrl(hash);
+
+  const [sentinelRef, isVisible] = useIntersectionVisible('400px', !isLazy || alreadyLoaded);
+
+  // For eager, detail context, or already-loaded hashes, always enabled.
+  const enabled = loading === 'eager' || context === 'detail' || alreadyLoaded || isVisible;
 
   const { src, onError, onLoad, isLoading, failed } = useIpfsMedia(url, { context, enabled });
 
@@ -57,7 +68,7 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
   if (videoSrc && !failed) {
     return (
       <div ref={isLazy ? sentinelRef : undefined} className={`relative ${className}`} style={style}>
-        {showSkeleton && isLoading && (
+        {showSkeleton && isLoading && !alreadyLoaded && (
           <Skeleton className="absolute inset-0 rounded-none" />
         )}
         {enabled && (
@@ -78,17 +89,18 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
   }
 
   const isAnimated = src.toLowerCase().includes('.gif');
+  const showLoadingOverlay = showSkeleton && isLoading && !alreadyLoaded;
 
   return (
     <div ref={isLazy ? sentinelRef : undefined} className={`relative ${className}`} style={style}>
-      {showSkeleton && isLoading && (
+      {showLoadingOverlay && (
         <Skeleton className="absolute inset-0 rounded-none" />
       )}
       {enabled && (
         <img
           src={src}
           alt={alt}
-          className={`w-full h-full object-contain ${isLoading && showSkeleton ? 'opacity-0' : ''}`}
+          className={`w-full h-full object-contain ${showLoadingOverlay ? 'opacity-0' : ''}`}
           loading={loading === 'eager' ? 'eager' : 'lazy'}
           fetchPriority={context === 'detail' ? 'high' : 'auto'}
           decoding="async"
