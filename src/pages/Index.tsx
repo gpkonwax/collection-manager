@@ -1361,48 +1361,54 @@ export default function SimpleAssetsPage() {
           </div>
         </div>
         {(() => {
-          const totalPages = Math.max(1, Math.ceil(savedGridSlots.length / ITEMS_PER_PAGE));
-          const safePage = Math.min(currentPage, totalPages);
-          const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
-          const pageSlots = savedGridSlots.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+          // Each "slot" in the saved grid carries its absolute index so drag/drop
+          // and missing-card placeholders keep working under virtualization.
+          type SavedSlot = { slotId: string; idx: number };
+          const items: VirtualItem<SavedSlot>[] = savedGridSlots.map((slotId, idx) => ({
+            kind: 'card',
+            key: `slot-${idx}-${slotId}`,
+            data: { slotId, idx },
+          }));
           return (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {pageSlots.map((slotId, localIdx) => {
-                  const idx = startIdx + localIdx;
-                  if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+            <VirtualGrid<SavedSlot>
+              ref={savedGridRef}
+              items={items}
+              renderCard={({ slotId, idx }) => {
+                if (slotId === EMPTY) {
+                  return (
+                    <EmptySlot
+                      onDragOver={handleDragOver(idx)}
+                      onDrop={handleDrop(idx)}
+                      isOver={dragOverIdx === idx}
+                    />
+                  );
+                }
 
-                  const asset = allAssetMap.get(slotId);
-                  if (!asset || !filteredIdSet.has(asset.id)) return (
-                    <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                const asset = allAssetMap.get(slotId);
+                if (!asset || !filteredIdSet.has(asset.id)) {
+                  return (
+                    <div className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
                       <span className="text-xs text-muted-foreground">Missing</span>
                     </div>
                   );
+                }
 
-                  return (
-                    <SimpleAssetCard
-                      key={asset.id}
-                      asset={asset}
-                      onClick={() => setSelectedAsset(asset)}
-                      draggable={!selectionMode}
-                      selectionMode={selectionMode}
-                      selected={selectedIds.has(asset.id)}
-                      onSelect={toggleSelection}
-                      onDragStart={handleDragStart(idx)}
-                      onDragOver={handleDragOver(idx)}
-                      onDrop={handleDrop(idx)}
-                      onDragEnd={handleDragEnd}
-                    />
-                  );
-                })}
-              </div>
-              <PaginationControls
-                currentPage={safePage}
-                totalPages={totalPages}
-                totalItems={savedGridSlots.length}
-                onPageChange={setCurrentPage}
-              />
-            </>
+                return (
+                  <SimpleAssetCard
+                    asset={asset}
+                    onClick={() => setSelectedAsset(asset)}
+                    draggable={!selectionMode}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(asset.id)}
+                    onSelect={toggleSelection}
+                    onDragStart={handleDragStart(idx)}
+                    onDragOver={handleDragOver(idx)}
+                    onDrop={handleDrop(idx)}
+                    onDragEnd={handleDragEnd}
+                  />
+                );
+              }}
+            />
           );
         })()}
       </>
