@@ -1,17 +1,30 @@
 
 
-## Restore JSON menu in Series 2 Binder view
+## Move bell to top-left and add price alerts to all binder cards
 
-### Root cause
-Series 2 has a custom render branch in `src/pages/Index.tsx` (lines 1937-2018) that wraps the binder/classic view in a `Collection` / `Puzzle Builder` sub-tab. This branch bypasses `renderBinderView()` entirely and renders its own toolbar inline (lines 1946-1959). That custom toolbar contains a placeholder `<div className="flex-1" />` where the JsonMenu and alerts indicator should go — they were never added.
+### Changes
 
-The fix from the previous turn correctly patched `renderBinderView`, but Series 2 never reaches that function in Binder mode.
+**1. `src/components/simpleassets/MissingCardPlaceholder.tsx`**
+- Move the bell button from `top-1.5 right-1.5` to `top-1.5 left-1.5` so it doesn't conflict with the stack multiplier (which lives in the top-right on owned cards). The placeholder doesn't have a multiplier itself, but moving it makes the corner placement consistent across the binder.
 
-### Fix
-In the Series 2 collection sub-tab toolbar (around line 1958), replace the empty `<div className="flex-1" />` with the same JsonMenu + alerts indicator block used in `renderBinderView`. This keeps Series 2's unique sub-tab layout intact while restoring the JSON button.
+**2. `src/components/simpleassets/SimpleAssetCard.tsx`**
+- Add an optional `priceAlertTemplateId?: string` prop. When provided, render a bell button in the top-left corner (mirroring the placeholder) that opens a `PriceAlertDialog`.
+- The bell uses the same styling pattern as `MissingCardPlaceholder`: `absolute top-1.5 left-1.5 z-20`, with state classes for normal / has-alert / triggered.
+- Keep the stack multiplier `x{n}` in the top-right (unchanged).
+- The selection-mode checkbox currently sits in `top-2 left-2`. When in selection mode, hide the bell to avoid overlap (selection is the primary action).
+- Wire `usePriceAlerts` and `PriceAlertDialog` inside the card. To avoid the alert button triggering card click/drag, stop propagation on its click handler.
+- Build a minimal `BinderTemplate`-shaped object from the asset (templateId, name, image, schema) for passing to `PriceAlertDialog`.
 
-### File affected
-- **EDIT** `src/pages/Index.tsx` (lines ~1946-1959): replace the empty flex spacer with the alerts indicator span and `<JsonMenu />` (same props as in `renderBinderView`).
+**3. `src/pages/Index.tsx` (`renderBinderCard`, ~line 944)**
+- Pass `priceAlertTemplateId={template.templateId}` and the template's `name`, `image`, `schema` to `SimpleAssetCard` so the bell knows which template to alert on. Simplest: pass a single `priceAlertTemplate={template}` prop containing the full `BinderTemplate`.
+- Only the binder view passes this — Classic and Saved views won't show the bell on owned cards (no template binding).
 
-No changes to JsonMenu, alerts hook, or other view modes.
+### Notes
+- Re-export comparator in `SimpleAssetCard` memo: add `priceAlertTemplate` (or its templateId) to the equality check.
+- No changes to `usePriceAlerts` hook or `PriceAlertDialog` — both already accept a `BinderTemplate`.
+
+### Files affected
+- **EDIT** `src/components/simpleassets/MissingCardPlaceholder.tsx` — move bell to `top-1.5 left-1.5`.
+- **EDIT** `src/components/simpleassets/SimpleAssetCard.tsx` — add optional `priceAlertTemplate` prop, render top-left bell + dialog.
+- **EDIT** `src/pages/Index.tsx` — pass `priceAlertTemplate={template}` from `renderBinderCard` to `SimpleAssetCard`.
 
