@@ -141,6 +141,68 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  const goTo = (p: number) => {
+    onPageChange(Math.min(Math.max(1, p), totalPages));
+    // Scroll back to the top of the grid for a clean page transition
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  return (
+    <div className="flex items-center justify-center gap-2 pt-4 flex-wrap">
+      <Button
+        onClick={() => goTo(1)}
+        disabled={currentPage === 1}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        « First
+      </Button>
+      <Button
+        onClick={() => goTo(currentPage - 1)}
+        disabled={currentPage === 1}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        ‹ Prev
+      </Button>
+      <span className="text-sm text-muted-foreground px-3 whitespace-nowrap">
+        Page {currentPage} of {totalPages} · {totalItems} item{totalItems !== 1 ? 's' : ''}
+      </span>
+      <Button
+        onClick={() => goTo(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        Next ›
+      </Button>
+      <Button
+        onClick={() => goTo(totalPages)}
+        disabled={currentPage === totalPages}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        Last »
+      </Button>
+    </div>
+  );
+}
+
 export default function SimpleAssetsPage() {
   const { accountName, isConnected, login, logout, session, waxBalance, allSessions, switchAccount, addAccount, removeAccount } = useWax();
   const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
