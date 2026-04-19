@@ -951,6 +951,7 @@ export default function SimpleAssetsPage() {
           selectionMode={selectionMode}
           selected={selectedIds.has(asset.id)}
           onSelect={toggleSelection}
+          priceAlertTemplate={template}
         />
       );
     }
