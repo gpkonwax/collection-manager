@@ -46,6 +46,7 @@ import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { JsonMenu } from '@/components/JsonMenu';
+import { VirtualGrid, type VirtualGridHandle, type VirtualItem } from '@/components/VirtualGrid';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
