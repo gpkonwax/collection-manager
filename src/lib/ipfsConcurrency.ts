@@ -2,7 +2,7 @@
 // Browsers cap ~6 connections per origin. By limiting how many <img> elements
 // we mount/activate at once, we avoid overwhelming any single gateway.
 
-const MAX_CONCURRENT = 12;
+const MAX_CONCURRENT = 20;
 
 let active = 0;
 const queue: Array<() => void> = [];
