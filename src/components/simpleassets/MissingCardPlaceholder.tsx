@@ -36,12 +36,12 @@ export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps
           type="button"
           onClick={(e) => { e.stopPropagation(); setAlertOpen(true); }}
           className={cn(
-            "absolute top-1.5 left-1.5 z-20 h-7 w-7 rounded-full flex items-center justify-center bg-background/80 backdrop-blur-sm border transition-colors",
+            "absolute top-1.5 left-1.5 z-20 h-7 w-7 rounded-full flex items-center justify-center backdrop-blur-sm border-2 transition-colors",
             isTriggered
-              ? "border-destructive text-destructive animate-pulse"
+              ? "border-black bg-red-600 text-white animate-pulse"
               : hasAlert
-                ? "border-cheese/50 text-cheese hover:bg-cheese/10"
-                : "border-border/60 text-muted-foreground hover:text-cheese hover:border-cheese/50"
+                ? "border-cheese bg-emerald-500 text-white hover:bg-emerald-400"
+                : "bg-background/80 border-border/60 text-muted-foreground hover:text-cheese hover:border-cheese/50"
           )}
           aria-label={hasAlert ? "Edit price alert" : "Set price alert"}
           title={hasAlert ? `Alert: max ${alert!.maxPrice.toFixed(2)} WAX` : "Set price alert"}
