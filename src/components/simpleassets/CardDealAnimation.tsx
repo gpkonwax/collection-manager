@@ -204,7 +204,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
       }, LAND_PAUSE);
       return () => clearTimeout(timer);
     }
-  }, [dealIndex, phase, cards, gridCellRefs, onCardDealt, onComplete, scrollToElement]);
+  }, [dealIndex, phase, cards, gridCellRefs, onCardDealt, onComplete, scrollToElement, scrollToCard, getCardIndex]);
 
   if (cards.length === 0 || (dealIndex >= cards.length && hasCompletedRef.current)) return null;
 
