@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT } from '@/lib/ipfsGateways';
+import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, MAX_GATEWAY_ATTEMPTS } from '@/lib/ipfsGateways';
 import { acquireSlot, releaseSlot, shardIndexForHash } from '@/lib/ipfsConcurrency';
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
@@ -155,8 +155,10 @@ export function useIpfsMedia(
     }, delay);
   }, [hash, retryCycle]);
 
+  const maxAttempts = context === 'detail' ? MAX_GATEWAY_ATTEMPTS.detail : MAX_GATEWAY_ATTEMPTS.card;
+
   const advance = useCallback(() => {
-    if (triedCount + 1 >= IPFS_GATEWAYS.length) {
+    if (triedCount + 1 >= maxAttempts) {
       // Exhausted this sweep — mark failed and schedule auto-retry while mounted.
       setFailed(true);
       setIsLoading(false);
@@ -165,7 +167,7 @@ export function useIpfsMedia(
       setTriedCount(prev => prev + 1);
       setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
     }
-  }, [triedCount, startAutoRetry]);
+  }, [triedCount, startAutoRetry, maxAttempts]);
 
   const onError = useCallback(() => {
     advance();

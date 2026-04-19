@@ -1,19 +1,26 @@
 // Unified IPFS gateway configuration
 // Ordered by reliability and speed (based on real-world testing)
+// Note: cloudflare-ipfs.com removed — has been failing consistently for weeks.
 export const IPFS_GATEWAYS = [
   'https://gateway.pinata.cloud/ipfs/',
   'https://dweb.link/ipfs/',
   'https://nftstorage.link/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/', // Moved to last - experiencing tunnel errors
 ];
 
 // Timeout configuration for different contexts
 export const IMAGE_LOAD_TIMEOUT = {
-  card: 6000,        // 6 seconds for cards – skip dead gateways faster
-  detail: 5000,      // 5 seconds for detail page (only 2 images)
-  increment: 1500,   // Add 1.5s per retry
-  max: 8000,         // Max 8 seconds
+  card: 2500,        // 2.5s for cards – fail fast under load to free slots
+  detail: 5000,      // 5s for detail page (only 2 images)
+  increment: 1000,   // Add 1s per retry
+  max: 6000,         // Max 6 seconds
+};
+
+// Maximum gateway attempts per context. Card sweep stops earlier so failures
+// don't hog concurrency slots while the user scrolls.
+export const MAX_GATEWAY_ATTEMPTS = {
+  card: 3,
+  detail: IPFS_GATEWAYS.length,
 };
 
 // Helper to get primary IPFS gateway URL
