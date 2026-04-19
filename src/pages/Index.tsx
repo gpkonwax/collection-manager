@@ -2124,6 +2124,11 @@ export default function SimpleAssetsPage() {
         <CardDealAnimation
           cards={dealingCards}
           gridCellRefs={gridCellRefs}
+          getCardIndex={(id) => {
+            const i = filtered.findIndex(a => a.id === id);
+            return i >= 0 ? i : null;
+          }}
+          scrollToCard={(idx) => classicGridRef.current?.scrollToCardIndex(idx, 'center')}
           onCardDealt={handleCardDealt}
           onComplete={handleDealComplete}
         />
