@@ -162,11 +162,12 @@ export function useIpfsMedia(
 
   
 
+  const FALLBACK = `${import.meta.env.BASE_URL}card-fallback.svg`;
   let src: string;
   if (!enabled) {
-    src = '/placeholder.svg';
+    src = FALLBACK;
   } else if (failed || !originalUrl) {
-    src = '/placeholder.svg';
+    src = FALLBACK;
   } else if (hash) {
     src = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
   } else {
