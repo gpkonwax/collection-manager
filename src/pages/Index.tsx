@@ -164,10 +164,16 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
+  // Refs to the virtualized grids so we can imperatively scroll to a specific
+  // card index (e.g. when newly-dealt cards land outside the viewport).
+  const classicGridRef = useRef<VirtualGridHandle | null>(null);
+  const binderGridRef = useRef<VirtualGridHandle | null>(null);
+  const savedGridRef = useRef<VirtualGridHandle | null>(null);
 
+  // When filters/search/view change, scroll back to the top of the page so the
+  // user always sees the first matching results.
   useEffect(() => {
-    setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [search, categoryFilter, sourceFilter, variantFilter, viewMode]);
 
   const [selectionMode, setSelectionMode] = useState(false);
