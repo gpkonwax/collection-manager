@@ -1,36 +1,35 @@
 
-The user wants failed card images to auto-retry until they load, instead of showing the placeholder permanently.
+The user wants images that have already loaded successfully to stay rendered when scrolled out of view and back. Currently, with virtualized lists (@tanstack/react-virtual per memory) and `IntersectionObserver` lazy-loading inside `IpfsMedia`, when an image scrolls far away it gets unmounted by the virtualizer. When it remounts, `useIpfsMedia` resets and starts loading again from scratch — which can fail or briefly show a placeholder.
 
-Looking at `useIpfsMedia.ts`:
-- It rotates through all gateways in `IPFS_GATEWAYS` (likely ~6-8 gateways)
-- Once `triedCount + 1 >= IPFS_GATEWAYS.length`, sets `failed = true` and stops
-- After failure, `src` becomes `/placeholder.svg` permanently
+Looking at `useIpfsMedia.ts`: there's already a `gatewayCache` (Map of hash → last working gateway index). So remounted images do reuse the working gateway. The visible flicker / missing images on scroll-back must come from:
+1. `IntersectionObserver` in `IpfsMedia.tsx` — when remounted, `isVisible` starts false, briefly shows nothing/placeholder until intersection fires.
+2. Browser HTTP cache should serve the image instantly, but the new img tag still goes through load lifecycle.
+3. If a retry round added `?_r=N` cache-buster, that URL is now cached at that nonce; remount starts fresh at nonce=0, which should hit browser cache.
 
-The fix: instead of giving up after one full rotation, keep retrying with backoff until success. Need to be careful not to hammer gateways infinitely or burn CPU.
+## Fix plan
 
-## Plan: Auto-retry failed card images
+Add a module-level **success cache** keyed by IPFS hash that records the exact resolved URL (including any retry nonce) once an image has successfully loaded. On any future mount of `useIpfsMedia` for that hash, immediately use that known-good URL and skip the IntersectionObserver gate / loading state.
 
-### Change to `src/hooks/useIpfsMedia.ts`
+### Changes
 
-Instead of permanently failing after one full gateway rotation, restart the rotation with exponential backoff:
+**`src/hooks/useIpfsMedia.ts`**
+- Add `loadedUrlCache = new Map<string, string>()` at module scope.
+- In `onLoad`, when load succeeds, store the current `src` into `loadedUrlCache` keyed by hash (in addition to existing `setCachedGateway`).
+- Add `getCachedLoadedUrl(hash)` export.
+- On mount, if hash has a cached loaded URL, initialize state to: `isLoading=false`, use that URL directly as `src`, skip rotation/timeout logic.
 
-1. Add a `retryRound` counter (starts at 0).
-2. When `triedCount + 1 >= IPFS_GATEWAYS.length`:
-   - Don't set `failed = true` permanently.
-   - Schedule a delayed retry: `setTimeout(() => { resetTriedCount, increment retryRound, restart from gateway 0 }, backoffMs)`.
-   - Backoff: `Math.min(2000 * 2^retryRound, 30000)` — 2s, 4s, 8s, 16s, capped at 30s.
-3. Cap `retryRound` at e.g. 10 to avoid truly infinite loops on permanently-broken hashes (after that, show placeholder).
-4. Only retry while the component is mounted and `enabled` is true (skip when offscreen).
-5. Clear retry timer on unmount and on URL change.
-6. During the backoff wait, keep showing placeholder but `failed` stays false so the UI doesn't lock in a "broken" look — or briefly show placeholder with a subtle loading state. Simplest: show placeholder while waiting, then resume loading.
+**`src/components/simpleassets/IpfsMedia.tsx`**
+- Before setting up the IntersectionObserver, check `getCachedLoadedUrl(hash)`. If present, treat as immediately enabled (no lazy gate) so the cached URL renders instantly on remount.
+- This means scrolling back up renders the exact previously-successful URL with zero placeholder flash; browser HTTP cache serves it.
 
-### Why this approach
-- IPFS failures are usually transient (gateway hiccup, slow pin propagation). Auto-retry recovers them without user action.
-- Exponential backoff prevents hammering already-overloaded gateways.
-- 10-round cap (~5 minutes total wait) prevents runaway retries on truly missing hashes.
+### Why this works
+- Browser already caches the image bytes; we just need to skip our own visibility gate and loading state for known-good hashes.
+- Cache survives across virtualizer unmount/remount because it's at module scope, not component state.
+- No memory bloat: bounded by gateway cache eviction (already 500-entry LRU); apply same cap to loaded URL cache.
 
 ### Files affected
-- **EDIT** `src/hooks/useIpfsMedia.ts` — convert terminal `failed = true` into a delayed retry with bounded rounds.
+- **EDIT** `src/hooks/useIpfsMedia.ts` — add `loadedUrlCache`, populate on success, prefer cached URL on init.
+- **EDIT** `src/components/simpleassets/IpfsMedia.tsx` — bypass IntersectionObserver gate when hash is in loaded cache.
 
 ### Validation
-Refresh the page; cards that initially fail should reload themselves within a few seconds without manual interaction.
+Scroll down through many cards, let them load, scroll back up — every previously-loaded image should appear instantly with no placeholder flash, even after virtualizer recycles them.
