@@ -71,7 +71,7 @@ function parsePriceWax(price: { amount: string; token_precision: number; token_s
   return amt / Math.pow(10, price.token_precision || 8);
 }
 
-async function runBatchedCheck(): Promise<void> {
+async function runBatchedCheck(force = false): Promise<void> {
   const candidates = moduleAlerts.filter(a => !a.triggered);
   if (candidates.length === 0) {
     moduleLastCheckedAt = Date.now();
@@ -79,50 +79,64 @@ async function runBatchedCheck(): Promise<void> {
     return;
   }
 
-  const ids = candidates.map(a => a.templateId).join(',');
-  const path = `${ATOMIC_API.paths.sales}?state=1&symbol=WAX&template_whitelist=${encodeURIComponent(ids)}&sort=price&order=asc&limit=100`;
+  // Template IDs are numeric — safe to leave commas unencoded so AtomicMarket parses
+  // `template_whitelist=1,2,3` as a list (encoding commas to %2C breaks this).
+  const ids = candidates.map(a => String(a.templateId)).join(',');
+  const path = `${ATOMIC_API.paths.sales}?state=1&symbol=WAX&template_whitelist=${ids}&sort=price&order=asc&limit=100`;
 
   const headers: Record<string, string> = {};
-  if (moduleEtagCache.etag) headers['If-None-Match'] = moduleEtagCache.etag;
+  if (!force && moduleEtagCache.etag) headers['If-None-Match'] = moduleEtagCache.etag;
+
+  console.info('[priceAlerts] checking', { ids, force, url: path });
 
   let payload: any = null;
   try {
     const resp = await fetchWithFallback(ATOMIC_API.baseUrls, path, { headers });
     if (resp.status === 304 && moduleEtagCache.payload) {
       payload = moduleEtagCache.payload;
+      console.info('[priceAlerts] 304 — using cached payload');
     } else {
       const etag = resp.headers.get('etag');
       payload = await resp.json();
       if (etag) {
         moduleEtagCache.etag = etag;
         moduleEtagCache.payload = payload;
+      } else if (force) {
+        // Clear cache on forced check if no etag returned, to avoid stale 304 next time.
+        moduleEtagCache.etag = undefined;
+        moduleEtagCache.payload = undefined;
       }
     }
   } catch (err) {
-    console.warn('Price alert check failed:', err);
+    console.warn('[priceAlerts] check failed:', err);
     moduleLastCheckedAt = Date.now();
     notify();
     return;
   }
 
   const sales: any[] = Array.isArray(payload?.data) ? payload.data : [];
-  // Group by template_id, keep cheapest WAX listing.
+  // Group by template_id (string keys), keep cheapest WAX listing.
   const cheapestByTemplate = new Map<string, number>();
   for (const sale of sales) {
-    const tplId: string | undefined = sale?.assets?.[0]?.template?.template_id || sale?.template?.template_id;
-    if (!tplId) continue;
+    const rawTplId = sale?.assets?.[0]?.template?.template_id ?? sale?.template?.template_id;
+    if (rawTplId === undefined || rawTplId === null) continue;
+    const tplId = String(rawTplId);
     const wax = parsePriceWax(sale?.price);
     if (wax === null) continue;
     const prev = cheapestByTemplate.get(tplId);
     if (prev === undefined || wax < prev) cheapestByTemplate.set(tplId, wax);
   }
 
+  console.info('[priceAlerts] sales returned:', sales.length, 'cheapestByTemplate:', Object.fromEntries(cheapestByTemplate));
+
   const nowIso = new Date().toISOString();
   const next = moduleAlerts.map(a => {
     if (a.triggered) return a;
-    const lowest = cheapestByTemplate.get(a.templateId);
+    const key = String(a.templateId);
+    const lowest = cheapestByTemplate.get(key);
     const updated: PriceAlert = { ...a, lastChecked: nowIso };
     if (lowest !== undefined) updated.lowestPrice = lowest;
+    console.info('[priceAlerts] alert', { templateId: key, max: a.maxPrice, lowest });
     if (lowest !== undefined && lowest <= a.maxPrice) {
       updated.triggered = true;
       if (!moduleSessionTriggered.has(a.templateId)) {
@@ -141,9 +155,9 @@ async function runBatchedCheck(): Promise<void> {
 }
 
 let runningPromise: Promise<void> | null = null;
-function checkOnce(): Promise<void> {
+function checkOnce(force = false): Promise<void> {
   if (runningPromise) return runningPromise;
-  runningPromise = runBatchedCheck().finally(() => { runningPromise = null; });
+  runningPromise = runBatchedCheck(force).finally(() => { runningPromise = null; });
   return runningPromise;
 }
 
@@ -264,7 +278,7 @@ export function usePriceAlerts() {
     }
     moduleLastManualCheckAt = now;
     notify();
-    await checkOnce();
+    await checkOnce(true);
     return { ok: true };
   }, []);
 
