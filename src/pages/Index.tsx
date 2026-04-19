@@ -1118,9 +1118,36 @@ export default function SimpleAssetsPage() {
     const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
     const endIdx = startIdx + ITEMS_PER_PAGE;
 
+    type BinderSection = {
+      key: string;
+      items: NonNullable<typeof binderGrid>;
+      heading: React.ReactNode | null;
+      grouped: boolean;
+    };
+
+    const sections: BinderSection[] = [
+      { key: 'regular', items: regular, heading: null, grouped: useGrouped },
+      {
+        key: 'collectors', items: collectors, grouped: false,
+        heading: (
+          <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+            Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
+          </h3>
+        ),
+      },
+      ...(golden.length > 0 ? [{
+        key: 'golden', items: golden, grouped: false,
+        heading: (
+          <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
+            Golden ({golden.filter(s => s.owned).length}/{golden.length})
+          </h3>
+        ),
+      } as BinderSection] : []),
+    ];
+
     // Walk through sections and only emit items that fall within [startIdx, endIdx).
     let cursor = 0;
-    const emitted: { section: typeof sections[number]; visible: typeof regular }[] = [];
+    const emitted: { section: BinderSection; visible: NonNullable<typeof binderGrid> }[] = [];
     for (const section of sections) {
       const sStart = cursor;
       const sEnd = cursor + section.items.length;
