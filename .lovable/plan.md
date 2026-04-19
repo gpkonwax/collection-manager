@@ -1,50 +1,71 @@
 
-## Why the deal animation broke
+Diagnosed from your console/network data:
 
-With virtualization, only ~30-60 cards exist in the DOM at any time. The deal animation does this per card:
+- The alert check is running.
+- The request is `GET /atomicmarket/v1/sales?...template_whitelist=184,191...`
+- But the response contains unrelated `blueeyesdesc` sales with template `671561`.
 
-1. `gridCellRefs.current.get(card.id)` — looks up the destination cell's DOM node
-2. If found → scroll to it, fly the card there, land
-3. If **not** found → silently skip the card entirely
+That means the current API query is not reliably filtering by the requested template IDs. So the previous fix did not address the real root cause: the batched `template_whitelist` strategy is returning wrong market data, so `cheapestByTemplate.get(yourTemplateId)` stays empty and no alert triggers.
 
-Before virtualization, every card was always mounted, so step 1 always succeeded. Now most target cells don't exist until the virtualizer scrolls them into view — so most cards get silently skipped, and the animation appears broken.
+## Fix plan
 
-The one-shot `scrollToCardIndex(maxIdx)` in `Index.tsx` (line 236) only scrolls to the *last* dealing card on mount. It doesn't bring each intermediate card's row into view as dealing progresses.
+### 1. Replace the batched whitelist request with per-template checks
+Edit `src/hooks/usePriceAlerts.ts`:
 
-## Fix
+- Stop using one shared request with `template_whitelist=...`
+- For each active alert, fetch the cheapest listing for that exact template instead:
+  - `collection_name=gpk.topps`
+  - `template_id=<alert template id>`
+  - `state=1`
+  - `symbol=WAX`
+  - `sort=price`
+  - `order=asc`
+  - `limit=1`
 
-Wire the virtualizer's `scrollToCardIndex` into the animation's per-card scrolling phase, then wait for the target row to actually mount before measuring and flying.
+Why: max alerts is only 5, so a few precise requests are safer than one unreliable bulk query.
 
-### Changes
+### 2. Filter to the GPK collection explicitly
+Even with exact template checks, keep `collection_name=gpk.topps` in the request so unrelated collections can never satisfy an alert.
 
-**1. `src/components/simpleassets/CardDealAnimation.tsx`**
-- Add a new prop: `getCardIndex: (id: string) => number | null` — caller maps card id → absolute card index in the visible list.
-- Add a new prop: `scrollToCard: (cardIndex: number) => void` — caller proxies to the virtualizer.
-- In the `scrolling` phase, before the DOM lookup:
-  - Call `scrollToCard(getCardIndex(card.id))` to make the virtualizer mount that row.
-  - Poll for `gridCellRefs.current.get(card.id)` to appear (every 50ms, up to ~2s) instead of assuming it already exists.
-  - Once it appears, do an additional `scrollIntoView`-style nudge to center it precisely, then poll for scroll stability as today, then fly.
-- If after the timeout the cell still doesn't mount (extreme edge case — filter changed mid-deal), fall back to the current "skip silently" behavior so the animation never deadlocks.
+### 3. Update trigger logic per alert
+For each alert response:
 
-**2. `src/pages/Index.tsx`**
-- Remove the existing one-shot `useEffect` at lines 224-240 that pre-scrolls to `maxIdx`. Per-card scrolling replaces it.
-- Pass two new props to `<CardDealAnimation>`:
-  - `getCardIndex={(id) => { const i = filtered.findIndex(a => a.id === id); return i >= 0 ? i : null; }}` — note: must use `filtered` (what the VirtualGrid actually shows), not `assets`, because `classicGridRef.scrollToCardIndex` operates on the rendered list.
-  - `scrollToCard={(idx) => classicGridRef.current?.scrollToCardIndex(idx, 'center')}`
-- Keep the in-flight placeholder (line 1162) and dealtIds glow logic exactly as-is — they still work, they just need the row to be mounted, which the new scroll handles.
+- Read the first returned sale only
+- Parse the WAX price
+- Set `lowestPrice` and `lastChecked`
+- Mark `triggered=true` when `lowest <= maxPrice`
+- Fire the toast once per session as before
 
-**3. No changes to `VirtualGrid.tsx`**
-- Its existing `scrollToCardIndex` imperative handle is exactly what we need.
+### 4. Make failures isolated
+If one alert request fails, do not abort all alerts.
+Only mark that alert as unchecked/unchanged and continue checking the others.
 
-### Edge cases handled
+### 5. Keep the diagnostic logs, but make them specific
+Log per-template checks like:
 
-- **Card not in current filter**: `getCardIndex` returns `null` → animation skips that card cleanly (same as today).
-- **Fast dealing of many cards across distant rows**: each card triggers its own scroll + mount-poll, so each lands correctly even if 100 rows apart.
-- **First card**: keep existing "scroll to top" intro for the first card so the stack visual sits at the top of viewport, then start per-card scrolling on subsequent cards.
-- **Skip Animation button**: unchanged — still marks all remaining as dealt and completes.
+- template id requested
+- final request URL
+- collection returned
+- lowest listing found
+- comparison against max price
 
-### Expected result
+This will make it obvious if an endpoint ever returns wrong data again.
 
-- Deal animation works again with virtualized infinite scroll.
-- Cards visibly fly from the stack to their correct grid cell, scrolling the page as needed between cards.
-- No silent skips for cards outside the initial viewport.
+## Files to edit
+- `src/hooks/usePriceAlerts.ts` — replace `template_whitelist` batching with exact per-template market checks
+- `src/lib/waxConfig.ts` — only if needed, to switch sales path from `v1` to `v2` after verifying which endpoint behaves correctly with `template_id`
+
+## Validation after implementation
+Test with the exact scenario you described:
+
+1. Set an alert above an already-listed card price
+2. Click “Check Now”
+3. Confirm:
+   - toast appears immediately
+   - bell switches to triggered state
+   - dialog shows the lowest seen WAX price
+   - console logs show the exact template id matched, not unrelated collections
+
+## Technical note
+Previous attempts focused on encoding/caching. Your latest logs prove the deeper issue is query correctness, not just caching:
+`template_whitelist=184,191` returned `blueeyesdesc / 671561`, so the server response is not honoring the intended template filter. The safest fix is to stop relying on that bulk filter entirely.

@@ -46,10 +46,10 @@ import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { JsonMenu } from '@/components/JsonMenu';
-import { VirtualGrid, type VirtualGridHandle, type VirtualItem } from '@/components/VirtualGrid';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
+const ITEMS_PER_PAGE = 36;
 
 const CATEGORY_LABELS: Record<string, string> = {
   series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
@@ -141,8 +141,6 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
-
-
 export default function SimpleAssetsPage() {
   const { accountName, isConnected, login, logout, session, waxBalance, allSessions, switchAccount, addAccount, removeAccount } = useWax();
   const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
@@ -164,16 +162,10 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
-  // Refs to the virtualized grids so we can imperatively scroll to a specific
-  // card index (e.g. when newly-dealt cards land outside the viewport).
-  const classicGridRef = useRef<VirtualGridHandle | null>(null);
-  const binderGridRef = useRef<VirtualGridHandle | null>(null);
-  const savedGridRef = useRef<VirtualGridHandle | null>(null);
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
-  // When filters/search/view change, scroll back to the top of the page so the
-  // user always sees the first matching results.
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setVisibleCount(ITEMS_PER_PAGE);
   }, [search, categoryFilter, sourceFilter, variantFilter, viewMode]);
 
   const [selectionMode, setSelectionMode] = useState(false);
@@ -221,7 +213,19 @@ export default function SimpleAssetsPage() {
   const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
-  // Per-card scrolling is handled by CardDealAnimation via getCardIndex/scrollToCard props.
+  useEffect(() => {
+    if (dealingCards.length > 0) {
+      // Instead of rendering the entire collection, find the furthest dealing card
+      // position in filtered list and only render up to that + a buffer
+      const allAssets = [...saAssets, ...aaAssets];
+      let maxIdx = 0;
+      for (const dc of dealingCards) {
+        const idx = allAssets.findIndex(f => f.id === dc.id);
+        if (idx > maxIdx) maxIdx = idx;
+      }
+      setVisibleCount(maxIdx + 12);
+    }
+  }, [dealingCards, saAssets, aaAssets]);
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
@@ -274,7 +278,7 @@ export default function SimpleAssetsPage() {
       setViewMode('classic');
       setSearch('');
       setSourceFilter('all');
-      // currentPage will be set by the dealing-card effect to land on the right page
+      setVisibleCount(Number.POSITIVE_INFINITY);
 
       setDealingCards(newCards);
       setDealtIds(new Set());
@@ -300,7 +304,7 @@ export default function SimpleAssetsPage() {
     setViewMode('classic');
     setSearch('');
     setSourceFilter('all');
-    // currentPage will be set by the dealing-card effect to land on the right page
+    setVisibleCount(Number.POSITIVE_INFINITY);
     setDealingCards(demoAssets);
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
@@ -1047,103 +1051,101 @@ export default function SimpleAssetsPage() {
     const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
     const collectors = grid.filter(s => s.template.variant === 'collector');
     const golden = showGoldenSection ? grid.filter(s => s.template.variant === 'golden') : [];
+    const totalItems = regular.length + collectors.length + golden.length;
 
-    type BinderEntry = NonNullable<typeof binderGrid>[number];
-
-    // Build a flat VirtualGrid item list. Headings are full-width rows; cards
-    // get packed into rows by the virtualizer based on the current column count.
-    // For the "regular" section with grouping, we emit per-group full-width
-    // wrappers (so each card-id group stays visually contiguous) — but to keep
-    // virtualization simple and consistent we just emit cards in order; the
-    // grouping is preserved naturally because the source `grid` is sorted by
-    // cardid (the grouped variant only added padding to align xl 6-col rows).
-    const items: VirtualItem<BinderEntry>[] = [];
-
-    for (const s of regular) {
-      items.push({ kind: 'card', key: s.template.templateId, data: s });
-    }
-
-    if (collectors.length > 0) {
-      items.push({
-        kind: 'full',
-        key: 'heading-collectors',
-        node: (
+    const sections = [
+      { key: 'regular', items: regular, heading: null, grouped: useGrouped },
+      {
+        key: 'collectors', items: collectors, grouped: false,
+        heading: (
           <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
             Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
           </h3>
         ),
-      });
-      for (const s of collectors) items.push({ kind: 'card', key: s.template.templateId, data: s });
-    }
-
-    if (golden.length > 0) {
-      items.push({
-        kind: 'full',
-        key: 'heading-golden',
-        node: (
+      },
+      ...(golden.length > 0 ? [{
+        key: 'golden', items: golden, grouped: false,
+        heading: (
           <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
             Golden ({golden.filter(s => s.owned).length}/{golden.length})
           </h3>
         ),
-      });
-      for (const s of golden) items.push({ kind: 'card', key: s.template.templateId, data: s });
-    }
+      }] : []),
+    ];
+
+    let remaining = visibleCount;
 
     return (
       <div className="space-y-6">
-        <VirtualGrid<BinderEntry>
-          ref={binderGridRef}
-          items={items}
-          renderCard={(s) => renderBinderCard(s)}
-        />
+        {sections.map((section) => {
+          const visible = section.items.slice(0, Math.max(remaining, 0));
+          remaining = Math.max(remaining - visible.length, 0);
+          if (visible.length === 0) return null;
+
+          if (!section.heading) {
+            return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderBinderGrid(visible)}</div>;
+          }
+
+          return (
+            <div key={section.key} className="space-y-2">
+              {section.heading}
+              {renderBinderGrid(visible)}
+            </div>
+          );
+        })}
+
+        {totalItems > visibleCount && (
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+              variant="outline"
+              className="border-cheese/50 text-cheese hover:bg-cheese/10"
+            >
+              Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderClassicView = () => {
-    const items: VirtualItem<typeof filtered[number]>[] = filtered.map((asset) => ({
-      kind: 'card',
-      key: asset.id,
-      data: asset,
-    }));
-
-    return (
-      <>
-        <div className="flex items-center gap-3 relative z-10 mb-4">
-          <div className="flex items-center gap-3 flex-1">
-            <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-            {renderSelectButton()}
-            {selectionMode && renderSelectAllCheckbox(filtered.map(a => a.id))}
-          </div>
-          <div className="flex-shrink-0">
-            {renderCompletionBar()}
-          </div>
-          <div className="flex items-center justify-end flex-1">
-            <Button
-              onClick={handleSnapshotToSaved}
-              variant="outline"
-              size="sm"
-              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
-              title="Copy current view to Saved Collection for custom arrangement"
-            >
-              <Save className="h-4 w-4 mr-1" />
-              Copy to Saved
-            </Button>
-          </div>
+  const renderClassicView = () => (
+    <>
+      <div className="flex items-center gap-3 relative z-10 mb-4">
+        <div className="flex items-center gap-3 flex-1">
+          <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+          {renderSelectButton()}
+          {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
         </div>
-        {filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">
-            {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
-          </p>
-        ) : (
-          <VirtualGrid<typeof filtered[number]>
-            ref={classicGridRef}
-            items={items}
-            renderCard={(asset) => {
+        <div className="flex-shrink-0">
+          {renderCompletionBar()}
+        </div>
+        <div className="flex items-center justify-end flex-1">
+          <Button
+            onClick={handleSnapshotToSaved}
+            variant="outline"
+            size="sm"
+            className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+            title="Copy current view to Saved Collection for custom arrangement"
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Copy to Saved
+          </Button>
+        </div>
+      </div>
+      {filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground py-12">
+          {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {filtered.slice(0, visibleCount).map((asset) => {
               const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
               if (isInFlight) {
                 return (
                   <div
+                    key={asset.id}
                     ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
                     className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
                   />
@@ -1153,6 +1155,7 @@ export default function SimpleAssetsPage() {
               const justLanded = dealtIds.has(asset.id);
               return (
                 <SimpleAssetCard
+                  key={asset.id}
                   asset={asset}
                   onClick={() => setSelectedAsset(asset)}
                   className={justLanded ? 'animate-card-glow' : ''}
@@ -1162,12 +1165,23 @@ export default function SimpleAssetsPage() {
                   onSelect={toggleSelection}
                 />
               );
-            }}
-          />
-        )}
-      </>
-    );
-  };
+            })}
+          </div>
+          {filtered.length > visibleCount && (
+            <div className="flex justify-center pt-4">
+              <Button
+                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                variant="outline"
+                className="border-cheese/50 text-cheese hover:bg-cheese/10"
+              >
+                Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
 
   const renderBinderView = () => {
     const visibleOwned = binderGrid ? binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []) : [];
@@ -1344,57 +1358,45 @@ export default function SimpleAssetsPage() {
             </Button>
           </div>
         </div>
-        {(() => {
-          // Each "slot" in the saved grid carries its absolute index so drag/drop
-          // and missing-card placeholders keep working under virtualization.
-          type SavedSlot = { slotId: string; idx: number };
-          const items: VirtualItem<SavedSlot>[] = savedGridSlots.map((slotId, idx) => ({
-            kind: 'card',
-            key: `slot-${idx}-${slotId}`,
-            data: { slotId, idx },
-          }));
-          return (
-            <VirtualGrid<SavedSlot>
-              ref={savedGridRef}
-              items={items}
-              renderCard={({ slotId, idx }) => {
-                if (slotId === EMPTY) {
-                  return (
-                    <EmptySlot
-                      onDragOver={handleDragOver(idx)}
-                      onDrop={handleDrop(idx)}
-                      isOver={dragOverIdx === idx}
-                    />
-                  );
-                }
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {savedGridSlots.slice(0, visibleCount).map((slotId, idx) => {
+            if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
 
-                const asset = allAssetMap.get(slotId);
-                if (!asset || !filteredIdSet.has(asset.id)) {
-                  return (
-                    <div className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground">Missing</span>
-                    </div>
-                  );
-                }
+            const asset = allAssetMap.get(slotId);
+            if (!asset || !filteredIdSet.has(asset.id)) return (
+              <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">Missing</span>
+              </div>
+            );
 
-                return (
-                  <SimpleAssetCard
-                    asset={asset}
-                    onClick={() => setSelectedAsset(asset)}
-                    draggable={!selectionMode}
-                    selectionMode={selectionMode}
-                    selected={selectedIds.has(asset.id)}
-                    onSelect={toggleSelection}
-                    onDragStart={handleDragStart(idx)}
-                    onDragOver={handleDragOver(idx)}
-                    onDrop={handleDrop(idx)}
-                    onDragEnd={handleDragEnd}
-                  />
-                );
-              }}
-            />
-          );
-        })()}
+            return (
+              <SimpleAssetCard
+                key={asset.id}
+                asset={asset}
+                onClick={() => setSelectedAsset(asset)}
+                draggable={!selectionMode}
+                selectionMode={selectionMode}
+                selected={selectedIds.has(asset.id)}
+                onSelect={toggleSelection}
+                onDragStart={handleDragStart(idx)}
+                onDragOver={handleDragOver(idx)}
+                onDrop={handleDrop(idx)}
+                onDragEnd={handleDragEnd}
+              />
+            );
+          })}
+        </div>
+        {savedGridSlots.length > visibleCount && (
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+              variant="outline"
+              className="border-cheese/50 text-cheese hover:bg-cheese/10"
+            >
+              Show More ({Math.min(visibleCount, savedGridSlots.length)} of {savedGridSlots.length})
+            </Button>
+          </div>
+        )}
       </>
     );
   };
@@ -2124,11 +2126,6 @@ export default function SimpleAssetsPage() {
         <CardDealAnimation
           cards={dealingCards}
           gridCellRefs={gridCellRefs}
-          getCardIndex={(id) => {
-            const i = filtered.findIndex(a => a.id === id);
-            return i >= 0 ? i : null;
-          }}
-          scrollToCard={(idx) => classicGridRef.current?.scrollToCardIndex(idx, 'center')}
           onCardDealt={handleCardDealt}
           onComplete={handleDealComplete}
         />
