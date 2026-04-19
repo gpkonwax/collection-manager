@@ -339,7 +339,7 @@ export default function SimpleAssetsPage() {
       setViewMode('classic');
       setSearch('');
       setSourceFilter('all');
-      setVisibleCount(Number.POSITIVE_INFINITY);
+      // currentPage will be set by the dealing-card effect to land on the right page
 
       setDealingCards(newCards);
       setDealtIds(new Set());
@@ -365,7 +365,7 @@ export default function SimpleAssetsPage() {
     setViewMode('classic');
     setSearch('');
     setSourceFilter('all');
-    setVisibleCount(Number.POSITIVE_INFINITY);
+    // currentPage will be set by the dealing-card effect to land on the right page
     setDealingCards(demoAssets);
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
@@ -1113,40 +1113,32 @@ export default function SimpleAssetsPage() {
     const collectors = grid.filter(s => s.template.variant === 'collector');
     const golden = showGoldenSection ? grid.filter(s => s.template.variant === 'golden') : [];
     const totalItems = regular.length + collectors.length + golden.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+    const safePage = Math.min(currentPage, totalPages);
+    const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
 
-    const sections = [
-      { key: 'regular', items: regular, heading: null, grouped: useGrouped },
-      {
-        key: 'collectors', items: collectors, grouped: false,
-        heading: (
-          <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-            Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
-          </h3>
-        ),
-      },
-      ...(golden.length > 0 ? [{
-        key: 'golden', items: golden, grouped: false,
-        heading: (
-          <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
-            Golden ({golden.filter(s => s.owned).length}/{golden.length})
-          </h3>
-        ),
-      }] : []),
-    ];
-
-    let remaining = visibleCount;
+    // Walk through sections and only emit items that fall within [startIdx, endIdx).
+    let cursor = 0;
+    const emitted: { section: typeof sections[number]; visible: typeof regular }[] = [];
+    for (const section of sections) {
+      const sStart = cursor;
+      const sEnd = cursor + section.items.length;
+      const sliceFrom = Math.max(0, startIdx - sStart);
+      const sliceTo = Math.min(section.items.length, endIdx - sStart);
+      if (sliceTo > sliceFrom) {
+        emitted.push({ section, visible: section.items.slice(sliceFrom, sliceTo) });
+      }
+      cursor = sEnd;
+      if (cursor >= endIdx) break;
+    }
 
     return (
       <div className="space-y-6">
-        {sections.map((section) => {
-          const visible = section.items.slice(0, Math.max(remaining, 0));
-          remaining = Math.max(remaining - visible.length, 0);
-          if (visible.length === 0) return null;
-
+        {emitted.map(({ section, visible }) => {
           if (!section.heading) {
             return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderBinderGrid(visible)}</div>;
           }
-
           return (
             <div key={section.key} className="space-y-2">
               {section.heading}
@@ -1155,17 +1147,12 @@ export default function SimpleAssetsPage() {
           );
         })}
 
-        {totalItems > visibleCount && (
-          <div className="flex justify-center pt-4">
-            <Button
-              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-              variant="outline"
-              className="border-cheese/50 text-cheese hover:bg-cheese/10"
-            >
-              Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
-            </Button>
-          </div>
-        )}
+        <PaginationControls
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+        />
       </div>
     );
   };
