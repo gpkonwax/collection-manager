@@ -136,6 +136,25 @@ function VirtualGridInner<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columns, rows.length]);
 
+  // Map an absolute card index to its row index for imperative scrolling.
+  const cardIndexToRow = useMemo(() => {
+    const map: number[] = [];
+    rows.forEach((row, rowIdx) => {
+      if (row.kind === 'cards') {
+        for (let i = 0; i < row.cards.length; i++) map.push(rowIdx);
+      }
+    });
+    return map;
+  }, [rows]);
+
+  useImperativeHandle(forwardedRef, () => ({
+    scrollToCardIndex: (cardIndex, align = 'center') => {
+      const rowIdx = cardIndexToRow[cardIndex];
+      if (rowIdx === undefined) return;
+      virtualizer.scrollToIndex(rowIdx, { align });
+    },
+  }), [cardIndexToRow, virtualizer]);
+
   const virtualRows = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
   const scrollMargin = virtualizer.options.scrollMargin;
