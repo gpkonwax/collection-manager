@@ -1,19 +1,23 @@
 // Unified IPFS gateway configuration
-// Ordered by reliability and speed (based on real-world testing)
+// Ordered by reliability and speed (based on real-world testing, April 2026)
+// atomichub-ipfs is the official AtomicHub gateway — most reliable for GPK assets
 export const IPFS_GATEWAYS = [
+  'https://atomichub-ipfs.com/ipfs/',
+  'https://ipfs.atomichub.io/ipfs/',
   'https://gateway.pinata.cloud/ipfs/',
-  'https://dweb.link/ipfs/',
   'https://nftstorage.link/ipfs/',
+  'https://dweb.link/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/', // Moved to last - experiencing tunnel errors
+  'https://cloudflare-ipfs.com/ipfs/', // Last resort - experiencing tunnel errors
 ];
 
 // Timeout configuration for different contexts
+// Tightened to fail fast and rotate to healthy gateways quickly
 export const IMAGE_LOAD_TIMEOUT = {
-  card: 6000,        // 6 seconds for cards – skip dead gateways faster
-  detail: 5000,      // 5 seconds for detail page (only 2 images)
-  increment: 1500,   // Add 1.5s per retry
-  max: 8000,         // Max 8 seconds
+  card: 4000,        // 4 seconds for cards – skip dead gateways aggressively
+  detail: 4000,      // 4 seconds for detail page
+  increment: 1000,   // Add 1s per retry
+  max: 6000,         // Max 6 seconds
 };
 
 // Helper to get primary IPFS gateway URL
