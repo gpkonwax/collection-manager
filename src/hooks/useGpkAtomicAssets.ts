@@ -46,7 +46,7 @@ function resolveAllImages(data: Record<string, string>): string[] {
     const raw = data[key];
     if (raw) { const url = resolveRawImage(raw); if (url && !seen.has(url)) { seen.add(url); urls.push(url); } }
   }
-  return urls.length > 0 ? urls : ['/placeholder.svg'];
+  return urls.length > 0 ? urls : [`${import.meta.env.BASE_URL}card-fallback.svg`];
 }
 
 export function useGpkAtomicAssets(account: string | null) {

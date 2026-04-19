@@ -59,7 +59,7 @@ function resolveAllImages(data: Record<string, unknown>): string[] {
     const raw = data[key] as string | undefined;
     if (raw) { const url = resolveRawImage(raw); if (url && !seen.has(url)) { seen.add(url); urls.push(url); } }
   }
-  return urls.length > 0 ? urls : ['/placeholder.svg'];
+  return urls.length > 0 ? urls : [`${import.meta.env.BASE_URL}card-fallback.svg`];
 }
 
 export function useSimpleAssets(account: string | null) {

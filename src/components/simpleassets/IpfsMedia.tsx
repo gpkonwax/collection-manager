@@ -1,4 +1,5 @@
-import { memo, useMemo, useState, useRef, useEffect } from 'react';
+import { memo, useMemo, useState, useRef, useEffect, MouseEvent } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { useIpfsMedia } from '@/hooks/useIpfsMedia';
 import { isVideoUrl } from '@/lib/ipfsGateways';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +40,23 @@ function useIntersectionVisible(rootMargin = '400px'): [React.RefObject<HTMLDivE
   return [ref, visible];
 }
 
+function RetryOverlay({ onRetry }: { onRetry: (e: MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onRetry}
+      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/70 backdrop-blur-sm hover:bg-background/85 transition-colors group"
+      aria-label="Retry loading image"
+      title="Retry loading image"
+    >
+      <div className="h-10 w-10 rounded-full bg-cheese/20 border border-cheese/50 flex items-center justify-center group-hover:bg-cheese/30 transition-colors">
+        <RefreshCw className="h-5 w-5 text-cheese" />
+      </div>
+      <span className="text-[11px] font-medium text-cheese">Retry</span>
+    </button>
+  );
+}
+
 function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSkeleton = false, videoUrl, style, loading }: IpfsMediaProps) {
   const isLazy = loading === 'lazy' || (!loading && context === 'card');
   const [sentinelRef, isVisible] = useIntersectionVisible('400px');
@@ -46,13 +64,19 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
   // For eager or detail context, always enabled. For lazy, wait for visibility.
   const enabled = loading === 'eager' || context === 'detail' || isVisible;
   
-  const { src, onError, onLoad, isLoading, failed, ready } = useIpfsMedia(url, { context, enabled });
+  const { src, onError, onLoad, isLoading, failed, ready, retry } = useIpfsMedia(url, { context, enabled });
 
   const isVideo = useMemo(() => {
     return videoUrl || isVideoUrl(url) || isVideoUrl(src);
   }, [videoUrl, url, src]);
 
   const videoSrc = videoUrl || (isVideo ? src : null);
+
+  const handleRetry = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    retry();
+  };
 
   if (videoSrc && !failed) {
     return (
@@ -103,6 +127,7 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
           }
         />
       )}
+      {failed && enabled && url && <RetryOverlay onRetry={handleRetry} />}
     </div>
   );
 }

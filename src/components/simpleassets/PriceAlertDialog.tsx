@@ -101,7 +101,7 @@ export function PriceAlertDialog({ template, open, onOpenChange }: PriceAlertDia
                 src={template.image}
                 alt={template.name}
                 className="w-16 h-16 rounded object-cover border border-border"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = `${import.meta.env.BASE_URL}card-fallback.svg`; }}
               />
             )}
             <div className="min-w-0">
