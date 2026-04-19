@@ -46,7 +46,7 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
   // For eager or detail context, always enabled. For lazy, wait for visibility.
   const enabled = loading === 'eager' || context === 'detail' || isVisible;
   
-  const { src, onError, onLoad, isLoading, failed } = useIpfsMedia(url, { context, enabled });
+  const { src, onError, onLoad, isLoading, failed, ready } = useIpfsMedia(url, { context, enabled });
 
   const isVideo = useMemo(() => {
     return videoUrl || isVideoUrl(url) || isVideoUrl(src);
@@ -57,10 +57,10 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
   if (videoSrc && !failed) {
     return (
       <div ref={isLazy ? sentinelRef : undefined} className={`relative ${className}`} style={style}>
-        {showSkeleton && isLoading && (
+        {showSkeleton && (isLoading || !ready) && (
           <Skeleton className="absolute inset-0 rounded-none" />
         )}
-        {enabled && (
+        {ready && (
           <video
             src={videoSrc}
             autoPlay
@@ -81,10 +81,10 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
 
   return (
     <div ref={isLazy ? sentinelRef : undefined} className={`relative ${className}`} style={style}>
-      {showSkeleton && isLoading && (
+      {showSkeleton && (isLoading || !ready) && (
         <Skeleton className="absolute inset-0 rounded-none" />
       )}
-      {enabled && (
+      {ready && (
         <img
           src={src}
           alt={alt}

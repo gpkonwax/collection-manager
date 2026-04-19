@@ -27,13 +27,13 @@ export function releaseSlot(): void {
   if (next) next();
 }
 
-// Hash-based gateway sharding: distribute initial gateway pick across all
-// healthy gateways so 100+ images hit ~4 origins (24 parallel slots) instead
-// of all piling up against one.
+// Hash-based gateway sharding: distribute initial gateway pick across the
+// healthy gateways (skip the last one which is the known-degraded fallback).
 export function shardIndexForHash(hash: string, gatewayCount: number): number {
+  const healthy = Math.max(1, gatewayCount - 1);
   let h = 0;
   for (let i = 0; i < hash.length; i++) {
     h = ((h << 5) - h + hash.charCodeAt(i)) | 0;
   }
-  return Math.abs(h) % gatewayCount;
+  return Math.abs(h) % healthy;
 }

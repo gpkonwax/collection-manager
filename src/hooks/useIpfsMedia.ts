@@ -37,6 +37,8 @@ interface UseIpfsMediaResult {
   onLoad: () => void;
   isLoading: boolean;
   failed: boolean;
+  /** True when ready to actually load (visible + concurrency slot held) */
+  ready: boolean;
 }
 
 export function useIpfsMedia(
@@ -153,9 +155,10 @@ export function useIpfsMedia(
     }
   }, [failed]);
 
+  const ready = enabled && (hasSlot || failed || !hash);
+
   let src: string;
-  if (!enabled || !hasSlot) {
-    // Not visible yet, or waiting for a concurrency slot — placeholder, no request
+  if (!enabled) {
     src = '/placeholder.svg';
   } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
@@ -165,5 +168,5 @@ export function useIpfsMedia(
     src = originalUrl;
   }
 
-  return { src, onError, onLoad, isLoading: enabled ? isLoading : true, failed };
+  return { src, onError, onLoad, isLoading: enabled ? isLoading : true, failed, ready };
 }
