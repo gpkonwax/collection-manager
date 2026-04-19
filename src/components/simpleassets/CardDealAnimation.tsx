@@ -9,6 +9,10 @@ interface CardDealAnimationProps {
   gridCellRefs: React.MutableRefObject<Map<string, HTMLElement | null>>;
   onCardDealt: (id: string) => void;
   onComplete: () => void;
+  /** Map a card id to its absolute index in the rendered virtualized list. Return null if not present. */
+  getCardIndex?: (id: string) => number | null;
+  /** Ask the virtualizer to bring a card index into view. */
+  scrollToCard?: (cardIndex: number) => void;
 }
 
 const STACK_Y = 60;
@@ -16,7 +20,7 @@ const SIT_DURATION = 2800;
 const FLY_DURATION = 2800;
 const LAND_PAUSE = 1400;
 
-export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
+export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete, getCardIndex, scrollToCard }: CardDealAnimationProps) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
