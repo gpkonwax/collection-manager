@@ -278,7 +278,7 @@ export function usePriceAlerts() {
     }
     moduleLastManualCheckAt = now;
     notify();
-    await checkOnce();
+    await checkOnce(true);
     return { ok: true };
   }, []);
 
