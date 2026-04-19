@@ -141,6 +141,68 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  const goTo = (p: number) => {
+    onPageChange(Math.min(Math.max(1, p), totalPages));
+    // Scroll back to the top of the grid for a clean page transition
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  return (
+    <div className="flex items-center justify-center gap-2 pt-4 flex-wrap">
+      <Button
+        onClick={() => goTo(1)}
+        disabled={currentPage === 1}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        « First
+      </Button>
+      <Button
+        onClick={() => goTo(currentPage - 1)}
+        disabled={currentPage === 1}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        ‹ Prev
+      </Button>
+      <span className="text-sm text-muted-foreground px-3 whitespace-nowrap">
+        Page {currentPage} of {totalPages} · {totalItems} item{totalItems !== 1 ? 's' : ''}
+      </span>
+      <Button
+        onClick={() => goTo(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        Next ›
+      </Button>
+      <Button
+        onClick={() => goTo(totalPages)}
+        disabled={currentPage === totalPages}
+        variant="outline"
+        size="sm"
+        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
+      >
+        Last »
+      </Button>
+    </div>
+  );
+}
+
 export default function SimpleAssetsPage() {
   const { accountName, isConnected, login, logout, session, waxBalance, allSessions, switchAccount, addAccount, removeAccount } = useWax();
   const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
@@ -162,10 +224,10 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
-  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    setVisibleCount(ITEMS_PER_PAGE);
+    setCurrentPage(1);
   }, [search, categoryFilter, sourceFilter, variantFilter, viewMode]);
 
   const [selectionMode, setSelectionMode] = useState(false);
@@ -215,15 +277,14 @@ export default function SimpleAssetsPage() {
 
   useEffect(() => {
     if (dealingCards.length > 0) {
-      // Instead of rendering the entire collection, find the furthest dealing card
-      // position in filtered list and only render up to that + a buffer
+      // Find the furthest dealing card in the combined asset list and jump to its page.
       const allAssets = [...saAssets, ...aaAssets];
       let maxIdx = 0;
       for (const dc of dealingCards) {
         const idx = allAssets.findIndex(f => f.id === dc.id);
         if (idx > maxIdx) maxIdx = idx;
       }
-      setVisibleCount(maxIdx + 12);
+      setCurrentPage(Math.floor(maxIdx / ITEMS_PER_PAGE) + 1);
     }
   }, [dealingCards, saAssets, aaAssets]);
 
@@ -278,7 +339,7 @@ export default function SimpleAssetsPage() {
       setViewMode('classic');
       setSearch('');
       setSourceFilter('all');
-      setVisibleCount(Number.POSITIVE_INFINITY);
+      // currentPage will be set by the dealing-card effect to land on the right page
 
       setDealingCards(newCards);
       setDealtIds(new Set());
@@ -304,7 +365,7 @@ export default function SimpleAssetsPage() {
     setViewMode('classic');
     setSearch('');
     setSourceFilter('all');
-    setVisibleCount(Number.POSITIVE_INFINITY);
+    // currentPage will be set by the dealing-card effect to land on the right page
     setDealingCards(demoAssets);
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
@@ -1052,8 +1113,19 @@ export default function SimpleAssetsPage() {
     const collectors = grid.filter(s => s.template.variant === 'collector');
     const golden = showGoldenSection ? grid.filter(s => s.template.variant === 'golden') : [];
     const totalItems = regular.length + collectors.length + golden.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+    const safePage = Math.min(currentPage, totalPages);
+    const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
 
-    const sections = [
+    type BinderSection = {
+      key: string;
+      items: NonNullable<typeof binderGrid>;
+      heading: React.ReactNode | null;
+      grouped: boolean;
+    };
+
+    const sections: BinderSection[] = [
       { key: 'regular', items: regular, heading: null, grouped: useGrouped },
       {
         key: 'collectors', items: collectors, grouped: false,
@@ -1070,22 +1142,30 @@ export default function SimpleAssetsPage() {
             Golden ({golden.filter(s => s.owned).length}/{golden.length})
           </h3>
         ),
-      }] : []),
+      } as BinderSection] : []),
     ];
 
-    let remaining = visibleCount;
+    // Walk through sections and only emit items that fall within [startIdx, endIdx).
+    let cursor = 0;
+    const emitted: { section: BinderSection; visible: NonNullable<typeof binderGrid> }[] = [];
+    for (const section of sections) {
+      const sStart = cursor;
+      const sEnd = cursor + section.items.length;
+      const sliceFrom = Math.max(0, startIdx - sStart);
+      const sliceTo = Math.min(section.items.length, endIdx - sStart);
+      if (sliceTo > sliceFrom) {
+        emitted.push({ section, visible: section.items.slice(sliceFrom, sliceTo) });
+      }
+      cursor = sEnd;
+      if (cursor >= endIdx) break;
+    }
 
     return (
       <div className="space-y-6">
-        {sections.map((section) => {
-          const visible = section.items.slice(0, Math.max(remaining, 0));
-          remaining = Math.max(remaining - visible.length, 0);
-          if (visible.length === 0) return null;
-
+        {emitted.map(({ section, visible }) => {
           if (!section.heading) {
             return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderBinderGrid(visible)}</div>;
           }
-
           return (
             <div key={section.key} className="space-y-2">
               {section.heading}
@@ -1094,94 +1174,91 @@ export default function SimpleAssetsPage() {
           );
         })}
 
-        {totalItems > visibleCount && (
-          <div className="flex justify-center pt-4">
-            <Button
-              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-              variant="outline"
-              className="border-cheese/50 text-cheese hover:bg-cheese/10"
-            >
-              Show More ({Math.min(visibleCount, totalItems)} of {totalItems})
-            </Button>
-          </div>
-        )}
+        <PaginationControls
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+        />
       </div>
     );
   };
 
-  const renderClassicView = () => (
-    <>
-      <div className="flex items-center gap-3 relative z-10 mb-4">
-        <div className="flex items-center gap-3 flex-1">
-          <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
-          {renderSelectButton()}
-          {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
+  const renderClassicView = () => {
+    const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(currentPage, totalPages);
+    const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
+    const pageItems = filtered.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+    return (
+      <>
+        <div className="flex items-center gap-3 relative z-10 mb-4">
+          <div className="flex items-center gap-3 flex-1">
+            <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
+            {renderSelectButton()}
+            {selectionMode && renderSelectAllCheckbox(pageItems.map(a => a.id))}
+          </div>
+          <div className="flex-shrink-0">
+            {renderCompletionBar()}
+          </div>
+          <div className="flex items-center justify-end flex-1">
+            <Button
+              onClick={handleSnapshotToSaved}
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+              title="Copy current view to Saved Collection for custom arrangement"
+            >
+              <Save className="h-4 w-4 mr-1" />
+              Copy to Saved
+            </Button>
+          </div>
         </div>
-        <div className="flex-shrink-0">
-          {renderCompletionBar()}
-        </div>
-        <div className="flex items-center justify-end flex-1">
-          <Button
-            onClick={handleSnapshotToSaved}
-            variant="outline"
-            size="sm"
-            className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
-            title="Copy current view to Saved Collection for custom arrangement"
-          >
-            <Save className="h-4 w-4 mr-1" />
-            Copy to Saved
-          </Button>
-        </div>
-      </div>
-      {filtered.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">
-          {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
-        </p>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {filtered.slice(0, visibleCount).map((asset) => {
-              const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
-              if (isInFlight) {
+        {filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">
+            {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {pageItems.map((asset) => {
+                const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
+                if (isInFlight) {
+                  return (
+                    <div
+                      key={asset.id}
+                      ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
+                      className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                    />
+                  );
+                }
+
+                const justLanded = dealtIds.has(asset.id);
                 return (
-                  <div
+                  <SimpleAssetCard
                     key={asset.id}
-                    ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
-                    className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
+                    asset={asset}
+                    onClick={() => setSelectedAsset(asset)}
+                    className={justLanded ? 'animate-card-glow' : ''}
+                    draggable={false}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(asset.id)}
+                    onSelect={toggleSelection}
                   />
                 );
-              }
-
-              const justLanded = dealtIds.has(asset.id);
-              return (
-                <SimpleAssetCard
-                  key={asset.id}
-                  asset={asset}
-                  onClick={() => setSelectedAsset(asset)}
-                  className={justLanded ? 'animate-card-glow' : ''}
-                  draggable={false}
-                  selectionMode={selectionMode}
-                  selected={selectedIds.has(asset.id)}
-                  onSelect={toggleSelection}
-                />
-              );
-            })}
-          </div>
-          {filtered.length > visibleCount && (
-            <div className="flex justify-center pt-4">
-              <Button
-                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-                variant="outline"
-                className="border-cheese/50 text-cheese hover:bg-cheese/10"
-              >
-                Show More ({Math.min(visibleCount, filtered.length)} of {filtered.length})
-              </Button>
+              })}
             </div>
-          )}
-        </>
-      )}
-    </>
-  );
+            <PaginationControls
+              currentPage={safePage}
+              totalPages={totalPages}
+              totalItems={filtered.length}
+              onPageChange={setCurrentPage}
+            />
+          </>
+        )}
+      </>
+    );
+  };
 
   const renderBinderView = () => {
     const visibleOwned = binderGrid ? binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []) : [];
@@ -1358,45 +1435,51 @@ export default function SimpleAssetsPage() {
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {savedGridSlots.slice(0, visibleCount).map((slotId, idx) => {
-            if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+        {(() => {
+          const totalPages = Math.max(1, Math.ceil(savedGridSlots.length / ITEMS_PER_PAGE));
+          const safePage = Math.min(currentPage, totalPages);
+          const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
+          const pageSlots = savedGridSlots.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+          return (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {pageSlots.map((slotId, localIdx) => {
+                  const idx = startIdx + localIdx;
+                  if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
 
-            const asset = allAssetMap.get(slotId);
-            if (!asset || !filteredIdSet.has(asset.id)) return (
-              <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
-                <span className="text-xs text-muted-foreground">Missing</span>
+                  const asset = allAssetMap.get(slotId);
+                  if (!asset || !filteredIdSet.has(asset.id)) return (
+                    <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">Missing</span>
+                    </div>
+                  );
+
+                  return (
+                    <SimpleAssetCard
+                      key={asset.id}
+                      asset={asset}
+                      onClick={() => setSelectedAsset(asset)}
+                      draggable={!selectionMode}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(asset.id)}
+                      onSelect={toggleSelection}
+                      onDragStart={handleDragStart(idx)}
+                      onDragOver={handleDragOver(idx)}
+                      onDrop={handleDrop(idx)}
+                      onDragEnd={handleDragEnd}
+                    />
+                  );
+                })}
               </div>
-            );
-
-            return (
-              <SimpleAssetCard
-                key={asset.id}
-                asset={asset}
-                onClick={() => setSelectedAsset(asset)}
-                draggable={!selectionMode}
-                selectionMode={selectionMode}
-                selected={selectedIds.has(asset.id)}
-                onSelect={toggleSelection}
-                onDragStart={handleDragStart(idx)}
-                onDragOver={handleDragOver(idx)}
-                onDrop={handleDrop(idx)}
-                onDragEnd={handleDragEnd}
+              <PaginationControls
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={savedGridSlots.length}
+                onPageChange={setCurrentPage}
               />
-            );
-          })}
-        </div>
-        {savedGridSlots.length > visibleCount && (
-          <div className="flex justify-center pt-4">
-            <Button
-              onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
-              variant="outline"
-              className="border-cheese/50 text-cheese hover:bg-cheese/10"
-            >
-              Show More ({Math.min(visibleCount, savedGridSlots.length)} of {savedGridSlots.length})
-            </Button>
-          </div>
-        )}
+            </>
+          );
+        })()}
       </>
     );
   };

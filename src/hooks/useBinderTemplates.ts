@@ -13,13 +13,15 @@ export interface BinderTemplate {
   schema: string;
 }
 
+const FALLBACK_IMAGE = `${import.meta.env.BASE_URL}card-fallback.svg`;
+
 function resolveImage(raw: string): string {
-  if (!raw) return '/placeholder.svg';
+  if (!raw) return FALLBACK_IMAGE;
   if (raw.startsWith('http')) return raw;
   const hash = extractIpfsHash(raw);
   if (hash) return getIpfsUrl(hash);
   if (raw.startsWith('Qm') || raw.startsWith('bafy') || raw.startsWith('bafk')) return getIpfsUrl(raw);
-  return '/placeholder.svg';
+  return FALLBACK_IMAGE;
 }
 
 const ALLOWED_SCHEMA_VARIANTS: Record<string, Set<string>> = {

@@ -39,7 +39,14 @@ interface UseIpfsMediaResult {
   failed: boolean;
   /** True when ready to actually load (visible + concurrency slot held) */
   ready: boolean;
+  /** Manually retry from scratch */
+  retry: () => void;
+  /** Number of automatic retry cycles attempted while mounted */
+  retryCycle: number;
 }
+
+// Backoff schedule (ms) for automatic retries while mounted.
+const AUTO_RETRY_BACKOFF = [4_000, 10_000, 30_000, 60_000];
 
 export function useIpfsMedia(
   originalUrl: string | undefined,
@@ -57,18 +64,27 @@ export function useIpfsMedia(
   const [isLoading, setIsLoading] = useState(true);
   const [hasSlot, setHasSlot] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [retryCycle, setRetryCycle] = useState(0);
+  // Last successfully loaded src (preserved across re-fetch misses)
+  const [lastGoodSrc, setLastGoodSrc] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const slotHeldRef = useRef(false);
+  const prevUrlRef = useRef<string | undefined>(originalUrl);
 
-  // Reset state when URL changes
+  // Reset state ONLY when the URL actually changes (not on every render).
   useEffect(() => {
+    if (prevUrlRef.current === originalUrl) return;
+    prevUrlRef.current = originalUrl;
     const newStart = getCachedGatewayIndex(hash);
     setGwIdx(newStart);
     setTriedCount(0);
     setFailed(false);
     setIsLoading(true);
     setHasLoadedOnce(false);
+    setRetryCycle(0);
+    setLastGoodSrc(null);
   }, [originalUrl, hash]);
 
   useEffect(() => {
@@ -79,11 +95,12 @@ export function useIpfsMedia(
         releaseSlot();
         slotHeldRef.current = false;
       }
+      if (autoRetryTimerRef.current) clearTimeout(autoRetryTimerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
   // Acquire a global concurrency slot before allowing the <img> to mount.
-  // This caps how many IPFS requests are in flight at once across the page.
   useEffect(() => {
     if (!enabled || failed || !hash) {
       if (slotHeldRef.current) {
@@ -104,9 +121,9 @@ export function useIpfsMedia(
       setHasSlot(true);
     });
     return () => { cancelled = true; };
-  }, [enabled, failed, hash]);
+  }, [enabled, failed, hash, retryCycle]);
 
-  // Timeout-based fallback — only when enabled and we hold a slot (i.e., actually loading)
+  // Timeout-based fallback — only when enabled and we hold a slot
   useEffect(() => {
     if (!enabled || failed || !isLoading || !hash || !hasSlot) return;
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -123,22 +140,32 @@ export function useIpfsMedia(
     };
   }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled, hasSlot]);
 
+  const startAutoRetry = useCallback(() => {
+    if (autoRetryTimerRef.current) clearTimeout(autoRetryTimerRef.current);
+    const delay = AUTO_RETRY_BACKOFF[Math.min(retryCycle, AUTO_RETRY_BACKOFF.length - 1)];
+    autoRetryTimerRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      // Reset gateway sweep but keep retryCycle counter for backoff and lastGoodSrc preserved.
+      const restartIdx = getCachedGatewayIndex(hash);
+      setGwIdx(restartIdx);
+      setTriedCount(0);
+      setFailed(false);
+      setIsLoading(true);
+      setRetryCycle((c) => c + 1);
+    }, delay);
+  }, [hash, retryCycle]);
+
   const advance = useCallback(() => {
-    // If image already loaded successfully once, don't cascade through every gateway
-    // on a browser-driven re-fetch. Just mark failed → neutral placeholder.
-    if (hasLoadedOnce) {
-      setFailed(true);
-      setIsLoading(false);
-      return;
-    }
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
+      // Exhausted this sweep — mark failed and schedule auto-retry while mounted.
       setFailed(true);
       setIsLoading(false);
+      startAutoRetry();
     } else {
       setTriedCount(prev => prev + 1);
       setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
     }
-  }, [triedCount, hasLoadedOnce]);
+  }, [triedCount, startAutoRetry]);
 
   const onError = useCallback(() => {
     advance();
@@ -149,12 +176,17 @@ export function useIpfsMedia(
     setIsLoading(false);
     setHasLoadedOnce(true);
     if (hash) setCachedGateway(hash, gwIdx);
+    if (originalUrl && hash) {
+      setLastGoodSrc(`${IPFS_GATEWAYS[gwIdx]}${hash}`);
+    } else if (originalUrl) {
+      setLastGoodSrc(originalUrl);
+    }
     // Release slot — image is decoded and cached by the browser; no more network needed.
     if (slotHeldRef.current) {
       releaseSlot();
       slotHeldRef.current = false;
     }
-  }, [hash, gwIdx]);
+  }, [hash, gwIdx, originalUrl]);
 
   // Release slot on failure too
   useEffect(() => {
@@ -164,22 +196,31 @@ export function useIpfsMedia(
     }
   }, [failed]);
 
+  const retry = useCallback(() => {
+    if (autoRetryTimerRef.current) clearTimeout(autoRetryTimerRef.current);
+    const restartIdx = getCachedGatewayIndex(hash);
+    setGwIdx(restartIdx);
+    setTriedCount(0);
+    setFailed(false);
+    setIsLoading(true);
+    setRetryCycle((c) => c + 1);
+  }, [hash]);
+
   // Once loaded, stay rendered. Otherwise need both enabled + slot held.
   const ready = enabled && (hasLoadedOnce || hasSlot || failed || !hash);
-
-  
 
   const FALLBACK = `${import.meta.env.BASE_URL}card-fallback.svg`;
   let src: string;
   if (!enabled) {
-    src = FALLBACK;
+    src = lastGoodSrc || FALLBACK;
   } else if (failed || !originalUrl) {
-    src = FALLBACK;
+    // Preserve previously loaded art instead of swapping to placeholder
+    src = lastGoodSrc || FALLBACK;
   } else if (hash) {
     src = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
   } else {
     src = originalUrl;
   }
 
-  return { src, onError, onLoad, isLoading: enabled ? isLoading : true, failed, ready };
+  return { src, onError, onLoad, isLoading: enabled ? isLoading : true, failed, ready, retry, retryCycle };
 }
