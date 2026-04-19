@@ -139,19 +139,15 @@ export function useIpfsMedia(
     if (timerRef.current) clearTimeout(timerRef.current);
     setIsLoading(false);
     if (hash) setCachedGateway(hash, gwIdx);
-    if (slotHeldRef.current) {
-      releaseSlot();
-      slotHeldRef.current = false;
-      setHasSlot(false);
-    }
+    // NOTE: do NOT release the slot here. Releasing causes hasSlot→false,
+    // which would unmount the <img>. The slot is released on unmount or failure.
   }, [hash, gwIdx]);
 
-  // When we exhaust gateways and fail, also release the slot
+  // When we exhaust gateways and fail, release the slot
   useEffect(() => {
     if (failed && slotHeldRef.current) {
       releaseSlot();
       slotHeldRef.current = false;
-      setHasSlot(false);
     }
   }, [failed]);
 
