@@ -221,23 +221,7 @@ export default function SimpleAssetsPage() {
   const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
-  useEffect(() => {
-    if (dealingCards.length > 0) {
-      // Find the furthest dealing card in the combined asset list and scroll
-      // the virtualized grid so that row is in view (so its grid cell mounts
-      // and the deal animation has a real DOM target to land on).
-      const allAssets = [...saAssets, ...aaAssets];
-      let maxIdx = 0;
-      for (const dc of dealingCards) {
-        const idx = allAssets.findIndex(f => f.id === dc.id);
-        if (idx > maxIdx) maxIdx = idx;
-      }
-      // Defer to next frame so the grid has a chance to mount with the new filters.
-      requestAnimationFrame(() => {
-        classicGridRef.current?.scrollToCardIndex(maxIdx, 'center');
-      });
-    }
-  }, [dealingCards, saAssets, aaAssets]);
+  // Per-card scrolling is handled by CardDealAnimation via getCardIndex/scrollToCard props.
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
@@ -2140,6 +2124,11 @@ export default function SimpleAssetsPage() {
         <CardDealAnimation
           cards={dealingCards}
           gridCellRefs={gridCellRefs}
+          getCardIndex={(id) => {
+            const i = filtered.findIndex(a => a.id === id);
+            return i >= 0 ? i : null;
+          }}
+          scrollToCard={(idx) => classicGridRef.current?.scrollToCardIndex(idx, 'center')}
           onCardDealt={handleCardDealt}
           onComplete={handleDealComplete}
         />

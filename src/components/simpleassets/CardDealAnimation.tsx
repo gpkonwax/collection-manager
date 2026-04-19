@@ -9,6 +9,10 @@ interface CardDealAnimationProps {
   gridCellRefs: React.MutableRefObject<Map<string, HTMLElement | null>>;
   onCardDealt: (id: string) => void;
   onComplete: () => void;
+  /** Map a card id to its absolute index in the rendered virtualized list. Return null if not present. */
+  getCardIndex?: (id: string) => number | null;
+  /** Ask the virtualizer to bring a card index into view. */
+  scrollToCard?: (cardIndex: number) => void;
 }
 
 const STACK_Y = 60;
@@ -16,7 +20,7 @@ const SIT_DURATION = 2800;
 const FLY_DURATION = 2800;
 const LAND_PAUSE = 1400;
 
-export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
+export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete, getCardIndex, scrollToCard }: CardDealAnimationProps) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -107,38 +111,59 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     if (phase === 'scrolling') {
       const card = cards[dealIndex];
       let cancelled = false;
-      let pollInterval: ReturnType<typeof setInterval> | null = null;
+      let mountPoll: ReturnType<typeof setInterval> | null = null;
+      let scrollPoll: ReturnType<typeof setInterval> | null = null;
 
-      const rafTimer = setTimeout(() => {
-        if (cancelled) return;
+      // Step 1: ask the virtualizer to bring this card's row into view so it
+      // actually mounts in the DOM. Without this, virtualized rows outside the
+      // viewport don't exist and we'd silently skip the card.
+      if (scrollToCard && getCardIndex) {
+        const idx = getCardIndex(card.id);
+        if (idx !== null && idx >= 0) {
+          scrollToCard(idx);
+        }
+      }
+
+      // Step 2: poll for the grid cell to mount (up to ~2s).
+      let mountElapsed = 0;
+      mountPoll = setInterval(() => {
+        if (cancelled) { clearInterval(mountPoll!); return; }
         const targetEl = gridCellRefs.current.get(card.id);
+        mountElapsed += 50;
+
         if (!targetEl) {
-          onCardDealt(card.id);
-          setPhase('idle');
-          setDealIndex(i => i + 1);
+          if (mountElapsed > 2000) {
+            // Cell never mounted (filter changed mid-deal, etc.). Skip silently.
+            clearInterval(mountPoll!);
+            mountPoll = null;
+            onCardDealt(card.id);
+            setPhase('idle');
+            setDealIndex(i => i + 1);
+          }
           return;
         }
 
-        // Scroll to destination using absolute page coordinates
+        clearInterval(mountPoll!);
+        mountPoll = null;
+
+        // Step 3: nudge scroll to center the cell precisely, then poll for stability.
         const roughRect = targetEl.getBoundingClientRect();
         const absTop = roughRect.top + window.scrollY;
         scrollToElement(absTop, roughRect.height);
 
-        // Poll scrollY until stable instead of fixed timeout
         let lastY = -1;
         let stableCount = 0;
-        let elapsed = 0;
-        pollInterval = setInterval(() => {
-          if (cancelled) { clearInterval(pollInterval!); return; }
+        let scrollElapsed = 0;
+        scrollPoll = setInterval(() => {
+          if (cancelled) { clearInterval(scrollPoll!); return; }
           const y = window.scrollY;
           if (Math.abs(y - lastY) < 2) stableCount++;
           else stableCount = 0;
           lastY = y;
-          elapsed += 50;
-          if (stableCount >= 2 || elapsed > 2000) {
-            clearInterval(pollInterval!);
-            pollInterval = null;
-            // Use rAF to ensure layout is painted before measuring
+          scrollElapsed += 50;
+          if (stableCount >= 2 || scrollElapsed > 2000) {
+            clearInterval(scrollPoll!);
+            scrollPoll = null;
             requestAnimationFrame(() => {
               if (cancelled) return;
               const el = gridCellRefs.current.get(card.id);
@@ -154,12 +179,12 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
             });
           }
         }, 50);
-      }, 200);
+      }, 50);
 
       return () => {
         cancelled = true;
-        clearTimeout(rafTimer);
-        if (pollInterval) clearInterval(pollInterval);
+        if (mountPoll) clearInterval(mountPoll);
+        if (scrollPoll) clearInterval(scrollPoll);
       };
     }
 
@@ -179,7 +204,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
       }, LAND_PAUSE);
       return () => clearTimeout(timer);
     }
-  }, [dealIndex, phase, cards, gridCellRefs, onCardDealt, onComplete, scrollToElement]);
+  }, [dealIndex, phase, cards, gridCellRefs, onCardDealt, onComplete, scrollToElement, scrollToCard, getCardIndex]);
 
   if (cards.length === 0 || (dealIndex >= cards.length && hasCompletedRef.current)) return null;
 
