@@ -46,10 +46,10 @@ import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { JsonMenu } from '@/components/JsonMenu';
+import { VirtualGrid, type VirtualGridHandle, type VirtualItem } from '@/components/VirtualGrid';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
-const ITEMS_PER_PAGE = 36;
 
 const CATEGORY_LABELS: Record<string, string> = {
   series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
@@ -141,67 +141,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
-function PaginationControls({
-  currentPage,
-  totalPages,
-  totalItems,
-  onPageChange,
-}: {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  onPageChange: (p: number) => void;
-}) {
-  if (totalPages <= 1) return null;
-  const goTo = (p: number) => {
-    onPageChange(Math.min(Math.max(1, p), totalPages));
-    // Scroll back to the top of the grid for a clean page transition
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  return (
-    <div className="flex items-center justify-center gap-2 pt-4 flex-wrap">
-      <Button
-        onClick={() => goTo(1)}
-        disabled={currentPage === 1}
-        variant="outline"
-        size="sm"
-        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
-      >
-        « First
-      </Button>
-      <Button
-        onClick={() => goTo(currentPage - 1)}
-        disabled={currentPage === 1}
-        variant="outline"
-        size="sm"
-        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
-      >
-        ‹ Prev
-      </Button>
-      <span className="text-sm text-muted-foreground px-3 whitespace-nowrap">
-        Page {currentPage} of {totalPages} · {totalItems} item{totalItems !== 1 ? 's' : ''}
-      </span>
-      <Button
-        onClick={() => goTo(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        variant="outline"
-        size="sm"
-        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
-      >
-        Next ›
-      </Button>
-      <Button
-        onClick={() => goTo(totalPages)}
-        disabled={currentPage === totalPages}
-        variant="outline"
-        size="sm"
-        className="border-cheese/30 text-cheese hover:bg-cheese/10 disabled:opacity-40"
-      >
-        Last »
-      </Button>
-    </div>
-  );
-}
+
 
 export default function SimpleAssetsPage() {
   const { accountName, isConnected, login, logout, session, waxBalance, allSessions, switchAccount, addAccount, removeAccount } = useWax();
@@ -224,10 +164,16 @@ export default function SimpleAssetsPage() {
     open: false, title: '', description: '', txId: null,
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
+  // Refs to the virtualized grids so we can imperatively scroll to a specific
+  // card index (e.g. when newly-dealt cards land outside the viewport).
+  const classicGridRef = useRef<VirtualGridHandle | null>(null);
+  const binderGridRef = useRef<VirtualGridHandle | null>(null);
+  const savedGridRef = useRef<VirtualGridHandle | null>(null);
 
+  // When filters/search/view change, scroll back to the top of the page so the
+  // user always sees the first matching results.
   useEffect(() => {
-    setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [search, categoryFilter, sourceFilter, variantFilter, viewMode]);
 
   const [selectionMode, setSelectionMode] = useState(false);
@@ -277,14 +223,19 @@ export default function SimpleAssetsPage() {
 
   useEffect(() => {
     if (dealingCards.length > 0) {
-      // Find the furthest dealing card in the combined asset list and jump to its page.
+      // Find the furthest dealing card in the combined asset list and scroll
+      // the virtualized grid so that row is in view (so its grid cell mounts
+      // and the deal animation has a real DOM target to land on).
       const allAssets = [...saAssets, ...aaAssets];
       let maxIdx = 0;
       for (const dc of dealingCards) {
         const idx = allAssets.findIndex(f => f.id === dc.id);
         if (idx > maxIdx) maxIdx = idx;
       }
-      setCurrentPage(Math.floor(maxIdx / ITEMS_PER_PAGE) + 1);
+      // Defer to next frame so the grid has a chance to mount with the new filters.
+      requestAnimationFrame(() => {
+        classicGridRef.current?.scrollToCardIndex(maxIdx, 'center');
+      });
     }
   }, [dealingCards, saAssets, aaAssets]);
 
@@ -1112,83 +1063,65 @@ export default function SimpleAssetsPage() {
     const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
     const collectors = grid.filter(s => s.template.variant === 'collector');
     const golden = showGoldenSection ? grid.filter(s => s.template.variant === 'golden') : [];
-    const totalItems = regular.length + collectors.length + golden.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
-    const safePage = Math.min(currentPage, totalPages);
-    const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
-    const endIdx = startIdx + ITEMS_PER_PAGE;
 
-    type BinderSection = {
-      key: string;
-      items: NonNullable<typeof binderGrid>;
-      heading: React.ReactNode | null;
-      grouped: boolean;
-    };
+    type BinderEntry = NonNullable<typeof binderGrid>[number];
 
-    const sections: BinderSection[] = [
-      { key: 'regular', items: regular, heading: null, grouped: useGrouped },
-      {
-        key: 'collectors', items: collectors, grouped: false,
-        heading: (
+    // Build a flat VirtualGrid item list. Headings are full-width rows; cards
+    // get packed into rows by the virtualizer based on the current column count.
+    // For the "regular" section with grouping, we emit per-group full-width
+    // wrappers (so each card-id group stays visually contiguous) — but to keep
+    // virtualization simple and consistent we just emit cards in order; the
+    // grouping is preserved naturally because the source `grid` is sorted by
+    // cardid (the grouped variant only added padding to align xl 6-col rows).
+    const items: VirtualItem<BinderEntry>[] = [];
+
+    for (const s of regular) {
+      items.push({ kind: 'card', key: s.template.templateId, data: s });
+    }
+
+    if (collectors.length > 0) {
+      items.push({
+        kind: 'full',
+        key: 'heading-collectors',
+        node: (
           <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
             Collector ({collectors.filter(s => s.owned).length}/{collectors.length})
           </h3>
         ),
-      },
-      ...(golden.length > 0 ? [{
-        key: 'golden', items: golden, grouped: false,
-        heading: (
+      });
+      for (const s of collectors) items.push({ kind: 'card', key: s.template.templateId, data: s });
+    }
+
+    if (golden.length > 0) {
+      items.push({
+        kind: 'full',
+        key: 'heading-golden',
+        node: (
           <h3 className="text-lg font-bold text-cheese border-b border-cheese/30 pb-1">
             Golden ({golden.filter(s => s.owned).length}/{golden.length})
           </h3>
         ),
-      } as BinderSection] : []),
-    ];
-
-    // Walk through sections and only emit items that fall within [startIdx, endIdx).
-    let cursor = 0;
-    const emitted: { section: BinderSection; visible: NonNullable<typeof binderGrid> }[] = [];
-    for (const section of sections) {
-      const sStart = cursor;
-      const sEnd = cursor + section.items.length;
-      const sliceFrom = Math.max(0, startIdx - sStart);
-      const sliceTo = Math.min(section.items.length, endIdx - sStart);
-      if (sliceTo > sliceFrom) {
-        emitted.push({ section, visible: section.items.slice(sliceFrom, sliceTo) });
-      }
-      cursor = sEnd;
-      if (cursor >= endIdx) break;
+      });
+      for (const s of golden) items.push({ kind: 'card', key: s.template.templateId, data: s });
     }
 
     return (
       <div className="space-y-6">
-        {emitted.map(({ section, visible }) => {
-          if (!section.heading) {
-            return <div key={section.key}>{section.grouped ? renderGroupedGrid(visible) : renderBinderGrid(visible)}</div>;
-          }
-          return (
-            <div key={section.key} className="space-y-2">
-              {section.heading}
-              {renderBinderGrid(visible)}
-            </div>
-          );
-        })}
-
-        <PaginationControls
-          currentPage={safePage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          onPageChange={setCurrentPage}
+        <VirtualGrid<BinderEntry>
+          ref={binderGridRef}
+          items={items}
+          renderCard={(s) => renderBinderCard(s)}
         />
       </div>
     );
   };
 
   const renderClassicView = () => {
-    const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-    const safePage = Math.min(currentPage, totalPages);
-    const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+    const items: VirtualItem<typeof filtered[number]>[] = filtered.map((asset) => ({
+      kind: 'card',
+      key: asset.id,
+      data: asset,
+    }));
 
     return (
       <>
@@ -1196,7 +1129,7 @@ export default function SimpleAssetsPage() {
           <div className="flex items-center gap-3 flex-1">
             <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
             {renderSelectButton()}
-            {selectionMode && renderSelectAllCheckbox(pageItems.map(a => a.id))}
+            {selectionMode && renderSelectAllCheckbox(filtered.map(a => a.id))}
           </div>
           <div className="flex-shrink-0">
             {renderCompletionBar()}
@@ -1219,42 +1152,34 @@ export default function SimpleAssetsPage() {
             {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
           </p>
         ) : (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {pageItems.map((asset) => {
-                const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
-                if (isInFlight) {
-                  return (
-                    <div
-                      key={asset.id}
-                      ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
-                      className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
-                    />
-                  );
-                }
-
-                const justLanded = dealtIds.has(asset.id);
+          <VirtualGrid<typeof filtered[number]>
+            ref={classicGridRef}
+            items={items}
+            renderCard={(asset) => {
+              const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
+              if (isInFlight) {
                 return (
-                  <SimpleAssetCard
-                    key={asset.id}
-                    asset={asset}
-                    onClick={() => setSelectedAsset(asset)}
-                    className={justLanded ? 'animate-card-glow' : ''}
-                    draggable={false}
-                    selectionMode={selectionMode}
-                    selected={selectedIds.has(asset.id)}
-                    onSelect={toggleSelection}
+                  <div
+                    ref={(el) => { if (el) gridCellRefs.current.set(asset.id, el); else gridCellRefs.current.delete(asset.id); }}
+                    className="aspect-square rounded-lg border-2 border-dashed border-cheese/40 bg-cheese/5 animate-pulse"
                   />
                 );
-              })}
-            </div>
-            <PaginationControls
-              currentPage={safePage}
-              totalPages={totalPages}
-              totalItems={filtered.length}
-              onPageChange={setCurrentPage}
-            />
-          </>
+              }
+
+              const justLanded = dealtIds.has(asset.id);
+              return (
+                <SimpleAssetCard
+                  asset={asset}
+                  onClick={() => setSelectedAsset(asset)}
+                  className={justLanded ? 'animate-card-glow' : ''}
+                  draggable={false}
+                  selectionMode={selectionMode}
+                  selected={selectedIds.has(asset.id)}
+                  onSelect={toggleSelection}
+                />
+              );
+            }}
+          />
         )}
       </>
     );
@@ -1436,48 +1361,54 @@ export default function SimpleAssetsPage() {
           </div>
         </div>
         {(() => {
-          const totalPages = Math.max(1, Math.ceil(savedGridSlots.length / ITEMS_PER_PAGE));
-          const safePage = Math.min(currentPage, totalPages);
-          const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
-          const pageSlots = savedGridSlots.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+          // Each "slot" in the saved grid carries its absolute index so drag/drop
+          // and missing-card placeholders keep working under virtualization.
+          type SavedSlot = { slotId: string; idx: number };
+          const items: VirtualItem<SavedSlot>[] = savedGridSlots.map((slotId, idx) => ({
+            kind: 'card',
+            key: `slot-${idx}-${slotId}`,
+            data: { slotId, idx },
+          }));
           return (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {pageSlots.map((slotId, localIdx) => {
-                  const idx = startIdx + localIdx;
-                  if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
+            <VirtualGrid<SavedSlot>
+              ref={savedGridRef}
+              items={items}
+              renderCard={({ slotId, idx }) => {
+                if (slotId === EMPTY) {
+                  return (
+                    <EmptySlot
+                      onDragOver={handleDragOver(idx)}
+                      onDrop={handleDrop(idx)}
+                      isOver={dragOverIdx === idx}
+                    />
+                  );
+                }
 
-                  const asset = allAssetMap.get(slotId);
-                  if (!asset || !filteredIdSet.has(asset.id)) return (
-                    <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                const asset = allAssetMap.get(slotId);
+                if (!asset || !filteredIdSet.has(asset.id)) {
+                  return (
+                    <div className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
                       <span className="text-xs text-muted-foreground">Missing</span>
                     </div>
                   );
+                }
 
-                  return (
-                    <SimpleAssetCard
-                      key={asset.id}
-                      asset={asset}
-                      onClick={() => setSelectedAsset(asset)}
-                      draggable={!selectionMode}
-                      selectionMode={selectionMode}
-                      selected={selectedIds.has(asset.id)}
-                      onSelect={toggleSelection}
-                      onDragStart={handleDragStart(idx)}
-                      onDragOver={handleDragOver(idx)}
-                      onDrop={handleDrop(idx)}
-                      onDragEnd={handleDragEnd}
-                    />
-                  );
-                })}
-              </div>
-              <PaginationControls
-                currentPage={safePage}
-                totalPages={totalPages}
-                totalItems={savedGridSlots.length}
-                onPageChange={setCurrentPage}
-              />
-            </>
+                return (
+                  <SimpleAssetCard
+                    asset={asset}
+                    onClick={() => setSelectedAsset(asset)}
+                    draggable={!selectionMode}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(asset.id)}
+                    onSelect={toggleSelection}
+                    onDragStart={handleDragStart(idx)}
+                    onDragOver={handleDragOver(idx)}
+                    onDrop={handleDrop(idx)}
+                    onDragEnd={handleDragEnd}
+                  />
+                );
+              }}
+            />
           );
         })()}
       </>
