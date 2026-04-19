@@ -415,7 +415,7 @@ export default function SimpleAssetsPage() {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   
   const [recentRefreshKey, setRecentRefreshKey] = useState(0);
-  const { alerts: priceAlerts, maxAlerts, lastManualCheckAt, manualCooldownMs, checkNow: checkAlertsNow, exportJson: exportAlertsJson, importJson: importAlertsJson } = usePriceAlerts();
+  const { alerts: priceAlerts, maxAlerts, lastManualCheckAt, manualCooldownMs, checkNow: checkAlertsNow, exportJson: exportAlertsJson, importJson: importAlertsJson, clearAll: clearAllAlerts } = usePriceAlerts();
   const [alertsCheckingNow, setAlertsCheckingNow] = useState(false);
   const [alertsCooldownRemaining, setAlertsCooldownRemaining] = useState(0);
 
@@ -1237,6 +1237,20 @@ export default function SimpleAssetsPage() {
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
+            <Button
+              onClick={() => {
+                const count = priceAlerts.length;
+                clearAllAlerts();
+                toast.success(count > 0 ? `Cleared ${count} alert${count !== 1 ? 's' : ''}` : 'No alerts to clear');
+              }}
+              disabled={priceAlerts.length === 0}
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 h-8"
+              title="Remove all price alerts"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />Clear Alerts
+            </Button>
           </div>
         </div>
         {binderGrid ? (
@@ -1984,6 +1998,20 @@ export default function SimpleAssetsPage() {
                               layoutHasData={savedOrder !== null}
                               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
                             />
+                            <Button
+                              onClick={() => {
+                                const count = priceAlerts.length;
+                                clearAllAlerts();
+                                toast.success(count > 0 ? `Cleared ${count} alert${count !== 1 ? 's' : ''}` : 'No alerts to clear');
+                              }}
+                              disabled={priceAlerts.length === 0}
+                              variant="outline"
+                              size="sm"
+                              className="whitespace-nowrap border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/10 h-8"
+                              title="Remove all price alerts"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />Clear Alerts
+                            </Button>
                           </div>
                         </div>
                         {renderBinderSections(binderGrid, true)}
