@@ -61,6 +61,7 @@ export function useIpfsMedia(
   const baseTimeout = context === 'detail' ? IMAGE_LOAD_TIMEOUT.detail : IMAGE_LOAD_TIMEOUT.card;
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
+  const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
 
   const [gwIdx, setGwIdx] = useState(startIdx);
@@ -68,7 +69,8 @@ export function useIpfsMedia(
   const [retryRound, setRetryRound] = useState(0);
   // `failed` only becomes true after MAX_RETRY_ROUNDS are exhausted
   const [failed, setFailed] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // If we already have a known-good URL for this hash, skip loading state entirely
+  const [isLoading, setIsLoading] = useState(!cachedLoadedUrl);
   // Cache-busting nonce so the browser actually refetches between rounds
   const [nonce, setNonce] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,12 +79,13 @@ export function useIpfsMedia(
 
   // Reset state when URL changes
   useEffect(() => {
+    const newCached = getCachedLoadedUrl(hash);
     const newStart = getCachedGatewayIndex(hash);
     setGwIdx(newStart);
     setTriedCount(0);
     setRetryRound(0);
     setFailed(false);
-    setIsLoading(true);
+    setIsLoading(!newCached);
     setNonce(0);
     if (retryTimerRef.current) {
       clearTimeout(retryTimerRef.current);
