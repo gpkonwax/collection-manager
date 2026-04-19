@@ -50,9 +50,9 @@ function saveAlerts(alerts: PriceAlert[]) {
 let moduleAlerts: PriceAlert[] = loadAlerts();
 let moduleLastCheckedAt: number | null = null;
 let moduleLastManualCheckAt: number | null = null;
-const moduleEtagCache: { etag?: string; payload?: any } = {};
 const moduleSessionTriggered = new Set<string>(); // dedupe toast per session
 const listeners = new Set<() => void>();
+const GPK_COLLECTION = 'gpk.topps';
 
 function notify() {
   listeners.forEach(l => l());
@@ -71,7 +71,44 @@ function parsePriceWax(price: { amount: string; token_precision: number; token_s
   return amt / Math.pow(10, price.token_precision || 8);
 }
 
-async function runBatchedCheck(force = false): Promise<void> {
+async function checkSingleAlert(alert: PriceAlert): Promise<{ templateId: string; lowest: number | null }> {
+  const tplId = String(alert.templateId);
+  const path = `${ATOMIC_API.paths.sales}?state=1&symbol=WAX&collection_name=${GPK_COLLECTION}&template_id=${tplId}&sort=price&order=asc&limit=1`;
+  try {
+    const resp = await fetchWithFallback(ATOMIC_API.baseUrls, path);
+    const payload = await resp.json();
+    const sales: any[] = Array.isArray(payload?.data) ? payload.data : [];
+    const sale = sales[0];
+    if (!sale) {
+      console.info('[priceAlerts] no listing', { templateId: tplId, url: path });
+      return { templateId: tplId, lowest: null };
+    }
+    const returnedTplId = String(sale?.assets?.[0]?.template?.template_id ?? sale?.template?.template_id ?? '');
+    const returnedCollection = sale?.assets?.[0]?.collection?.collection_name ?? sale?.collection_name ?? '';
+    if (returnedTplId !== tplId || returnedCollection !== GPK_COLLECTION) {
+      console.warn('[priceAlerts] mismatched response — ignoring', {
+        requestedTemplate: tplId,
+        returnedTemplate: returnedTplId,
+        returnedCollection,
+      });
+      return { templateId: tplId, lowest: null };
+    }
+    const wax = parsePriceWax(sale?.price);
+    console.info('[priceAlerts] checked', {
+      templateId: tplId,
+      collection: returnedCollection,
+      lowest: wax,
+      maxPrice: alert.maxPrice,
+      url: path,
+    });
+    return { templateId: tplId, lowest: wax };
+  } catch (err) {
+    console.warn('[priceAlerts] single check failed', { templateId: tplId, err });
+    return { templateId: tplId, lowest: null };
+  }
+}
+
+async function runBatchedCheck(_force = false): Promise<void> {
   const candidates = moduleAlerts.filter(a => !a.triggered);
   if (candidates.length === 0) {
     moduleLastCheckedAt = Date.now();
@@ -79,64 +116,21 @@ async function runBatchedCheck(force = false): Promise<void> {
     return;
   }
 
-  // Template IDs are numeric — safe to leave commas unencoded so AtomicMarket parses
-  // `template_whitelist=1,2,3` as a list (encoding commas to %2C breaks this).
-  const ids = candidates.map(a => String(a.templateId)).join(',');
-  const path = `${ATOMIC_API.paths.sales}?state=1&symbol=WAX&template_whitelist=${ids}&sort=price&order=asc&limit=100`;
+  console.info('[priceAlerts] checking', { count: candidates.length, ids: candidates.map(c => c.templateId) });
 
-  const headers: Record<string, string> = {};
-  if (!force && moduleEtagCache.etag) headers['If-None-Match'] = moduleEtagCache.etag;
-
-  console.info('[priceAlerts] checking', { ids, force, url: path });
-
-  let payload: any = null;
-  try {
-    const resp = await fetchWithFallback(ATOMIC_API.baseUrls, path, { headers });
-    if (resp.status === 304 && moduleEtagCache.payload) {
-      payload = moduleEtagCache.payload;
-      console.info('[priceAlerts] 304 — using cached payload');
-    } else {
-      const etag = resp.headers.get('etag');
-      payload = await resp.json();
-      if (etag) {
-        moduleEtagCache.etag = etag;
-        moduleEtagCache.payload = payload;
-      } else if (force) {
-        // Clear cache on forced check if no etag returned, to avoid stale 304 next time.
-        moduleEtagCache.etag = undefined;
-        moduleEtagCache.payload = undefined;
-      }
-    }
-  } catch (err) {
-    console.warn('[priceAlerts] check failed:', err);
-    moduleLastCheckedAt = Date.now();
-    notify();
-    return;
+  const results = await Promise.all(candidates.map(checkSingleAlert));
+  const lowestByTemplate = new Map<string, number>();
+  for (const r of results) {
+    if (r.lowest !== null) lowestByTemplate.set(r.templateId, r.lowest);
   }
-
-  const sales: any[] = Array.isArray(payload?.data) ? payload.data : [];
-  // Group by template_id (string keys), keep cheapest WAX listing.
-  const cheapestByTemplate = new Map<string, number>();
-  for (const sale of sales) {
-    const rawTplId = sale?.assets?.[0]?.template?.template_id ?? sale?.template?.template_id;
-    if (rawTplId === undefined || rawTplId === null) continue;
-    const tplId = String(rawTplId);
-    const wax = parsePriceWax(sale?.price);
-    if (wax === null) continue;
-    const prev = cheapestByTemplate.get(tplId);
-    if (prev === undefined || wax < prev) cheapestByTemplate.set(tplId, wax);
-  }
-
-  console.info('[priceAlerts] sales returned:', sales.length, 'cheapestByTemplate:', Object.fromEntries(cheapestByTemplate));
 
   const nowIso = new Date().toISOString();
   const next = moduleAlerts.map(a => {
     if (a.triggered) return a;
     const key = String(a.templateId);
-    const lowest = cheapestByTemplate.get(key);
+    const lowest = lowestByTemplate.get(key);
     const updated: PriceAlert = { ...a, lastChecked: nowIso };
     if (lowest !== undefined) updated.lowestPrice = lowest;
-    console.info('[priceAlerts] alert', { templateId: key, max: a.maxPrice, lowest });
     if (lowest !== undefined && lowest <= a.maxPrice) {
       updated.triggered = true;
       if (!moduleSessionTriggered.has(a.templateId)) {
