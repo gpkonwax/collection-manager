@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, useRef, useEffect } from 'react';
-import { useIpfsMedia, getCachedLoadedUrl } from '@/hooks/useIpfsMedia';
-import { isVideoUrl, extractIpfsHash } from '@/lib/ipfsGateways';
+import { useIpfsMedia } from '@/hooks/useIpfsMedia';
+import { isVideoUrl } from '@/lib/ipfsGateways';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface IpfsMediaProps {
