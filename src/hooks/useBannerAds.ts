@@ -63,6 +63,7 @@ async function fetchBannerAds(): Promise<ActiveBanner[]> {
     scope: CONTRACT_ACCOUNT,
     table: 'bannerads',
     limit: 100,
+    reverse: true,
   });
 
   const nowSec = Math.floor(Date.now() / 1000);
