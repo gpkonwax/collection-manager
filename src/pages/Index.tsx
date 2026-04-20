@@ -306,7 +306,7 @@ export default function SimpleAssetsPage() {
     setSearch('');
     setSourceFilter('all');
     setVisibleCount(Number.POSITIVE_INFINITY);
-    setDealingCards(demoAssets);
+    setDealingCards([...demoAssets].reverse());
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
   }, []);
