@@ -280,7 +280,8 @@ export default function SimpleAssetsPage() {
       setSourceFilter('all');
       setVisibleCount(Number.POSITIVE_INFINITY);
 
-      setDealingCards(newCards);
+      // Deal from bottom of collection upward — reverse so the last (lowest) card deals first
+      setDealingCards([...newCards].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: txInfo.txId, count: newCards.length });
     }
@@ -305,7 +306,7 @@ export default function SimpleAssetsPage() {
     setSearch('');
     setSourceFilter('all');
     setVisibleCount(Number.POSITIVE_INFINITY);
-    setDealingCards(demoAssets);
+    setDealingCards([...demoAssets].reverse());
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
   }, []);
