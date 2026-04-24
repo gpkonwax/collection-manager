@@ -559,6 +559,29 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
 
+  const sortedFiltered = useMemo(() => {
+    if (sortMode === 'natural') return filtered;
+    const arr = [...filtered];
+    const cardNum = (a: SimpleAsset) => {
+      const n = parseInt(a.cardid, 10);
+      return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
+    };
+    if (sortMode === 'name') {
+      arr.sort((a, b) =>
+        a.name.localeCompare(b.name) ||
+        cardNum(a) - cardNum(b) ||
+        (a.side || '').localeCompare(b.side || '')
+      );
+    } else {
+      arr.sort((a, b) =>
+        getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality) ||
+        cardNum(a) - cardNum(b) ||
+        (a.side || '').localeCompare(b.side || '')
+      );
+    }
+    return arr;
+  }, [filtered, sortMode]);
+
   const binderGrid = useMemo(() => {
     if (viewMode !== 'binder' || !binderTemplates.length) return null;
 
