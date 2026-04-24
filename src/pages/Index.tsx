@@ -1879,8 +1879,8 @@ export default function SimpleAssetsPage() {
               >
                 <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading) ? 'animate-spin' : ''}`} />
               </Button>
-              {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && (() => {
-                const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : categoryFilter === 'foodfightb' ? FOODFIGHT_VARIANTS : SERIES2_VARIANTS;
+              {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb' || categoryFilter === 'crashgordon') && (() => {
+                const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : categoryFilter === 'foodfightb' ? FOODFIGHT_VARIANTS : categoryFilter === 'crashgordon' ? CRASHGORDON_VARIANTS : SERIES2_VARIANTS;
                 const isAll = variantFilter.includes('all');
                 const toggleVariant = (val: string) => {
                   if (val === 'all') {
