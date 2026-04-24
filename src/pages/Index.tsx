@@ -160,6 +160,8 @@ export default function SimpleAssetsPage() {
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [variantFilter, setVariantFilter] = useState<string[]>(['all']);
+  type SortMode = 'natural' | 'name' | 'variant';
+  const [sortMode, setSortMode] = useState<SortMode>('natural');
   const [viewMode, setViewMode] = useState<ViewMode>('classic');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
@@ -172,7 +174,7 @@ export default function SimpleAssetsPage() {
 
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
-  }, [search, categoryFilter, sourceFilter, variantFilter, viewMode]);
+  }, [search, categoryFilter, sourceFilter, variantFilter, viewMode, sortMode]);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -556,6 +558,29 @@ export default function SimpleAssetsPage() {
       return true;
     });
   }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
+
+  const sortedFiltered = useMemo(() => {
+    if (sortMode === 'natural') return filtered;
+    const arr = [...filtered];
+    const cardNum = (a: SimpleAsset) => {
+      const n = parseInt(a.cardid, 10);
+      return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
+    };
+    if (sortMode === 'name') {
+      arr.sort((a, b) =>
+        a.name.localeCompare(b.name) ||
+        cardNum(a) - cardNum(b) ||
+        (a.side || '').localeCompare(b.side || '')
+      );
+    } else {
+      arr.sort((a, b) =>
+        getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality) ||
+        cardNum(a) - cardNum(b) ||
+        (a.side || '').localeCompare(b.side || '')
+      );
+    }
+    return arr;
+  }, [filtered, sortMode]);
 
   const binderGrid = useMemo(() => {
     if (viewMode !== 'binder' || !binderTemplates.length) return null;
@@ -1122,7 +1147,7 @@ export default function SimpleAssetsPage() {
         <div className="flex items-center gap-3 flex-1">
           <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
           {renderSelectButton()}
-          {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
+          {selectionMode && renderSelectAllCheckbox(sortedFiltered.slice(0, visibleCount).map(a => a.id))}
         </div>
         <div className="flex-shrink-0">
           {renderCompletionBar()}
@@ -1147,7 +1172,7 @@ export default function SimpleAssetsPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {filtered.slice(0, visibleCount).map((asset) => {
+            {sortedFiltered.slice(0, visibleCount).map((asset) => {
               const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
               if (isInFlight) {
                 return (
@@ -1859,6 +1884,16 @@ export default function SimpleAssetsPage() {
                   <SelectItem value="atomicassets">Atomic Assets</SelectItem>
                 </SelectContent>
               </Select>
+              {viewMode === 'classic' && (
+                <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
+                  <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Sort" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="natural">Natural</SelectItem>
+                    <SelectItem value="name">Name (A–Z)</SelectItem>
+                    <SelectItem value="variant">Variant Rarity</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2' && v !== 'exotic' && v !== 'foodfightb') setVariantFilter(['all']); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent className="max-h-none overflow-visible">
