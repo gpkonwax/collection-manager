@@ -1888,7 +1888,7 @@ export default function SimpleAssetsPage() {
                 <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
                   <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Sort" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="natural">Natural</SelectItem>
+                    <SelectItem value="natural">Natural (Card ID)</SelectItem>
                     <SelectItem value="name">Name (A–Z)</SelectItem>
                     <SelectItem value="variant">Variant Rarity</SelectItem>
                   </SelectContent>
