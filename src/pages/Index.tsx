@@ -160,6 +160,8 @@ export default function SimpleAssetsPage() {
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [variantFilter, setVariantFilter] = useState<string[]>(['all']);
+  type SortMode = 'natural' | 'name' | 'variant';
+  const [sortMode, setSortMode] = useState<SortMode>('natural');
   const [viewMode, setViewMode] = useState<ViewMode>('classic');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
