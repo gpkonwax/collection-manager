@@ -174,7 +174,7 @@ export default function SimpleAssetsPage() {
 
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
-  }, [search, categoryFilter, sourceFilter, variantFilter, viewMode]);
+  }, [search, categoryFilter, sourceFilter, variantFilter, viewMode, sortMode]);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
