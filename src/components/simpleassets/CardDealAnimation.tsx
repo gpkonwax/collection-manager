@@ -222,6 +222,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     if (phase === 'landed') {
       const timer = setTimeout(() => {
         const landAudio = new Audio(landSfx);
+        landAudio.volume = 0.75;
         landAudio.play().catch(() => {});
         onCardDealt(orderedCards[dealIndex].id);
         setFlyTarget(null);
