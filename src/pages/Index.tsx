@@ -1147,7 +1147,7 @@ export default function SimpleAssetsPage() {
         <div className="flex items-center gap-3 flex-1">
           <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
           {renderSelectButton()}
-          {selectionMode && renderSelectAllCheckbox(filtered.slice(0, visibleCount).map(a => a.id))}
+          {selectionMode && renderSelectAllCheckbox(sortedFiltered.slice(0, visibleCount).map(a => a.id))}
         </div>
         <div className="flex-shrink-0">
           {renderCompletionBar()}
@@ -1172,7 +1172,7 @@ export default function SimpleAssetsPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {filtered.slice(0, visibleCount).map((asset) => {
+            {sortedFiltered.slice(0, visibleCount).map((asset) => {
               const isInFlight = dealingCardIds.has(asset.id) && !dealtIds.has(asset.id);
               if (isInFlight) {
                 return (
