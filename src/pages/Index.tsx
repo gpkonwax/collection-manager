@@ -92,6 +92,12 @@ const EXOTIC_VARIANTS: { value: string; label: string }[] = [
   { value: 'collector', label: 'Collector' },
 ];
 
+const CRASHGORDON_VARIANTS: { value: string; label: string }[] = [
+  { value: 'base', label: 'Base' },
+  { value: 'prism', label: 'Prism' },
+  { value: 'golden', label: 'Golden' },
+];
+
 const FOODFIGHT_VARIANTS: { value: string; label: string }[] = [
   { value: 'base', label: 'Base' },
   { value: 'prism', label: 'Prism' },
