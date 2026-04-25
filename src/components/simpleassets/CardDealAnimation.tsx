@@ -15,6 +15,7 @@ const STACK_Y = 60;
 const SIT_DURATION = 1600;
 const FLY_DURATION = 1100;
 const LAND_PAUSE = 700;
+const INITIAL_SHUFFLE_DELAY = 2200; // ms — let card-shuffle.mp3 play before first card flies
 const FLY_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
@@ -119,6 +120,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
         let elapsed = 0;
         let lastY = -1;
         let stableCount = 0;
+        let shuffleTimer: ReturnType<typeof setTimeout> | null = null;
         const interval = setInterval(() => {
           elapsed += 50;
           const y = window.scrollY;
@@ -127,10 +129,14 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           lastY = y;
           if (stableCount >= 3 || elapsed > 3000) {
             clearInterval(interval);
-            setPhase('sitting');
+            // Give the shuffle audio time to play before the first card flies
+            shuffleTimer = setTimeout(() => setPhase('sitting'), INITIAL_SHUFFLE_DELAY);
           }
         }, 50);
-        return () => clearInterval(interval);
+        return () => {
+          clearInterval(interval);
+          if (shuffleTimer) clearTimeout(shuffleTimer);
+        };
       } else {
         setPhase('sitting');
       }
