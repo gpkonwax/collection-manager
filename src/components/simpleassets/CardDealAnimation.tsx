@@ -120,6 +120,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
         let elapsed = 0;
         let lastY = -1;
         let stableCount = 0;
+        let shuffleTimer: ReturnType<typeof setTimeout> | null = null;
         const interval = setInterval(() => {
           elapsed += 50;
           const y = window.scrollY;
@@ -128,10 +129,14 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           lastY = y;
           if (stableCount >= 3 || elapsed > 3000) {
             clearInterval(interval);
-            setPhase('sitting');
+            // Give the shuffle audio time to play before the first card flies
+            shuffleTimer = setTimeout(() => setPhase('sitting'), INITIAL_SHUFFLE_DELAY);
           }
         }, 50);
-        return () => clearInterval(interval);
+        return () => {
+          clearInterval(interval);
+          if (shuffleTimer) clearTimeout(shuffleTimer);
+        };
       } else {
         setPhase('sitting');
       }
