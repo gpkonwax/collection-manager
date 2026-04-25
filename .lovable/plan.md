@@ -1,31 +1,39 @@
+## Goal
+When a pack is opened and cards are dealt into the collection, the shuffle sound (`card-shuffle.mp3`, ~3.1s long) currently overlaps too much with the first card flying. Cards begin dealing before the shuffle has had a chance to be heard. We need a longer "pre-deal" pause so the shuffle plays out (or substantially plays out) before the first card flies.
 
-## Why the banner isn't showing
+## Where the issue lives
+File: `src/components/simpleassets/CardDealAnimation.tsx`
 
-`useBannerAds` calls `fetchTableRows({ code: 'cheesebannad', table: 'bannerads', limit: 100 })` with no `reverse` flag. By default, the WAX RPC returns rows in **ascending primary-key order starting from the lowest**. Since the contract has been writing two rows per day (positions 1 and 2) for many months, the table now contains far more than 100 rows. The fetch returns the oldest 100 — the most recent timestamp in the response is **2026-03-24**, ~27 days before today (2026-04-20). Every row is outside the active 24-hour window, so the active filter drops them all and `<PlaceholderSlot>` renders instead.
+Current flow on mount:
+1. Shuffle audio starts playing immediately (~3.1s long).
+2. Component scrolls to the first (bottom-most) card — usually completes within a few hundred ms.
+3. Phase becomes `'sitting'` and waits `SIT_DURATION = 1600ms`.
+4. Phase becomes `'scrolling'` → `'flying'` → first card starts moving.
 
-Verified from the live network response: 100 rows returned, max `time = 1774360800` (Mar 24, 2026), current time = Apr 20, 2026.
+So the first card is in motion roughly ~1.6s–2.0s after the shuffle begins, well before the 3.1s shuffle finishes.
 
 ## Fix
+Introduce an explicit "shuffle settle" delay before the first card's sit/fly sequence begins, so the shuffle can play through most of its duration.
 
-Update `src/hooks/useBannerAds.ts` so `fetchBannerAds` requests rows in reverse order:
+### Changes in `src/components/simpleassets/CardDealAnimation.tsx`
 
-```ts
-const result = await fetchTableRows<BannerAdRow>({
-  code: CONTRACT_ACCOUNT,
-  scope: CONTRACT_ACCOUNT,
-  table: 'bannerads',
-  limit: 100,
-  reverse: true,
-});
-```
+1. Add a new constant near the existing timing constants:
+   ```ts
+   const INITIAL_SHUFFLE_DELAY = 2200; // ms — let card-shuffle.mp3 play before first card flies
+   ```
+   (Combined with the existing `SIT_DURATION` of 1600ms, the first fly will start ~3.8s after mount, comfortably after the 3.14s shuffle.)
 
-Notes:
-- Existing logic re-sorts ascending for content inheritance, so reverse fetch doesn't break inheritance.
-- 100 newest rows = ~50 days of slots, plenty for the 24h active window plus inheritance lookback.
-- Single-line change; no other files need editing.
+2. In the `phase === 'idle'` branch where `isFirstCardRef.current` is true, after the scroll-stable detection completes, wait `INITIAL_SHUFFLE_DELAY` before transitioning to `'sitting'`. Apply the same delay even when no scroll is needed (i.e. cards already in view), so the shuffle audio is always given runway on the first card.
 
-### Files
-- **EDIT** `src/hooks/useBannerAds.ts` — add `reverse: true` to the `fetchTableRows` call.
+3. Subsequent cards are unaffected — the per-card `SIT_DURATION` (1600ms) and existing land/fly timings stay the same. Only the very first card gets the extra pre-deal pause.
 
-### Validation
-After the change, the placeholder should be replaced by the active rented banner (currently `cheesepromoz` if a recent row falls in the 24h window) and the network response will contain rows from the past day.
+### What does NOT change
+- `card-land.mp3` volume stays at the previously set 0.75.
+- Pack tearing sound (`pack-tear.mp3`) timing in `usePackRevealAudio` stays the same.
+- Sit/fly/land durations (`SIT_DURATION`, `FLY_DURATION`, `LAND_PAUSE`) stay the same.
+- Skip Animation button still works and bypasses everything immediately.
+
+## Why this approach
+- Localized to one file and one constant — easy to tune later if the user wants more/less pause.
+- Doesn't slow down dealing of cards 2..N, only adds breathing room at the very start where the shuffle plays.
+- Keeps the existing scroll-stabilization logic intact, just chains an additional timeout after it.

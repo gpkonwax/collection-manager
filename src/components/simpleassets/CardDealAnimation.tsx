@@ -15,6 +15,7 @@ const STACK_Y = 60;
 const SIT_DURATION = 1600;
 const FLY_DURATION = 1100;
 const LAND_PAUSE = 700;
+const INITIAL_SHUFFLE_DELAY = 2200; // ms — let card-shuffle.mp3 play before first card flies
 const FLY_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
