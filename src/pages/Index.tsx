@@ -1908,11 +1908,13 @@ export default function SimpleAssetsPage() {
                   const needsBoth = ['all', 'series1', 'series2', 'exotic'];
                   if (needsBoth.includes(categoryFilter)) { refetchSa(); refetchAa(); }
                   else { refetchAa(); }
+                  refetchPacks();
+                  refetchAtomicPacks();
                 }}
                 className="text-cheese hover:text-cheese/80"
                 title="Refresh category"
               >
-                <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading) ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading || packsLoading || atomicPacksLoading) ? 'animate-spin' : ''}`} />
               </Button>
               {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb' || categoryFilter === 'crashgordon') && (() => {
                 const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : categoryFilter === 'foodfightb' ? FOODFIGHT_VARIANTS : categoryFilter === 'crashgordon' ? CRASHGORDON_VARIANTS : SERIES2_VARIANTS;
