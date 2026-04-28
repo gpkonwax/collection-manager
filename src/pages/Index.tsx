@@ -1684,6 +1684,20 @@ export default function SimpleAssetsPage() {
               <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 px-4 py-3 text-sm text-foreground">
                 <span className="font-semibold text-cheese">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.
               </div>
+              <p className="inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
+                <span>Bridge your</span>
+                <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto rounded" />
+                <span>to</span>
+                <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto rounded" />
+                <a
+                  href="https://atomichub.io/bridge"
+                  onClick={(e) => { e.preventDefault(); footerRequestNav('https://atomichub.io/bridge'); }}
+                  className="text-cheese underline hover:text-cheese/80"
+                >
+                  here
+                </a>
+                <span>.</span>
+              </p>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
                 <Wallet className="h-5 w-5 mr-2" />
                 Connect Wallet
