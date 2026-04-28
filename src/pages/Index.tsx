@@ -1655,20 +1655,22 @@ export default function SimpleAssetsPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-cheese">GPK.Topps Collection Manager</h1>
             <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
-            <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
-              <span>Bridge your</span>
-              <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto rounded" />
-              <span>to</span>
-              <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto rounded" />
-              <a
-                href="https://atomichub.io/bridge"
-                onClick={(e) => { e.preventDefault(); footerRequestNav('https://atomichub.io/bridge'); }}
-                className="text-cheese underline hover:text-cheese/80"
-              >
-                here
-              </a>
-              <span>.</span>
-            </p>
+            {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
+              <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
+                <span>Bridge your</span>
+                <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto rounded" />
+                <span>to</span>
+                <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto rounded" />
+                <a
+                  href="https://atomichub.io/bridge"
+                  onClick={(e) => { e.preventDefault(); footerRequestNav('https://atomichub.io/bridge'); }}
+                  className="text-cheese underline hover:text-cheese/80"
+                >
+                  here
+                </a>
+                <span>.</span>
+              </p>
+            )}
           </div>
         )}
 
