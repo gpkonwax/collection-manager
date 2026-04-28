@@ -1,39 +1,50 @@
-## Goal
-When a pack is opened and cards are dealt into the collection, the shuffle sound (`card-shuffle.mp3`, ~3.1s long) currently overlaps too much with the first card flying. Cards begin dealing before the shuffle has had a chance to be heard. We need a longer "pre-deal" pause so the shuffle plays out (or substantially plays out) before the first card flies.
+## Investigation: SimpleAssets Mint Numbers
 
-## Where the issue lives
-File: `src/components/simpleassets/CardDealAnimation.tsx`
+### Findings
 
-Current flow on mount:
-1. Shuffle audio starts playing immediately (~3.1s long).
-2. Component scrolls to the first (bottom-most) card — usually completes within a few hundred ms.
-3. Phase becomes `'sitting'` and waits `SIT_DURATION = 1600ms`.
-4. Phase becomes `'scrolling'` → `'flying'` → first card starts moving.
+**1. SimpleAssets standard does NOT store a "mint number / supply" per NFT row.**
 
-So the first card is in motion roughly ~1.6s–2.0s after the shuffle begins, well before the 3.1s shuffle finishes.
+The `simpleassets::sassets` table (which we already query for each owner) only contains:
+- `id` — the asset's unique global ID (auto-incremented across all NFTs ever minted by the contract, not per-template)
+- `owner`, `author`, `category`
+- `idata` (immutable data, set by author at mint) — JSON string
+- `mdata` (mutable data, can be updated by author) — JSON string
+- `container`, `containerf`
 
-## Fix
-Introduce an explicit "shuffle settle" delay before the first card's sit/fly sequence begins, so the shuffle can play through most of its duration.
+There is no `mint`, `edition`, `serial`, or `template_id` column at the protocol level. Whether a mint number exists at all is entirely up to the author (gpk.topps) to write into `idata` / `mdata`.
 
-### Changes in `src/components/simpleassets/CardDealAnimation.tsx`
+**2. What gpk.topps actually stores.**
 
-1. Add a new constant near the existing timing constants:
-   ```ts
-   const INITIAL_SHUFFLE_DELAY = 2200; // ms — let card-shuffle.mp3 play before first card flies
-   ```
-   (Combined with the existing `SIT_DURATION` of 1600ms, the first fly will start ~3.8s after mount, comfortably after the 3.14s shuffle.)
+Our parser (`useSimpleAssets.ts`) already extracts everything from `idata`/`mdata`. The fields we currently know exist in the GPK SA payload are: `name`, `cardid`, `variant`, `quality`, `img`, `backimg`, etc. No `mint` / `edition` / `serial` / `maxsupply` field has been observed in the GPK Topps SA cards — that's why the green mint badge never renders for SA cards (the `getMintInfo` helper returns `null`).
 
-2. In the `phase === 'idle'` branch where `isFirstCardRef.current` is true, after the scroll-stable detection completes, wait `INITIAL_SHUFFLE_DELAY` before transitioning to `'sitting'`. Apply the same delay even when no scroll is needed (i.e. cards already in view), so the shuffle audio is always given runway on the first card.
+The AtomicAssets versions of GPK cards DO have mint numbers because AA tracks `template_mint` natively in the asset row. SA does not.
 
-3. Subsequent cards are unaffected — the per-card `SIT_DURATION` (1600ms) and existing land/fly timings stay the same. Only the very first card gets the extra pre-deal pause.
+**3. Other SimpleAssets contract tables — could a mint number live elsewhere?**
 
-### What does NOT change
-- `card-land.mp3` volume stays at the previously set 0.75.
-- Pack tearing sound (`pack-tear.mp3`) timing in `usePackRevealAudio` stays the same.
-- Sit/fly/land durations (`SIT_DURATION`, `FLY_DURATION`, `LAND_PAUSE`) stay the same.
-- Skip Animation button still works and bypasses everything immediately.
+The `simpleassets` contract exposes these other tables, none of which give a per-asset mint number for already-issued NFTs:
+- `tokenconfigs` — global contract config, version info
+- `stat` — per-author/category statistics: `supply`, `max_supply`, `issued_supply`, `burned_supply`. This is **aggregate** (e.g. "12000 of category gpk1 issued") — not per-asset.
+- `offers`, `delegates`, `accounts` (FT only)
 
-## Why this approach
-- Localized to one file and one constant — easy to tune later if the user wants more/less pause.
-- Doesn't slow down dealing of cards 2..N, only adds breathing room at the very start where the shuffle plays.
-- Keeps the existing scroll-stabilization logic intact, just chains an additional timeout after it.
+So the closest thing to a "supply" we can derive from the contract for SA cards is the category-level `issued_supply` from `stat`, scoped `gpk.topps` / category `<series>`. But that is the total issued count of that category — not the mint position of an individual card.
+
+**4. Could we synthesise a "mint #" from the asset ID?**
+
+Theoretically yes — for a given `cardid` + `side` + `variant`, we could rank our owned assets by ascending `id` and call the lowest "mint #1 owned". But:
+- This is **not** the true mint position. The real mint order requires querying the full historical issuance for that template across all owners (currently impossible from `sassets` since it is scoped per-owner).
+- It would be misleading vs. AA's authoritative `template_mint`.
+
+### Conclusion
+
+For gpk.topps SimpleAssets cards, there is no reliable mint number to display. The protocol doesn't track it, the author didn't put it in metadata, and the only derivable proxy (asset `id` ordering) is misleading. This is a known limitation of the SimpleAssets standard vs. AtomicAssets — and the reason Topps eventually migrated to AA where mint numbers are first-class.
+
+### Recommended next step (optional)
+
+I can add a small visual cue so users understand the difference instead of seeing a missing badge:
+
+- In `SimpleAssetCard.tsx` and `SimpleAssetDetailDialog.tsx`, when `source === 'simpleassets'` and no mint metadata is found, show a subtle `Asset ID #<id>` chip in place of the mint chip with a tooltip: *"SimpleAssets does not record per-card mint numbers. Shown is the on-chain asset ID."*
+- We already render `#<asset.id>` in the bottom-right of the card; we'd just add the tooltip to it for SA cards so users know that's the closest analog.
+
+No contract-level fetch can recover real mint numbers for these cards — this is purely a UX clarification.
+
+Approve this plan to apply the tooltip/labeling change, or let me know if you'd rather leave the UI as-is now that the mystery is explained.
