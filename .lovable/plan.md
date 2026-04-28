@@ -1,50 +1,45 @@
-## Investigation: SimpleAssets Mint Numbers
+## Add bridge announcement to header
 
-### Findings
+Add a single sentence under the "GPK.Topps Collection Manager" header (and on the logged-out hero) that reads:
 
-**1. SimpleAssets standard does NOT store a "mint number / supply" per NFT row.**
+> [SimpleAssets logo] Bridge your SimpleAssets to [AtomicAssets logo] AtomicAssets [here](https://atomichub.io/bridge).
 
-The `simpleassets::sassets` table (which we already query for each owner) only contains:
-- `id` — the asset's unique global ID (auto-incremented across all NFTs ever minted by the contract, not per-template)
-- `owner`, `author`, `category`
-- `idata` (immutable data, set by author at mint) — JSON string
-- `mdata` (mutable data, can be updated by author) — JSON string
-- `container`, `containerf`
+The word **here** is a hyperlink to `https://atomichub.io/bridge`. The two brand marks from the uploaded image are shown inline at small size next to their respective names.
 
-There is no `mint`, `edition`, `serial`, or `template_id` column at the protocol level. Whether a mint number exists at all is entirely up to the author (gpk.topps) to write into `idata` / `mdata`.
+### Steps
 
-**2. What gpk.topps actually stores.**
+1. **Prepare logo assets** — split the uploaded `simpleassets.png` banner into two transparent PNGs:
+   - `src/assets/logo-simpleassets.png` (left half — diamond key icon + "SimpleAssets" wordmark)
+   - `src/assets/logo-atomicassets.png` (right half — atom icon + "ATOMICASSETS" wordmark)
+   Done with ImageMagick during implementation; both kept on the dark navy background already present in the source image so they read correctly against our dark theme.
 
-Our parser (`useSimpleAssets.ts`) already extracts everything from `idata`/`mdata`. The fields we currently know exist in the GPK SA payload are: `name`, `cardid`, `variant`, `quality`, `img`, `backimg`, etc. No `mint` / `edition` / `serial` / `maxsupply` field has been observed in the GPK Topps SA cards — that's why the green mint badge never renders for SA cards (the `getMintInfo` helper returns `null`).
+2. **Add the line in `src/pages/Index.tsx`** in two places:
+   - Inside the connected-state header block (around line 1655, right under the existing tagline `p`).
+   - Inside the logged-out hero (around line 1668, near the "🔒 No new smart contracts" notice) so disconnected visitors also see it.
 
-The AtomicAssets versions of GPK cards DO have mint numbers because AA tracks `template_mint` natively in the asset row. SA does not.
+3. **Markup pattern** (same in both spots):
+   ```tsx
+   <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
+     Bridge your
+     <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto" />
+     to
+     <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto" />
+     <a
+       href="https://atomichub.io/bridge"
+       target="_blank"
+       rel="noopener noreferrer"
+       onClick={(e) => { e.preventDefault(); openExternalLink('https://atomichub.io/bridge'); }}
+       className="text-cheese underline hover:text-cheese/80"
+     >
+       here
+     </a>.
+   </p>
+   ```
+   Routed through the existing `ExternalLinkWarningDialog` flow (already used elsewhere in `Index.tsx`) so outbound clicks get the standard safety prompt.
 
-**3. Other SimpleAssets contract tables — could a mint number live elsewhere?**
+4. **Imports** — add `import logoSimpleAssets from '@/assets/logo-simpleassets.png'` and `import logoAtomicAssets from '@/assets/logo-atomicassets.png'` at the top of `Index.tsx`.
 
-The `simpleassets` contract exposes these other tables, none of which give a per-asset mint number for already-issued NFTs:
-- `tokenconfigs` — global contract config, version info
-- `stat` — per-author/category statistics: `supply`, `max_supply`, `issued_supply`, `burned_supply`. This is **aggregate** (e.g. "12000 of category gpk1 issued") — not per-asset.
-- `offers`, `delegates`, `accounts` (FT only)
+### Notes
 
-So the closest thing to a "supply" we can derive from the contract for SA cards is the category-level `issued_supply` from `stat`, scoped `gpk.topps` / category `<series>`. But that is the total issued count of that category — not the mint position of an individual card.
-
-**4. Could we synthesise a "mint #" from the asset ID?**
-
-Theoretically yes — for a given `cardid` + `side` + `variant`, we could rank our owned assets by ascending `id` and call the lowest "mint #1 owned". But:
-- This is **not** the true mint position. The real mint order requires querying the full historical issuance for that template across all owners (currently impossible from `sassets` since it is scoped per-owner).
-- It would be misleading vs. AA's authoritative `template_mint`.
-
-### Conclusion
-
-For gpk.topps SimpleAssets cards, there is no reliable mint number to display. The protocol doesn't track it, the author didn't put it in metadata, and the only derivable proxy (asset `id` ordering) is misleading. This is a known limitation of the SimpleAssets standard vs. AtomicAssets — and the reason Topps eventually migrated to AA where mint numbers are first-class.
-
-### Recommended next step (optional)
-
-I can add a small visual cue so users understand the difference instead of seeing a missing badge:
-
-- In `SimpleAssetCard.tsx` and `SimpleAssetDetailDialog.tsx`, when `source === 'simpleassets'` and no mint metadata is found, show a subtle `Asset ID #<id>` chip in place of the mint chip with a tooltip: *"SimpleAssets does not record per-card mint numbers. Shown is the on-chain asset ID."*
-- We already render `#<asset.id>` in the bottom-right of the card; we'd just add the tooltip to it for SA cards so users know that's the closest analog.
-
-No contract-level fetch can recover real mint numbers for these cards — this is purely a UX clarification.
-
-Approve this plan to apply the tooltip/labeling change, or let me know if you'd rather leave the UI as-is now that the mystery is explained.
+- No new dependencies, no contract/state changes, no memory updates needed.
+- Logos render at 20px tall to sit naturally on one line of body text; they wrap gracefully on narrow viewports thanks to `flex-wrap`.
