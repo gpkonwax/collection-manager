@@ -55,6 +55,18 @@ function getMintNumber(asset: SimpleAsset): number | null {
   return null;
 }
 
+function getAtomicMintInfo(asset: SimpleAsset): string | null {
+  if (asset.source !== 'atomicassets') return null;
+  const mint = asset.idata?._atomic_mint;
+  const supply = asset.idata?._atomic_supply;
+  if (mint === undefined || mint === null || String(mint).trim() === '') return null;
+  const mintStr = String(mint).trim();
+  const supplyStr = supply !== undefined && supply !== null && String(supply).trim() !== '' && String(supply).trim() !== '0'
+    ? String(supply).trim()
+    : null;
+  return supplyStr ? `AA #${mintStr} / ${supplyStr}` : `AA #${mintStr}`;
+}
+
 function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
