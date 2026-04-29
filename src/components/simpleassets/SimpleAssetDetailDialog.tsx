@@ -387,6 +387,12 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             <span className="text-sm font-mono text-primary">{mintDisplay}</span>
           </div>
         )}
+        {atomicMintDisplay && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-cheese">Atomic Mint</span>
+            <span className="text-sm font-mono text-cheese">{atomicMintDisplay}</span>
+          </div>
+        )}
         {metaFields.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-cheese">Metadata</h4>
