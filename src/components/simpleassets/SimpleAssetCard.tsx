@@ -76,6 +76,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
 
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintInfo = getMintInfo(asset);
+  const atomicMintInfo = getAtomicMintInfo(asset);
   const mintNumber = getMintNumber(asset);
   const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
