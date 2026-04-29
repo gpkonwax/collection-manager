@@ -1,45 +1,35 @@
-## Add bridge announcement to header
+# Fix AtomicAssets mint number priority
 
-Add a single sentence under the "GPK.Topps Collection Manager" header (and on the logged-out hero) that reads:
+Today, AA cards show the AtomicAssets `template_mint` as the primary mint number because we overwrite the metadata `mint` field when building the asset. The matching SimpleAssets card correctly shows the original metadata mint (e.g. `#45`), but the bridged AA version shows `#1500` instead. This plan flips the priority so the meaningful collector number wins, while keeping the AA mint visible as secondary context.
 
-> [SimpleAssets logo] Bridge your SimpleAssets to [AtomicAssets logo] AtomicAssets [here](https://atomichub.io/bridge).
+## Changes
 
-The word **here** is a hyperlink to `https://atomichub.io/bridge`. The two brand marks from the uploaded image are shown inline at small size next to their respective names.
+### 1. `src/hooks/useGpkAtomicAssets.ts`
+Stop overwriting `mint`/`maxsupply` when assembling `idata`. Inject the AA values under dedicated underscore-prefixed keys so they can't collide with metadata:
 
-### Steps
+```ts
+idata: {
+  ...templateData,
+  ...raw.immutable_data,
+  _template_id: raw.template?.template_id || '',
+  _atomic_mint: raw.template_mint || '',
+  _atomic_supply: raw.template?.issued_supply || '',
+}
+```
 
-1. **Prepare logo assets** — split the uploaded `simpleassets.png` banner into two transparent PNGs:
-   - `src/assets/logo-simpleassets.png` (left half — diamond key icon + "SimpleAssets" wordmark)
-   - `src/assets/logo-atomicassets.png` (right half — atom icon + "ATOMICASSETS" wordmark)
-   Done with ImageMagick during implementation; both kept on the dark navy background already present in the source image so they read correctly against our dark theme.
+The original metadata `edition`/`mint`/`serial`/`num`/`mint_num` (when present) now survives untouched.
 
-2. **Add the line in `src/pages/Index.tsx`** in two places:
-   - Inside the connected-state header block (around line 1655, right under the existing tagline `p`).
-   - Inside the logged-out hero (around line 1668, near the "🔒 No new smart contracts" notice) so disconnected visitors also see it.
+### 2. `src/components/simpleassets/SimpleAssetCard.tsx`
+- Keep the existing emerald primary badge (metadata mint, e.g. `#45 / 1500`).
+- Add a secondary yellow badge for AA cards only, when `_atomic_mint` is present, formatted `AA #N / supply` using `bg-cheese/15 text-cheese`.
+- If no metadata mint exists (e.g. Exotic AA), the AA badge is shown alone so nothing regresses.
+- Mint #1 glow ring stays tied to the **metadata mint = 1** only.
 
-3. **Markup pattern** (same in both spots):
-   ```tsx
-   <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
-     Bridge your
-     <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto" />
-     to
-     <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto" />
-     <a
-       href="https://atomichub.io/bridge"
-       target="_blank"
-       rel="noopener noreferrer"
-       onClick={(e) => { e.preventDefault(); openExternalLink('https://atomichub.io/bridge'); }}
-       className="text-cheese underline hover:text-cheese/80"
-     >
-       here
-     </a>.
-   </p>
-   ```
-   Routed through the existing `ExternalLinkWarningDialog` flow (already used elsewhere in `Index.tsx`) so outbound clicks get the standard safety prompt.
+### 3. `src/components/simpleassets/SimpleAssetDetailDialog.tsx`
+- Add an "Atomic Mint #" row below the existing "Mint #" row when `_atomic_mint` is present.
+- Extend the `metaFields` filter to exclude `_atomic_mint`, `_atomic_supply`, `_template_id` so they don't appear as raw metadata cards.
 
-4. **Imports** — add `import logoSimpleAssets from '@/assets/logo-simpleassets.png'` and `import logoAtomicAssets from '@/assets/logo-atomicassets.png'` at the top of `Index.tsx`.
-
-### Notes
-
-- No new dependencies, no contract/state changes, no memory updates needed.
-- Logos render at 20px tall to sit naturally on one line of body text; they wrap gracefully on narrow viewports thanks to `flex-wrap`.
+## Result for your example
+- SA card: `#45` (unchanged)
+- AA card (same character): `#45` emerald **primary**, `AA #1500 / 1500` yellow **secondary** underneath
+- AA detail dialog: two labelled rows — `Mint #45 / 1500` and `Atomic Mint #1500 / 1500`
