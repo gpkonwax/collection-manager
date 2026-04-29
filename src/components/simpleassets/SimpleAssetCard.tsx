@@ -193,9 +193,10 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {(mintInfo || hasContained) && (
-          <div className="flex items-center gap-1.5 pt-0.5">
+        {(mintInfo || atomicMintInfo || hasContained) && (
+          <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
             {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>}
+            {atomicMintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-cheese/15 text-cheese font-medium" title="AtomicAssets template mint">{atomicMintInfo}</span>}
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
