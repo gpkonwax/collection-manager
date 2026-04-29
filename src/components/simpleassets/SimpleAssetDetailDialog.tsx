@@ -40,18 +40,6 @@ function getMintDisplay(asset: SimpleAsset): string | null {
   return null;
 }
 
-function getAtomicMintDisplay(asset: SimpleAsset): string | null {
-  if (asset.source !== 'atomicassets') return null;
-  const mint = asset.idata?._atomic_mint;
-  const supply = asset.idata?._atomic_supply;
-  if (mint === undefined || mint === null || String(mint).trim() === '') return null;
-  const mintStr = String(mint).trim();
-  const supplyStr = supply !== undefined && supply !== null && String(supply).trim() !== '' && String(supply).trim() !== '0'
-    ? String(supply).trim()
-    : null;
-  return supplyStr ? `#${mintStr} / ${supplyStr}` : `#${mintStr}`;
-}
-
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
@@ -277,11 +265,10 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   const images = asset.images;
   const mintDisplay = getMintDisplay(asset);
-  const atomicMintDisplay = getAtomicMintDisplay(asset);
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
   const isDrawable = DRAWABLE_CATEGORIES.has(asset.category);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
-    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', '_atomic_mint', '_atomic_supply', '_template_id'].includes(key)
+    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply'].includes(key)
   );
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
@@ -385,12 +372,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-cheese">Mint</span>
             <span className="text-sm font-mono text-primary">{mintDisplay}</span>
-          </div>
-        )}
-        {atomicMintDisplay && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-cheese">Atomic Mint</span>
-            <span className="text-sm font-mono text-cheese">{atomicMintDisplay}</span>
           </div>
         )}
         {metaFields.length > 0 && (

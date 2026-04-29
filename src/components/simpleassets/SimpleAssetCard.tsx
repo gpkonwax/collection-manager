@@ -55,18 +55,6 @@ function getMintNumber(asset: SimpleAsset): number | null {
   return null;
 }
 
-function getAtomicMintInfo(asset: SimpleAsset): string | null {
-  if (asset.source !== 'atomicassets') return null;
-  const mint = asset.idata?._atomic_mint;
-  const supply = asset.idata?._atomic_supply;
-  if (mint === undefined || mint === null || String(mint).trim() === '') return null;
-  const mintStr = String(mint).trim();
-  const supplyStr = supply !== undefined && supply !== null && String(supply).trim() !== '' && String(supply).trim() !== '0'
-    ? String(supply).trim()
-    : null;
-  return supplyStr ? `AA #${mintStr} / ${supplyStr}` : `AA #${mintStr}`;
-}
-
 function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -76,7 +64,6 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
 
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintInfo = getMintInfo(asset);
-  const atomicMintInfo = getAtomicMintInfo(asset);
   const mintNumber = getMintNumber(asset);
   const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
@@ -193,10 +180,9 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {(mintInfo || atomicMintInfo || hasContained) && (
-          <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+        {(mintInfo || hasContained) && (
+          <div className="flex items-center gap-1.5 pt-0.5">
             {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>}
-            {atomicMintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-cheese/15 text-cheese font-medium" title="AtomicAssets template mint">{atomicMintInfo}</span>}
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
