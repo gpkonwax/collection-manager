@@ -40,6 +40,18 @@ function getMintDisplay(asset: SimpleAsset): string | null {
   return null;
 }
 
+function getAtomicMintDisplay(asset: SimpleAsset): string | null {
+  if (asset.source !== 'atomicassets') return null;
+  const mint = asset.idata?._atomic_mint;
+  const supply = asset.idata?._atomic_supply;
+  if (mint === undefined || mint === null || String(mint).trim() === '') return null;
+  const mintStr = String(mint).trim();
+  const supplyStr = supply !== undefined && supply !== null && String(supply).trim() !== '' && String(supply).trim() !== '0'
+    ? String(supply).trim()
+    : null;
+  return supplyStr ? `#${mintStr} / ${supplyStr}` : `#${mintStr}`;
+}
+
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
