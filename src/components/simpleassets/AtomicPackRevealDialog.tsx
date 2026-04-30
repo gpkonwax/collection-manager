@@ -218,6 +218,53 @@ export function AtomicPackRevealDialog({
     return () => clearTimeout(timer);
   }, [open, phase]);
 
+  // Stalled-pack detection (RNG-based contracts only).
+  // After ~45s of waiting, ask Hyperion whether `orng.wax::randnotify` already
+  // fired for this pack on the unbox contract. If it did but `unboxassets` is
+  // still empty after another grace window, the contract failed to consume the
+  // RNG callback — the pack is burned with no recovery path from the client.
+  useEffect(() => {
+    if (!open || phase !== 'waiting' || isDemo || !packAssetId) return;
+    if (openMode === 'unbox_nft') return; // unbox.nft uses a different flow
+    let cancelled = false;
+    let stalledTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const probe = async () => {
+      try {
+        const found = await findRandnotifyForPack(unpackContract, packAssetId);
+        if (cancelled || !found) return;
+        setRandnotifyTxId(found.trxId);
+        // RNG already returned. If after 45 more seconds we still haven't
+        // moved out of `waiting`, the contract did not process it.
+        stalledTimer = setTimeout(() => {
+          if (cancelled) return;
+          setPhase((p) => {
+            if (p !== 'waiting') return p;
+            recordStuckPack({
+              packAssetId,
+              contract: unpackContract,
+              packName,
+              account: accountName,
+              transferTxId: transferTxId ?? null,
+              randnotifyTxId: found.trxId || null,
+              timestamp: Date.now(),
+            });
+            return 'stalled';
+          });
+        }, 45000);
+      } catch {
+        /* probe is best-effort */
+      }
+    };
+
+    const startProbe = setTimeout(probe, 45000);
+    return () => {
+      cancelled = true;
+      clearTimeout(startProbe);
+      if (stalledTimer) clearTimeout(stalledTimer);
+    };
+  }, [open, phase, isDemo, openMode, unpackContract, packAssetId, packName, accountName, transferTxId]);
+
   // Demo mode: skip polling, show cards after shake
   useEffect(() => {
     if (!open || phase !== 'waiting' || !isDemo) return;
