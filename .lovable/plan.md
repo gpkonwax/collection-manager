@@ -1,45 +1,29 @@
-## Add bridge announcement to header
+## Goal
 
-Add a single sentence under the "GPK.Topps Collection Manager" header (and on the logged-out hero) that reads:
+1. Update the front-page copy and info dropdown to reflect that Crash Gordon pack openings are now live.
+2. Enable the Bernventures pack-opening button so testing can begin.
 
-> [SimpleAssets logo] Bridge your SimpleAssets to [AtomicAssets logo] AtomicAssets [here](https://atomichub.io/bridge).
+## Changes
 
-The word **here** is a hyperlink to `https://atomichub.io/bridge`. The two brand marks from the uploaded image are shown inline at small size next to their respective names.
+### 1. `src/hooks/useGpkAtomicPacks.ts` — enable Bernventures
+Remove `disabled: true` and `disabledReason` from the two Bernventures template entries (keep Mittens `53187` disabled):
+- `'48479'` (Bernventures 2-card pack) → `{ contract: 'burnieunpack', cards: 2, openMode: 'transfer' }`
+- `'51437'` (Bernventures 5-card pack) → `{ contract: 'burnieunpack', cards: 5, openMode: 'transfer' }`
 
-### Steps
+This will flip the `AtomicPackCard` from the "Opening Disabled" state to the live "Open Pack(s)" button automatically (it reads `pack.packConfig.disabled`).
 
-1. **Prepare logo assets** — split the uploaded `simpleassets.png` banner into two transparent PNGs:
-   - `src/assets/logo-simpleassets.png` (left half — diamond key icon + "SimpleAssets" wordmark)
-   - `src/assets/logo-atomicassets.png` (right half — atom icon + "ATOMICASSETS" wordmark)
-   Done with ImageMagick during implementation; both kept on the dark navy background already present in the source image so they read correctly against our dark theme.
+### 2. `src/pages/Index.tsx` — info dropdown (around line 1564)
+Change the supported-packs bullet so Crash Gordon and Bernventures move from "likely soon" to supported:
 
-2. **Add the line in `src/pages/Index.tsx`** in two places:
-   - Inside the connected-state header block (around line 1655, right under the existing tagline `p`).
-   - Inside the logged-out hero (around line 1668, near the "🔒 No new smart contracts" notice) so disconnected visitors also see it.
+> Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic), Food Fight, Crash Gordon and Bernventures — with Mittens, GameStonk and more likely soon.
 
-3. **Markup pattern** (same in both spots):
-   ```tsx
-   <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
-     Bridge your
-     <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto" />
-     to
-     <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto" />
-     <a
-       href="https://atomichub.io/bridge"
-       target="_blank"
-       rel="noopener noreferrer"
-       onClick={(e) => { e.preventDefault(); openExternalLink('https://atomichub.io/bridge'); }}
-       className="text-cheese underline hover:text-cheese/80"
-     >
-       here
-     </a>.
-   </p>
-   ```
-   Routed through the existing `ExternalLinkWarningDialog` flow (already used elsewhere in `Index.tsx`) so outbound clicks get the standard safety prompt.
+### 3. `src/pages/Index.tsx` — Pack Openings hero section (around lines 1729–1730)
+Update the two bullets:
+- **Supported now:** Series 1, Series 2, Tiger King (Exotic), all Food Fight packs, Crash Gordon, and Bernventures.
+- **Possibly soon:** Mittens, GameStonk, and more.
 
-4. **Imports** — add `import logoSimpleAssets from '@/assets/logo-simpleassets.png'` and `import logoAtomicAssets from '@/assets/logo-atomicassets.png'` at the top of `Index.tsx`.
+## Notes
 
-### Notes
-
-- No new dependencies, no contract/state changes, no memory updates needed.
-- Logos render at 20px tall to sit naturally on one line of body text; they wrap gracefully on narrow viewports thanks to `flex-wrap`.
+- No changes needed to `packOpenActions.ts` — Bernventures already routes through the default single-transfer path via `burnieunpack`.
+- The Bernventures pack image / metadata entries already exist; only the disabled flags are blocking the button.
+- Mittens (`53187` / `atomicpacksx`) stays disabled per the current state.
