@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Download } from 'lucide-react';
+import { Loader2, Sparkles, Download, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { ATOMIC_API } from '@/lib/waxConfig';
@@ -11,6 +11,8 @@ import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
+import { findRandnotifyForPack } from '@/lib/stuckPackDetect';
+import { recordStuckPack, buildStuckPackReportText } from '@/lib/stuckPackStorage';
 import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
 
 interface RevealCard {
@@ -40,6 +42,8 @@ interface AtomicPackRevealDialogProps {
   openMode?: PackOpenMode;
   demoCards?: { asset_id: string; name: string; image: string | null; rarity: string }[];
   onDemoCollect?: () => void;
+  /** Optional tx id of the transfer-to-contract that started the open. Used in stuck-pack reports. */
+  transferTxId?: string | null;
 }
 /** Result row from unbox.nft's results table */
 interface UnboxNftResultRow {
@@ -119,6 +123,27 @@ function AtomicRevealCardImage({ card, isRevealed, packImage }: { card: RevealCa
   );
 }
 
+function StalledRow({ label, value, href }: { label: string; value: string; href?: string }) {
+  return (
+    <div className="flex items-start gap-2 break-all">
+      <span className="text-muted-foreground shrink-0">{label}:</span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline inline-flex items-center gap-1 break-all"
+        >
+          {value}
+          <ExternalLink className="h-3 w-3 shrink-0" />
+        </a>
+      ) : (
+        <span className="text-foreground break-all">{value}</span>
+      )}
+    </div>
+  );
+}
+
 const POLL_INTERVAL = 3000;
 
 function resolveImage(raw: string | undefined): string | null {
@@ -176,10 +201,10 @@ async function fetchUnboxResults(contract: string, packAssetId: string, accountN
 export function AtomicPackRevealDialog({
   open, onOpenChange, packName, packImage, packAssetId,
   unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
-  demoCards, onDemoCollect,
+  demoCards, onDemoCollect, transferTxId,
 }: AtomicPackRevealDialogProps) {
   const isDemo = !!(demoCards && demoCards.length > 0);
-  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
+  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done' | 'stalled'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
   const [rollIds, setRollIds] = useState<number[]>([]);
   const [revealedCount, setRevealedCount] = useState(0);
@@ -187,6 +212,8 @@ export function AtomicPackRevealDialog({
   const [collectError, setCollectError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
+  const [randnotifyTxId, setRandnotifyTxId] = useState<string | null>(null);
+  const [reportCopied, setReportCopied] = useState(false);
   const pollStartRef = useRef<number>(0);
 
   usePackRevealAudio({ open, phase, isShaking, revealedCount });
@@ -195,6 +222,7 @@ export function AtomicPackRevealDialog({
     if (open) {
       setPhase('waiting'); setNewCards([]); setRollIds([]);
       setRevealedCount(0); setWaitMessage(''); setCollectError(null); setShowEscape(false);
+      setRandnotifyTxId(null); setReportCopied(false);
       pollStartRef.current = Date.now();
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
@@ -210,6 +238,53 @@ export function AtomicPackRevealDialog({
     const timer = setTimeout(() => setShowEscape(true), 60000);
     return () => clearTimeout(timer);
   }, [open, phase]);
+
+  // Stalled-pack detection (RNG-based contracts only).
+  // After ~45s of waiting, ask Hyperion whether `orng.wax::randnotify` already
+  // fired for this pack on the unbox contract. If it did but `unboxassets` is
+  // still empty after another grace window, the contract failed to consume the
+  // RNG callback — the pack is burned with no recovery path from the client.
+  useEffect(() => {
+    if (!open || phase !== 'waiting' || isDemo || !packAssetId) return;
+    if (openMode === 'unbox_nft') return; // unbox.nft uses a different flow
+    let cancelled = false;
+    let stalledTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const probe = async () => {
+      try {
+        const found = await findRandnotifyForPack(unpackContract, packAssetId);
+        if (cancelled || !found) return;
+        setRandnotifyTxId(found.trxId);
+        // RNG already returned. If after 45 more seconds we still haven't
+        // moved out of `waiting`, the contract did not process it.
+        stalledTimer = setTimeout(() => {
+          if (cancelled) return;
+          setPhase((p) => {
+            if (p !== 'waiting') return p;
+            recordStuckPack({
+              packAssetId,
+              contract: unpackContract,
+              packName,
+              account: accountName,
+              transferTxId: transferTxId ?? null,
+              randnotifyTxId: found.trxId || null,
+              timestamp: Date.now(),
+            });
+            return 'stalled';
+          });
+        }, 45000);
+      } catch {
+        /* probe is best-effort */
+      }
+    };
+
+    const startProbe = setTimeout(probe, 45000);
+    return () => {
+      cancelled = true;
+      clearTimeout(startProbe);
+      if (stalledTimer) clearTimeout(stalledTimer);
+    };
+  }, [open, phase, isDemo, openMode, unpackContract, packAssetId, packName, accountName, transferTxId]);
 
   // Demo mode: skip polling, show cards after shake
   useEffect(() => {
@@ -400,6 +475,74 @@ export function AtomicPackRevealDialog({
                 </p>
               </div>
             )}
+          </div>
+        )}
+        {phase === 'stalled' && packAssetId && (
+          <div className="flex flex-col items-center py-8 px-2 space-y-4 max-w-xl mx-auto">
+            <div className="rounded-full bg-destructive/10 p-3">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground text-center">Pack opening stalled on-chain</h2>
+            <div className="text-sm text-muted-foreground text-center space-y-2">
+              <p>
+                Your <strong className="text-foreground">{packName}</strong> was burned by the
+                <code className="mx-1 px-1.5 py-0.5 rounded bg-muted text-xs">{unpackContract}</code>
+                contract and the WAX RNG oracle returned a random value, but the contract did not
+                process it — so cards were never minted.
+              </p>
+              <p>
+                This is a contract-side failure that the app cannot fix from the front-end. Save
+                the details below and contact the pack operator for a refund or manual mint.
+              </p>
+            </div>
+            <div className="w-full rounded-md border border-border bg-muted/40 p-3 text-xs font-mono space-y-1">
+              <StalledRow label="Pack asset id" value={packAssetId} />
+              <StalledRow label="Contract" value={unpackContract} />
+              <StalledRow label="Account" value={accountName} />
+              {transferTxId && (
+                <StalledRow
+                  label="Transfer tx"
+                  value={transferTxId}
+                  href={`https://waxblock.io/transaction/${transferTxId}`}
+                />
+              )}
+              {randnotifyTxId && (
+                <StalledRow
+                  label="randnotify tx"
+                  value={randnotifyTxId}
+                  href={`https://waxblock.io/transaction/${randnotifyTxId}`}
+                />
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(buildStuckPackReportText({
+                    packAssetId,
+                    contract: unpackContract,
+                    packName,
+                    account: accountName,
+                    transferTxId: transferTxId ?? null,
+                    randnotifyTxId,
+                    timestamp: Date.now(),
+                  })).then(() => {
+                    setReportCopied(true);
+                    setTimeout(() => setReportCopied(false), 2000);
+                  }).catch(() => {});
+                }}
+              >
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                {reportCopied ? 'Copied!' : 'Copy report'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleClose}>
+                Close
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 text-center max-w-md">
+              We've saved this stuck pack locally so you can find it again later in the help menu.
+            </p>
           </div>
         )}
         {(phase === 'revealing' || phase === 'collect' || phase === 'collecting' || phase === 'done') && (
