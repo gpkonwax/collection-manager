@@ -456,6 +456,74 @@ export function AtomicPackRevealDialog({
             )}
           </div>
         )}
+        {phase === 'stalled' && packAssetId && (
+          <div className="flex flex-col items-center py-8 px-2 space-y-4 max-w-xl mx-auto">
+            <div className="rounded-full bg-destructive/10 p-3">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground text-center">Pack opening stalled on-chain</h2>
+            <div className="text-sm text-muted-foreground text-center space-y-2">
+              <p>
+                Your <strong className="text-foreground">{packName}</strong> was burned by the
+                <code className="mx-1 px-1.5 py-0.5 rounded bg-muted text-xs">{unpackContract}</code>
+                contract and the WAX RNG oracle returned a random value, but the contract did not
+                process it — so cards were never minted.
+              </p>
+              <p>
+                This is a contract-side failure that the app cannot fix from the front-end. Save
+                the details below and contact the pack operator for a refund or manual mint.
+              </p>
+            </div>
+            <div className="w-full rounded-md border border-border bg-muted/40 p-3 text-xs font-mono space-y-1">
+              <StalledRow label="Pack asset id" value={packAssetId} />
+              <StalledRow label="Contract" value={unpackContract} />
+              <StalledRow label="Account" value={accountName} />
+              {transferTxId && (
+                <StalledRow
+                  label="Transfer tx"
+                  value={transferTxId}
+                  href={`https://waxblock.io/transaction/${transferTxId}`}
+                />
+              )}
+              {randnotifyTxId && (
+                <StalledRow
+                  label="randnotify tx"
+                  value={randnotifyTxId}
+                  href={`https://waxblock.io/transaction/${randnotifyTxId}`}
+                />
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(buildStuckPackReportText({
+                    packAssetId,
+                    contract: unpackContract,
+                    packName,
+                    account: accountName,
+                    transferTxId: transferTxId ?? null,
+                    randnotifyTxId,
+                    timestamp: Date.now(),
+                  })).then(() => {
+                    setReportCopied(true);
+                    setTimeout(() => setReportCopied(false), 2000);
+                  }).catch(() => {});
+                }}
+              >
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                {reportCopied ? 'Copied!' : 'Copy report'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleClose}>
+                Close
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 text-center max-w-md">
+              We've saved this stuck pack locally so you can find it again later in the help menu.
+            </p>
+          </div>
+        )}
         {(phase === 'revealing' || phase === 'collect' || phase === 'collecting' || phase === 'done') && (
           <div className="space-y-6 py-4">
             <div className="text-center space-y-1">
