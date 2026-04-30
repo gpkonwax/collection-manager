@@ -180,10 +180,10 @@ async function fetchUnboxResults(contract: string, packAssetId: string, accountN
 export function AtomicPackRevealDialog({
   open, onOpenChange, packName, packImage, packAssetId,
   unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
-  demoCards, onDemoCollect,
+  demoCards, onDemoCollect, transferTxId,
 }: AtomicPackRevealDialogProps) {
   const isDemo = !!(demoCards && demoCards.length > 0);
-  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
+  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done' | 'stalled'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
   const [rollIds, setRollIds] = useState<number[]>([]);
   const [revealedCount, setRevealedCount] = useState(0);
@@ -191,6 +191,8 @@ export function AtomicPackRevealDialog({
   const [collectError, setCollectError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
+  const [randnotifyTxId, setRandnotifyTxId] = useState<string | null>(null);
+  const [reportCopied, setReportCopied] = useState(false);
   const pollStartRef = useRef<number>(0);
 
   usePackRevealAudio({ open, phase, isShaking, revealedCount });
