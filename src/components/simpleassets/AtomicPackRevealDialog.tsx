@@ -201,6 +201,7 @@ export function AtomicPackRevealDialog({
     if (open) {
       setPhase('waiting'); setNewCards([]); setRollIds([]);
       setRevealedCount(0); setWaitMessage(''); setCollectError(null); setShowEscape(false);
+      setRandnotifyTxId(null); setReportCopied(false);
       pollStartRef.current = Date.now();
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
