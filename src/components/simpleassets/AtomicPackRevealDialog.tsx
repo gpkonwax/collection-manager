@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Download } from 'lucide-react';
+import { Loader2, Sparkles, Download, AlertTriangle, Copy, ExternalLink } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { ATOMIC_API } from '@/lib/waxConfig';
@@ -11,6 +11,8 @@ import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
+import { findRandnotifyForPack } from '@/lib/stuckPackDetect';
+import { recordStuckPack, buildStuckPackReportText } from '@/lib/stuckPackStorage';
 import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
 
 interface RevealCard {
