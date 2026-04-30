@@ -1,29 +1,33 @@
 ## Goal
 
-1. Update the front-page copy and info dropdown to reflect that Crash Gordon pack openings are now live.
-2. Enable the Bernventures pack-opening button so testing can begin.
+Correctly relabel template `51437` as the **Mitten Pack** (not Bernventures) in `useGpkAtomicPacks.ts`, while keeping it disabled for now.
 
-## Changes
+## Background
 
-### 1. `src/hooks/useGpkAtomicPacks.ts` — enable Bernventures
-Remove `disabled: true` and `disabledReason` from the two Bernventures template entries (keep Mittens `53187` disabled):
-- `'48479'` (Bernventures 2-card pack) → `{ contract: 'burnieunpack', cards: 2, openMode: 'transfer' }`
-- `'51437'` (Bernventures 5-card pack) → `{ contract: 'burnieunpack', cards: 5, openMode: 'transfer' }`
+On-chain verification confirmed:
+- Template `48479` = Bernventures Pack (2 cards) — already correctly configured and live.
+- Template `51437` = **Mitten Pack** (5 cards, "Bern 4 Golden Mittens" promo) — currently mislabeled in `PACK_CONFIG` as a 5-card Bernventures variant. Both use the `burnieunpack` contract.
 
-This will flip the `AtomicPackCard` from the "Opening Disabled" state to the live "Open Pack(s)" button automatically (it reads `pack.packConfig.disabled`).
+The `PACK_DEFAULTS` entry and the `ATOMIC_PACK_CATEGORY_MAP` in `Index.tsx` already correctly identify `51437` as Mittens — only `PACK_CONFIG` is out of sync.
 
-### 2. `src/pages/Index.tsx` — info dropdown (around line 1564)
-Change the supported-packs bullet so Crash Gordon and Bernventures move from "likely soon" to supported:
+## Change
 
-> Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic), Food Fight, Crash Gordon and Bernventures — with Mittens, GameStonk and more likely soon.
+### `src/hooks/useGpkAtomicPacks.ts` — line 46
 
-### 3. `src/pages/Index.tsx` — Pack Openings hero section (around lines 1729–1730)
-Update the two bullets:
-- **Supported now:** Series 1, Series 2, Tiger King (Exotic), all Food Fight packs, Crash Gordon, and Bernventures.
-- **Possibly soon:** Mittens, GameStonk, and more.
+Re-add the disabled flags so the Mitten Pack stays gated while accurately labeled. The contract (`burnieunpack`) and card count (5) are already correct.
 
-## Notes
+Before:
+```ts
+'51437':  { contract: 'burnieunpack', cards: 5, openMode: 'transfer' },
+```
 
-- No changes needed to `packOpenActions.ts` — Bernventures already routes through the default single-transfer path via `burnieunpack`.
-- The Bernventures pack image / metadata entries already exist; only the disabled flags are blocking the button.
-- Mittens (`53187` / `atomicpacksx`) stays disabled per the current state.
+After:
+```ts
+'51437':  { contract: 'burnieunpack', cards: 5, openMode: 'transfer', disabled: true, disabledReason: 'Opening temporarily disabled' },
+```
+
+## Not changing
+
+- The "Possibly soon: Mittens, GameStonk, and more" copy on the front page and info dropdown remains accurate — Mittens is still gated.
+- Bernventures (48479) stays live for testing.
+- No display-name changes needed; `PACK_DEFAULTS['51437']` already reads "Mitten Pack" so the card UI will show the correct name and image once this lands.
