@@ -123,6 +123,27 @@ function AtomicRevealCardImage({ card, isRevealed, packImage }: { card: RevealCa
   );
 }
 
+function StalledRow({ label, value, href }: { label: string; value: string; href?: string }) {
+  return (
+    <div className="flex items-start gap-2 break-all">
+      <span className="text-muted-foreground shrink-0">{label}:</span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline inline-flex items-center gap-1 break-all"
+        >
+          {value}
+          <ExternalLink className="h-3 w-3 shrink-0" />
+        </a>
+      ) : (
+        <span className="text-foreground break-all">{value}</span>
+      )}
+    </div>
+  );
+}
+
 const POLL_INTERVAL = 3000;
 
 function resolveImage(raw: string | undefined): string | null {
