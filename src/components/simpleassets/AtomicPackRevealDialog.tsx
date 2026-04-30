@@ -42,6 +42,8 @@ interface AtomicPackRevealDialogProps {
   openMode?: PackOpenMode;
   demoCards?: { asset_id: string; name: string; image: string | null; rarity: string }[];
   onDemoCollect?: () => void;
+  /** Optional tx id of the transfer-to-contract that started the open. Used in stuck-pack reports. */
+  transferTxId?: string | null;
 }
 /** Result row from unbox.nft's results table */
 interface UnboxNftResultRow {
