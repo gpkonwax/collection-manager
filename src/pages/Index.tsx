@@ -1244,17 +1244,7 @@ export default function SimpleAssetsPage() {
             </div>
           )}
           <div className="flex items-center justify-end gap-2 flex-1 min-w-[300px]">
-            <span className="text-xs text-muted-foreground" title={`${priceAlerts.length} of ${maxAlerts} alerts used`}>
-              {triggeredCount > 0 ? (
-                <span className="text-destructive font-medium inline-flex items-center gap-1">
-                  <BellRing className="h-3 w-3" />{triggeredCount} triggered
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1">
-                  <Bell className="h-3 w-3" />{priceAlerts.length}/{maxAlerts}
-                </span>
-              )}
-            </span>
+            <AlertsManagerPopover triggeredCount={triggeredCount} />
             <JsonMenu
               refreshKey={recentRefreshKey}
               alertsCount={priceAlerts.length}
