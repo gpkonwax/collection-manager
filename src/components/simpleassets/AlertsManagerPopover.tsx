@@ -17,7 +17,7 @@ export function AlertsManagerPopover({ triggeredCount }: AlertsManagerPopoverPro
   const interactive = alerts.length >= 1;
 
   const triggerContent = triggeredCount > 0 ? (
-    <span className="text-destructive font-medium inline-flex items-center gap-1">
+    <span className="font-medium inline-flex items-center gap-1">
       <BellRing className="h-3 w-3" />{triggeredCount} triggered
     </span>
   ) : (
