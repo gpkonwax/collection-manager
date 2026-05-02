@@ -48,10 +48,10 @@ export function AlertsManagerPopover({ triggeredCount }: AlertsManagerPopoverPro
         <button
           type="button"
           className={cn(
-            "text-xs px-2 py-1 rounded-md border transition-colors",
+            "text-xs px-2 py-1 rounded-md border-2 transition-colors",
             triggeredCount > 0
-              ? "border-destructive/40 bg-destructive/10 hover:bg-destructive/20"
-              : "border-cheese/40 text-muted-foreground hover:text-cheese hover:bg-cheese/10"
+              ? "border-black bg-red-600 text-white hover:bg-red-500 animate-pulse"
+              : "border-cheese bg-emerald-500 text-white hover:bg-emerald-400"
           )}
           title={`${alerts.length} of ${maxAlerts} alerts — click to manage`}
         >
