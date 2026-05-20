@@ -2126,13 +2126,13 @@ export default function SimpleAssetsPage() {
 
       <footer className="border-t border-cheese/20 mt-12 py-8">
         <div className="container">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-muted-foreground space-y-0.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
+            <div className="text-xs text-cheese space-y-0.5 text-center sm:text-left">
               <p>• Developed by $CHEESE</p>
               <p>• Free to Use</p>
               <p>• Open Source</p>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center justify-center gap-6">
               <button onClick={() => footerRequestNav('https://cheeseonwax.github.io/')} className="flex flex-col items-center gap-1 text-cheese hover:text-cheese/70 transition-colors" title="Website">
                 <Globe className="h-5 w-5" />
                 <span className="text-[10px]">Web</span>
