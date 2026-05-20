@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus } from 'lucide-react';
+import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus, Github } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -2147,6 +2147,10 @@ export default function SimpleAssetsPage() {
               <button onClick={() => footerRequestNav('https://x.com/cheesetoken')} className="flex flex-col items-center gap-1 text-cheese hover:text-cheese/70 transition-colors" title="X / Twitter">
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 <span className="text-[10px]">X</span>
+              </button>
+              <button onClick={() => footerRequestNav('https://github.com/gpkonwax/collection-manager')} className="flex flex-col items-center gap-1 text-cheese hover:text-cheese/70 transition-colors" title="GitHub">
+                <Github className="h-5 w-5" />
+                <span className="text-[10px]">GitHub</span>
               </button>
             </div>
           </div>
