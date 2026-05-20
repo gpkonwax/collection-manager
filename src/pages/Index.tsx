@@ -1785,7 +1785,7 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   icon={<span className="text-2xl">🤝</span>}
                   title="Free Community Tool"
-                  description="No fees, no sign-ups. A WAX community asset built by the $CHEESE team — the first project ever launched on the WAX blockchain."
+                  description="No fees, no sign-ups. A WAX community asset."
                 />
               </div>
             </div>
