@@ -1737,7 +1737,7 @@ export default function SimpleAssetsPage() {
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Draw & Write on Cards</h3>
                   <p className="text-foreground text-sm">
-                     Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family members with the <span className="text-cheese font-semibold">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold">Late Late Late Show</span>, or just draw mustaches on everyone. Except now after taking a screenshot just press the erase button or close the modal and your cards are as good as new!
+                     Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family members with the <span className="text-cheese font-semibold">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold">Late Late Late Show</span>. Except now after taking a screenshot just press the erase button or close the modal and your cards are as good as new!
                    </p>
                 </div>
               </div>
