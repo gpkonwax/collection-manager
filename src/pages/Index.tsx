@@ -2126,19 +2126,9 @@ export default function SimpleAssetsPage() {
 
       <footer className="border-t border-cheese/20 mt-12 py-8">
         <div className="container text-left space-y-4">
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            This project was built by $CHEESE for the gpk and WAX Community and is completely free to use. This was peak WAX. If you appreciate these efforts please consider a donation to help cover costs and time consumed. Accepting WAX, CHEESE and gpk packs any amount is appreciated.
-          </p>
           <p className="text-sm text-cheese font-medium">
             Have fun and enjoy feeling like a kid again!
           </p>
-          <Button
-            onClick={() => setDonateDialogOpen(true)}
-            className="bg-cheese hover:bg-cheese/90 text-primary-foreground"
-          >
-            <Heart className="h-4 w-4 mr-2" />
-            Donate
-          </Button>
           <div className="flex justify-center items-center gap-6 mt-4">
             <button onClick={() => footerRequestNav('https://cheeseonwax.github.io/')} className="flex flex-col items-center gap-1 text-cheese hover:text-cheese/70 transition-colors" title="Website">
               <Globe className="h-5 w-5" />
@@ -2196,19 +2186,6 @@ export default function SimpleAssetsPage() {
           refetchSa();
           refetchAa();
           setSuccessDialog({ open: true, title: 'Transfer Complete!', description: `Successfully transferred ${selectedAssets.length} NFT(s).`, txId });
-        }}
-      />
-      <DonateDialog
-        open={donateDialogOpen}
-        onOpenChange={setDonateDialogOpen}
-        gpkPacks={packs.filter(p => p.amount > 0)}
-        atomicPacks={atomicPacks.filter(p => p.count > 0)}
-        onSuccess={(txId) => {
-          refetchSa();
-          refetchAa();
-          refetchPacks();
-          refetchAtomicPacks();
-          setSuccessDialog({ open: true, title: 'Donation Sent!', description: 'Thank you for your generous donation to the $CHEESE team!', txId });
         }}
       />
       <BurnDialog
