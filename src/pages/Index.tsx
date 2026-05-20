@@ -1431,20 +1431,6 @@ export default function SimpleAssetsPage() {
       <BackgroundDecorations />
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
         <div className="container flex h-12 items-center justify-between">
-          {/* Left: Logo + branding */}
-          <a
-            href="https://cheesehubwax.github.io/cheesehub/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
-            <span className="text-xs text-muted-foreground">powered by</span>
-            <img src={cheesehubLogo} alt="CheeseHub" className="h-7 w-7" />
-            <span className="font-bold text-sm">
-              <span className="text-cheese">CHEESE</span>
-              <span className="text-foreground">Hub</span>
-            </span>
-          </a>
 
           {/* Right: Info button + wallet controls */}
           <div className="flex items-center gap-2">
