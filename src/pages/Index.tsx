@@ -1648,7 +1648,7 @@ export default function SimpleAssetsPage() {
             <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
               <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
-                <span>Bridge your</span>
+                <span>Optional: Bridge your</span>
                 <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto rounded" />
                 <span>to</span>
                 <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto rounded" />
