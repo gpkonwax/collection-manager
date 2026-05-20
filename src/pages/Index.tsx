@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Heart, Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus } from 'lucide-react';
+import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,7 +31,7 @@ import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
-import { DonateDialog } from '@/components/wallet/DonateDialog';
+
 import { BannerAd } from '@/components/BannerAd';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -183,7 +183,7 @@ export default function SimpleAssetsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [burnDialogOpen, setBurnDialogOpen] = useState(false);
-  const [donateDialogOpen, setDonateDialogOpen] = useState(false);
+  
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
