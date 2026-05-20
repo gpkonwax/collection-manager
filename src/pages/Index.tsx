@@ -1441,7 +1441,7 @@ export default function SimpleAssetsPage() {
               onClick={() => setShowInfoDialog(true)}
             >
               <Info className="h-4 w-4 text-cheese" />
-              <span className="sr-only">Features Info</span>
+              <span className="sr-only">GPK Collection Manager Info</span>
             </Button>
 
             {isConnected && accountName ? (
@@ -1518,7 +1518,7 @@ export default function SimpleAssetsPage() {
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
         <DialogContent className="max-w-2xl max-h-[85vh]">
           <DialogHeader>
-            <DialogTitle className="text-cheese text-xl">GPK.Topps Pack Opener — Features</DialogTitle>
+            <DialogTitle className="text-cheese text-xl">GPK Collection Manager</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[65vh] pr-4">
             <div className="space-y-5 text-sm">
