@@ -2126,9 +2126,6 @@ export default function SimpleAssetsPage() {
 
       <footer className="border-t border-cheese/20 mt-12 py-8">
         <div className="container text-left space-y-4">
-          <p className="text-sm text-cheese font-medium">
-            Have fun and enjoy feeling like a kid again!
-          </p>
           <div className="flex justify-center items-center gap-6 mt-4">
             <button onClick={() => footerRequestNav('https://cheeseonwax.github.io/')} className="flex flex-col items-center gap-1 text-cheese hover:text-cheese/70 transition-colors" title="Website">
               <Globe className="h-5 w-5" />
