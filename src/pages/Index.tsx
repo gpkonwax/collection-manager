@@ -1669,7 +1669,7 @@ export default function SimpleAssetsPage() {
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-tight max-w-3xl">
-                The Ultimate GPK Collection Manager
+                The GPK Collection Manager
               </h2>
               <p className="text-lg text-foreground max-w-2xl">
                 Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
