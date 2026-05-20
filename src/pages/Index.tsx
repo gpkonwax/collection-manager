@@ -1441,7 +1441,7 @@ export default function SimpleAssetsPage() {
               onClick={() => setShowInfoDialog(true)}
             >
               <Info className="h-4 w-4 text-cheese" />
-              <span className="sr-only">Features Info</span>
+              <span className="sr-only">GPK Collection Manager Info</span>
             </Button>
 
             {isConnected && accountName ? (
