@@ -1433,7 +1433,7 @@ export default function SimpleAssetsPage() {
         <div className="container flex h-12 items-center justify-between">
 
           {/* Right: Info button + wallet controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="ghost"
               size="sm"
