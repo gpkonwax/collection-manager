@@ -1,4 +1,4 @@
-import cheeseLogo from '@/assets/cheese-logo.png';
+
 
 export function BackgroundDecorations() {
   return (
@@ -17,11 +17,6 @@ export function BackgroundDecorations() {
         }}
       />
 
-      {/* Floating cheese logos */}
-      <img src={cheeseLogo} alt="" className="absolute top-20 left-20 w-12 h-12 opacity-20 animate-float select-none" />
-      <img src={cheeseLogo} alt="" className="absolute top-40 right-32 w-10 h-10 opacity-15 animate-float select-none" style={{ animationDelay: '2s' }} />
-      <img src={cheeseLogo} alt="" className="absolute bottom-32 left-40 w-16 h-16 opacity-10 animate-float select-none" style={{ animationDelay: '4s' }} />
-      <img src={cheeseLogo} alt="" className="absolute bottom-60 right-20 w-8 h-8 opacity-15 animate-float select-none" style={{ animationDelay: '6s' }} />
     </div>
   );
 }
