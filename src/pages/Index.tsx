@@ -1865,6 +1865,17 @@ export default function SimpleAssetsPage() {
               );
             })()}
 
+            {(categoryFilter === 'series1' || categoryFilter === 'series2') && (
+              <div className="text-center">
+                <button
+                  onClick={() => footerRequestNav('https://wax.alcor.exchange/markets?search=gpk')}
+                  className="text-sm text-cheese hover:text-cheese/80 underline underline-offset-2"
+                >
+                  Buy Packs on Alcor
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cheese" />
