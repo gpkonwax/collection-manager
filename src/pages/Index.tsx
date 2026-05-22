@@ -1865,13 +1865,21 @@ export default function SimpleAssetsPage() {
               );
             })()}
 
-            {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
+            {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'crashgordon' || categoryFilter === 'bernventures' || categoryFilter === 'mittens' || categoryFilter === 'gamestonk' || categoryFilter === 'foodfightb') && (
               <div className="text-center">
                 <button
-                  onClick={() => footerRequestNav(categoryFilter === 'exotic' ? 'https://wax.alcor.exchange/markets?search=exo' : 'https://wax.alcor.exchange/markets?search=gpk')}
+                  onClick={() => {
+                    if (categoryFilter === 'exotic') {
+                      footerRequestNav('https://wax.alcor.exchange/markets?search=exo');
+                    } else if (categoryFilter === 'series1' || categoryFilter === 'series2') {
+                      footerRequestNav('https://wax.alcor.exchange/markets?search=gpk');
+                    } else {
+                      footerRequestNav('https://atomichub.io/market?blockchain=wax-mainnet&collection_name=gpk.topps&order=asc&primary_chain=wax-mainnet&schema_name=packs&sort=price&symbol=WAX');
+                    }
+                  }}
                   className="text-sm text-cheese hover:text-cheese/80 underline underline-offset-2"
                 >
-                  Buy Packs on Alcor
+                  {categoryFilter === 'exotic' || categoryFilter === 'series1' || categoryFilter === 'series2' ? 'Buy Packs on Alcor' : 'Buy Packs on AtomicHub'}
                 </button>
               </div>
             )}
