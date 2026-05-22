@@ -1865,10 +1865,10 @@ export default function SimpleAssetsPage() {
               );
             })()}
 
-            {(categoryFilter === 'series1' || categoryFilter === 'series2') && (
+            {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
               <div className="text-center">
                 <button
-                  onClick={() => footerRequestNav('https://wax.alcor.exchange/markets?search=gpk')}
+                  onClick={() => footerRequestNav(categoryFilter === 'exotic' ? 'https://wax.alcor.exchange/markets?search=exo' : 'https://wax.alcor.exchange/markets?search=gpk')}
                   className="text-sm text-cheese hover:text-cheese/80 underline underline-offset-2"
                 >
                   Buy Packs on Alcor
