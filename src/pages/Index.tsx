@@ -2162,6 +2162,9 @@ export default function SimpleAssetsPage() {
               This manager does <strong className="text-cheese/80">not mint, sell, or distribute any NFTs or packs</strong>. It deploys <strong className="text-cheese/80">no new smart contracts</strong> — all on-chain actions (pack opening, transfers, burns, claims) are executed against pre-existing public WAX contracts (<code className="text-cheese/80">gpk.topps</code>, AtomicAssets, etc.) using the user's own wallet and signatures. It was built to preserve community access to SimpleAssets pack opening and contract actions.
             </p>
             <p>
+              Original pack artwork for <strong className="text-cheese/80">Series 1, Series 2, and Tiger King</strong> packs is displayed courtesy of <a href="https://geepeekay.com" target="_blank" rel="noopener noreferrer" className="text-cheese hover:underline">geepeekay.com</a>.
+            </p>
+            <p>
               No fees are charged by this tool. Use at your own risk — blockchain transactions are irreversible. Nothing here constitutes financial, legal, or investment advice. Rights holders with concerns or takedown requests may contact us at{' '}
               <a href="mailto:gpkonwax@protonmail.com" className="text-cheese hover:underline">gpkonwax@protonmail.com</a>
               {' '}or via Telegram:{' '}
