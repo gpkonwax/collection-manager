@@ -1630,7 +1630,7 @@ export default function SimpleAssetsPage() {
 
         {isConnected && (
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-cheese">Unnoficial GPK.Topps Collection Manager</h1>
+            <h1 className="text-3xl font-bold text-cheese">Unofficial GPK.Topps Collection Manager</h1>
             <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
               <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
@@ -1655,7 +1655,7 @@ export default function SimpleAssetsPage() {
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-tight max-w-3xl">
-                The Unnoficial GPK Collection Manager
+                The Unofficial GPK Collection Manager
               </h2>
               <p className="text-lg text-foreground max-w-2xl">
                 Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
