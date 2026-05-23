@@ -1658,7 +1658,7 @@ export default function SimpleAssetsPage() {
                 The Unofficial GPK Collection Manager
               </h2>
               <p className="text-lg text-foreground max-w-2xl">
-                Free to use, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX community.
+                Free to use, open source, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX and GPK communities.
               </p>
               <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 px-4 py-3 text-sm text-foreground">
                 <span className="font-semibold text-cheese">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.
