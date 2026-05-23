@@ -2172,6 +2172,13 @@ export default function SimpleAssetsPage() {
                 <span className="text-[10px]">GitHub</span>
               </button>
             </div>
+            <div className="text-xs text-cheese space-y-0.5 text-center sm:text-right">
+              <p className="font-semibold">Important Links</p>
+              <p>• <button type="button" onClick={() => footerRequestNav('https://www.wax.io/')} className="hover:underline">WAX</button></p>
+              <p>• <button type="button" onClick={() => footerRequestNav('https://www.greymass.com/anchor#download')} className="hover:underline">Anchor Wallet</button></p>
+              <p>• <button type="button" onClick={() => footerRequestNav('https://atomichub.io/')} className="hover:underline">AtomicHub</button></p>
+              <p>• <button type="button" onClick={() => footerRequestNav('https://geepeekay.com/')} className="hover:underline">GeePeekay</button></p>
+            </div>
           </div>
           <div className="mt-6 pt-4 border-t border-cheese/10 text-[10px] leading-relaxed text-muted-foreground max-w-4xl mx-auto space-y-2">
             <p>
