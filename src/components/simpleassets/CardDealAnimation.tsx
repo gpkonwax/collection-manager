@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import shuffleSfx from '@/assets/card-shuffle.mp3';
 import landSfx from '@/assets/card-land.mp3';
@@ -15,32 +15,78 @@ const STACK_Y = 60;
 const SIT_DURATION = 1600;
 const FLY_DURATION = 1100;
 const LAND_PAUSE = 700;
-const INITIAL_SHUFFLE_DELAY = 2200; // ms — let card-shuffle.mp3 play before first card flies
+const INITIAL_SHUFFLE_DELAY = 2200;
 const FLY_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const SCROLL_TIMEOUT = 1500;
+
+// Wait for window scroll to settle. Uses `scrollend` when available; otherwise
+// polls for stability. Resolves immediately if already at target (±2 px).
+function waitForScrollEnd(targetY: number | null): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (targetY !== null && Math.abs(window.scrollY - targetY) < 2) {
+      resolve();
+      return;
+    }
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('scrollend', finish);
+      clearTimeout(timeout);
+      clearInterval(poll);
+      resolve();
+    };
+
+    const supportsScrollEnd = 'onscrollend' in window;
+    if (supportsScrollEnd) {
+      window.addEventListener('scrollend', finish, { once: true });
+    }
+
+    // Fallback stability polling (covers Safari + the "already done" case).
+    let lastY = window.scrollY;
+    let stable = 0;
+    const poll = setInterval(() => {
+      const y = window.scrollY;
+      if (Math.abs(y - lastY) < 1) stable++;
+      else stable = 0;
+      lastY = y;
+      if (stable >= 4) finish(); // ~200ms stable
+    }, 50);
+
+    // Hard timeout — never wait longer than this.
+    const timeout = setTimeout(finish, SCROLL_TIMEOUT);
+  });
+}
+
+// Two RAFs ensure layout & paint have committed before reading rects.
+function nextLayoutFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
 
 export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+  const shuffleAudioRef = useRef<HTMLAudioElement | null>(null);
 
-    // Play shuffle sound as we scroll up to the card pile
+  useEffect(() => {
     const shuffleAudio = new Audio(shuffleSfx);
+    shuffleAudioRef.current = shuffleAudio;
     shuffleAudio.play().catch(() => {});
 
     return () => {
-      document.body.style.overflow = prev;
       shuffleAudio.pause();
       shuffleAudio.currentTime = 0;
+      shuffleAudioRef.current = null;
     };
   }, []);
 
-  // Sort cards bottom-up based on actual grid cell positions (deepest scroll position first)
+  // Sort cards bottom-up based on actual grid cell positions.
   const [orderedCards, setOrderedCards] = useState<SimpleAsset[]>(cards);
   const orderedReadyRef = useRef(false);
 
   useEffect(() => {
     if (orderedReadyRef.current) return;
-    // Wait briefly for grid cells to mount, then sort by absolute Y position descending
     const tryOrder = (attempt: number) => {
       const positions = cards.map(c => {
         const el = gridCellRefs.current.get(c.id);
@@ -53,7 +99,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
         setTimeout(() => tryOrder(attempt + 1), 100);
         return;
       }
-      positions.sort((a, b) => b.y - a.y); // bottom (largest y) first
+      positions.sort((a, b) => b.y - a.y);
       setOrderedCards(positions.map(p => p.card));
       orderedReadyRef.current = true;
     };
@@ -62,11 +108,42 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
   const [dealIndex, setDealIndex] = useState(0);
   const [phase, setPhase] = useState<'sitting' | 'scrolling' | 'flying' | 'landed' | 'idle'>('idle');
+  const phaseRef = useRef(phase);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+
   const [flyTarget, setFlyTarget] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const hasCompletedRef = useRef(false);
   const isFirstCardRef = useRef(true);
 
+  // Soft scroll lock: block user wheel/touch/key scrolling ONLY during flight.
+  useEffect(() => {
+    const blockIfFlying = (e: Event) => {
+      const p = phaseRef.current;
+      if (p === 'flying' || p === 'landed') {
+        e.preventDefault();
+      }
+    };
+    const blockKeysIfFlying = (e: KeyboardEvent) => {
+      const p = phaseRef.current;
+      if (p !== 'flying' && p !== 'landed') return;
+      const scrollKeys = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'Spacebar'];
+      if (scrollKeys.includes(e.key)) e.preventDefault();
+    };
+    window.addEventListener('wheel', blockIfFlying, { passive: false });
+    window.addEventListener('touchmove', blockIfFlying, { passive: false });
+    window.addEventListener('keydown', blockKeysIfFlying);
+    return () => {
+      window.removeEventListener('wheel', blockIfFlying);
+      window.removeEventListener('touchmove', blockIfFlying);
+      window.removeEventListener('keydown', blockKeysIfFlying);
+    };
+  }, []);
+
   const handleSkip = useCallback(() => {
+    if (shuffleAudioRef.current) {
+      shuffleAudioRef.current.pause();
+      shuffleAudioRef.current.currentTime = 0;
+    }
     orderedCards.slice(dealIndex).forEach(c => onCardDealt(c.id));
     hasCompletedRef.current = true;
     onComplete();
@@ -76,13 +153,17 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     for (const el of gridCellRefs.current.values()) {
       if (el) {
         const rect = el.getBoundingClientRect();
-        return { width: rect.width, height: rect.height };
+        if (rect.width > 0 && rect.height > 0) {
+          return { width: rect.width, height: rect.height };
+        }
       }
     }
     return { width: 160, height: 160 };
   }, [gridCellRefs]);
 
   const [cardSize, setCardSize] = useState({ width: 160, height: 160 });
+  const cardSizeRef = useRef(cardSize);
+  useEffect(() => { cardSizeRef.current = cardSize; }, [cardSize]);
 
   useEffect(() => {
     setCardSize(getCardSize());
@@ -90,13 +171,15 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
   const stackX = typeof window !== 'undefined' ? window.innerWidth / 2 - cardSize.width / 2 : 0;
 
-  const scrollToElement = useCallback((absoluteTop: number, height: number) => {
+  // Returns scroll Y that centers the element in the viewport.
+  const computeScrollTarget = useCallback((absoluteTop: number, height: number) => {
     const viewportH = window.innerHeight;
     const targetCenter = absoluteTop + height / 2;
-    const scrollTarget = targetCenter - viewportH / 2;
-    window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - viewportH);
+    return Math.max(0, Math.min(maxScroll, targetCenter - viewportH / 2));
   }, []);
 
+  // Drive the dealing state machine with async/await for clarity.
   useEffect(() => {
     if (dealIndex >= orderedCards.length) {
       if (!hasCompletedRef.current && orderedReadyRef.current) {
@@ -107,137 +190,139 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
       return;
     }
 
-    if (phase === 'idle') {
-      if (isFirstCardRef.current) {
-        isFirstCardRef.current = false;
-        // Scroll to the bottom-most card position once, then start dealing
-        const firstCard = orderedCards[0];
-        const targetEl = firstCard ? gridCellRefs.current.get(firstCard.id) : null;
-        if (targetEl) {
-          const rect = targetEl.getBoundingClientRect();
-          scrollToElement(rect.top + window.scrollY, rect.height);
+    let cancelled = false;
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    const schedule = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => { if (!cancelled) fn(); }, ms);
+      timers.push(t);
+      return t;
+    };
+
+    const run = async () => {
+      if (phase === 'idle') {
+        // Refresh card size if it's still the fallback.
+        if (cardSizeRef.current.width === 160 && cardSizeRef.current.height === 160) {
+          const fresh = getCardSize();
+          if (fresh.width !== 160 || fresh.height !== 160) setCardSize(fresh);
         }
-        let elapsed = 0;
-        let lastY = -1;
-        let stableCount = 0;
-        let shuffleTimer: ReturnType<typeof setTimeout> | null = null;
-        const interval = setInterval(() => {
-          elapsed += 50;
-          const y = window.scrollY;
-          if (Math.abs(y - lastY) < 2) stableCount++;
-          else stableCount = 0;
-          lastY = y;
-          if (stableCount >= 3 || elapsed > 3000) {
-            clearInterval(interval);
-            // Give the shuffle audio time to play before the first card flies
-            shuffleTimer = setTimeout(() => setPhase('sitting'), INITIAL_SHUFFLE_DELAY);
+
+        if (isFirstCardRef.current) {
+          isFirstCardRef.current = false;
+          const firstCard = orderedCards[0];
+          const targetEl = firstCard ? gridCellRefs.current.get(firstCard.id) : null;
+          if (targetEl) {
+            const rect = targetEl.getBoundingClientRect();
+            const targetY = computeScrollTarget(rect.top + window.scrollY, rect.height);
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+            await waitForScrollEnd(targetY);
           }
-        }, 50);
-        return () => {
-          clearInterval(interval);
-          if (shuffleTimer) clearTimeout(shuffleTimer);
-        };
-      } else {
-        setPhase('sitting');
+          if (cancelled) return;
+          schedule(() => setPhase('sitting'), INITIAL_SHUFFLE_DELAY);
+        } else {
+          setPhase('sitting');
+        }
+        return;
       }
-      return;
-    }
 
-    if (phase === 'sitting') {
-      const timer = setTimeout(() => setPhase('scrolling'), SIT_DURATION);
-      return () => clearTimeout(timer);
-    }
+      if (phase === 'sitting') {
+        schedule(() => setPhase('scrolling'), SIT_DURATION);
+        return;
+      }
 
-    if (phase === 'scrolling') {
-      const card = orderedCards[dealIndex];
-      let cancelled = false;
+      if (phase === 'scrolling') {
+        const card = orderedCards[dealIndex];
 
-      // Measure target — already sorted bottom-up, so each subsequent card is above previous
-      const rafTimer = setTimeout(() => {
-        if (cancelled) return;
-        const targetEl = gridCellRefs.current.get(card.id);
-        if (!targetEl) {
+        const measure = () => {
+          const el = gridCellRefs.current.get(card.id);
+          if (!el) return null;
+          return el.getBoundingClientRect();
+        };
+
+        let rect = measure();
+        if (!rect) {
+          // Brief retry — cell may not be mounted yet.
+          await new Promise(r => setTimeout(r, 120));
+          if (cancelled) return;
+          rect = measure();
+        }
+        if (!rect) {
           onCardDealt(card.id);
-          setPhase('idle');
           setDealIndex(i => i + 1);
+          setPhase('idle');
           return;
         }
 
-        const rect = targetEl.getBoundingClientRect();
         const viewportH = window.innerHeight;
         const cardCenter = rect.top + rect.height / 2;
-
-        // Only scroll if card is outside the comfortable middle band of the viewport
         const margin = viewportH * 0.25;
         const needsScroll = cardCenter < margin || cardCenter > viewportH - margin;
 
-        const beginFly = () => {
-          requestAnimationFrame(() => {
-            if (cancelled) return;
-            const el = gridCellRefs.current.get(card.id);
-            if (!el) {
-              onCardDealt(card.id);
-              setPhase('idle');
-              setDealIndex(i => i + 1);
-              return;
-            }
-            const freshRect = el.getBoundingClientRect();
-            setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
-            setPhase('flying');
-          });
-        };
+        if (needsScroll) {
+          const targetY = computeScrollTarget(rect.top + window.scrollY, rect.height);
+          window.scrollTo({ top: targetY, behavior: 'smooth' });
+          await waitForScrollEnd(targetY);
+          if (cancelled) return;
+        }
 
-        if (!needsScroll) {
-          beginFly();
+        // Wait for layout to commit, then re-measure.
+        await nextLayoutFrame();
+        if (cancelled) return;
+
+        let freshRect = measure();
+        if (freshRect) {
+          const freshCenter = freshRect.top + freshRect.height / 2;
+          const stillOff = freshCenter < 0 || freshCenter > viewportH;
+          if (stillOff) {
+            const el = gridCellRefs.current.get(card.id);
+            if (el) {
+              el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              await waitForScrollEnd(null);
+              if (cancelled) return;
+              await nextLayoutFrame();
+              if (cancelled) return;
+              freshRect = measure();
+            }
+          }
+        }
+
+        if (!freshRect) {
+          onCardDealt(card.id);
+          setDealIndex(i => i + 1);
+          setPhase('idle');
           return;
         }
 
-        const absTop = rect.top + window.scrollY;
-        scrollToElement(absTop, rect.height);
+        setFlyTarget({ left: freshRect.left, top: freshRect.top, width: freshRect.width, height: freshRect.height });
+        setPhase('flying');
+        return;
+      }
 
-        let lastY = -1;
-        let stableCount = 0;
-        let elapsed = 0;
-        const pollInterval = setInterval(() => {
-          if (cancelled) { clearInterval(pollInterval); return; }
-          const y = window.scrollY;
-          if (Math.abs(y - lastY) < 2) stableCount++;
-          else stableCount = 0;
-          lastY = y;
-          elapsed += 50;
-          if (stableCount >= 2 || elapsed > 1500) {
-            clearInterval(pollInterval);
-            beginFly();
-          }
-        }, 50);
+      if (phase === 'flying') {
+        schedule(() => setPhase('landed'), FLY_DURATION + 80);
+        return;
+      }
 
-        return () => clearInterval(pollInterval);
-      }, 80);
+      if (phase === 'landed') {
+        schedule(() => {
+          const landAudio = new Audio(landSfx);
+          landAudio.volume = 0.75;
+          landAudio.play().catch(() => {});
+          onCardDealt(orderedCards[dealIndex].id);
+          setFlyTarget(null);
+          setDealIndex(i => i + 1);
+          setPhase('idle');
+        }, LAND_PAUSE);
+        return;
+      }
+    };
 
-      return () => {
-        cancelled = true;
-        clearTimeout(rafTimer);
-      };
-    }
+    run();
 
-    if (phase === 'flying') {
-      const timer = setTimeout(() => setPhase('landed'), FLY_DURATION + 80);
-      return () => clearTimeout(timer);
-    }
-
-    if (phase === 'landed') {
-      const timer = setTimeout(() => {
-        const landAudio = new Audio(landSfx);
-        landAudio.volume = 0.75;
-        landAudio.play().catch(() => {});
-        onCardDealt(orderedCards[dealIndex].id);
-        setFlyTarget(null);
-        setDealIndex(i => i + 1);
-        setPhase('idle');
-      }, LAND_PAUSE);
-      return () => clearTimeout(timer);
-    }
-  }, [dealIndex, phase, orderedCards, gridCellRefs, onCardDealt, onComplete, scrollToElement]);
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
+  }, [dealIndex, phase, orderedCards, gridCellRefs, onCardDealt, onComplete, computeScrollTarget, getCardSize]);
 
   if (orderedCards.length === 0 || (dealIndex >= orderedCards.length && hasCompletedRef.current)) return null;
 
@@ -251,13 +336,11 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
 
   return (
     <>
-      {/* Semi-transparent backdrop during flight */}
       {(isFlying || isLanded) && (
         <div className="fixed inset-0 z-40 bg-black/30 pointer-events-none" />
       )}
 
       <div className="fixed inset-0 z-50 pointer-events-none">
-        {/* Stack */}
         {stackCards.reverse().map((card, reverseIdx, arr) => {
           const stackIdx = arr.length - 1 - reverseIdx;
           const isTop = stackIdx === 0;
@@ -267,7 +350,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           const baseLeft = stackX - offset;
           const baseTop = STACK_Y - offset;
 
-          // Animate via transform (GPU) instead of left/top/width/height (layout)
           let style: React.CSSProperties;
 
           if (cardMoving && flyTarget) {
@@ -314,7 +396,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           );
         })}
 
-        {/* Counter badge */}
         <div
           className="fixed flex items-center justify-center rounded-full bg-cheese text-cheese-foreground text-sm font-bold shadow-lg"
           style={{
@@ -328,7 +409,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           {remaining.length}
         </div>
 
-        {/* Card name when sitting */}
         {phase === 'sitting' && (
           <div
             className="fixed flex items-center justify-center pointer-events-none"
@@ -345,7 +425,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
           </div>
         )}
 
-        {/* Skip Animation button */}
         <button
           onClick={handleSkip}
           className="fixed pointer-events-auto bg-card/90 hover:bg-card text-foreground text-xs font-semibold px-3 py-1.5 rounded-md border border-border shadow-md transition-colors"
