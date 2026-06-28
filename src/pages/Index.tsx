@@ -1654,7 +1654,7 @@ export default function SimpleAssetsPage() {
         {!isConnected ? (
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
-              <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-snug max-w-3xl">
+              <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-[1.25] pb-2 max-w-3xl">
                 The Unofficial GPK Collection Manager
               </h2>
               <p className="text-lg text-foreground max-w-2xl">
