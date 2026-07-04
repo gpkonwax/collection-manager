@@ -437,11 +437,6 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                   ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">No image</div>
                   )}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-bold text-foreground/30 select-none">
-                      {cardid}
-                    </span>
-                  </div>
                 </div>
               </div>
 
