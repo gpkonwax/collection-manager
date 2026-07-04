@@ -408,40 +408,45 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           return (
             <div
               key={asset.id}
-              className={`absolute cursor-grab active:cursor-grabbing select-none group ${isSelected ? 'z-20' : 'z-10'}`}
+              className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'}`}
               style={{
                 left: s.x,
                 top: s.y,
                 width: 120,
                 height: 168,
-                transform: `rotate(${s.rotation}deg)`,
-                transformOrigin: 'center center',
               }}
-              onPointerDown={(e) => handlePointerDown(asset.id, e)}
               onClick={() => setSelectedId(asset.id)}
             >
-              <div className={`w-full h-full rounded-md overflow-hidden border-2 transition-colors ${isSelected ? 'border-cheese shadow-lg shadow-cheese/20' : 'border-border'}`}>
-                {backUrl ? (
-                  <IpfsMedia
-                    url={backUrl}
-                    alt={`Card ${cardid}`}
-                    className="w-full h-full object-cover pointer-events-none"
-                    context="card"
-                    loading="eager"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">No image</div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-2xl font-bold text-foreground/30 select-none">
-                    {cardid}
-                  </span>
+              <div
+                className="absolute inset-0 cursor-grab active:cursor-grabbing"
+                style={{
+                  transform: `rotate(${s.rotation}deg)`,
+                  transformOrigin: 'center center',
+                }}
+                onPointerDown={(e) => handlePointerDown(asset.id, e)}
+              >
+                <div className={`w-full h-full rounded-md overflow-hidden border-2 transition-colors ${isSelected ? 'border-cheese shadow-lg shadow-cheese/20' : 'border-border'}`}>
+                  {backUrl ? (
+                    <IpfsMedia
+                      url={backUrl}
+                      alt={`Card ${cardid}`}
+                      className="w-full h-full object-cover pointer-events-none"
+                      context="card"
+                      loading="eager"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">No image</div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-bold text-foreground/30 select-none">
+                      {cardid}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <div
-                className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                style={{ transform: `translateX(-50%) rotate(-${s.rotation}deg)` }}
+                className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 z-30 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
               >
                 <Button
                   size="icon"
