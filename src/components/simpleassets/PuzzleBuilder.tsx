@@ -408,7 +408,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           return (
             <div
               key={asset.id}
-              className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'}`}
+              className={`absolute select-none group ${isSelected ? 'z-50 hover:z-50' : 'z-10 hover:z-40'}`}
               style={{
                 left: s.x,
                 top: s.y,
