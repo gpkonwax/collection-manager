@@ -1,177 +1,159 @@
-import { ATOMIC_API } from '@/lib/waxConfig';
-import { fetchWithFallback } from '@/lib/fetchWithFallback';
-
 /**
- * GPK cards on AtomicAssets are bridged 1:1 from the original SimpleAssets
- * contract. Each bridged AA asset carries the original SA id in the schema
- * field `sassets_id`. The `template_mint` returned by the AA API is the
- * *bridge order*, not the card's original mint number.
+ * Resolves the true original SimpleAssets mint number and total for bridged
+ * GPK AtomicAssets, using AtomicHub's own endpoint (the same one their explorer
+ * calls):
  *
- * To recover the real SA mint number for a bridged asset, we fetch every
- * asset for its template, sort them ascending by `sassets_id` (lower =
- * earlier SA mint), and take the 1-based position of the target asset.
+ *   GET https://nft-data.api.atomichub.io/v1/simpleassets/mints?asset_ids=<sa_id,...>
+ *   -> { success, data: [{ asset_id, mint, total, burned }] }
  *
- * This mirrors the behavior AtomicHub adopted on 2026-07-09.
+ * `asset_id` in the response is the ORIGINAL SimpleAssets id (`sassets_id`
+ * carried in the bridged AA immutable_data), not the AA asset_id. We join back
+ * to AA asset_id via that field.
  */
+const ENDPOINT = 'https://nft-data.api.atomichub.io/v1/simpleassets/mints';
+const CACHE_TTL = 30 * 60 * 1000;
+const CACHE_KEY_PREFIX = 'gpk_sa_mint_v2_';
+const BATCH_SIZE = 100;
+const CONCURRENCY = 3;
 
-interface AssetLite {
-  asset_id: string;
-  immutable_data?: Record<string, string>;
-  data?: Record<string, string>;
-}
-
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-const CACHE_KEY_PREFIX = 'gpk_sa_mint_v1_';
-
-interface TemplateMintMap {
-  /** asset_id -> 1-based SA mint number */
-  positions: Record<string, number>;
-  /** total number of bridged assets for this template */
+export interface SaMintInfo {
+  mint: number;
   total: number;
+  burned: number;
 }
 
-const memory = new Map<string, { ts: number; data: TemplateMintMap }>();
-const inflight = new Map<string, Promise<TemplateMintMap | null>>();
+interface CacheEntry { ts: number; data: SaMintInfo }
 
-function loadFromSession(templateId: string): TemplateMintMap | null {
+const memory = new Map<string, CacheEntry>();
+const inflight = new Map<string, Promise<SaMintInfo | null>>();
+
+function readSession(saId: string): SaMintInfo | null {
   try {
-    const raw = sessionStorage.getItem(CACHE_KEY_PREFIX + templateId);
+    const raw = sessionStorage.getItem(CACHE_KEY_PREFIX + saId);
     if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
+    const { ts, data } = JSON.parse(raw) as CacheEntry;
     if (Date.now() - ts > CACHE_TTL) {
-      sessionStorage.removeItem(CACHE_KEY_PREFIX + templateId);
+      sessionStorage.removeItem(CACHE_KEY_PREFIX + saId);
       return null;
     }
-    return data as TemplateMintMap;
-  } catch {
-    return null;
-  }
+    return data;
+  } catch { return null; }
 }
 
-function saveToSession(templateId: string, data: TemplateMintMap) {
+function writeSession(saId: string, data: SaMintInfo) {
   try {
-    sessionStorage.setItem(
-      CACHE_KEY_PREFIX + templateId,
-      JSON.stringify({ ts: Date.now(), data }),
-    );
-  } catch {
-    // quota exceeded; memory cache still applies
-  }
+    sessionStorage.setItem(CACHE_KEY_PREFIX + saId, JSON.stringify({ ts: Date.now(), data }));
+  } catch { /* quota */ }
 }
 
-async function fetchTemplateAssets(templateId: string): Promise<AssetLite[]> {
-  const all: AssetLite[] = [];
-  let page = 1;
-  const limit = 1000;
-  // Cap at 20 pages (20k assets) as a safety net — GPK templates are far smaller.
-  while (page <= 20) {
-    const params = new URLSearchParams({
-      collection_name: 'gpk.topps',
-      template_id: templateId,
-      limit: String(limit),
-      page: String(page),
-      order: 'asc',
-      sort: 'asset_id',
-    });
-    const path = `${ATOMIC_API.paths.assets}?${params}`;
-    const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
-    const json = await response.json();
-    if (!json.success || !Array.isArray(json.data)) break;
-    all.push(...json.data);
-    if (json.data.length < limit) break;
-    page++;
-  }
-  return all;
-}
-
-/**
- * Resolve the SA mint map for a single template. Returns null if the
- * template's assets carry no `sassets_id` (native AA, not bridged).
- */
-export async function resolveSaMintForTemplate(
-  templateId: string,
-): Promise<TemplateMintMap | null> {
-  if (!templateId) return null;
-
-  // 1. Memory
-  const mem = memory.get(templateId);
-  if (mem && Date.now() - mem.ts < CACHE_TTL) return mem.data;
-
-  // 2. Session storage
-  const session = loadFromSession(templateId);
-  if (session) {
-    memory.set(templateId, { ts: Date.now(), data: session });
-    return session;
-  }
-
-  // 3. Deduplicated fetch
-  const existing = inflight.get(templateId);
-  if (existing) return existing;
-
-  const promise = (async (): Promise<TemplateMintMap | null> => {
-    try {
-      const assets = await fetchTemplateAssets(templateId);
-      if (assets.length === 0) return null;
-
-      const withSassetsId = assets
-        .map((a) => {
-          const raw = a.immutable_data?.sassets_id ?? a.data?.sassets_id ?? '';
-          if (!raw) return null;
-          try {
-            return { asset_id: a.asset_id, sassets_id: BigInt(String(raw)) };
-          } catch {
-            return null;
-          }
-        })
-        .filter((x): x is { asset_id: string; sassets_id: bigint } => x !== null);
-
-      // No sassets_id at all → not a bridged template, keep AA mint order.
-      if (withSassetsId.length === 0) return null;
-
-      withSassetsId.sort((a, b) => (a.sassets_id < b.sassets_id ? -1 : a.sassets_id > b.sassets_id ? 1 : 0));
-
-      const positions: Record<string, number> = {};
-      withSassetsId.forEach((item, idx) => {
-        positions[item.asset_id] = idx + 1;
-      });
-
-      const data: TemplateMintMap = { positions, total: withSassetsId.length };
-      memory.set(templateId, { ts: Date.now(), data });
-      saveToSession(templateId, data);
-      return data;
-    } catch (err) {
-      console.warn(`[saMintResolver] Failed to resolve template ${templateId}:`, err);
-      return null;
-    } finally {
-      inflight.delete(templateId);
+async function fetchBatch(saIds: string[]): Promise<Record<string, SaMintInfo>> {
+  const url = `${ENDPOINT}?asset_ids=${saIds.join(',')}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, { signal: controller.signal, headers: { accept: 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json?.success || !Array.isArray(json.data)) return {};
+    const out: Record<string, SaMintInfo> = {};
+    for (const row of json.data) {
+      if (!row?.asset_id) continue;
+      const info: SaMintInfo = {
+        mint: Number(row.mint),
+        total: Number(row.total),
+        burned: Number(row.burned ?? 0),
+      };
+      if (!Number.isFinite(info.mint) || !Number.isFinite(info.total)) continue;
+      out[String(row.asset_id)] = info;
     }
-  })();
-
-  inflight.set(templateId, promise);
-  return promise;
+    return out;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
- * Resolve SA mint maps for many templates in parallel, with bounded concurrency.
+ * Resolve SA mint info for a list of AA assets, each identified by its AA
+ * asset_id + original sassets_id. Returns a map keyed by AA asset_id.
  */
-export async function resolveSaMintForTemplates(
-  templateIds: string[],
-  concurrency = 5,
-): Promise<Map<string, TemplateMintMap>> {
-  const unique = Array.from(new Set(templateIds.filter(Boolean)));
-  const result = new Map<string, TemplateMintMap>();
+export async function resolveSaMintsForAssets(
+  assets: { assetId: string; sassetsId: string }[],
+): Promise<Map<string, SaMintInfo>> {
+  const result = new Map<string, SaMintInfo>();
+  if (assets.length === 0) return result;
+
+  // Dedupe sassets_id → collect AA asset_ids that share it (should be 1:1).
+  const saToAssetIds = new Map<string, string[]>();
+  for (const a of assets) {
+    if (!a.sassetsId) continue;
+    const list = saToAssetIds.get(a.sassetsId) ?? [];
+    list.push(a.assetId);
+    saToAssetIds.set(a.sassetsId, list);
+  }
+
+  const need: string[] = [];
+  for (const saId of saToAssetIds.keys()) {
+    // memory
+    const mem = memory.get(saId);
+    if (mem && Date.now() - mem.ts < CACHE_TTL) {
+      for (const aid of saToAssetIds.get(saId)!) result.set(aid, mem.data);
+      continue;
+    }
+    // session
+    const sess = readSession(saId);
+    if (sess) {
+      memory.set(saId, { ts: Date.now(), data: sess });
+      for (const aid of saToAssetIds.get(saId)!) result.set(aid, sess);
+      continue;
+    }
+    need.push(saId);
+  }
+
+  if (need.length === 0) return result;
+
+  // Batch
+  const batches: string[][] = [];
+  for (let i = 0; i < need.length; i += BATCH_SIZE) {
+    batches.push(need.slice(i, i + BATCH_SIZE));
+  }
+
   let cursor = 0;
-
   async function worker() {
-    while (cursor < unique.length) {
+    while (cursor < batches.length) {
       const idx = cursor++;
-      const tid = unique[idx];
-      const map = await resolveSaMintForTemplate(tid);
-      if (map) result.set(tid, map);
+      const batch = batches[idx];
+      const key = batch.join(',');
+      let promise = inflight.get(key);
+      if (!promise) {
+        promise = (async () => {
+          try {
+            const rows = await fetchBatch(batch);
+            for (const saId of batch) {
+              const info = rows[saId];
+              if (!info) continue;
+              memory.set(saId, { ts: Date.now(), data: info });
+              writeSession(saId, info);
+            }
+            return null;
+          } catch (err) {
+            console.warn('[saMintResolver] batch failed:', err);
+            return null;
+          } finally {
+            inflight.delete(key);
+          }
+        })();
+        inflight.set(key, promise);
+      }
+      await promise;
+      // fill result from memory
+      for (const saId of batch) {
+        const mem = memory.get(saId);
+        if (!mem) continue;
+        for (const aid of saToAssetIds.get(saId) ?? []) result.set(aid, mem.data);
+      }
     }
   }
-
-  const workers = Array.from({ length: Math.min(concurrency, unique.length) }, () => worker());
+  const workers = Array.from({ length: Math.min(CONCURRENCY, batches.length) }, () => worker());
   await Promise.all(workers);
   return result;
 }

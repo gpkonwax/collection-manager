@@ -181,8 +181,17 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
         {(mintInfo || hasContained) && (
-          <div className="flex items-center gap-1.5 pt-0.5">
+          <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
             {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>}
+            {asset.idata?.bridge_mint ? (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
+                title="Original bridge order mint from SimpleAssets → AtomicAssets bridging"
+              >
+                Bridge Mint #{String(asset.idata.bridge_mint)}
+                {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
+              </span>
+            ) : null}
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
@@ -205,6 +214,9 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.quality === next.asset.quality &&
     prev.asset.side === next.asset.side &&
     prev.asset.source === next.asset.source &&
+    prev.asset.idata?.mint === next.asset.idata?.mint &&
+    prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
+    prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
     prev.draggable === next.draggable &&

@@ -268,7 +268,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
   const isDrawable = DRAWABLE_CATEGORIES.has(asset.category);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
-    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply'].includes(key)
+    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
@@ -369,9 +369,18 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           </div>
         )}
         {mintDisplay && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-cheese">Mint</span>
             <span className="text-sm font-mono text-primary">{mintDisplay}</span>
+            {asset.idata?.bridge_mint ? (
+              <span
+                className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                title="Original bridge order from SimpleAssets → AtomicAssets bridging"
+              >
+                Bridge Mint #{String(asset.idata.bridge_mint)}
+                {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
+              </span>
+            ) : null}
           </div>
         )}
         {metaFields.length > 0 && (
