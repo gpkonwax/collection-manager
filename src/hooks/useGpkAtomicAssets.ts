@@ -3,6 +3,7 @@ import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
+import { resolveSaMintForTemplates } from '@/lib/saMintResolver';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface AtomicAssetRaw {
