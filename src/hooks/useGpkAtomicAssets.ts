@@ -108,6 +108,39 @@ export function useGpkAtomicAssets(account: string | null) {
         return Number(BigInt(a.id) - BigInt(b.id));
       });
       setAssets(parsed);
+
+      // Resolve original SimpleAssets mint numbers (bridged assets carry the
+      // original SA id in immutable_data.sassets_id). AA's template_mint is
+      // just the bridge order, so we overwrite mint/maxsupply per asset once
+      // the resolver returns. This runs after first render so cards appear
+      // immediately with the AA mint, then upgrade to the real SA mint.
+      const templateIds = Array.from(
+        new Set(allAssets.map((a) => a.template?.template_id).filter((x): x is string => !!x)),
+      );
+      resolveSaMintForTemplates(templateIds).then((mintMap) => {
+        if (mintMap.size === 0) return;
+        setAssets((prev) =>
+          prev.map((asset) => {
+            const tid = String((asset.idata as Record<string, unknown>)._template_id ?? '');
+            const entry = mintMap.get(tid);
+            if (!entry) return asset;
+            const position = entry.positions[asset.id];
+            if (!position) return asset;
+            return {
+              ...asset,
+              idata: {
+                ...asset.idata,
+                mint: String(position),
+                // Keep AA issued_supply as denominator — it matches the number
+                // of assets currently on AA. If a future SA-total source is
+                // wired in, replace this with entry.total or that value.
+              },
+            };
+          }),
+        );
+      }).catch((err) => {
+        console.warn('[GpkAtomicAssets] SA mint resolution failed:', err);
+      });
     } catch (err) {
       console.error('[GpkAtomicAssets] Failed to fetch:', err);
       setError((err as Error).message);
