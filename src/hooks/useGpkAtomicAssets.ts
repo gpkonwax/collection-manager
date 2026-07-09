@@ -3,7 +3,7 @@ import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
-import { resolveSaMintForTemplates } from '@/lib/saMintResolver';
+import { resolveSaMintsForAssets } from '@/lib/saMintResolver';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface AtomicAssetRaw {
@@ -82,6 +82,9 @@ export function useGpkAtomicAssets(account: string | null) {
         const name = combined.name || raw.name || `Asset #${raw.asset_id}`;
         const images = resolveAllImages(combined);
         const schemaName = raw.schema?.schema_name || '';
+        const bridgeMint = raw.template_mint || '';
+        const bridgeTotal = raw.template?.issued_supply || '';
+        const sassetsId = String(raw.immutable_data?.sassets_id ?? raw.data?.sassets_id ?? '');
         return {
           id: raw.asset_id, owner: raw.owner, author: 'gpk.topps',
           category: schemaName,
@@ -89,7 +92,19 @@ export function useGpkAtomicAssets(account: string | null) {
           cardid: String(combined.cardid ?? ''),
           quality: normalizeGpkVariant(combined.variant),
           side: String(combined.quality ?? '').toLowerCase(),
-          idata: { ...templateData, ...raw.immutable_data, _template_id: raw.template?.template_id || '', mint: raw.template_mint || '', maxsupply: raw.template?.issued_supply || '' } as Record<string, unknown>,
+          idata: {
+            ...templateData,
+            ...raw.immutable_data,
+            _template_id: raw.template?.template_id || '',
+            // Initial mint/supply = bridge values so the card renders instantly.
+            mint: bridgeMint,
+            maxsupply: bridgeTotal,
+            // Persist bridge values under dedicated keys so UI can show both
+            // once the AtomicHub SA mint upgrade lands.
+            bridge_mint: bridgeMint,
+            bridge_total: bridgeTotal,
+            ...(sassetsId ? { sassets_id: sassetsId } : {}),
+          } as Record<string, unknown>,
           mdata: raw.mutable_data as Record<string, unknown>,
           container: [], containerf: [],
           source: 'atomicassets' as const,
@@ -109,38 +124,36 @@ export function useGpkAtomicAssets(account: string | null) {
       });
       setAssets(parsed);
 
-      // Resolve original SimpleAssets mint numbers (bridged assets carry the
-      // original SA id in immutable_data.sassets_id). AA's template_mint is
-      // just the bridge order, so we overwrite mint/maxsupply per asset once
-      // the resolver returns. This runs after first render so cards appear
-      // immediately with the AA mint, then upgrade to the real SA mint.
-      const templateIds = Array.from(
-        new Set(allAssets.map((a) => a.template?.template_id).filter((x): x is string => !!x)),
-      );
-      resolveSaMintForTemplates(templateIds).then((mintMap) => {
-        if (mintMap.size === 0) return;
-        setAssets((prev) =>
-          prev.map((asset) => {
-            const tid = String((asset.idata as Record<string, unknown>)._template_id ?? '');
-            const entry = mintMap.get(tid);
-            if (!entry) return asset;
-            const position = entry.positions[asset.id];
-            if (!position) return asset;
-            return {
-              ...asset,
-              idata: {
-                ...asset.idata,
-                mint: String(position),
-                // Keep AA issued_supply as denominator — it matches the number
-                // of assets currently on AA. If a future SA-total source is
-                // wired in, replace this with entry.total or that value.
-              },
-            };
-          }),
-        );
-      }).catch((err) => {
-        console.warn('[GpkAtomicAssets] SA mint resolution failed:', err);
-      });
+      // Upgrade bridged assets with the true original SimpleAssets mint/total
+      // from AtomicHub's live endpoint. Keeps the bridge mint under
+      // idata.bridge_mint/bridge_total so the UI can display both.
+      const bridged = allAssets
+        .map((a) => ({
+          assetId: a.asset_id,
+          sassetsId: String(a.immutable_data?.sassets_id ?? a.data?.sassets_id ?? ''),
+        }))
+        .filter((x) => x.sassetsId);
+      if (bridged.length > 0) {
+        resolveSaMintsForAssets(bridged).then((mintMap) => {
+          if (mintMap.size === 0) return;
+          setAssets((prev) =>
+            prev.map((asset) => {
+              const info = mintMap.get(asset.id);
+              if (!info) return asset;
+              return {
+                ...asset,
+                idata: {
+                  ...asset.idata,
+                  mint: String(info.mint),
+                  maxsupply: String(info.total),
+                },
+              };
+            }),
+          );
+        }).catch((err) => {
+          console.warn('[GpkAtomicAssets] SA mint resolution failed:', err);
+        });
+      }
     } catch (err) {
       console.error('[GpkAtomicAssets] Failed to fetch:', err);
       setError((err as Error).message);
