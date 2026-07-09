@@ -1,56 +1,41 @@
-# Fix: Rotate buttons should stay in place, card rotates beside them
+## Fix: show original SimpleAssets mint number for bridged AtomicAssets GPK cards
 
-## Problem
-In `src/components/simpleassets/PuzzleBuilder.tsx`, each piece is a single absolutely-positioned `<div>` that carries `transform: rotate(...)`. The rotate buttons live **inside** that same rotating wrapper. Even though they're counter-rotated (`rotate(-Xdeg)`) to stay visually upright, they still **orbit around the card's center** as the card spins — so they slide to a new screen position after each 90° press.
+### Problem
+For bridged GPK cards, we currently display `template_mint / issued_supply` from the AtomicAssets API (e.g. `#45 / 134` for asset `1099519849001`). That's the **bridge order**, not the card's real mint number.
 
-## Fix
-Split the piece into two nested elements:
+AtomicHub has just switched to showing the **original SimpleAssets mint** (e.g. `#119 / 240` for the same asset). Every bridged AA asset carries the original SA id in `immutable_data.sassets_id` (schema field). The lower the `sassets_id`, the earlier the card was minted in SA. `#119 / 240` = position of this asset when all cards of the same template are ordered by `sassets_id` ascending, over the total number of SA mints that ever existed for that template (including any not yet bridged).
 
-1. **Outer wrapper** — absolutely positioned at `s.x / s.y`, no rotation. This is the stable anchor.
-2. **Inner card** — the 120×168 card visual with `transform: rotate(${s.rotation}deg)` applied here only.
-3. **Rotate button row** — moved out of the rotating inner and placed as a child of the outer wrapper, positioned at a fixed offset (e.g. `bottom: -32px; left: 50%; translateX(-50%)`). No counter-rotation needed anymore since its parent never rotates.
+### Approach
 
-The buttons will now sit at the same screen coordinates regardless of card rotation, and the card visually rotates next to them.
+1. **Numerator (mint position):** For each template that has a `sassets_id` field, fetch every bridged asset for that template, sort by `sassets_id` ascending, and record each asset's 1-based position. The current asset's position is its original SA mint number.
+2. **Denominator (total supply):** Read the original SimpleAssets stat row for the matching `author + category + name` (schema/cardid/quality/variant combo) from the `simpleassets` contract, `stats` table, to get the true "ever-minted" count. Fall back to bridged count if the SA stat row is unavailable.
 
-## Technical detail
+Numerator alone is enough to display the correct `#N` even if the SA stat lookup fails. Denominator is best-effort; if the SA total can't be resolved we keep bridged `issued_supply` as the total so the label always renders.
 
-Change lines ~409–465 in `src/components/simpleassets/PuzzleBuilder.tsx`:
+### Implementation plan
 
-```tsx
-<div
-  key={asset.id}
-  className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'}`}
-  style={{ left: s.x, top: s.y, width: 120, height: 168 }}
-  onClick={() => setSelectedId(asset.id)}
->
-  {/* Rotating card */}
-  <div
-    className="absolute inset-0 cursor-grab active:cursor-grabbing"
-    style={{
-      transform: `rotate(${s.rotation}deg)`,
-      transformOrigin: 'center center',
-    }}
-    onPointerDown={(e) => handlePointerDown(asset.id, e)}
-  >
-    <div className={`w-full h-full rounded-md overflow-hidden border-2 ${isSelected ? 'border-cheese ...' : 'border-border'}`}>
-      {/* image + cardid label unchanged */}
-    </div>
-  </div>
+**A. New utility `src/lib/saMintResolver.ts`**
+- `resolveSaMintForTemplate(templateId)` → returns `Map<asset_id, { mint: number; bridgedTotal: number }>`.
+- Paginates `/atomicassets/v1/assets?collection_name=gpk.topps&template_id=<id>&limit=1000` sorted by `asset_id` asc, collects `{ asset_id, sassets_id }`, sorts by `sassets_id` asc, assigns position.
+- Skips templates whose schema has no `sassets_id` field (unbridged / native AA templates such as `packs`).
+- Memoizes per-template result in memory + `sessionStorage` (30 min TTL) mirroring `templateDataCache` so re-renders don't refetch.
+- `getSaTotalForTemplate(templateId, templateImmutable)` → calls `simpleassets` `stats` scope `gpk.topps` for the matching schema/quality/variant/cardid tuple, cached the same way. Returns `null` if not found.
 
-  {/* Fixed-position rotate controls — no counter-rotation */}
-  <div
-    className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-  >
-    <Button ... onClick={... rotate(asset.id, 'ccw') ...}>...</Button>
-    <Button ... onClick={... rotate(asset.id, 'cw') ...}>...</Button>
-  </div>
-</div>
-```
+**B. Wire it into `src/hooks/useGpkAtomicAssets.ts`**
+- After parsing assets, group by `template_id`.
+- For each template that has a `sassets_id` field in the schema, resolve the SA mint map + SA total, in parallel across templates (with a small concurrency limit, e.g. 5).
+- Overwrite the parsed asset's `idata.mint` with the SA mint number and `idata.maxsupply` with the SA total (falling back to `template.issued_supply` when SA total is unknown).
+- Preserve the existing sort order.
 
-Notes:
-- Drag handlers (`onPointerDown`) move to the inner rotating element so dragging the card still works; the outer wrapper stays as the layout anchor whose `left/top` the drag updates (unchanged logic).
-- Selection click stays on the outer wrapper.
-- Because the card can visually overflow the 120×168 anchor box when rotated 90° (its rotated bounding box is 168×120), that's fine — only the visual overflows; the button anchor stays put. If needed we can add `pointer-events-none` guards, but existing button `stopPropagation` already handles clicks.
+**C. No changes needed to `SimpleAssetCard.tsx` / `SimpleAssetDetailDialog.tsx`**
+- They already read `idata.mint` / `idata.maxsupply`, so once the hook rewrites those fields the badge (`#119 / 240`) will render automatically.
 
-## Files touched
-- `src/components/simpleassets/PuzzleBuilder.tsx` (only)
+**D. Graceful degradation**
+- If the mint resolver fails for a template, that template's cards keep their existing `template_mint / issued_supply` display (no regression, no error toast).
+- Never block first render on the resolver: assets render with the old mint immediately, then update once the SA-mint map resolves (state update in the hook).
+
+### Verification
+- Reload the collection page, confirm the badge on asset `1099519849001` reads `#119 / 240` (matches AtomicHub).
+- Spot-check 2–3 other cards across different templates/schemas.
+- Confirm native AA-only cards (schema `packs`, no `sassets_id`) still show `#template_mint / issued_supply`.
+- Confirm the network tab shows one paginated fetch per unique template (not per asset), served from cache on subsequent renders.
