@@ -1862,6 +1862,11 @@ export default function SimpleAssetsPage() {
                   description="Select multiple NFTs and transfer them to any WAX account or burn them permanently — all in a single transaction. Supports both SimpleAssets and AtomicAssets contracts simultaneously."
                 />
                 <FeatureCard
+                  icon={<span className="text-2xl">👁️</span>}
+                  title="View Any Wallet"
+                  description="Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click."
+                />
+                <FeatureCard
                   icon={<span className="text-2xl">🤝</span>}
                   title="Free Community Tool"
                   description="No fees, no sign-ups. A WAX community asset."
