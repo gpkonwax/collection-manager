@@ -1866,11 +1866,15 @@ export default function SimpleAssetsPage() {
                   title="View Any Wallet"
                   description="Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click."
                 />
-                <FeatureCard
-                  icon={<span className="text-2xl">🤝</span>}
-                  title="Free Community Tool"
-                  description="No fees, no sign-ups. A WAX community asset."
-                />
+                <div className="sm:col-span-2 flex justify-center">
+                  <div className="w-full max-w-lg">
+                    <FeatureCard
+                      icon={<span className="text-2xl">🤝</span>}
+                      title="Free Community Tool"
+                      description="No fees, no sign-ups. A WAX community asset."
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
