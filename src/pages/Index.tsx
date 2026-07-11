@@ -1490,7 +1490,7 @@ export default function SimpleAssetsPage() {
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
         <div className="container flex h-12 items-center justify-between">
 
-          {/* Right: Info button + view wallet + wallet controls */}
+          {/* Right: Info button + view wallet (logged in only) + wallet controls */}
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="ghost"
@@ -1502,12 +1502,15 @@ export default function SimpleAssetsPage() {
               <span className="sr-only">GPK Collection Manager Info</span>
             </Button>
 
-            <ViewWalletControl
-              currentAccount={accountName}
-              viewedAccount={viewedAccount}
-              onView={handleViewWallet}
-              onClear={handleClearViewing}
-            />
+            {isConnected && accountName && (
+              <ViewWalletControl
+                currentAccount={accountName}
+                viewedAccount={viewedAccount}
+                onView={handleViewWallet}
+                onClear={handleClearViewing}
+              />
+            )}
+
 
             {isConnected && accountName ? (
               <DropdownMenu>
