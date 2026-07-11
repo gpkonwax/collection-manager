@@ -1596,6 +1596,16 @@ export default function SimpleAssetsPage() {
                 <p className="text-foreground">This manager is a pure front-end client. It does <strong>not</strong> deploy or rely on any custom smart contracts — every action is built from the existing, audited <strong>simpleassets</strong> and <strong>atomicassets</strong> tables and actions on WAX.</p>
               </div>
               <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> View Any Wallet (Read-Only)</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Enter any valid WAX account name and browse that wallet's collection without logging in.</li>
+                  <li>View the Classic card grid, Collector Binder view, card detail dialogs, and pack holdings.</li>
+                  <li>See both SimpleAssets and AtomicAssets items together.</li>
+                  <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
+                </ul>
+                <p className="text-foreground mt-2"><strong>You cannot</strong> see their saved layout, Puzzle Builder, or completion percentage.</p>
+              </div>
+              <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection as it is. Supports pagination for large collections and instant search across all card names.</li>
