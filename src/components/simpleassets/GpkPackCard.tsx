@@ -42,6 +42,7 @@ interface GpkPackCardProps {
   onSuccess?: (txId?: string | null) => void;
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
+  isReadOnly?: boolean;
 }
 
 async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
@@ -55,7 +56,7 @@ async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
   return ids;
 }
 
-export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [] }: GpkPackCardProps) {
+export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly }: GpkPackCardProps) {
   const series2Img = SERIES_2_IMAGES[pack.symbol];
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
@@ -111,7 +112,11 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
           <p className="font-bold text-foreground text-sm">{pack.label}</p>
           <p className="text-xs text-muted-foreground">{pack.symbol}</p>
           <p className="text-lg font-mono text-primary">{pack.amount}</p>
-          {pack.amount > 0 ? (
+          {isReadOnly ? (
+            <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
+              View Only
+            </Button>
+          ) : pack.amount > 0 ? (
             <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground" disabled={!session || isOpening || !unboxType}
               onClick={hasMultiple ? () => setBrowserOpen(true) : handleOpen}>
               {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
@@ -119,7 +124,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
           ) : (
             <Button size="sm" variant="outline" className="w-full text-xs" disabled>No Packs</Button>
           )}
-          {demoCards.length > 0 && (
+          {!isReadOnly && demoCards.length > 0 && (
             <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setDemoRevealOpen(true)}>
               <Play className="h-3 w-3 mr-1" /> Demo Open
             </Button>

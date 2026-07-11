@@ -47,6 +47,8 @@ import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing } from 'lucide-react';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { JsonMenu } from '@/components/JsonMenu';
+import { ViewWalletControl } from '@/components/ViewWalletControl';
+import { ViewingBanner } from '@/components/ViewingBanner';
 import logoSimpleAssets from '@/assets/logo-simpleassets.png';
 import logoAtomicAssets from '@/assets/logo-atomicassets.png';
 
@@ -152,10 +154,45 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
 
 export default function SimpleAssetsPage() {
   const { accountName, isConnected, login, logout, session, waxBalance, allSessions, switchAccount, addAccount, removeAccount } = useWax();
-  const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(accountName);
-  const { assets: aaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(accountName);
-  const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(accountName);
-  const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(accountName);
+
+  // Read-only "view another wallet" mode
+  const [viewedAccount, setViewedAccount] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get('view');
+    return v && v !== 'me' ? v.trim().toLowerCase() : null;
+  });
+  const isViewing = !!viewedAccount && viewedAccount !== accountName;
+  const effectiveAccount = isViewing ? viewedAccount : accountName;
+  const canWrite = !isViewing;
+
+  // Keep ?view= param in sync with viewedAccount.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get('view');
+    if (viewedAccount) {
+      if (current !== viewedAccount) {
+        url.searchParams.set('view', viewedAccount);
+        window.history.replaceState({}, '', url.toString());
+      }
+    } else if (current) {
+      url.searchParams.delete('view');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [viewedAccount]);
+
+  const handleViewWallet = useCallback((name: string) => {
+    setViewedAccount(name);
+  }, []);
+  const handleClearViewing = useCallback(() => {
+    setViewedAccount(null);
+  }, []);
+
+  const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(effectiveAccount);
+  const { assets: aaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(effectiveAccount);
+  const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(effectiveAccount);
+  const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(effectiveAccount);
 
   const { executeRawTransaction } = useWaxTransaction(session);
 
@@ -323,7 +360,7 @@ export default function SimpleAssetsPage() {
   }, []);
 
   useEffect(() => {
-    if (!accountName) { setShowCollectUnclaimed(false); return; }
+    if (!accountName || isViewing) { setShowCollectUnclaimed(false); return; }
     (async () => {
       try {
         const rows = await fetchPendingNfts(accountName);
@@ -331,7 +368,16 @@ export default function SimpleAssetsPage() {
         setShowCollectUnclaimed(unclaimed.length > 0);
       } catch { }
     })();
-  }, [accountName]);
+  }, [accountName, isViewing]);
+
+  // Force-exit private views when entering view-another-wallet mode.
+  useEffect(() => {
+    if (!isViewing) return;
+    setViewMode((prev) => (prev === 'saved' ? 'classic' : prev));
+    setSeries2SubTab((prev) => (prev === 'puzzle' ? 'collection' : prev));
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, [isViewing]);
 
   const handleCollectUnclaimed = useCallback(async () => {
     if (!accountName || !session) return;
@@ -987,13 +1033,14 @@ export default function SimpleAssetsPage() {
           selected={selectedIds.has(asset.id)}
           onSelect={toggleSelection}
           priceAlertTemplate={template}
+          isReadOnly={isViewing}
         />
       );
     }
     return (
-      <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} />
+      <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} isReadOnly={isViewing} />
     );
-  }, [selectionMode, selectedIds, toggleSelection]);
+  }, [selectionMode, selectedIds, toggleSelection, isViewing]);
 
   const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -1030,17 +1077,20 @@ export default function SimpleAssetsPage() {
     );
   }, [renderBinderCard]);
 
-  const renderSelectButton = () => (
-    <Button
-      onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
-      variant="outline"
-      size="sm"
-      className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
-    >
-      <CheckSquare className="h-4 w-4 mr-1" />
-      {selectionMode ? 'Cancel Select' : 'Select'}
-    </Button>
-  );
+  const renderSelectButton = () => {
+    if (isViewing) return null;
+    return (
+      <Button
+        onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+        variant="outline"
+        size="sm"
+        className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+      >
+        <CheckSquare className="h-4 w-4 mr-1" />
+        {selectionMode ? 'Cancel Select' : 'Select'}
+      </Button>
+    );
+  };
 
   const renderSelectAllCheckbox = (visibleIds: string[]) => {
     if (!selectionMode) return null;
@@ -1063,7 +1113,7 @@ export default function SimpleAssetsPage() {
   };
 
   const renderCompletionBar = () => {
-    if (!accountName) return null;
+    if (!accountName || isViewing) return null;
     const key = categoryFilter === 'all' ? 'overall' : categoryFilter;
     const entry = completion[key];
     if (!entry) return null;
@@ -1156,23 +1206,27 @@ export default function SimpleAssetsPage() {
           {renderCompletionBar()}
         </div>
         <div className="flex items-center justify-end flex-1">
-          <Button
-            onClick={handleSnapshotToSaved}
-            variant="outline"
-            size="sm"
-            className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
-            title="Copy current view to Saved Collection for custom arrangement"
-          >
-            <Save className="h-4 w-4 mr-1" />
-            Copy to Saved
-          </Button>
+          {!isViewing && (
+            <Button
+              onClick={handleSnapshotToSaved}
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+              title="Copy current view to Saved Collection for custom arrangement"
+            >
+              <Save className="h-4 w-4 mr-1" />
+              Copy to Saved
+            </Button>
+          )}
         </div>
       </div>
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && !isLoading ? (
         <p className="text-center text-muted-foreground py-12">
-          {assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.'}
+          {isViewing
+            ? `${viewedAccount} has no GPK NFTs${categoryFilter !== 'all' ? ' in this category' : ''}.`
+            : (assets.length === 0 ? 'No SimpleAssets NFTs found in this wallet.' : 'No NFTs match your filters.')}
         </p>
-      ) : (
+      ) : filtered.length === 0 ? null : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {sortedFiltered.slice(0, visibleCount).map((asset) => {
@@ -1198,6 +1252,7 @@ export default function SimpleAssetsPage() {
                   selectionMode={selectionMode}
                   selected={selectedIds.has(asset.id)}
                   onSelect={toggleSelection}
+                  isReadOnly={isViewing}
                 />
               );
             })}
@@ -1244,6 +1299,7 @@ export default function SimpleAssetsPage() {
               {renderCompletionBar()}
             </div>
           )}
+          {!isViewing && (
           <div className="flex items-center justify-end gap-2 flex-1 min-w-[300px]">
             <AlertsManagerPopover triggeredCount={triggeredCount} />
             <JsonMenu
@@ -1277,6 +1333,7 @@ export default function SimpleAssetsPage() {
               <Trash2 className="h-4 w-4 mr-1" />Clear Alerts
             </Button>
           </div>
+          )}
         </div>
         {binderGrid ? (
           renderBinderSections(binderGrid, categoryFilter === 'series2')
@@ -1399,7 +1456,7 @@ export default function SimpleAssetsPage() {
                 key={asset.id}
                 asset={asset}
                 onClick={() => setSelectedAsset(asset)}
-                draggable={!selectionMode}
+                draggable={!selectionMode && !isViewing}
                 selectionMode={selectionMode}
                 selected={selectedIds.has(asset.id)}
                 onSelect={toggleSelection}
@@ -1407,6 +1464,7 @@ export default function SimpleAssetsPage() {
                 onDragOver={handleDragOver(idx)}
                 onDrop={handleDrop(idx)}
                 onDragEnd={handleDragEnd}
+                isReadOnly={isViewing}
               />
             );
           })}
@@ -1510,9 +1568,19 @@ export default function SimpleAssetsPage() {
                 Connect Wallet
               </Button>
             )}
+            <ViewWalletControl
+              currentAccount={accountName}
+              viewedAccount={viewedAccount}
+              onView={handleViewWallet}
+              onClear={handleClearViewing}
+            />
           </div>
         </div>
       </div>
+
+      {isViewing && viewedAccount && (
+        <ViewingBanner viewedAccount={viewedAccount} onClear={handleClearViewing} />
+      )}
 
       {/* Info Dialog */}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
@@ -1628,7 +1696,7 @@ export default function SimpleAssetsPage() {
         <BannerAd />
         <div className="mb-6" />
 
-        {isConnected && (
+        {(isConnected || isViewing) && (
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-cheese">Unofficial GPK.Topps Collection Manager</h1>
             <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
@@ -1651,7 +1719,7 @@ export default function SimpleAssetsPage() {
           </div>
         )}
 
-        {!isConnected ? (
+        {!isConnected && !isViewing ? (
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-[1.25] pb-2 max-w-3xl">
@@ -1846,11 +1914,11 @@ export default function SimpleAssetsPage() {
               }
               const renderPackItem = (item: PackItem) => item.type === 'token' ? (
                 <div key={item.pack.symbol} className="w-[calc(50%-0.5rem)] sm:w-48">
-                  <GpkPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} />
+                  <GpkPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} isReadOnly={isViewing} />
                 </div>
               ) : (
                 <div key={item.pack.templateId} className="w-[calc(50%-0.5rem)] sm:w-48">
-                  <AtomicPackCard pack={item.pack} session={session} accountName={accountName || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const cat = ATOMIC_PACK_CATEGORY_MAP[item.pack.templateId]; return cat && a.category === cat; })} />
+                  <AtomicPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const cat = ATOMIC_PACK_CATEGORY_MAP[item.pack.templateId]; return cat && a.category === cat; })} isReadOnly={isViewing} />
                 </div>
               );
               return (
@@ -1974,7 +2042,7 @@ export default function SimpleAssetsPage() {
                   </Popover>
                 );
               })()}
-              {showCollectUnclaimed && (
+              {showCollectUnclaimed && !isViewing && (
                 <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
                   <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                   {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
@@ -1997,10 +2065,12 @@ export default function SimpleAssetsPage() {
                     <BookOpen className="h-3 w-3 mr-1" />
                     Collector Binder
                   </TabsTrigger>
-                  <TabsTrigger value="saved" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
-                    <Save className="h-3 w-3 mr-1" />
-                    Saved Collection
-                  </TabsTrigger>
+                  {!isViewing && (
+                    <TabsTrigger value="saved" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
+                      <Save className="h-3 w-3 mr-1" />
+                      Saved Collection
+                    </TabsTrigger>
+                  )}
                 </TabsList>
               </Tabs>
             </div>
@@ -2010,7 +2080,7 @@ export default function SimpleAssetsPage() {
                 <Tabs value={series2SubTab} onValueChange={setSeries2SubTab} className="w-full">
                   <TabsList className="mb-4">
                     <TabsTrigger value="collection">Collection</TabsTrigger>
-                    <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>
+                    {!isViewing && <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>}
                   </TabsList>
                   <TabsContent value="collection">
                     {viewMode === 'binder' && binderGrid ? (
@@ -2027,6 +2097,7 @@ export default function SimpleAssetsPage() {
                           <div className="flex-shrink-0">
                             {renderCompletionBar()}
                           </div>
+                          {!isViewing && (
                           <div className="flex items-center justify-end gap-2 flex-1 min-w-[200px]">
                             <span className="text-xs text-muted-foreground" title={`${priceAlerts.length} of ${maxAlerts} alerts used`}>
                               {priceAlerts.filter(a => a.triggered).length > 0 ? (
@@ -2070,6 +2141,7 @@ export default function SimpleAssetsPage() {
                               <Trash2 className="h-4 w-4 mr-1" />Clear Alerts
                             </Button>
                           </div>
+                          )}
                         </div>
                         {renderBinderSections(binderGrid, true)}
 
