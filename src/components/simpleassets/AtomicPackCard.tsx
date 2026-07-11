@@ -24,9 +24,10 @@ interface AtomicPackCardProps {
   onSuccess?: (txId?: string | null) => void;
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
+  isReadOnly?: boolean;
 }
 
-export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [] }: AtomicPackCardProps) {
+export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly }: AtomicPackCardProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
@@ -87,7 +88,11 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
           <p className="font-bold text-foreground text-sm">{pack.name}</p>
           <p className="text-xs text-muted-foreground">{pack.cardsPerPack} cards per pack</p>
           <p className="text-lg font-mono text-primary">{pack.count}</p>
-          {isDisabled ? (
+          {isReadOnly ? (
+            <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
+              View Only
+            </Button>
+          ) : isDisabled ? (
             <div className="w-full space-y-1">
               <Button size="sm" className="w-full text-xs" disabled>
                 Opening Disabled
@@ -100,7 +105,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
               {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
             </Button>
           )}
-          {demoCards.length > 0 && (
+          {!isReadOnly && demoCards.length > 0 && (
             <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setDemoRevealOpen(true)}>
               <Play className="h-3 w-3 mr-1" /> Demo Open
             </Button>

@@ -10,13 +10,14 @@ import type { BinderTemplate } from '@/hooks/useBinderTemplates';
 
 interface MissingCardPlaceholderProps {
   template: BinderTemplate;
+  isReadOnly?: boolean;
 }
 
 function getAtomicHubUrl(templateId: string): string {
   return `https://atomichub.io/market?collection_name=gpk.topps&template_id=${templateId}&order=asc&sort=price`;
 }
 
-export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps) {
+export function MissingCardPlaceholder({ template, isReadOnly }: MissingCardPlaceholderProps) {
   const buyUrl = getAtomicHubUrl(template.templateId);
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
   const { getAlert } = usePriceAlerts();
@@ -32,22 +33,24 @@ export function MissingCardPlaceholder({ template }: MissingCardPlaceholderProps
         className="overflow-hidden bg-card/30 border-border/30 opacity-50 hover:opacity-80 transition-opacity cursor-pointer relative"
         onClick={() => requestNavigation(buyUrl)}
       >
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setAlertOpen(true); }}
-          className={cn(
-            "absolute top-1.5 left-1.5 z-20 h-7 w-7 rounded-full flex items-center justify-center backdrop-blur-sm border-2 transition-colors",
-            isTriggered
-              ? "border-black bg-red-600 text-white animate-pulse"
-              : hasAlert
-                ? "border-cheese bg-emerald-500 text-white hover:bg-emerald-400"
-                : "bg-background/80 border-border/60 text-muted-foreground hover:text-cheese hover:border-cheese/50"
-          )}
-          aria-label={hasAlert ? "Edit price alert" : "Set price alert"}
-          title={hasAlert ? `Alert: max ${alert!.maxPrice.toFixed(2)} WAX` : "Set price alert"}
-        >
-          {isTriggered ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setAlertOpen(true); }}
+            className={cn(
+              "absolute top-1.5 left-1.5 z-20 h-7 w-7 rounded-full flex items-center justify-center backdrop-blur-sm border-2 transition-colors",
+              isTriggered
+                ? "border-black bg-red-600 text-white animate-pulse"
+                : hasAlert
+                  ? "border-cheese bg-emerald-500 text-white hover:bg-emerald-400"
+                  : "bg-background/80 border-border/60 text-muted-foreground hover:text-cheese hover:border-cheese/50"
+            )}
+            aria-label={hasAlert ? "Edit price alert" : "Set price alert"}
+            title={hasAlert ? `Alert: max ${alert!.maxPrice.toFixed(2)} WAX` : "Set price alert"}
+          >
+            {isTriggered ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+          </button>
+        )}
         <div className="aspect-square bg-muted/10 flex items-center justify-center overflow-hidden relative">
           <IpfsMedia
             url={template.image}

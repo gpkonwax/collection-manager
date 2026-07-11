@@ -23,6 +23,7 @@ interface SimpleAssetCardProps {
   onDrop?: (e: DragEvent<HTMLDivElement>) => void;
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
   priceAlertTemplate?: BinderTemplate;
+  isReadOnly?: boolean;
 }
 
 function getMintInfo(asset: SimpleAsset): string | null {
@@ -55,7 +56,7 @@ function getMintNumber(asset: SimpleAsset): number | null {
   return null;
 }
 
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
@@ -68,10 +69,11 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
 
+  const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
   const hasAlert = Boolean(alert);
   const isAlertTriggered = Boolean(alert?.triggered);
-  const showAlertButton = Boolean(priceAlertTemplate) && !selectionMode;
+  const showAlertButton = Boolean(priceAlertTemplate) && !effectiveSelectionMode && !isReadOnly;
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => { setIsDragging(true); onDragStart?.(e); };
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(true); onDragOver?.(e); };
@@ -79,7 +81,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const handleDrop = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(false); onDrop?.(e); };
   const handleDragEnd = (e: DragEvent<HTMLDivElement>) => { setIsDragging(false); setIsDragOver(false); onDragEnd?.(e); };
   const handleClick = () => {
-    if (selectionMode && onSelect) { onSelect(asset.id); return; }
+    if (effectiveSelectionMode && onSelect) { onSelect(asset.id); return; }
     if (!isDragging) onClick();
   };
 
@@ -125,7 +127,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           x{stackCount}
         </div>
       )}
-      {selectionMode && (
+      {effectiveSelectionMode && (
         <div className="absolute top-2 left-2 z-10">
           <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
             ${selected ? 'bg-cheese border-cheese' : 'bg-background/80 border-muted-foreground/50'}`}>
@@ -222,6 +224,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.draggable === next.draggable &&
     prev.className === next.className &&
     prev.stackCount === next.stackCount &&
+    prev.isReadOnly === next.isReadOnly &&
     prev.priceAlertTemplate?.templateId === next.priceAlertTemplate?.templateId &&
     prev.onDragStart === next.onDragStart &&
     prev.onDragOver === next.onDragOver &&
