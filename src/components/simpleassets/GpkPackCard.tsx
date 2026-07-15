@@ -40,7 +40,7 @@ interface GpkPackCardProps {
   pack: GpkPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: (txId?: string | null) => void;
+  onSuccess?: (txId?: string | null, reveal?: RevealResult) => void;
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
   isReadOnly?: boolean;
