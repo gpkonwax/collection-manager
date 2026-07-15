@@ -369,7 +369,9 @@ export function AtomicPackRevealDialog({
               asset_id: `${r.pack_asset_id}-${r.origin_roll_id}`,
               name: templateData[i].name, image: templateData[i].image, rarity: '',
             }));
-            setNewCards(cards); setRollIds(rows.map((r) => r.origin_roll_id)); setPhase('revealing');
+            setNewCards(cards); setRollIds(rows.map((r) => r.origin_roll_id));
+            revealMatchersRef.current = rows.map((r) => ({ kind: 'aa-template' as const, templateId: String(r.template_id) }));
+            setPhase('revealing');
           }
         }
       } catch (e) { console.error('[AtomicReveal] poll error', e); }
