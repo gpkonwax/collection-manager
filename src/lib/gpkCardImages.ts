@@ -12,13 +12,17 @@ const SERIES_HASH: Record<string, string> = {
 
 const GIF_VARIANTS = new Set(['prism', 'sketch', 'slime', 'raw', 'gum', 'vhs', 'collector', 'tiger stripe', 'tiger claw', 'originalart', 'relic']);
 
-const SERIES1_ZERO_BASED_BOXES = new Set(['five', 'thirty']);
+const PLUS_ONE_PENDING_BOXES = new Set(['five', 'thirty', 'exotic5', 'exotic25']);
 
 export function normalizePendingGpkCardId(boxtype: string, cardid: number | string): string {
   const raw = String(cardid).trim();
   const parsed = Number.parseInt(raw, 10);
-  if (SERIES1_ZERO_BASED_BOXES.has(boxtype) && Number.isFinite(parsed)) {
+  if (!Number.isFinite(parsed)) return raw;
+  if (PLUS_ONE_PENDING_BOXES.has(boxtype)) {
     return String(parsed + 1);
+  }
+  if (boxtype.startsWith('gpktwo')) {
+    return String(parsed + 42);
   }
   return raw;
 }

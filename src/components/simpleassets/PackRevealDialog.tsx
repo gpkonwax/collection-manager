@@ -267,6 +267,7 @@ export function PackRevealDialog({
           cardid: normalizePendingGpkCardId(r.boxtype, r.cardid),
           side: String(r.quality ?? '').toLowerCase(),
           variant: normalizeGpkVariant(String(r.variant ?? '')),
+          category: getGpkCategoryForBoxtype(r.boxtype),
         })),
       };
       setPhase('done'); onComplete(txId, reveal);
