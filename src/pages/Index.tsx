@@ -323,6 +323,20 @@ export default function SimpleAssetsPage() {
       const rows = await fetchPendingNfts(accountName);
       const unclaimed = rows.filter((r: any) => r.done === 0);
       setShowCollectUnclaimed(unclaimed.length > 0);
+      if (unclaimed.length > 0) return;
+
+      const collected = rows.filter((r: any) => r.done === 1);
+      if (collected.length === 0) {
+        setCollectionSyncNotice(null);
+        return;
+      }
+
+      const latestUnboxingId = Math.max(...collected.map((r: any) => Number(r.unboxingid)).filter(Number.isFinite));
+      const latestRows = collected.filter((r: any) => Number(r.unboxingid) === latestUnboxingId);
+      setCollectionSyncNotice({
+        category: getGpkCategoryForBoxtype(String(latestRows[0]?.boxtype ?? '')),
+        count: latestRows.length || undefined,
+      });
     } catch { }
   }, [accountName, isViewing]);
 
@@ -495,6 +509,7 @@ export default function SimpleAssetsPage() {
       pendingAnimationRef.current = { txId: lastTxId };
       await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
       const newest = await waitForNewCollectionAssets(preCollectIdsRef.current, expectedCategory, 20_000);
+      pendingAnimationRef.current = null;
       focusCollectionView(expectedCategory);
       setCollectionSyncNotice({ category: expectedCategory, count: newest.length || unclaimed.length });
       recheckUnclaimed();
@@ -510,6 +525,7 @@ export default function SimpleAssetsPage() {
   }, []);
 
   const handleDealComplete = useCallback(() => {
+    pendingAnimationRef.current = null;
     setDealingCards([]);
     setDealtIds(new Set());
     if (pendingSuccessInfo) {
@@ -696,7 +712,11 @@ export default function SimpleAssetsPage() {
     const arr = [...filtered];
     if (sortMode === 'newest') {
       arr.sort((a, b) => {
-        try { return Number(BigInt(b.id) - BigInt(a.id)); }
+        try {
+          const aId = BigInt(a.id);
+          const bId = BigInt(b.id);
+          return bId > aId ? 1 : bId < aId ? -1 : 0;
+        }
         catch { return b.id.localeCompare(a.id); }
       });
       return arr;
