@@ -216,6 +216,7 @@ export function AtomicPackRevealDialog({
   const [randnotifyTxId, setRandnotifyTxId] = useState<string | null>(null);
   const [reportCopied, setReportCopied] = useState(false);
   const pollStartRef = useRef<number>(0);
+  const revealMatchersRef = useRef<RevealMatcher[]>([]);
 
   usePackRevealAudio({ open, phase, isShaking, revealedCount });
 
