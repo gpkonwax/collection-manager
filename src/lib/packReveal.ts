@@ -25,6 +25,7 @@ export type RevealMatcher = SaRevealMatcher | AaAssetMatcher | AaTemplateMatcher
 
 export interface RevealResult {
   source: 'simpleassets' | 'atomicassets';
+  expectedCategory?: string | null;
   matchers: RevealMatcher[];
 }
 

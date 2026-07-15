@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
-import { buildGpkCardImageUrl } from '@/lib/gpkCardImages';
+import { buildGpkCardImageUrl, getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
@@ -192,12 +192,15 @@ export function PackRevealDialog({
         if (targetRows && targetUnboxingId !== null) {
           clearInterval(interval);
           const sorted = targetRows.sort((a, b) => a.draw - b.draw);
-          const cards: RevealCard[] = sorted.map((r) => ({
-            asset_id: String(r.id),
-            name: `Card #${r.cardid}${r.quality}`,
-            image: buildGpkCardImageUrl(r.boxtype, r.variant, r.cardid, r.quality),
-            rarity: `${r.variant} ${r.quality}`,
-          }));
+          const cards: RevealCard[] = sorted.map((r) => {
+            const displayCardId = normalizePendingGpkCardId(r.boxtype, r.cardid);
+            return {
+              asset_id: String(r.id),
+              name: `Card #${displayCardId}${r.quality}`,
+              image: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
+              rarity: `${r.variant} ${r.quality}`,
+            };
+          });
           setNewCards(cards);
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
@@ -258,9 +261,10 @@ export function PackRevealDialog({
       const txId = result?.resolved?.transaction?.id?.toString() || null;
       const reveal: RevealResult = {
         source: 'simpleassets',
+        expectedCategory: getGpkCategoryForBoxtype(revealedRowsRef.current[0]?.boxtype ?? ''),
         matchers: revealedRowsRef.current.map((r) => ({
           kind: 'sa' as const,
-          cardid: String(r.cardid),
+          cardid: normalizePendingGpkCardId(r.boxtype, r.cardid),
           side: String(r.quality ?? '').toLowerCase(),
           variant: normalizeGpkVariant(String(r.variant ?? '')),
         })),
