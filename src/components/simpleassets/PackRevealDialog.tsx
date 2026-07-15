@@ -256,7 +256,16 @@ export function PackRevealDialog({
         }],
       }, { transactPlugins: getTransactPlugins(session) });
       const txId = result?.resolved?.transaction?.id?.toString() || null;
-      setPhase('done'); onComplete(txId);
+      const reveal: RevealResult = {
+        source: 'simpleassets',
+        matchers: revealedRowsRef.current.map((r) => ({
+          kind: 'sa' as const,
+          cardid: String(r.cardid),
+          side: String(r.quality ?? '').toLowerCase(),
+          variant: normalizeGpkVariant(String(r.variant ?? '')),
+        })),
+      };
+      setPhase('done'); onComplete(txId, reveal);
       // Auto-close after brief confirmation
       setTimeout(() => onOpenChange(false), 1500);
     } catch (e) {
