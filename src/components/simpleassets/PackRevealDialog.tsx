@@ -201,6 +201,7 @@ export function PackRevealDialog({
           setNewCards(cards);
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
+          revealedRowsRef.current = sorted;
           setPhase('revealing');
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
