@@ -918,7 +918,17 @@ export default function SimpleAssetsPage() {
     return filteredTemplates.map(template => {
       const byTid = ownedByTemplateId.get(template.templateId);
       const byKey = ownedByCardKey.get(`${template.cardid}:${template.quality.toLowerCase()}:${template.variant.toLowerCase()}`);
-      const owned = byTid || byKey || null;
+      // Merge (atomic + simpleasset) sources; dedupe by asset id. byTid first so the
+      // primary rendered card keeps its previous identity when both exist.
+      const merged: SimpleAsset[] = [];
+      const seenIds = new Set<string>();
+      const pushAll = (arr?: SimpleAsset[]) => {
+        if (!arr) return;
+        for (const a of arr) if (!seenIds.has(a.id)) { seenIds.add(a.id); merged.push(a); }
+      };
+      pushAll(byTid);
+      pushAll(byKey);
+      const owned = merged.length ? merged : null;
       return { template, owned };
     });
   }, [viewMode, binderTemplates, filtered, categoryFilter, variantFilter]);
