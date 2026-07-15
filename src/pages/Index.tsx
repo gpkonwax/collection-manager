@@ -28,6 +28,7 @@ import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
+import { getGpkCategoryForBoxtype } from '@/lib/gpkCardImages';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
@@ -201,12 +202,13 @@ export default function SimpleAssetsPage() {
   const [categoryFilter, setCategoryFilter] = useState('series1');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [variantFilter, setVariantFilter] = useState<string[]>(['all']);
-  type SortMode = 'natural' | 'name' | 'variant';
+  type SortMode = 'natural' | 'name' | 'variant' | 'newest';
   const [sortMode, setSortMode] = useState<SortMode>('natural');
   const [viewMode, setViewMode] = useState<ViewMode>('classic');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
+  const [collectionSyncNotice, setCollectionSyncNotice] = useState<{ category: string | null; count?: number } | null>(null);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
@@ -321,8 +323,54 @@ export default function SimpleAssetsPage() {
       const rows = await fetchPendingNfts(accountName);
       const unclaimed = rows.filter((r: any) => r.done === 0);
       setShowCollectUnclaimed(unclaimed.length > 0);
+      if (unclaimed.length > 0) return;
+
+      const collected = rows.filter((r: any) => r.done === 1);
+      if (collected.length === 0) {
+        setCollectionSyncNotice(null);
+        return;
+      }
+
+      const latestUnboxingId = Math.max(...collected.map((r: any) => Number(r.unboxingid)).filter(Number.isFinite));
+      const latestRows = collected.filter((r: any) => Number(r.unboxingid) === latestUnboxingId);
+      setCollectionSyncNotice({
+        category: getGpkCategoryForBoxtype(String(latestRows[0]?.boxtype ?? '')),
+        count: latestRows.length || undefined,
+      });
     } catch { }
   }, [accountName, isViewing]);
+
+  const focusCollectionView = useCallback((category?: string | null) => {
+    if (category) setCategoryFilter(category);
+    setViewMode('classic');
+    setSearch('');
+    setSourceFilter('all');
+    setVariantFilter(['all']);
+    setSortMode('newest');
+    setVisibleCount(Number.POSITIVE_INFINITY);
+  }, []);
+
+  const waitForNewCollectionAssets = useCallback(async (
+    preIds: Set<string>,
+    expectedCategory?: string | null,
+    timeoutMs = 20_000,
+  ) => {
+    const deadline = Date.now() + timeoutMs;
+    let newest: SimpleAsset[] = [];
+    while (Date.now() < deadline) {
+      await new Promise<void>(r => requestAnimationFrame(() => r()));
+      await new Promise(r => setTimeout(r, 100));
+      newest = assetsRef.current.filter((asset) => {
+        if (preIds.has(asset.id)) return false;
+        const effectiveCategory = SCHEMA_TO_CATEGORY[asset.category] || asset.category;
+        return !expectedCategory || effectiveCategory === expectedCategory;
+      });
+      if (newest.length > 0) return newest;
+      await new Promise(r => setTimeout(r, 1500));
+      await Promise.all([refetchSa(), refetchAa()]);
+    }
+    return newest;
+  }, [refetchSa, refetchAa]);
 
   // Match-based delivery: only start the deal animation once every revealed
   // card is confirmed present in the refetched collection. Never diff blindly —
@@ -367,12 +415,9 @@ export default function SimpleAssetsPage() {
     }
 
     if (matched.length === reveal!.matchers.length && matched.length > 0) {
-      const cat = matched[0].category;
-      if (cat) setCategoryFilter(cat);
-      setViewMode('classic');
-      setSearch('');
-      setSourceFilter('all');
-      setVisibleCount(Number.POSITIVE_INFINITY);
+      const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory || null;
+      focusCollectionView(cat);
+      setCollectionSyncNotice({ category: cat, count: matched.length });
       setDealingCards([...matched].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
@@ -382,9 +427,11 @@ export default function SimpleAssetsPage() {
       // the user find their new cards on the next refetch.
       pendingAnimationRef.current = null;
       recheckUnclaimed();
+      focusCollectionView(reveal!.expectedCategory);
+      setCollectionSyncNotice({ category: reveal!.expectedCategory ?? null, count: reveal!.matchers.length });
       toast.info('Cards delivered on-chain — they will appear in your collection shortly.', { duration: 6000 });
     }
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed]);
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView]);
 
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
     if (demoAssets.length === 0) return;
@@ -433,10 +480,12 @@ export default function SimpleAssetsPage() {
       const unclaimed = rows.filter((r: any) => r.done === 0);
       if (unclaimed.length === 0) {
         toast.info('No unclaimed cards found');
+        setCollectionSyncNotice({ category: null });
         setShowCollectUnclaimed(false);
         setIsCollecting(false);
         return;
       }
+      const expectedCategory = getGpkCategoryForBoxtype(String(unclaimed[0]?.boxtype ?? ''));
       const groups = new Map<number, number[]>();
       for (const row of unclaimed) {
         const uid = (row as any).unboxingid;
@@ -459,19 +508,25 @@ export default function SimpleAssetsPage() {
       setShowCollectUnclaimed(false);
       pendingAnimationRef.current = { txId: lastTxId };
       await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
+      const newest = await waitForNewCollectionAssets(preCollectIdsRef.current, expectedCategory, 20_000);
+      pendingAnimationRef.current = null;
+      focusCollectionView(expectedCategory);
+      setCollectionSyncNotice({ category: expectedCategory, count: newest.length || unclaimed.length });
       recheckUnclaimed();
     } catch (e) {
+      pendingAnimationRef.current = null;
       console.error('Collect unclaimed failed:', e);
     } finally {
       setIsCollecting(false);
     }
-  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed]);
+  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed, waitForNewCollectionAssets, focusCollectionView]);
 
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
   }, []);
 
   const handleDealComplete = useCallback(() => {
+    pendingAnimationRef.current = null;
     setDealingCards([]);
     setDealtIds(new Set());
     if (pendingSuccessInfo) {
@@ -656,6 +711,17 @@ export default function SimpleAssetsPage() {
   const sortedFiltered = useMemo(() => {
     if (sortMode === 'natural') return filtered;
     const arr = [...filtered];
+    if (sortMode === 'newest') {
+      arr.sort((a, b) => {
+        try {
+          const aId = BigInt(a.id);
+          const bId = BigInt(b.id);
+          return bId > aId ? 1 : bId < aId ? -1 : 0;
+        }
+        catch { return b.id.localeCompare(a.id); }
+      });
+      return arr;
+    }
     const cardNum = (a: SimpleAsset) => {
       const n = parseInt(a.cardid, 10);
       return isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
@@ -2038,6 +2104,7 @@ export default function SimpleAssetsPage() {
                   <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Sort" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="natural">Natural (Card ID)</SelectItem>
+                    <SelectItem value="newest">Newest</SelectItem>
                     <SelectItem value="name">Name (A–Z)</SelectItem>
                     <SelectItem value="variant">Variant Rarity</SelectItem>
                   </SelectContent>
@@ -2114,6 +2181,12 @@ export default function SimpleAssetsPage() {
                 <Button onClick={handleCollectUnclaimed} disabled={isCollecting} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
                   <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                   {isCollecting ? 'Collecting...' : 'Collect Unclaimed'}
+                </Button>
+              )}
+              {!showCollectUnclaimed && collectionSyncNotice && !isViewing && (
+                <Button onClick={() => focusCollectionView(collectionSyncNotice.category)} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Show Newest Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
                 </Button>
               )}
             </div>

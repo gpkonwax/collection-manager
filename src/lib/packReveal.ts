@@ -9,6 +9,7 @@ export type SaRevealMatcher = {
   cardid: string; // pendingnft.a.cardid
   side: string;   // pendingnft.a.quality (lowercased) — e.g. 'a' | 'b'
   variant: string; // normalizeGpkVariant(pendingnft.a.variant)
+  category?: string | null;
 };
 
 export type AaAssetMatcher = {
@@ -25,6 +26,7 @@ export type RevealMatcher = SaRevealMatcher | AaAssetMatcher | AaTemplateMatcher
 
 export interface RevealResult {
   source: 'simpleassets' | 'atomicassets';
+  expectedCategory?: string | null;
   matchers: RevealMatcher[];
 }
 
@@ -37,7 +39,12 @@ export interface RevealResult {
  * Returns `{ matched, unresolved }` where `matched.length + unresolved.length`
  * always equals `matchers.length`.
  */
-export function matchRevealedAssets<A extends { id: string; cardid?: string; side?: string; quality?: string; idata?: Record<string, unknown>; source?: 'simpleassets' | 'atomicassets' }>(
+function normalizeAssetCategory(category: string | undefined): string {
+  if (category === 'five') return 'series1';
+  return category ?? '';
+}
+
+export function matchRevealedAssets<A extends { id: string; cardid?: string; side?: string; quality?: string; category?: string; idata?: Record<string, unknown>; source?: 'simpleassets' | 'atomicassets' }>(
   matchers: RevealMatcher[],
   assets: A[],
   preCollectIds: Set<string>,
@@ -54,6 +61,7 @@ export function matchRevealedAssets<A extends { id: string; cardid?: string; sid
       hit = candidates.find(a =>
         !used.has(a.id) &&
         a.source === 'simpleassets' &&
+        (!m.category || normalizeAssetCategory(a.category) === m.category) &&
         String(a.cardid ?? '') === String(m.cardid) &&
         String(a.side ?? '').toLowerCase() === String(m.side).toLowerCase() &&
         String(a.quality ?? '').toLowerCase() === String(m.variant).toLowerCase(),
