@@ -71,7 +71,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
     } finally { setIsOpening(false); }
   }, [session, pack, executeTransaction]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => { onSuccess?.(txId); }, [onSuccess]);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => { onSuccess?.(txId, reveal); }, [onSuccess]);
 
   const handleClick = useCallback(() => {
     if (hasMultiple) {
