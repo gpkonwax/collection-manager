@@ -9,6 +9,7 @@ import { AtomicPackBrowserDialog } from './AtomicPackBrowserDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import type { RevealResult } from '@/lib/packReveal';
 
 interface RevealCard {
   asset_id: string;
