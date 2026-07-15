@@ -11,10 +11,14 @@ export const IPFS_GATEWAYS = [
 // Timeout configuration for different contexts
 export const IMAGE_LOAD_TIMEOUT = {
   card: 6000,        // 6 seconds for cards – skip dead gateways faster
-  detail: 5000,      // 5 seconds for detail page (only 2 images)
+  detail: 3500,      // 3.5s per gateway after the parallel race falls back to serial
   increment: 1500,   // Add 1.5s per retry
   max: 8000,         // Max 8 seconds
 };
+
+// Parallel gateway race (used for detail-context images and prefetch)
+export const RACE_GATEWAY_COUNT = 3;
+export const RACE_TIMEOUT_MS = 4000;
 
 // Helper to get primary IPFS gateway URL
 export function getIpfsUrl(hash: string): string {
