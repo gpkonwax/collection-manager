@@ -7,6 +7,7 @@ import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { PackRevealDialog } from './PackRevealDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
+import type { RevealResult } from '@/lib/packReveal';
 
 const UNBOX_TYPE_MAP: Record<string, string> = {
   GPKFIVE: 'five', GPKMEGA: 'thirty',
