@@ -39,7 +39,7 @@ interface AtomicPackRevealDialogProps {
   expectedCards: number;
   accountName: string;
   session: Session | null;
-  onComplete: (txId?: string | null) => void;
+  onComplete: (txId?: string | null, reveal?: RevealResult) => void;
   openMode?: PackOpenMode;
   demoCards?: { asset_id: string; name: string; image: string | null; rarity: string }[];
   onDemoCollect?: () => void;
