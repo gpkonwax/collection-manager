@@ -415,7 +415,7 @@ export default function SimpleAssetsPage() {
     }
 
     if (matched.length === reveal!.matchers.length && matched.length > 0) {
-      const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory;
+      const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory || null;
       focusCollectionView(cat);
       setCollectionSyncNotice({ category: cat, count: matched.length });
       setDealingCards([...matched].reverse());
