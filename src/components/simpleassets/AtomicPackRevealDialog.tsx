@@ -355,6 +355,7 @@ export function AtomicPackRevealDialog({
             });
             setNewCards(cards);
             setRollIds([]); // No roll IDs for unbox.nft
+            revealMatchersRef.current = cards.map((c) => ({ kind: 'aa-asset' as const, assetId: c.asset_id }));
             setPhase('revealing');
           }
         } else {
