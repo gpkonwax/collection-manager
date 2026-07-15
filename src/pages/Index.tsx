@@ -27,6 +27,7 @@ import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
+import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
