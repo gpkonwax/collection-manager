@@ -514,6 +514,7 @@ export default function SimpleAssetsPage() {
       setCollectionSyncNotice({ category: expectedCategory, count: newest.length || unclaimed.length });
       recheckUnclaimed();
     } catch (e) {
+      pendingAnimationRef.current = null;
       console.error('Collect unclaimed failed:', e);
     } finally {
       setIsCollecting(false);
