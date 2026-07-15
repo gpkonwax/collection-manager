@@ -284,6 +284,8 @@ export default function SimpleAssetsPage() {
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
   const [collectionSyncNotice, setCollectionSyncNotice] = useState<{ category: string | null; count?: number } | null>(null);
+  const [packAudit, setPackAudit] = useState<PackAuditState | null>(null);
+  const [isReconstructingOpen, setIsReconstructingOpen] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
@@ -447,6 +449,65 @@ export default function SimpleAssetsPage() {
     return newest;
   }, [refetchSa, refetchAa]);
 
+  const reconstructLatestPackOpen = useCallback(async (options?: { focus?: boolean; silent?: boolean }) => {
+    if (!accountName || isViewing) return null;
+    setIsReconstructingOpen(true);
+    try {
+      const rows = (await fetchPendingNfts(accountName)) as PendingNftAuditRow[];
+      if (rows.length === 0) {
+        const emptyAudit: PackAuditState = {
+          unboxingId: null,
+          category: null,
+          boxtype: null,
+          assets: [],
+          missing: [],
+          status: 'none',
+          checkedAt: Date.now(),
+        };
+        setPackAudit(emptyAudit);
+        setCollectionSyncNotice(null);
+        if (!options?.silent) toast.info('No pack-open history found for this wallet');
+        return emptyAudit;
+      }
+
+      await Promise.all([refetchSa(), refetchAa()]);
+      await new Promise<void>(r => requestAnimationFrame(() => r()));
+      await new Promise(r => setTimeout(r, 100));
+
+      const latestUnboxingId = Math.max(...rows.map((row) => Number(row.unboxingid)).filter(Number.isFinite));
+      const latestRows = rows.filter((row) => Number(row.unboxingid) === latestUnboxingId);
+      const category = getGpkCategoryForBoxtype(String(latestRows[0]?.boxtype ?? ''));
+      const { matched, missing } = matchPendingRowsToMintedAssets(latestRows, assetsRef.current);
+      const hasUnclaimed = latestRows.some((row) => Number(row.done) === 0);
+      const status: PackAuditState['status'] = hasUnclaimed ? 'unclaimed' : missing.length > 0 ? 'partial' : 'collected';
+      const audit: PackAuditState = {
+        unboxingId: latestUnboxingId,
+        category,
+        boxtype: latestRows[0]?.boxtype ?? null,
+        assets: matched,
+        missing,
+        status,
+        checkedAt: Date.now(),
+      };
+
+      setPackAudit(audit);
+      setCollectionSyncNotice({ category, count: latestRows.length || undefined });
+      if (options?.focus !== false) focusCollectionView(category);
+      if (!options?.silent) {
+        if (status === 'unclaimed') toast.info('Latest pack still has unclaimed cards');
+        else if (status === 'partial') toast.warning('Latest pack was collected, but some minted cards were not found yet');
+        else toast.success(`Found ${matched.length} received card${matched.length !== 1 ? 's' : ''}`);
+      }
+      return audit;
+    } catch (error) {
+      console.error('Reconstruct latest pack failed:', error);
+      if (!options?.silent) toast.error('Could not reconstruct the latest pack open');
+      return null;
+    } finally {
+      setIsReconstructingOpen(false);
+    }
+  }, [accountName, isViewing, refetchSa, refetchAa, focusCollectionView]);
+
   // Match-based delivery: only start the deal animation once every revealed
   // card is confirmed present in the refetched collection. Never diff blindly —
   // that used to pick up unrelated background refetches and deal already-owned
@@ -493,6 +554,15 @@ export default function SimpleAssetsPage() {
       const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory || null;
       focusCollectionView(cat);
       setCollectionSyncNotice({ category: cat, count: matched.length });
+      setPackAudit({
+        unboxingId: null,
+        category: cat,
+        boxtype: null,
+        assets: matched,
+        missing: [],
+        status: 'collected',
+        checkedAt: Date.now(),
+      });
       setDealingCards([...matched].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
@@ -504,9 +574,10 @@ export default function SimpleAssetsPage() {
       recheckUnclaimed();
       focusCollectionView(reveal!.expectedCategory);
       setCollectionSyncNotice({ category: reveal!.expectedCategory ?? null, count: reveal!.matchers.length });
+      reconstructLatestPackOpen({ focus: false, silent: true });
       toast.info('Cards delivered on-chain — they will appear in your collection shortly.', { duration: 6000 });
     }
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView]);
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView, reconstructLatestPackOpen]);
 
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
     if (demoAssets.length === 0) return;
@@ -587,6 +658,7 @@ export default function SimpleAssetsPage() {
       pendingAnimationRef.current = null;
       focusCollectionView(expectedCategory);
       setCollectionSyncNotice({ category: expectedCategory, count: newest.length || unclaimed.length });
+      reconstructLatestPackOpen({ focus: false, silent: true });
       recheckUnclaimed();
     } catch (e) {
       pendingAnimationRef.current = null;
@@ -594,7 +666,7 @@ export default function SimpleAssetsPage() {
     } finally {
       setIsCollecting(false);
     }
-  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed, waitForNewCollectionAssets, focusCollectionView]);
+  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed, waitForNewCollectionAssets, focusCollectionView, reconstructLatestPackOpen]);
 
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
