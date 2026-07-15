@@ -14,6 +14,7 @@ import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 import { findRandnotifyForPack } from '@/lib/stuckPackDetect';
 import { recordStuckPack, buildStuckPackReportText } from '@/lib/stuckPackStorage';
 import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
+import type { RevealResult, RevealMatcher } from '@/lib/packReveal';
 
 interface RevealCard {
   asset_id: string;
