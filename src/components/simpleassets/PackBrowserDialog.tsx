@@ -25,7 +25,7 @@ interface PackBrowserDialogProps {
   session: Session | null;
   accountName: string;
   snapshotUnboxingIds: (owner: string) => Promise<Set<number>>;
-  onSuccess?: (txId?: string | null) => void;
+  onSuccess?: (txId?: string | null, reveal?: RevealResult) => void;
 }
 
 export function PackBrowserDialog({
