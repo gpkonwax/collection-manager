@@ -38,6 +38,90 @@ function setCachedLoadedUrl(hash: string, url: string) {
   }
 }
 
+/**
+ * Race the first N gateways in parallel for a given hash.
+ * Resolves with the winning gateway index (relative to IPFS_GATEWAYS) as soon
+ * as one Image finishes loading, or null if all N time out / error.
+ * Winning URL is also written to the module caches so subsequent renders
+ * short-circuit immediately.
+ */
+export function raceGateways(
+  hash: string,
+  startIdx = 0,
+  count = RACE_GATEWAY_COUNT,
+  perTimeoutMs = RACE_TIMEOUT_MS,
+): Promise<{ url: string; gwIdx: number } | null> {
+  // Already cached — resolve synchronously.
+  const cached = loadedUrlCache.get(hash);
+  if (cached) {
+    return Promise.resolve({ url: cached, gwIdx: gatewayCache.get(hash) ?? 0 });
+  }
+
+  const total = Math.min(count, IPFS_GATEWAYS.length);
+  return new Promise((resolve) => {
+    let settled = false;
+    let losses = 0;
+    const images: HTMLImageElement[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    const cleanup = () => {
+      timers.forEach(clearTimeout);
+      images.forEach((img) => {
+        img.onload = null;
+        img.onerror = null;
+        // Detach src so the browser can cancel in-flight requests we didn't win.
+        try { img.src = ''; } catch { /* noop */ }
+      });
+    };
+
+    const win = (idx: number, url: string) => {
+      if (settled) return;
+      settled = true;
+      setCachedGateway(hash, idx);
+      setCachedLoadedUrl(hash, url);
+      cleanup();
+      resolve({ url, gwIdx: idx });
+    };
+
+    const lose = () => {
+      if (settled) return;
+      losses += 1;
+      if (losses >= total) {
+        settled = true;
+        cleanup();
+        resolve(null);
+      }
+    };
+
+    for (let i = 0; i < total; i++) {
+      const gwIdx = (startIdx + i) % IPFS_GATEWAYS.length;
+      const url = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
+      const img = new Image();
+      images.push(img);
+      img.onload = () => win(gwIdx, url);
+      img.onerror = () => lose();
+      timers.push(setTimeout(() => lose(), perTimeoutMs));
+      img.src = url;
+    }
+  });
+}
+
+/**
+ * Fire-and-forget prefetch of an IPFS URL using the parallel race.
+ * Safe to call for many items; no-op when the hash is already cached.
+ */
+export function prefetchIpfsImage(rawUrl: string | undefined): void {
+  if (!rawUrl) return;
+  const hash = extractIpfsHash(rawUrl);
+  if (!hash) return;
+  if (loadedUrlCache.has(hash)) return;
+  const startIdx = gatewayCache.get(hash) ?? lastGoodGatewayIndex;
+  // Errors are swallowed intentionally — prefetch is best-effort.
+  raceGateways(hash, startIdx).catch(() => {});
+}
+
+
+
 interface UseIpfsMediaOptions {
   timeout?: number;
   context?: 'card' | 'detail';
