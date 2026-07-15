@@ -8,6 +8,7 @@ import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
+import type { RevealResult } from '@/lib/packReveal';
 
 const PACKS_PER_PAGE = 10;
 
@@ -17,7 +18,7 @@ interface AtomicPackBrowserDialogProps {
   pack: AtomicPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: (txId?: string | null) => void;
+  onSuccess?: (txId?: string | null, reveal?: RevealResult) => void;
 }
 
 export function AtomicPackBrowserDialog({
@@ -79,8 +80,8 @@ export function AtomicPackBrowserDialog({
     }
   }, [session, startIdx, localAssetIds, localMints, pack, executeTransaction, visibleCount, page]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => {
-    onSuccess?.(txId);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => {
+    onSuccess?.(txId, reveal);
     if (localAssetIds.length <= 0) onOpenChange(false);
   }, [onSuccess, localAssetIds.length, onOpenChange]);
 

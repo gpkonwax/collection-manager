@@ -10,6 +10,7 @@ import type { RevealCard } from './PackRevealDialog';
 import { PackBrowserDialog } from './PackBrowserDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import type { RevealResult } from '@/lib/packReveal';
 // Geepeekay versions (current) — old originals kept in assets with original filenames
 import gpkSeries1Img from '@/assets/gpk_pack_series_1_geepeekay.jpg';
 import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega_geepeekay.jpg';
@@ -39,7 +40,7 @@ interface GpkPackCardProps {
   pack: GpkPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: (txId?: string | null) => void;
+  onSuccess?: (txId?: string | null, reveal?: RevealResult) => void;
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
   isReadOnly?: boolean;
@@ -102,7 +103,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
     } finally { setIsOpening(false); }
   }, [session, unboxType, pack, accountName, executeTransaction]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => { onSuccess?.(txId); }, [onSuccess]);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => { onSuccess?.(txId, reveal); }, [onSuccess]);
 
   return (
     <>

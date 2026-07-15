@@ -9,6 +9,7 @@ import { AtomicPackBrowserDialog } from './AtomicPackBrowserDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import type { RevealResult } from '@/lib/packReveal';
 
 interface RevealCard {
   asset_id: string;
@@ -21,7 +22,7 @@ interface AtomicPackCardProps {
   pack: AtomicPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: (txId?: string | null) => void;
+  onSuccess?: (txId?: string | null, reveal?: RevealResult) => void;
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
   isReadOnly?: boolean;
@@ -70,7 +71,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
     } finally { setIsOpening(false); }
   }, [session, pack, executeTransaction]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => { onSuccess?.(txId); }, [onSuccess]);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => { onSuccess?.(txId, reveal); }, [onSuccess]);
 
   const handleClick = useCallback(() => {
     if (hasMultiple) {

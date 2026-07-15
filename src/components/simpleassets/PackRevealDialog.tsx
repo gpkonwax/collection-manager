@@ -9,6 +9,8 @@ import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
+import { normalizeGpkVariant } from '@/lib/gpkVariant';
+import type { RevealResult } from '@/lib/packReveal';
 
 const EXPECTED_CARDS: Record<string, number> = {
   GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
@@ -48,7 +50,7 @@ interface PackRevealDialogProps {
   packImage?: string;
   accountName: string;
   preOpenUnboxingIds: Set<number>;
-  onComplete: (txId?: string | null) => void;
+  onComplete: (txId?: string | null, reveal?: RevealResult) => void;
   onDemoCollect?: () => void;
   demoCards?: RevealCard[];
   session?: Session | null;
@@ -117,6 +119,7 @@ export function PackRevealDialog({
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
   const pollStartRef = useRef<number>(0);
+  const revealedRowsRef = useRef<PendingNftRow[]>([]);
   const isDemo = !!(demoCards && demoCards.length > 0);
 
   const expectedCount = EXPECTED_CARDS[packSymbol] ?? 5;
@@ -198,6 +201,7 @@ export function PackRevealDialog({
           setNewCards(cards);
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
+          revealedRowsRef.current = sorted;
           setPhase('revealing');
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
@@ -252,7 +256,16 @@ export function PackRevealDialog({
         }],
       }, { transactPlugins: getTransactPlugins(session) });
       const txId = result?.resolved?.transaction?.id?.toString() || null;
-      setPhase('done'); onComplete(txId);
+      const reveal: RevealResult = {
+        source: 'simpleassets',
+        matchers: revealedRowsRef.current.map((r) => ({
+          kind: 'sa' as const,
+          cardid: String(r.cardid),
+          side: String(r.quality ?? '').toLowerCase(),
+          variant: normalizeGpkVariant(String(r.variant ?? '')),
+        })),
+      };
+      setPhase('done'); onComplete(txId, reveal);
       // Auto-close after brief confirmation
       setTimeout(() => onOpenChange(false), 1500);
     } catch (e) {

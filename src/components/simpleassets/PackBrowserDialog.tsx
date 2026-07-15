@@ -7,6 +7,7 @@ import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { PackRevealDialog } from './PackRevealDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
+import type { RevealResult } from '@/lib/packReveal';
 
 const UNBOX_TYPE_MAP: Record<string, string> = {
   GPKFIVE: 'five', GPKMEGA: 'thirty',
@@ -24,7 +25,7 @@ interface PackBrowserDialogProps {
   session: Session | null;
   accountName: string;
   snapshotUnboxingIds: (owner: string) => Promise<Set<number>>;
-  onSuccess?: (txId?: string | null) => void;
+  onSuccess?: (txId?: string | null, reveal?: RevealResult) => void;
 }
 
 export function PackBrowserDialog({
@@ -69,8 +70,8 @@ export function PackBrowserDialog({
     } finally { setOpeningIdx(null); }
   }, [session, unboxType, pack, accountName, snapshotUnboxingIds, executeTransaction, visibleCount, page]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => {
-    onSuccess?.(txId);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => {
+    onSuccess?.(txId, reveal);
     if (localCount <= 1) onOpenChange(false);
   }, [onSuccess, localCount, onOpenChange]);
 

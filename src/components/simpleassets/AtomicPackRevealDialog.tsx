@@ -14,6 +14,7 @@ import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 import { findRandnotifyForPack } from '@/lib/stuckPackDetect';
 import { recordStuckPack, buildStuckPackReportText } from '@/lib/stuckPackStorage';
 import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
+import type { RevealResult, RevealMatcher } from '@/lib/packReveal';
 
 interface RevealCard {
   asset_id: string;
@@ -38,7 +39,7 @@ interface AtomicPackRevealDialogProps {
   expectedCards: number;
   accountName: string;
   session: Session | null;
-  onComplete: (txId?: string | null) => void;
+  onComplete: (txId?: string | null, reveal?: RevealResult) => void;
   openMode?: PackOpenMode;
   demoCards?: { asset_id: string; name: string; image: string | null; rarity: string }[];
   onDemoCollect?: () => void;
@@ -215,6 +216,7 @@ export function AtomicPackRevealDialog({
   const [randnotifyTxId, setRandnotifyTxId] = useState<string | null>(null);
   const [reportCopied, setReportCopied] = useState(false);
   const pollStartRef = useRef<number>(0);
+  const revealMatchersRef = useRef<RevealMatcher[]>([]);
 
   usePackRevealAudio({ open, phase, isShaking, revealedCount });
 
@@ -353,6 +355,7 @@ export function AtomicPackRevealDialog({
             });
             setNewCards(cards);
             setRollIds([]); // No roll IDs for unbox.nft
+            revealMatchersRef.current = cards.map((c) => ({ kind: 'aa-asset' as const, assetId: c.asset_id }));
             setPhase('revealing');
           }
         } else {
@@ -366,7 +369,9 @@ export function AtomicPackRevealDialog({
               asset_id: `${r.pack_asset_id}-${r.origin_roll_id}`,
               name: templateData[i].name, image: templateData[i].image, rarity: '',
             }));
-            setNewCards(cards); setRollIds(rows.map((r) => r.origin_roll_id)); setPhase('revealing');
+            setNewCards(cards); setRollIds(rows.map((r) => r.origin_roll_id));
+            revealMatchersRef.current = rows.map((r) => ({ kind: 'aa-template' as const, templateId: String(r.template_id) }));
+            setPhase('revealing');
           }
         }
       } catch (e) { console.error('[AtomicReveal] poll error', e); }
@@ -423,7 +428,8 @@ export function AtomicPackRevealDialog({
     // For unbox_nft: no blockchain claim needed, just close with a marker
     if (openMode === 'unbox_nft') {
       setPhase('done');
-      onComplete('unbox_nft_complete');
+      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current };
+      onComplete('unbox_nft_complete', reveal);
       setTimeout(() => onOpenChange(false), 1500);
       return;
     }
@@ -437,7 +443,8 @@ export function AtomicPackRevealDialog({
           data: { pack_asset_id: parseInt(packAssetId, 10), origin_roll_ids: rollIds } }],
       }, { transactPlugins: getTransactPlugins(session) });
       const txId = result?.resolved?.transaction?.id?.toString() || null;
-      setPhase('done'); onComplete(txId);
+      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current };
+      setPhase('done'); onComplete(txId, reveal);
     } catch (e) {
       console.error('[AtomicReveal] claimunboxed failed', e);
       closeWharfkitModals(); setTimeout(() => closeWharfkitModals(), 100);

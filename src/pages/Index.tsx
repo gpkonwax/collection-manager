@@ -27,6 +27,7 @@ import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
+import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
@@ -314,27 +315,6 @@ export default function SimpleAssetsPage() {
     }
   }, [assets, dealingCards.length]);
 
-  useEffect(() => {
-    if (!pendingAnimationRef.current) return;
-    const newCards = assets.filter(a => !preCollectIdsRef.current.has(a.id) && a.category !== 'packs');
-    if (newCards.length > 0) {
-      const txInfo = pendingAnimationRef.current;
-      pendingAnimationRef.current = null;
-
-      const cat = newCards[0].category;
-      if (cat) setCategoryFilter(cat);
-      setViewMode('classic');
-      setSearch('');
-      setSourceFilter('all');
-      setVisibleCount(Number.POSITIVE_INFINITY);
-
-      // Deal from bottom of collection upward — reverse so the last (lowest) card deals first
-      setDealingCards([...newCards].reverse());
-      setDealtIds(new Set());
-      setPendingSuccessInfo({ txId: txInfo.txId, count: newCards.length });
-    }
-  }, [assets]);
-
   const recheckUnclaimed = useCallback(async () => {
     if (!accountName || isViewing) { setShowCollectUnclaimed(false); return; }
     try {
@@ -344,17 +324,66 @@ export default function SimpleAssetsPage() {
     } catch { }
   }, [accountName, isViewing]);
 
-  const handlePackOpened = useCallback(async (txId?: string | null) => {
+  // Match-based delivery: only start the deal animation once every revealed
+  // card is confirmed present in the refetched collection. Never diff blindly —
+  // that used to pick up unrelated background refetches and deal already-owned
+  // cards while the real cards were still being indexed.
+  const handlePackOpened = useCallback(async (txId?: string | null, reveal?: RevealResult) => {
     const isUnboxNft = txId === 'unbox_nft_complete';
-    if (txId) {
-      preCollectIdsRef.current = new Set(assetsRef.current.map(a => a.id));
-      pendingAnimationRef.current = { txId: isUnboxNft ? 'unbox_nft' : txId };
+    const preIds = new Set(assetsRef.current.map(a => a.id));
+    const hasReveal = !!(reveal && reveal.matchers.length > 0);
+    if (hasReveal) {
+      preCollectIdsRef.current = preIds;
+      pendingAnimationRef.current = { txId: isUnboxNft ? 'unbox_nft' : (txId ?? null) };
     }
-    // Defer refetches slightly so the reveal dialog can close cleanly first
-    await new Promise(r => setTimeout(r, isUnboxNft ? 2000 : 300));
+
+    // Initial defer so the reveal dialog can close cleanly, then first refetch.
+    await new Promise(r => setTimeout(r, isUnboxNft ? 1500 : 300));
     await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
-    // Surface Collect Unclaimed if the reveal flow left rows behind in pendingnft.a
-    recheckUnclaimed();
+
+    if (!hasReveal) {
+      recheckUnclaimed();
+      return;
+    }
+
+    // Poll for matched delivery up to ~45s.
+    const deadline = Date.now() + 45_000;
+    const delays = [1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000];
+    let attempt = 0;
+    let matched: SimpleAsset[] = [];
+    while (Date.now() < deadline) {
+      // Let React commit the latest refetch into state before reading assetsRef.
+      await new Promise<void>(r => requestAnimationFrame(() => r()));
+      await new Promise(r => setTimeout(r, 50));
+      const result = matchRevealedAssets(reveal!.matchers, assetsRef.current, preCollectIdsRef.current);
+      if (result.unresolved.length === 0 && result.matched.length > 0) {
+        matched = result.matched;
+        break;
+      }
+      const delay = delays[Math.min(attempt, delays.length - 1)];
+      attempt++;
+      await new Promise(r => setTimeout(r, delay));
+      await Promise.all([refetchSa(), refetchAa()]);
+    }
+
+    if (matched.length === reveal!.matchers.length && matched.length > 0) {
+      const cat = matched[0].category;
+      if (cat) setCategoryFilter(cat);
+      setViewMode('classic');
+      setSearch('');
+      setSourceFilter('all');
+      setVisibleCount(Number.POSITIVE_INFINITY);
+      setDealingCards([...matched].reverse());
+      setDealtIds(new Set());
+      setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
+    } else {
+      // Delivery didn't land in the indexer window — do NOT start an animation
+      // with the wrong cards. Surface Collect Unclaimed (if applicable) and let
+      // the user find their new cards on the next refetch.
+      pendingAnimationRef.current = null;
+      recheckUnclaimed();
+      toast.info('Cards delivered on-chain — they will appear in your collection shortly.', { duration: 6000 });
+    }
   }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed]);
 
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
