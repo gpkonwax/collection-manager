@@ -18,7 +18,7 @@ interface AtomicPackBrowserDialogProps {
   pack: AtomicPack;
   session: Session | null;
   accountName: string;
-  onSuccess?: (txId?: string | null) => void;
+  onSuccess?: (txId?: string | null, reveal?: RevealResult) => void;
 }
 
 export function AtomicPackBrowserDialog({
