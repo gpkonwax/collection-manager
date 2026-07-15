@@ -423,7 +423,7 @@ export default function SimpleAssetsPage() {
     setSearch('');
     setSourceFilter('all');
     setVariantFilter(['all']);
-    setSortMode('newest');
+    setSortMode('natural');
     setVisibleCount(Number.POSITIVE_INFINITY);
   }, []);
 
