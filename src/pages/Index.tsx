@@ -1389,6 +1389,77 @@ export default function SimpleAssetsPage() {
     );
   };
 
+  const renderPackAuditPanel = () => {
+    if (!packAudit || packAudit.status === 'none') return null;
+    const label = packAudit.category ? (CATEGORY_LABELS[packAudit.category] || packAudit.category) : 'Latest pack';
+    const checked = new Date(packAudit.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return (
+      <div className="mb-4 rounded-lg border border-cheese/30 bg-card/70 p-4 space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-cheese">Last Pack Opened</h3>
+            <p className="text-sm text-muted-foreground">
+              {label}{packAudit.unboxingId ? ` · Unboxing ${packAudit.unboxingId}` : ''} · checked {checked}
+            </p>
+            {packAudit.status === 'unclaimed' && (
+              <p className="text-sm text-muted-foreground">This pack still has unclaimed rows. Use Collect Unclaimed to finish delivery.</p>
+            )}
+            {packAudit.status === 'partial' && (
+              <p className="text-sm text-muted-foreground">The contract says this pack was collected, but some matching assets are not visible from the indexer yet.</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => reconstructLatestPackOpen({ focus: false })}
+              disabled={isReconstructingOpen}
+              variant="outline"
+              size="sm"
+              className="border-cheese/50 text-cheese hover:bg-cheese/10"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isReconstructingOpen ? 'animate-spin' : ''}`} />
+              Recheck
+            </Button>
+            <Button
+              onClick={() => setPackAudit(null)}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Hide last pack"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {packAudit.assets.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            {packAudit.assets.map((asset) => (
+              <button
+                key={asset.id}
+                type="button"
+                onClick={() => setSelectedAsset(asset)}
+                className="flex items-center gap-3 rounded-md border border-border bg-background/60 p-2 text-left hover:border-cheese/50 transition-colors"
+              >
+                <img src={asset.image} alt={asset.name} className="h-16 w-12 object-contain rounded-sm bg-muted" loading="lazy" />
+                <span className="min-w-0 space-y-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">{asset.name}</span>
+                  <span className="block text-xs text-cheese">#{asset.cardid}{asset.side || ''} {asset.quality}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">Asset {asset.id}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {packAudit.missing.length > 0 && (
+          <div className="text-xs text-muted-foreground">
+            Still waiting on: {packAudit.missing.map((m) => `#${m.cardid}${m.side} ${m.variant}`).join(', ')}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderBinderSections = (grid: NonNullable<typeof binderGrid>, useGrouped: boolean) => {
     const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
     const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
@@ -1478,6 +1549,7 @@ export default function SimpleAssetsPage() {
           )}
         </div>
       </div>
+      {renderPackAuditPanel()}
       {filtered.length === 0 && !isLoading ? (
         <p className="text-center text-muted-foreground py-12">
           {isViewing
@@ -2331,9 +2403,9 @@ export default function SimpleAssetsPage() {
                 </Button>
               )}
               {!showCollectUnclaimed && collectionSyncNotice && !isViewing && (
-                <Button onClick={() => focusCollectionView(collectionSyncNotice.category)} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Show Newest Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
+                <Button onClick={() => reconstructLatestPackOpen({ focus: true })} disabled={isReconstructingOpen} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isReconstructingOpen ? 'animate-spin' : ''}`} />
+                  Show Received Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
                 </Button>
               )}
             </div>
