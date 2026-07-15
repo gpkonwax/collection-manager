@@ -210,9 +210,41 @@ export function useIpfsMedia(
     }
   }, [enabled, cachedLoadedUrl]);
 
+  // Parallel gateway race for detail context — dramatically cuts back-of-card load time.
+  const raceDoneRef = useRef(context !== 'detail');
+  useEffect(() => {
+    if (context !== 'detail') { raceDoneRef.current = true; return; }
+    raceDoneRef.current = false;
+    if (!enabled || !hash || cachedLoadedUrl || hasLoadedRef.current) {
+      raceDoneRef.current = true;
+      return;
+    }
+    const myAttempt = attemptRef.current;
+    let cancelled = false;
+    raceGateways(hash, startIdx).then((result) => {
+      if (cancelled || !mountedRef.current) return;
+      if (myAttempt !== attemptRef.current) return;
+      raceDoneRef.current = true;
+      if (result) {
+        // Cache is already primed by raceGateways; nudge state so <img> renders the winning URL.
+        setGwIdx(result.gwIdx);
+        setNonce((n) => n + 1);
+      } else {
+        // All raced gateways lost — advance past them so sequential rotation resumes with fresh ones.
+        setTriedCount((t) => Math.max(t, RACE_GATEWAY_COUNT));
+        setGwIdx((prev) => (prev + RACE_GATEWAY_COUNT) % IPFS_GATEWAYS.length);
+      }
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hash, enabled, context]);
+
   // Timeout-based fallback — only when enabled and not yet loaded
   useEffect(() => {
     if (!enabled || failed || !isLoading || !hash) return;
+    // For detail context, defer the serial timer until the parallel race resolves —
+    // otherwise it would rotate gwIdx mid-race and waste attempts.
+    if (context === 'detail' && !raceDoneRef.current) return;
     if (hasLoadedRef.current) return; // sticky: already loaded once
     if (timerRef.current) clearTimeout(timerRef.current);
 
