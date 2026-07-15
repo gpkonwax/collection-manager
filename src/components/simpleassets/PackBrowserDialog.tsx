@@ -70,8 +70,8 @@ export function PackBrowserDialog({
     } finally { setOpeningIdx(null); }
   }, [session, unboxType, pack, accountName, snapshotUnboxingIds, executeTransaction, visibleCount, page]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => {
-    onSuccess?.(txId);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => {
+    onSuccess?.(txId, reveal);
     if (localCount <= 1) onOpenChange(false);
   }, [onSuccess, localCount, onOpenChange]);
 
