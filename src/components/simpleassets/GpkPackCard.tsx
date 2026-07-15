@@ -103,7 +103,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
     } finally { setIsOpening(false); }
   }, [session, unboxType, pack, accountName, executeTransaction]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => { onSuccess?.(txId); }, [onSuccess]);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => { onSuccess?.(txId, reveal); }, [onSuccess]);
 
   return (
     <>
