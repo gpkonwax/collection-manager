@@ -28,7 +28,7 @@ import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
-import { getGpkCategoryForBoxtype } from '@/lib/gpkCardImages';
+import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
@@ -41,7 +41,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import { getGpkVariantRank } from '@/lib/gpkVariant';
+import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
@@ -117,6 +117,81 @@ const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'exotic',
   five: 'series1',
 };
+
+type PendingNftAuditRow = {
+  id: number;
+  unboxingid: number;
+  draw: number;
+  boxtype: string;
+  variant: string;
+  quality: string;
+  done: number;
+  cardid: number;
+};
+
+type PackAuditMissing = {
+  rowId: number;
+  cardid: string;
+  side: string;
+  variant: string;
+};
+
+type PackAuditState = {
+  unboxingId: number | null;
+  category: string | null;
+  boxtype: string | null;
+  assets: SimpleAsset[];
+  missing: PackAuditMissing[];
+  status: 'collected' | 'unclaimed' | 'partial' | 'none';
+  checkedAt: number;
+};
+
+function normalizeAssetCategory(category: string | undefined): string {
+  return SCHEMA_TO_CATEGORY[category ?? ''] || category || '';
+}
+
+function compareAssetIdDesc(a: SimpleAsset, b: SimpleAsset): number {
+  try {
+    const aId = BigInt(a.id);
+    const bId = BigInt(b.id);
+    return bId > aId ? 1 : bId < aId ? -1 : 0;
+  } catch {
+    return b.id.localeCompare(a.id);
+  }
+}
+
+function matchPendingRowsToMintedAssets(rows: PendingNftAuditRow[], assets: SimpleAsset[]) {
+  const used = new Set<string>();
+  const matched: SimpleAsset[] = [];
+  const missing: PackAuditMissing[] = [];
+  const sortedRows = [...rows].sort((a, b) => a.draw - b.draw);
+
+  for (const row of sortedRows) {
+    const category = getGpkCategoryForBoxtype(row.boxtype);
+    const cardid = normalizePendingGpkCardId(row.boxtype, row.cardid);
+    const side = String(row.quality ?? '').toLowerCase();
+    const variant = normalizeGpkVariant(String(row.variant ?? ''));
+    const hit = assets
+      .filter((asset) =>
+        !used.has(asset.id) &&
+        asset.source === 'simpleassets' &&
+        (!category || normalizeAssetCategory(asset.category) === category) &&
+        String(asset.cardid ?? '') === cardid &&
+        String(asset.side ?? '').toLowerCase() === side &&
+        String(asset.quality ?? '').toLowerCase() === variant,
+      )
+      .sort(compareAssetIdDesc)[0];
+
+    if (hit) {
+      used.add(hit.id);
+      matched.push(hit);
+    } else {
+      missing.push({ rowId: row.id, cardid, side, variant });
+    }
+  }
+
+  return { matched, missing };
+}
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
@@ -209,6 +284,8 @@ export default function SimpleAssetsPage() {
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
   const [collectionSyncNotice, setCollectionSyncNotice] = useState<{ category: string | null; count?: number } | null>(null);
+  const [packAudit, setPackAudit] = useState<PackAuditState | null>(null);
+  const [isReconstructingOpen, setIsReconstructingOpen] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
     open: false, title: '', description: '', txId: null,
   });
@@ -372,6 +449,65 @@ export default function SimpleAssetsPage() {
     return newest;
   }, [refetchSa, refetchAa]);
 
+  const reconstructLatestPackOpen = useCallback(async (options?: { focus?: boolean; silent?: boolean }) => {
+    if (!accountName || isViewing) return null;
+    setIsReconstructingOpen(true);
+    try {
+      const rows = (await fetchPendingNfts(accountName)) as PendingNftAuditRow[];
+      if (rows.length === 0) {
+        const emptyAudit: PackAuditState = {
+          unboxingId: null,
+          category: null,
+          boxtype: null,
+          assets: [],
+          missing: [],
+          status: 'none',
+          checkedAt: Date.now(),
+        };
+        setPackAudit(emptyAudit);
+        setCollectionSyncNotice(null);
+        if (!options?.silent) toast.info('No pack-open history found for this wallet');
+        return emptyAudit;
+      }
+
+      await Promise.all([refetchSa(), refetchAa()]);
+      await new Promise<void>(r => requestAnimationFrame(() => r()));
+      await new Promise(r => setTimeout(r, 100));
+
+      const latestUnboxingId = Math.max(...rows.map((row) => Number(row.unboxingid)).filter(Number.isFinite));
+      const latestRows = rows.filter((row) => Number(row.unboxingid) === latestUnboxingId);
+      const category = getGpkCategoryForBoxtype(String(latestRows[0]?.boxtype ?? ''));
+      const { matched, missing } = matchPendingRowsToMintedAssets(latestRows, assetsRef.current);
+      const hasUnclaimed = latestRows.some((row) => Number(row.done) === 0);
+      const status: PackAuditState['status'] = hasUnclaimed ? 'unclaimed' : missing.length > 0 ? 'partial' : 'collected';
+      const audit: PackAuditState = {
+        unboxingId: latestUnboxingId,
+        category,
+        boxtype: latestRows[0]?.boxtype ?? null,
+        assets: matched,
+        missing,
+        status,
+        checkedAt: Date.now(),
+      };
+
+      setPackAudit(audit);
+      setCollectionSyncNotice({ category, count: latestRows.length || undefined });
+      if (options?.focus !== false) focusCollectionView(category);
+      if (!options?.silent) {
+        if (status === 'unclaimed') toast.info('Latest pack still has unclaimed cards');
+        else if (status === 'partial') toast.warning('Latest pack was collected, but some minted cards were not found yet');
+        else toast.success(`Found ${matched.length} received card${matched.length !== 1 ? 's' : ''}`);
+      }
+      return audit;
+    } catch (error) {
+      console.error('Reconstruct latest pack failed:', error);
+      if (!options?.silent) toast.error('Could not reconstruct the latest pack open');
+      return null;
+    } finally {
+      setIsReconstructingOpen(false);
+    }
+  }, [accountName, isViewing, refetchSa, refetchAa, focusCollectionView]);
+
   // Match-based delivery: only start the deal animation once every revealed
   // card is confirmed present in the refetched collection. Never diff blindly —
   // that used to pick up unrelated background refetches and deal already-owned
@@ -418,6 +554,15 @@ export default function SimpleAssetsPage() {
       const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory || null;
       focusCollectionView(cat);
       setCollectionSyncNotice({ category: cat, count: matched.length });
+      setPackAudit({
+        unboxingId: null,
+        category: cat,
+        boxtype: null,
+        assets: matched,
+        missing: [],
+        status: 'collected',
+        checkedAt: Date.now(),
+      });
       setDealingCards([...matched].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
@@ -429,9 +574,10 @@ export default function SimpleAssetsPage() {
       recheckUnclaimed();
       focusCollectionView(reveal!.expectedCategory);
       setCollectionSyncNotice({ category: reveal!.expectedCategory ?? null, count: reveal!.matchers.length });
+      reconstructLatestPackOpen({ focus: false, silent: true });
       toast.info('Cards delivered on-chain — they will appear in your collection shortly.', { duration: 6000 });
     }
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView]);
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView, reconstructLatestPackOpen]);
 
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
     if (demoAssets.length === 0) return;
@@ -512,6 +658,7 @@ export default function SimpleAssetsPage() {
       pendingAnimationRef.current = null;
       focusCollectionView(expectedCategory);
       setCollectionSyncNotice({ category: expectedCategory, count: newest.length || unclaimed.length });
+      reconstructLatestPackOpen({ focus: false, silent: true });
       recheckUnclaimed();
     } catch (e) {
       pendingAnimationRef.current = null;
@@ -519,7 +666,7 @@ export default function SimpleAssetsPage() {
     } finally {
       setIsCollecting(false);
     }
-  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed, waitForNewCollectionAssets, focusCollectionView]);
+  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed, waitForNewCollectionAssets, focusCollectionView, reconstructLatestPackOpen]);
 
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
@@ -1242,6 +1389,77 @@ export default function SimpleAssetsPage() {
     );
   };
 
+  const renderPackAuditPanel = () => {
+    if (!packAudit || packAudit.status === 'none') return null;
+    const label = packAudit.category ? (CATEGORY_LABELS[packAudit.category] || packAudit.category) : 'Latest pack';
+    const checked = new Date(packAudit.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return (
+      <div className="mb-4 rounded-lg border border-cheese/30 bg-card/70 p-4 space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-cheese">Last Pack Opened</h3>
+            <p className="text-sm text-muted-foreground">
+              {label}{packAudit.unboxingId ? ` · Unboxing ${packAudit.unboxingId}` : ''} · checked {checked}
+            </p>
+            {packAudit.status === 'unclaimed' && (
+              <p className="text-sm text-muted-foreground">This pack still has unclaimed rows. Use Collect Unclaimed to finish delivery.</p>
+            )}
+            {packAudit.status === 'partial' && (
+              <p className="text-sm text-muted-foreground">The contract says this pack was collected, but some matching assets are not visible from the indexer yet.</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => reconstructLatestPackOpen({ focus: false })}
+              disabled={isReconstructingOpen}
+              variant="outline"
+              size="sm"
+              className="border-cheese/50 text-cheese hover:bg-cheese/10"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isReconstructingOpen ? 'animate-spin' : ''}`} />
+              Recheck
+            </Button>
+            <Button
+              onClick={() => setPackAudit(null)}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Hide last pack"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {packAudit.assets.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            {packAudit.assets.map((asset) => (
+              <button
+                key={asset.id}
+                type="button"
+                onClick={() => setSelectedAsset(asset)}
+                className="flex items-center gap-3 rounded-md border border-border bg-background/60 p-2 text-left hover:border-cheese/50 transition-colors"
+              >
+                <img src={asset.image} alt={asset.name} className="h-16 w-12 object-contain rounded-sm bg-muted" loading="lazy" />
+                <span className="min-w-0 space-y-1">
+                  <span className="block truncate text-sm font-semibold text-foreground">{asset.name}</span>
+                  <span className="block text-xs text-cheese">#{asset.cardid}{asset.side || ''} {asset.quality}</span>
+                  <span className="block truncate text-[11px] text-muted-foreground">Asset {asset.id}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {packAudit.missing.length > 0 && (
+          <div className="text-xs text-muted-foreground">
+            Still waiting on: {packAudit.missing.map((m) => `#${m.cardid}${m.side} ${m.variant}`).join(', ')}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderBinderSections = (grid: NonNullable<typeof binderGrid>, useGrouped: boolean) => {
     const showGoldenSection = categoryFilter === 'series1' || categoryFilter === 'series2';
     const regular = grid.filter(s => s.template.variant !== 'collector' && (!showGoldenSection || s.template.variant !== 'golden'));
@@ -1331,6 +1549,7 @@ export default function SimpleAssetsPage() {
           )}
         </div>
       </div>
+      {renderPackAuditPanel()}
       {filtered.length === 0 && !isLoading ? (
         <p className="text-center text-muted-foreground py-12">
           {isViewing
@@ -2184,9 +2403,9 @@ export default function SimpleAssetsPage() {
                 </Button>
               )}
               {!showCollectUnclaimed && collectionSyncNotice && !isViewing && (
-                <Button onClick={() => focusCollectionView(collectionSyncNotice.category)} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Show Newest Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
+                <Button onClick={() => reconstructLatestPackOpen({ focus: true })} disabled={isReconstructingOpen} variant="outline" size="sm" className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10">
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isReconstructingOpen ? 'animate-spin' : ''}`} />
+                  Show Received Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
                 </Button>
               )}
             </div>

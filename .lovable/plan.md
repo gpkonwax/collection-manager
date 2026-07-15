@@ -1,30 +1,39 @@
-I verified the current wallet signal: `pendingnft.a` has no `done: 0` rows, so `Collect Unclaimed` is correctly hidden. The last Series 1 unboxing rows are all `done: 1`, meaning `getcards` already consumed them.
+First: you are right to be upset. The reveal used the wrong numbering for this pack, so the cards shown during reveal were not the actual minted cards.
 
-The real bug is more specific: Series 1 `pendingnft.a.cardid` is zero-based, but the minted `simpleassets::sassets` metadata is one-based. For the latest Series 1 pack:
+For the latest Series 1 pack I verified earlier, the actual cards received were:
 
 ```text
-pending reveal rows: 29b prism, 10a prism, 38b sketch, 32b base, 3b base
-actual minted assets: 30b prism, 11a prism, 39b sketch, 33b base, 4b base
+Asset 100000020303611 — Card #30b Prism — Graffiti Petey
+Asset 100000020303612 — Card #11a Prism — Itchy Richie
+Asset 100000020303613 — Card #39b Sketch — Green Jean
+Asset 100000020303614 — Card #33b Base — Savage Stuart
+Asset 100000020303615 — Card #4b Base — Electric Bill
 ```
 
-That explains why the cards you saw are not in the collection: the reveal UI and matcher used the raw pending card IDs, while the collection uses the minted metadata IDs.
+Why this happened:
+- The `pendingnft.a` table stores Series 1 pack card IDs as zero-based values.
+- The minted `simpleassets::sassets` NFTs store the real collection card IDs as one-based values.
+- The reveal UI was displaying the raw pending IDs, so it showed the wrong cards even though `getcards` minted the correct NFTs.
 
 Plan:
-1. Add a shared card-ID normalizer for pack reveal rows:
-   - For Series 1 boxtypes `five` and `thirty`, display/match `pending.cardid + 1`.
-   - For Series 2, Exotic, and other boxtypes, keep the current card ID unchanged.
-2. Use that normalized ID everywhere the reveal flow derives card identity:
-   - reveal card name/label
-   - reveal image URL
-   - `RevealResult` matcher sent to `handlePackOpened`
-3. Update exact delivery matching:
-   - Match Series 1 minted assets using the normalized one-based ID.
-   - Keep the existing “never deal blind cards” guard intact.
-4. Improve timeout/recovery messaging:
-   - If all pending rows are `done: 1`, do not show `Collect Unclaimed`.
-   - Instead show a clear “Cards were collected; refresh/show newest cards” path so users are not looking for a claim button that should not exist.
-5. Add a Newest/Recent view path after collection:
-   - Auto-clear search, set Classic View, source All, variant All, correct category, and newest-first sorting when pack collection completes or matching times out.
-   - This makes the actual newly minted duplicates visible immediately.
-
-Current pack note: do not retry `getcards`; that will keep failing because the contract has already marked those rows as collected.
+1. Add a “Last Pack Opened” / “Show Newest Cards” recovery panel that lists the exact minted assets after collection:
+   - asset ID
+   - card number + side
+   - variant
+   - name
+   - image
+2. Build the panel from actual minted `sassets`, not from the pre-claim reveal rows.
+3. Keep the reveal fix already started, but make it stricter:
+   - Series 1: pending ID + 1
+   - Series 2: pending ID + 42
+   - Exotic: use category-constrained matching so it cannot accidentally match Series 1 cards with the same number.
+4. Add a manual “Reconstruct Last Open” action:
+   - reads the latest `pendingnft.a` unboxing rows
+   - converts IDs correctly by boxtype
+   - matches them to actual wallet NFTs
+   - displays the exact cards received even if the animation/reveal failed.
+5. Make failed/timeout states explicit:
+   - if rows are `done: 0`, show `Collect Unclaimed`
+   - if rows are `done: 1`, show “Already collected — show received cards” instead of leaving the user hunting.
+6. Prevent misleading reveals going forward:
+   - never show final reveal card identities until the app has applied the same ID normalization used for matching actual minted assets.
