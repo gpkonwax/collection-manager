@@ -88,6 +88,25 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
 
   const isStacked = (stackCount ?? 0) > 1;
 
+  // Warm the back-image gateway cache in the background while the card is mounted
+  // so the detail dialog opens with an already-loaded back instead of waiting 5-30s
+  // on serial gateway rotation.
+  const backImage = asset.images?.[1];
+  useEffect(() => {
+    if (!backImage) return;
+    const schedule: (cb: () => void) => number =
+      typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? (cb) => (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number })
+            .requestIdleCallback(cb, { timeout: 2000 })
+        : (cb) => window.setTimeout(cb, 400);
+    const cancel: (id: number) => void =
+      typeof window !== 'undefined' && 'cancelIdleCallback' in window
+        ? (id) => (window as unknown as { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id)
+        : (id) => window.clearTimeout(id);
+    const id = schedule(() => prefetchIpfsImage(backImage));
+    return () => cancel(id);
+  }, [backImage]);
+
   return (
     <>
     <Card
