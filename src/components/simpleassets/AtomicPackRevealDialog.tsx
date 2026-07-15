@@ -428,7 +428,8 @@ export function AtomicPackRevealDialog({
     // For unbox_nft: no blockchain claim needed, just close with a marker
     if (openMode === 'unbox_nft') {
       setPhase('done');
-      onComplete('unbox_nft_complete');
+      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current };
+      onComplete('unbox_nft_complete', reveal);
       setTimeout(() => onOpenChange(false), 1500);
       return;
     }
@@ -442,7 +443,8 @@ export function AtomicPackRevealDialog({
           data: { pack_asset_id: parseInt(packAssetId, 10), origin_roll_ids: rollIds } }],
       }, { transactPlugins: getTransactPlugins(session) });
       const txId = result?.resolved?.transaction?.id?.toString() || null;
-      setPhase('done'); onComplete(txId);
+      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current };
+      setPhase('done'); onComplete(txId, reveal);
     } catch (e) {
       console.error('[AtomicReveal] claimunboxed failed', e);
       closeWharfkitModals(); setTimeout(() => closeWharfkitModals(), 100);
