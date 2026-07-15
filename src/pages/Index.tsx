@@ -1451,7 +1451,9 @@ export default function SimpleAssetsPage() {
                 onClick={() => setSelectedAsset(asset)}
                 className="flex items-center gap-3 rounded-md border border-border bg-background/60 p-2 text-left hover:border-cheese/50 transition-colors"
               >
-                <img src={asset.image} alt={asset.name} className="h-16 w-12 object-contain rounded-sm bg-muted" loading="lazy" />
+                <div className="h-16 w-12 flex-shrink-0 rounded-sm bg-muted overflow-hidden">
+                  <IpfsMedia url={asset.image} alt={asset.name} context="card" showSkeleton className="h-full w-full" />
+                </div>
                 <span className="min-w-0 space-y-1">
                   <span className="block truncate text-sm font-semibold text-foreground">{asset.name}</span>
                   <span className="block text-xs text-cheese">#{asset.cardid}{asset.side || ''} {asset.quality}</span>
