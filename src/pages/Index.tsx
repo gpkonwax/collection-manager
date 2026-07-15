@@ -28,7 +28,7 @@ import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
-import { getGpkCategoryForBoxtype } from '@/lib/gpkCardImages';
+import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
@@ -41,7 +41,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import { getGpkVariantRank } from '@/lib/gpkVariant';
+import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
@@ -117,6 +117,81 @@ const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'exotic',
   five: 'series1',
 };
+
+type PendingNftAuditRow = {
+  id: number;
+  unboxingid: number;
+  draw: number;
+  boxtype: string;
+  variant: string;
+  quality: string;
+  done: number;
+  cardid: number;
+};
+
+type PackAuditMissing = {
+  rowId: number;
+  cardid: string;
+  side: string;
+  variant: string;
+};
+
+type PackAuditState = {
+  unboxingId: number | null;
+  category: string | null;
+  boxtype: string | null;
+  assets: SimpleAsset[];
+  missing: PackAuditMissing[];
+  status: 'collected' | 'unclaimed' | 'partial' | 'none';
+  checkedAt: number;
+};
+
+function normalizeAssetCategory(category: string | undefined): string {
+  return SCHEMA_TO_CATEGORY[category ?? ''] || category || '';
+}
+
+function compareAssetIdDesc(a: SimpleAsset, b: SimpleAsset): number {
+  try {
+    const aId = BigInt(a.id);
+    const bId = BigInt(b.id);
+    return bId > aId ? 1 : bId < aId ? -1 : 0;
+  } catch {
+    return b.id.localeCompare(a.id);
+  }
+}
+
+function matchPendingRowsToMintedAssets(rows: PendingNftAuditRow[], assets: SimpleAsset[]) {
+  const used = new Set<string>();
+  const matched: SimpleAsset[] = [];
+  const missing: PackAuditMissing[] = [];
+  const sortedRows = [...rows].sort((a, b) => a.draw - b.draw);
+
+  for (const row of sortedRows) {
+    const category = getGpkCategoryForBoxtype(row.boxtype);
+    const cardid = normalizePendingGpkCardId(row.boxtype, row.cardid);
+    const side = String(row.quality ?? '').toLowerCase();
+    const variant = normalizeGpkVariant(String(row.variant ?? ''));
+    const hit = assets
+      .filter((asset) =>
+        !used.has(asset.id) &&
+        asset.source === 'simpleassets' &&
+        (!category || normalizeAssetCategory(asset.category) === category) &&
+        String(asset.cardid ?? '') === cardid &&
+        String(asset.side ?? '').toLowerCase() === side &&
+        String(asset.quality ?? '').toLowerCase() === variant,
+      )
+      .sort(compareAssetIdDesc)[0];
+
+    if (hit) {
+      used.add(hit.id);
+      matched.push(hit);
+    } else {
+      missing.push({ rowId: row.id, cardid, side, variant });
+    }
+  }
+
+  return { matched, missing };
+}
 
 const PACK_CATEGORY_MAP: Record<string, string> = {
   GPKFIVE: 'series1', GPKMEGA: 'series1',
