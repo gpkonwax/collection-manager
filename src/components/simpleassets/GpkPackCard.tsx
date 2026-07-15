@@ -10,6 +10,7 @@ import type { RevealCard } from './PackRevealDialog';
 import { PackBrowserDialog } from './PackBrowserDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import type { RevealResult } from '@/lib/packReveal';
 // Geepeekay versions (current) — old originals kept in assets with original filenames
 import gpkSeries1Img from '@/assets/gpk_pack_series_1_geepeekay.jpg';
 import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega_geepeekay.jpg';
