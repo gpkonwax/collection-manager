@@ -119,6 +119,7 @@ export function PackRevealDialog({
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
   const pollStartRef = useRef<number>(0);
+  const revealedRowsRef = useRef<PendingNftRow[]>([]);
   const isDemo = !!(demoCards && demoCards.length > 0);
 
   const expectedCount = EXPECTED_CARDS[packSymbol] ?? 5;
