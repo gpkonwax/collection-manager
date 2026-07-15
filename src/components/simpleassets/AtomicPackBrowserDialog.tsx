@@ -80,8 +80,8 @@ export function AtomicPackBrowserDialog({
     }
   }, [session, startIdx, localAssetIds, localMints, pack, executeTransaction, visibleCount, page]);
 
-  const handleRevealComplete = useCallback((txId?: string | null) => {
-    onSuccess?.(txId);
+  const handleRevealComplete = useCallback((txId?: string | null, reveal?: RevealResult) => {
+    onSuccess?.(txId, reveal);
     if (localAssetIds.length <= 0) onOpenChange(false);
   }, [onSuccess, localAssetIds.length, onOpenChange]);
 
