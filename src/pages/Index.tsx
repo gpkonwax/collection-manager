@@ -430,12 +430,13 @@ export default function SimpleAssetsPage() {
       setShowCollectUnclaimed(false);
       pendingAnimationRef.current = { txId: lastTxId };
       await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
+      recheckUnclaimed();
     } catch (e) {
       console.error('Collect unclaimed failed:', e);
     } finally {
       setIsCollecting(false);
     }
-  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks]);
+  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed]);
 
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
