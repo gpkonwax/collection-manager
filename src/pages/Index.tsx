@@ -335,6 +335,15 @@ export default function SimpleAssetsPage() {
     }
   }, [assets]);
 
+  const recheckUnclaimed = useCallback(async () => {
+    if (!accountName || isViewing) { setShowCollectUnclaimed(false); return; }
+    try {
+      const rows = await fetchPendingNfts(accountName);
+      const unclaimed = rows.filter((r: any) => r.done === 0);
+      setShowCollectUnclaimed(unclaimed.length > 0);
+    } catch { }
+  }, [accountName, isViewing]);
+
   const handlePackOpened = useCallback(async (txId?: string | null) => {
     const isUnboxNft = txId === 'unbox_nft_complete';
     if (txId) {
@@ -344,7 +353,9 @@ export default function SimpleAssetsPage() {
     // Defer refetches slightly so the reveal dialog can close cleanly first
     await new Promise(r => setTimeout(r, isUnboxNft ? 2000 : 300));
     await Promise.all([refetchPacks(), refetchAtomicPacks(), refetchSa(), refetchAa()]);
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa]);
+    // Surface Collect Unclaimed if the reveal flow left rows behind in pendingnft.a
+    recheckUnclaimed();
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed]);
 
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
     if (demoAssets.length === 0) return;
@@ -361,14 +372,18 @@ export default function SimpleAssetsPage() {
 
   useEffect(() => {
     if (!accountName || isViewing) { setShowCollectUnclaimed(false); return; }
-    (async () => {
-      try {
-        const rows = await fetchPendingNfts(accountName);
-        const unclaimed = rows.filter((r: any) => r.done === 0);
-        setShowCollectUnclaimed(unclaimed.length > 0);
-      } catch { }
-    })();
-  }, [accountName, isViewing]);
+    recheckUnclaimed();
+    const interval = setInterval(recheckUnclaimed, 45_000);
+    const onFocus = () => recheckUnclaimed();
+    const onVisibility = () => { if (document.visibilityState === 'visible') recheckUnclaimed(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [accountName, isViewing, recheckUnclaimed]);
 
   // Force-exit private views when entering view-another-wallet mode.
   useEffect(() => {
@@ -415,12 +430,13 @@ export default function SimpleAssetsPage() {
       setShowCollectUnclaimed(false);
       pendingAnimationRef.current = { txId: lastTxId };
       await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
+      recheckUnclaimed();
     } catch (e) {
       console.error('Collect unclaimed failed:', e);
     } finally {
       setIsCollecting(false);
     }
-  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks]);
+  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed]);
 
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
