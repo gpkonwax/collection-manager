@@ -1,6 +1,7 @@
-import { memo, useMemo, useState, DragEvent } from 'react';
+import { memo, useMemo, useState, useEffect, DragEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing } from 'lucide-react';
 import { cn } from '@/lib/utils';
