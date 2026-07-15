@@ -12,6 +12,24 @@ const SERIES_HASH: Record<string, string> = {
 
 const GIF_VARIANTS = new Set(['prism', 'sketch', 'slime', 'raw', 'gum', 'vhs', 'collector', 'tiger stripe', 'tiger claw', 'originalart', 'relic']);
 
+const SERIES1_ZERO_BASED_BOXES = new Set(['five', 'thirty']);
+
+export function normalizePendingGpkCardId(boxtype: string, cardid: number | string): string {
+  const raw = String(cardid).trim();
+  const parsed = Number.parseInt(raw, 10);
+  if (SERIES1_ZERO_BASED_BOXES.has(boxtype) && Number.isFinite(parsed)) {
+    return String(parsed + 1);
+  }
+  return raw;
+}
+
+export function getGpkCategoryForBoxtype(boxtype: string): string | null {
+  if (boxtype === 'five' || boxtype === 'thirty') return 'series1';
+  if (boxtype.startsWith('gpktwo')) return 'series2';
+  if (boxtype.startsWith('exotic')) return 'exotic';
+  return null;
+}
+
 export function buildGpkCardImageUrl(
   boxtype: string,
   variant: string,
