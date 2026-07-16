@@ -24,7 +24,6 @@ export function subscribeLocalMirror(fn: () => void): () => void {
   listeners.add(fn);
   return () => { listeners.delete(fn); };
 }
-function emit() { for (const fn of listeners) fn(); }
 
 export interface LocalMirrorStatus {
   fileCount: number;
@@ -33,13 +32,27 @@ export interface LocalMirrorStatus {
   persisted: boolean;
 }
 
-export function getLocalMirrorStatus(): LocalMirrorStatus {
-  return {
+// Cached snapshot — MUST be a stable reference between emits so
+// useSyncExternalStore doesn't loop.
+let cachedStatus: LocalMirrorStatus = {
+  fileCount: 0,
+  totalBytes: 0,
+  loadedAt: null,
+  persisted: false,
+};
+
+function emit() {
+  cachedStatus = {
     fileCount: store.size,
     totalBytes: bytesLoaded,
     loadedAt,
     persisted: getPersistPreference(),
   };
+  for (const fn of listeners) fn();
+}
+
+export function getLocalMirrorStatus(): LocalMirrorStatus {
+  return cachedStatus;
 }
 
 export function getPersistPreference(): boolean {
