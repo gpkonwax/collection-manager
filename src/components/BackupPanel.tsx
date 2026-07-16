@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Download, HardDrive, Loader2, ShieldAlert, Trash2, Upload } from 'lucide-react';
+import {
+  Download,
+  HardDrive,
+  Loader2,
+  Server,
+  ShieldCheck,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,10 +31,15 @@ import {
   subscribeLocalMirror,
 } from '@/lib/localMirror';
 import {
-  TRUSTED_MIRRORS,
-  getCommunityMirrorUrl,
-  setCommunityMirrorUrl,
-} from '@/lib/ipfsGateways';
+  MIRRORS,
+  type MirrorKey,
+  getRemoteMirrorState,
+  isMirrorConfigured,
+  resetActiveMirror,
+  setActiveMirror,
+  subscribeRemoteMirror,
+  type MirrorStatus,
+} from '@/lib/remoteMirror';
 
 function formatBytes(n: number): string {
   if (!n) return '0 B';
@@ -40,6 +54,13 @@ interface Props {
   triggerClassName?: string;
 }
 
+const STEP_BADGES: Record<MirrorStatus, { label: string; className: string }> = {
+  idle: { label: 'Ready', className: 'bg-muted text-muted-foreground' },
+  checking: { label: 'Checking…', className: 'bg-blue-500/20 text-blue-400' },
+  ok: { label: 'Working', className: 'bg-emerald-500/20 text-emerald-400' },
+  failed: { label: 'Failed', className: 'bg-destructive/20 text-destructive' },
+};
+
 export function BackupPanel({ triggerClassName }: Props) {
   const status = useSyncExternalStore(
     subscribeLocalMirror,
@@ -47,16 +68,20 @@ export function BackupPanel({ triggerClassName }: Props) {
     getLocalMirrorStatus,
   );
 
+  const remoteState = useSyncExternalStore(
+    subscribeRemoteMirror,
+    getRemoteMirrorState,
+    getRemoteMirrorState,
+  );
+
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [persist, setPersistState] = useState(false);
-  const [community, setCommunity] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setPersistState(getPersistPreference());
-    setCommunity(getCommunityMirrorUrl() ?? '');
   }, [open]);
 
   const onPickFile = () => inputRef.current?.click();
@@ -94,20 +119,27 @@ export function BackupPanel({ triggerClassName }: Props) {
     setPersistPreference(v);
   };
 
-  const onSaveCommunity = () => {
-    const trimmed = community.trim();
-    if (trimmed && !/^https:\/\//i.test(trimmed)) {
+  const onUseMirror = (key: MirrorKey) => {
+    if (!isMirrorConfigured(key)) {
       toast({
-        title: 'Only https:// URLs accepted',
-        description: 'The community mirror URL must start with https://',
+        title: 'Mirror not configured',
+        description: 'This backup mirror URL is still a placeholder. Set it in the code after creating the mirror.',
         variant: 'destructive',
       });
       return;
     }
-    setCommunityMirrorUrl(trimmed || null);
+    setActiveMirror(key);
     toast({
-      title: trimmed ? 'Community mirror saved' : 'Community mirror cleared',
-      description: trimmed || 'Only public gateways and the built-in backup will be used.',
+      title: `Switched to ${MIRRORS.find((m) => m.key === key)?.label}`,
+      description: 'The app will verify every image against the pinned manifest before using it.',
+    });
+  };
+
+  const onReset = () => {
+    resetActiveMirror();
+    toast({
+      title: 'Reset to automatic fallback',
+      description: 'The app will use public IPFS gateways, then the built-in primary mirror.',
     });
   };
 
@@ -125,22 +157,116 @@ export function BackupPanel({ triggerClassName }: Props) {
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Offline image backup</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-cheese" />
+            Offline image backup
+          </DialogTitle>
           <DialogDescription>
-            If IPFS gateways go down, card artwork can still be loaded from a local ZIP
-            or from a community mirror.
+            If card images stop loading, work through these steps in order. Every mirror file is
+            checked against a published list of hashes, so you don't have to trust the host — only
+            the math.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 text-sm">
-          <section className="space-y-2">
+          {/* Step 1: built-in primary mirror */}
+          <section className="space-y-2 rounded-lg border border-cheese/20 bg-cheese/5 p-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold">
+                1
+              </span>
+              <p className="font-medium">Built-in primary mirror</p>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Used automatically when public IPFS gateways fail. No action needed.
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground break-all">
+              <Server className="w-3.5 h-3.5 flex-shrink-0" />
+              {MIRRORS[0].url || 'Not configured'}
+            </div>
+          </section>
+
+          {/* Step 2: backup mirrors */}
+          <section className="space-y-3 rounded-lg border border-border p-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold">
+                2
+              </span>
+              <p className="font-medium">Backup mirrors</p>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              If the primary mirror is also down, click a backup mirror to use it. Each file is
+              hash-verified before it is shown.
+            </p>
+
+            <div className="space-y-2">
+              {(['backupA', 'backupB'] as MirrorKey[]).map((key) => {
+                const cfg = MIRRORS.find((m) => m.key === key)!;
+                const configured = isMirrorConfigured(key);
+                const statusBadge = remoteState.statuses[key];
+                const isActive = remoteState.active === key;
+                const { label, className } = STEP_BADGES[statusBadge];
+                return (
+                  <div
+                    key={key}
+                    className={`flex flex-col gap-2 rounded-md border p-2 ${
+                      isActive ? 'border-cheese bg-cheese/5' : 'border-border'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-xs">{cfg.label}</p>
+                        <p className="text-[10px] text-muted-foreground break-all">
+                          {cfg.url || 'Not configured yet'}
+                        </p>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}>
+                        {configured ? label : 'Not configured'}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isActive ? 'default' : 'outline'}
+                      className="w-full h-8"
+                      disabled={!configured || statusBadge === 'checking'}
+                      onClick={() => onUseMirror(key)}
+                    >
+                      {statusBadge === 'checking' && (
+                        <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                      )}
+                      {isActive ? 'Active' : `Use ${cfg.label}`}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {remoteState.active && (
+              <Button size="sm" variant="ghost" className="w-full h-8" onClick={onReset}>
+                <X className="w-3.5 h-3.5 mr-2" />
+                Reset to automatic (primary mirror)
+              </Button>
+            )}
+          </section>
+
+          {/* Step 3: load ZIP */}
+          <section className="space-y-2 rounded-lg border border-border p-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold">
+                3
+              </span>
+              <p className="font-medium">Load backup ZIP</p>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              The ultimate fallback: load a ZIP of the mirror directly from your device. Works fully
+              offline once loaded.
+            </p>
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Local ZIP</p>
-                <p className="text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {status.fileCount > 0
                     ? `${status.fileCount.toLocaleString()} files loaded (${formatBytes(status.totalBytes)})`
-                    : 'No backup loaded — cards use public IPFS gateways.'}
+                    : 'No backup loaded.'}
                 </p>
               </div>
               {status.fileCount > 0 && (
@@ -176,38 +302,6 @@ export function BackupPanel({ triggerClassName }: Props) {
                 Remember on this device (IndexedDB)
               </Label>
               <Switch id="persist-mirror" checked={persist} onCheckedChange={onPersistChange} />
-            </div>
-          </section>
-
-          <section className="space-y-2 border-t border-border pt-4">
-            <div>
-              <p className="font-medium">Built-in mirror</p>
-              <p className="text-muted-foreground break-all text-xs">
-                {TRUSTED_MIRRORS[0]}
-              </p>
-              <p className="text-muted-foreground text-xs mt-1">
-                Used automatically when public IPFS gateways fail. No action needed.
-              </p>
-            </div>
-          </section>
-
-          <section className="space-y-2 border-t border-border pt-4">
-            <p className="font-medium">Community mirror URL (optional)</p>
-            <p className="flex items-start gap-1 text-xs text-muted-foreground">
-              <ShieldAlert className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-              <span>
-                Only paste URLs you trust. Verify content against the canonical
-                <code className="mx-1">manifest.json</code> before use.
-              </span>
-            </p>
-            <div className="flex gap-2">
-              <Input
-                value={community}
-                onChange={(e) => setCommunity(e.target.value)}
-                placeholder="https://example.com/gpk-mirror/"
-                className="text-xs"
-              />
-              <Button size="sm" onClick={onSaveCommunity}>Save</Button>
             </div>
           </section>
         </div>
