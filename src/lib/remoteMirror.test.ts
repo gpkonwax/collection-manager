@@ -8,6 +8,8 @@ import {
   setActiveMirror,
   subscribeRemoteMirror,
   MIRRORS,
+  getZipDownloadUrls,
+  getZipManifest,
 } from './remoteMirror';
 
 function sha256Raw(bytes: Uint8Array): ArrayBuffer {
@@ -120,5 +122,39 @@ describe('remoteMirror', () => {
     const second = await fetchVerifiedMirrorFile('QmTest/prism/1a.gif', primaryUrl);
     expect(first).toBe(second);
     expect(globalThis.fetch).toHaveBeenCalledTimes(2); // manifest + one file fetch
+  });
+
+  it('exposes ZIP download URLs for every configured mirror + GitHub Release', () => {
+    const options = getZipDownloadUrls();
+    expect(options.length).toBeGreaterThanOrEqual(2);
+    const primary = options[0];
+    expect(primary.key).toBe('primary');
+    expect(primary.url).toBe(`${MIRRORS[0].url}gpk-image-mirror.zip`);
+    expect(options[options.length - 1].key).toBe('github');
+  });
+
+  it('reads pinned zipSha256 / zipBytes from the manifest', async () => {
+    const manifest = {
+      generatedAt: null,
+      files: {},
+      missing: [],
+      zipSha256: 'a'.repeat(64),
+      zipBytes: 12345,
+      zipFileName: 'gpk-image-mirror.zip',
+    };
+    mockFetch({
+      '/gpk-manifest.json': { body: Buffer.from(JSON.stringify(manifest)) },
+    });
+    const info = await getZipManifest();
+    expect(info.sha256).toBe('a'.repeat(64));
+    expect(info.bytes).toBe(12345);
+    expect(info.fileName).toBe('gpk-image-mirror.zip');
+  });
+
+  it('returns null zip fields when the manifest is unavailable', async () => {
+    mockFetch({});
+    const info = await getZipManifest();
+    expect(info.sha256).toBeNull();
+    expect(info.bytes).toBeNull();
   });
 });

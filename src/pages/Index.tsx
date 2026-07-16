@@ -37,6 +37,7 @@ import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 
 import { BannerAd } from '@/components/BannerAd';
 import { BackupPanel } from '@/components/BackupPanel';
+import { BackupNudgeBanner } from '@/components/BackupNudgeBanner';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -1930,6 +1931,10 @@ export default function SimpleAssetsPage() {
           </div>
         </div>
       </div>
+
+      <BackupNudgeBanner />
+
+
 
       {isViewing && viewedAccount && (
         <ViewingBanner viewedAccount={viewedAccount} onClear={handleClearViewing} />

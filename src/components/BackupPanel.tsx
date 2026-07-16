@@ -33,11 +33,14 @@ import {
   MIRRORS,
   type MirrorKey,
   getRemoteMirrorState,
+  getZipDownloadUrls,
+  getZipManifest,
   isMirrorConfigured,
   resetActiveMirror,
   setActiveMirror,
   subscribeRemoteMirror,
   type MirrorStatus,
+  type ZipManifestInfo,
 } from '@/lib/remoteMirror';
 
 function formatBytes(n: number): string {
@@ -76,11 +79,13 @@ export function BackupPanel({ triggerClassName }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [persist, setPersistState] = useState(false);
+  const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setPersistState(getPersistPreference());
+    getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
   }, [open]);
 
   const onPickFile = () => inputRef.current?.click();
@@ -168,6 +173,14 @@ export function BackupPanel({ triggerClassName }: Props) {
         </DialogHeader>
 
         <div className="space-y-5 text-sm">
+          {/* Recommended: proactive ZIP download */}
+          <RecommendedZipCard
+            protectedOnDevice={status.fileCount > 0 && (status.persisted || persist)}
+            fileCount={status.fileCount}
+            totalBytes={status.totalBytes}
+            zipInfo={zipInfo}
+          />
+
           {/* Step 1: built-in primary mirror */}
           <section className="space-y-2 rounded-lg border border-cheese/20 bg-cheese/5 p-3">
             <div className="flex items-center gap-2">
@@ -279,16 +292,10 @@ export function BackupPanel({ triggerClassName }: Props) {
                 {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                 {busy ? 'Reading ZIP…' : 'Load backup ZIP'}
               </Button>
-              <a
-                href="https://github.com/gpkonwaxbackup/gpk-backup/releases/latest"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-cheese hover:underline text-xs"
-              >
-                <Download className="w-3.5 h-3.5 mr-1" />
-                Download latest ZIP
-              </a>
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              Don't have a ZIP yet? Grab one from the "Recommended" card above.
+            </p>
             <input
               ref={inputRef}
               type="file"
@@ -306,5 +313,71 @@ export function BackupPanel({ triggerClassName }: Props) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface RecommendedZipCardProps {
+  protectedOnDevice: boolean;
+  fileCount: number;
+  totalBytes: number;
+  zipInfo: ZipManifestInfo | null;
+}
+
+function RecommendedZipCard({
+  protectedOnDevice,
+  fileCount,
+  totalBytes,
+  zipInfo,
+}: RecommendedZipCardProps) {
+  const options = getZipDownloadUrls();
+
+  if (protectedOnDevice) {
+    return (
+      <section className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+        <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium">
+          <ShieldCheck className="w-4 h-4" />
+          You're protected — offline backup loaded ({fileCount.toLocaleString()} files,{' '}
+          {formatBytes(totalBytes)}).
+        </div>
+      </section>
+    );
+  }
+
+  const approxSize = zipInfo?.bytes ? formatBytes(zipInfo.bytes) : null;
+  const shortHash = zipInfo?.sha256 ? `${zipInfo.sha256.slice(0, 12)}…` : null;
+
+  return (
+    <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <Download className="w-4 h-4 text-cheese" />
+        <p className="font-medium text-cheese">Recommended: keep a copy on your device</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Grab the offline backup ZIP{approxSize ? ` (~${approxSize})` : ''} now while
+        everything's working — it's your safety net if all mirrors ever go down. Every
+        mirror below serves the same ZIP; the hash is checked against the pinned manifest.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <Button
+            key={opt.key}
+            asChild
+            size="sm"
+            variant={opt.key === 'primary' ? 'default' : 'outline'}
+            className="h-8"
+          >
+            <a href={opt.url} target="_blank" rel="noopener noreferrer">
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              {opt.label}
+            </a>
+          </Button>
+        ))}
+      </div>
+      {shortHash && (
+        <p className="text-[10px] text-muted-foreground font-mono break-all" title={zipInfo?.sha256 ?? ''}>
+          SHA-256: {shortHash}
+        </p>
+      )}
+    </section>
   );
 }

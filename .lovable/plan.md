@@ -1,109 +1,70 @@
-# Plan: Idiot-proof offline image backup with 3 mirrors
+# Plan: Make the offline ZIP durable and proactively recommended
 
-## What we're building
+## Why
 
-1. Move the **Offline backup** trigger from the footer into the sticky header so it is always visible and the footer is less crowded.
-2. Redesign the backup dialog as a clear, ordered fallback checklist:
-   - **Step 1 — Built-in primary mirror** (automatic, no action needed).
-   - **Step 2 — Backup mirrors A & B** (preseeded URLs you will host on Cloudflare Pages / GitLab Pages; one-click activate if Step 1 fails).
-   - **Step 3 — Load ZIP** (ultimate offline fallback; local file, persists optionally in IndexedDB).
-3. Add **hash verification** for every file fetched from any mirror, using a pinned `manifest.json`, so any mirror can be used without trust language.
-4. Remove the old free-text "community mirror URL" input and the confusing "trusted member" wording.
+Right now the ZIP download only points at GitHub Releases. If GitHub disappears — the exact scenario the mirrors exist for — the ZIP disappears with it. And users only think to grab it when images already stopped loading, which is too late. Fix both.
 
-## Technical changes
+## What changes
 
-### 1. Header trigger
-- In `src/pages/Index.tsx`, remove `<BackupPanel />` from the footer.
-- Add a header-left trigger using the existing `HardDrive` icon + "Image backup" label.
-- Keep the existing `BackupPanel` component but update its default trigger styling so it works in both places if needed.
+### 1. Host the ZIP on all three mirrors, not just GitHub Releases
 
-### 2. Mirror configuration
-- Replace `TRUSTED_MIRRORS` with three explicit constants in `src/lib/ipfsGateways.ts`:
-  - `PRIMARY_MIRROR`
-  - `BACKUP_MIRROR_A`
-  - `BACKUP_MIRROR_B`
-- The list will initially contain placeholder URLs (e.g. your existing GitHub Pages URL as primary, plus two `https://` placeholders). You will update the placeholders after creating the Cloudflare Pages and GitLab Pages mirrors.
-- Remove `getCommunityMirrorUrl` / `setCommunityMirrorUrl` and the community localStorage key.
+Place `gpk-image-mirror.zip` inside the `mirror/` folder itself, so it deploys alongside the images to every host:
 
-### 3. Pinned manifest + hash verification
-- Ship a pinned `manifest.json` with the app build. The existing `scripts/build-image-mirror.mjs` already emits this file; we will copy it into `public/gpk-manifest.json` at build time and import/fetch it in the app.
-- Create `src/lib/remoteMirror.ts`:
-  - Load the pinned manifest on app boot.
-  - Provide `fetchVerifiedMirrorFile(hash: string, baseUrl: string): Promise<Blob | null>`:
-    - Fetch `${baseUrl}${hash}` with a timeout.
-    - Compute SHA-256 via `crypto.subtle.digest`.
-    - Compare against the manifest entry for that path.
-    - Return the `Blob` only if the hash matches; otherwise log a clear warning and return `null`.
-  - Cache successful verified blobs per hash so repeated renders are instant.
-  - Track which mirror is currently active (primary / A / B / none) and expose `setActiveMirror`, `getActiveMirror`, and a subscription for reactive UI.
+- Primary (GitHub Pages): `…/mirror/gpk-image-mirror.zip`
+- Backup A (Cloudflare Pages): `…/gpk-image-mirror.zip`
+- Backup B (GitLab Pages): `…/gpk-image-mirror.zip`
 
-### 4. Integrate verified mirrors into image loading
-- In `src/hooks/useIpfsMedia.ts`:
-  - Subscribe to the active mirror.
-  - If an active mirror is set and the hash exists in the pinned manifest, call `fetchVerifiedMirrorFile` and use the resulting blob URL.
-  - If verification fails or the file is missing, fall back to the normal public-gateway rotation.
-  - If the user clicks "Reset to primary", clear the active mirror and let the automatic fallback list (public gateways → primary mirror) resume.
+If any one host survives, the ZIP is reachable. GitHub Release stays as a fourth link — bonus, not sole source.
 
-### 5. Backup panel UI rewrite (`src/components/BackupPanel.tsx`)
-Order the dialog content top-to-bottom as the user should try it:
+### 2. Hash-verify the downloaded ZIP
 
-```text
-Step 1 — Built-in primary mirror
-  Status: active / not needed
-  "Used automatically when public IPFS gateways fail. No action needed."
-  Show the primary URL.
+Add `zipSha256` and `zipBytes` fields to the pinned `gpk-manifest.json` at build time. The BackupPanel shows the expected SHA-256 next to the download links, and (nice-to-have) auto-verifies the file when the user then loads it via "Load backup ZIP" — same "trust the math, not the host" story as the image mirrors.
 
-Step 2 — Backup mirrors
-  "If the primary mirror is down, try one of these:"
-  [Try Backup Mirror A]  [Try Backup Mirror B]  [Reset to primary]
-  Each button shows the mirror URL and a status badge:
-    - "Ready" (URL configured)
-    - "Checking…" while the first file is fetched/verified
-    - "Working" once a verified file succeeds
-    - "Failed" if verification fails or the URL is still a placeholder
+### 3. Proactively recommend the download — strong but polite
 
-Step 3 — Load backup ZIP
-  [Load backup ZIP]   [Download latest ZIP]
-  Show currently loaded ZIP file count / bytes and a Clear button.
-  Keep the "Remember on this device" IndexedDB toggle.
-```
+Two nudges, both dismissible, never blocking:
 
-- Add a short explainer at the top of the dialog:
-  > "If card images stop loading, work through these steps in order. The app checks every mirror file against a published list of hashes, so you don't have to trust the host — only the math."
+**a. First-visit banner** (thin bar under the header, once per device):
+> "Tip: download the offline backup ZIP now while everything's working — it's your safety net if all mirrors ever go down." `[Download ZIP]` `[Maybe later]` `[×]`
 
-### 6. Build / release workflow
-- Update `scripts/build-image-mirror.mjs` to also copy `outDir/manifest.json` to `public/gpk-manifest.json` after each build, so the pinned manifest stays in sync with the ZIP.
-- Add a note in the plan for you to run the mirror builder once after the plan is implemented, then deploy the same `mirror/` folder to:
-  1. Primary: existing GitHub Pages (`gpkonwaxbackup.github.io/gpk-backup/mirror/`)
-  2. Backup A: Cloudflare Pages
-  3. Backup B: GitLab Pages
+Dismissal is remembered in localStorage. Auto-hides forever once the user either downloads or loads a ZIP with the "Remember on this device" toggle on.
+
+**b. Prominent card at the top of the BackupPanel dialog**, above Step 1:
+> "**Recommended: keep a copy on your device**
+> The ZIP is ~[size] and works fully offline. Grab it from any of the three mirrors below — all hashes are checked against the pinned manifest."
+> `[Download from Primary]` `[Download from Backup A]` `[Download from Backup B]`
+> Small text: `SHA-256: abc123…`
+
+Once a verified ZIP is loaded and persisted, this card collapses to a green "You're protected — offline backup loaded ([N] files, [size])" line.
+
+### 4. Copy tone
+
+Reassuring, not alarmist. No red warnings, no "you must do this now." Uses the cheese/muted palette, not `destructive`. Phrases like "safety net", "recommended", "while everything's working" — not "act now" or "before it's too late".
 
 ## Files to touch
 
-- `src/pages/Index.tsx` — move trigger, add header button.
-- `src/components/BackupPanel.tsx` — rewrite dialog content and order.
-- `src/lib/ipfsGateways.ts` — replace mirror constants, remove community URL helpers.
-- `src/lib/remoteMirror.ts` — new module for verified mirror fetches.
-- `src/hooks/useIpfsMedia.ts` — wire verified mirror fetch into image source selection.
-- `scripts/build-image-mirror.mjs` — copy manifest to `public/gpk-manifest.json`.
-- `src/lib/localMirror.test.ts` — update if community-mirror tests exist; add basic remoteMirror tests if time permits.
+- `scripts/build-image-mirror.mjs` — place `gpk-image-mirror.zip` inside `mirror/`; write `zipSha256` and `zipBytes` into `manifest.json`; keep copying it to `public/gpk-manifest.json`.
+- `scripts/README.md` — update deploy instructions: the ZIP ships inside `mirror/` and is served by all three hosts automatically.
+- `src/lib/remoteMirror.ts` — expose `getZipDownloadUrls()` returning `{ primary, backupA, backupB }` and `getZipManifest()` returning `{ sha256, bytes }` from the pinned manifest.
+- `src/components/BackupPanel.tsx` — add the "Recommended" card at the top with three download links + hash; collapse it when a persisted ZIP is loaded.
+- `src/components/BackupNudgeBanner.tsx` — new dismissible banner shown under the header on first visit; hidden after download, persisted-ZIP load, or explicit dismiss.
+- `src/pages/Index.tsx` — mount the banner just under the header.
+- `src/lib/localMirror.ts` — (small) add a `hasPersistedMirror()` helper the banner and card can subscribe to so they auto-hide once the user is protected.
+- `src/lib/remoteMirror.test.ts` — cover ZIP URL/hash lookup.
 
-## Out of scope / not changing
+## Out of scope
 
-- Public IPFS gateway race logic stays the same.
-- Local ZIP ingestion logic stays the same; only the surrounding UI order changes.
-- No backend or Lovable Cloud changes — this remains a client-side feature.
+- No changes to image-loading logic, IPFS rotation, or the 3-step mirror fallback shipped last turn.
+- No backend, no analytics, no forced download.
 
 ## Acceptance criteria
 
-- Backup trigger is in the header, not the footer.
-- Dialog shows three numbered steps in the exact fallback order above.
-- Clicking "Try Backup Mirror A/B" fetches and verifies a sample file, then switches image loading to that mirror.
-- A failed verification shows a clear error and does not use the bad file.
-- "Load ZIP" still ingests the ZIP and makes images available offline.
-- No "trusted member" or free-text community URL remains in the UI.
-- Build script keeps `public/gpk-manifest.json` up to date.
+- The ZIP is downloadable from all three mirror hosts, not just GitHub.
+- BackupPanel shows three download buttons + the expected SHA-256.
+- A polite, dismissible banner recommends downloading on first visit and disappears once the user is protected or dismisses it.
+- Manifest build step emits `zipSha256` and `zipBytes`, and tests pass.
+- No alarmist copy or red styling anywhere in the nudge.
 
----
+## After the plan lands
 
-**Note:** The actual URLs for Backup A and Backup B are placeholders until you create the Cloudflare Pages / GitLab Pages mirrors. After you provide the real URLs, I will update the constants in one small follow-up change.
+You run the mirror builder once, then deploy the same `mirror/` folder (now containing the ZIP) to GitHub Pages, Cloudflare Pages, and GitLab Pages. I then swap the placeholder URLs in `src/lib/ipfsGateways.ts` for your real ones in a small follow-up.
