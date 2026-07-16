@@ -1853,13 +1853,13 @@ export default function SimpleAssetsPage() {
                 </Button>
                 {collectionSyncNotice && (
                   <Button
-                    onClick={() => reconstructLatestPackOpen({ focus: true })}
-                    disabled={isReconstructingOpen}
+                    type="button"
+                    onClick={() => collectionSyncNotice.category && focusCollectionView(collectionSyncNotice.category)}
                     variant="outline"
                     size="sm"
                     className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-1 ${isReconstructingOpen ? 'animate-spin' : ''}`} />
+                    <RefreshCw className="h-4 w-4 mr-1" />
                     Show Received Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
                   </Button>
                 )}
