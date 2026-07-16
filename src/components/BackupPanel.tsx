@@ -292,16 +292,10 @@ export function BackupPanel({ triggerClassName }: Props) {
                 {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                 {busy ? 'Reading ZIP…' : 'Load backup ZIP'}
               </Button>
-              <a
-                href="https://github.com/gpkonwaxbackup/gpk-backup/releases/latest"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-cheese hover:underline text-xs"
-              >
-                <Download className="w-3.5 h-3.5 mr-1" />
-                Download latest ZIP
-              </a>
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              Don't have a ZIP yet? Grab one from the "Recommended" card above.
+            </p>
             <input
               ref={inputRef}
               type="file"
