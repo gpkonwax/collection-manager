@@ -462,7 +462,12 @@ export default function SimpleAssetsPage() {
     if (!accountName || isViewing) return null;
     setIsReconstructingOpen(true);
     try {
-      const rows = (await fetchPendingNfts(accountName)) as PendingNftAuditRow[];
+      // Descending scan — the latest unboxing is by definition among the newest
+      // rows, so we can bound this cheaply instead of walking the whole table.
+      const rows = (await fetchPendingNfts(accountName, {
+        descending: true,
+        maxRows: 2000,
+      })) as PendingNftAuditRow[];
       if (rows.length === 0) {
         const emptyAudit: PackAuditState = {
           unboxingId: null,
