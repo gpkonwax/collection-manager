@@ -1842,6 +1842,33 @@ export default function SimpleAssetsPage() {
 
           {/* Right: Info button + view wallet (logged in only) + wallet controls */}
           <div className="flex items-center gap-2 ml-auto">
+            {isConnected && accountName && !isViewing && (
+              <>
+                <Button
+                  onClick={handleCollectUnclaimed}
+                  disabled={isCollecting}
+                  variant="outline"
+                  size="sm"
+                  className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8"
+                  title="Scan pendingnft.a and claim any cards that were minted but never delivered."
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
+                  {isCollecting ? 'Collecting...' : 'Recover Stuck Cards'}
+                </Button>
+                {collectionSyncNotice && (
+                  <Button
+                    onClick={() => reconstructLatestPackOpen({ focus: true })}
+                    disabled={isReconstructingOpen}
+                    variant="outline"
+                    size="sm"
+                    className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${isReconstructingOpen ? 'animate-spin' : ''}`} />
+                    Show Received Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
+                  </Button>
+                )}
+              </>
+            )}
             <Button
               variant="ghost"
               size="sm"
