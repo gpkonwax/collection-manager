@@ -286,7 +286,7 @@ export default function SimpleAssetsPage() {
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
-  const [collectionSyncNotice, setCollectionSyncNotice] = useState<{ category: string | null; count?: number } | null>(null);
+  const [collectionSyncNotice, setCollectionSyncNotice] = useState<{ category: string | null } | null>(null);
   const [packAudit, setPackAudit] = useState<PackAuditState | null>(null);
   const [isReconstructingOpen, setIsReconstructingOpen] = useState(false);
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; description: string; txId: string | null }>({
@@ -415,7 +415,6 @@ export default function SimpleAssetsPage() {
       const latestRows = collected.filter((r: any) => Number(r.unboxingid) === latestUnboxingId);
       setCollectionSyncNotice({
         category: getGpkCategoryForBoxtype(String(latestRows[0]?.boxtype ?? '')),
-        count: latestRows.length || undefined,
       });
     } catch { }
   }, [accountName, isViewing]);
@@ -494,7 +493,7 @@ export default function SimpleAssetsPage() {
       };
 
       setPackAudit(audit);
-      setCollectionSyncNotice({ category, count: latestRows.length || undefined });
+      setCollectionSyncNotice({ category });
       if (options?.focus !== false) focusCollectionView(category);
       if (!options?.silent) {
         if (status === 'unclaimed') toast.info('Latest pack still has unclaimed cards');
@@ -556,7 +555,7 @@ export default function SimpleAssetsPage() {
     if (matched.length === reveal!.matchers.length && matched.length > 0) {
       const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory || null;
       focusCollectionView(cat);
-      setCollectionSyncNotice({ category: cat, count: matched.length });
+      setCollectionSyncNotice({ category: cat });
       setPackAudit({
         unboxingId: null,
         category: cat,
@@ -576,7 +575,7 @@ export default function SimpleAssetsPage() {
       pendingAnimationRef.current = null;
       recheckUnclaimed();
       focusCollectionView(reveal!.expectedCategory);
-      setCollectionSyncNotice({ category: reveal!.expectedCategory ?? null, count: reveal!.matchers.length });
+      setCollectionSyncNotice({ category: reveal!.expectedCategory ?? null });
       reconstructLatestPackOpen({ focus: false, silent: true });
       toast.info('Cards delivered on-chain — they will appear in your collection shortly.', { duration: 6000 });
     }
@@ -629,7 +628,7 @@ export default function SimpleAssetsPage() {
       const unclaimed = rows.filter((r: any) => r.done === 0);
       if (unclaimed.length === 0) {
         toast.info('No unclaimed cards found');
-        setCollectionSyncNotice({ category: null });
+      setCollectionSyncNotice({ category: null });
         setShowCollectUnclaimed(false);
         setIsCollecting(false);
         return;
@@ -660,7 +659,7 @@ export default function SimpleAssetsPage() {
       const newest = await waitForNewCollectionAssets(preCollectIdsRef.current, expectedCategory, 20_000);
       pendingAnimationRef.current = null;
       focusCollectionView(expectedCategory);
-      setCollectionSyncNotice({ category: expectedCategory, count: newest.length || unclaimed.length });
+      setCollectionSyncNotice({ category: expectedCategory });
       reconstructLatestPackOpen({ focus: false, silent: true });
       recheckUnclaimed();
     } catch (e) {
@@ -1829,6 +1828,17 @@ export default function SimpleAssetsPage() {
     );
   };
 
+  const receivedCardsCount = packAudit?.assets.length ?? 0;
+  const hasReceivedCardsToShow = receivedCardsCount > 0;
+  const receivedCardsCategory = packAudit?.category ?? collectionSyncNotice?.category ?? undefined;
+  const handleShowReceivedCards = () => {
+    if (!hasReceivedCardsToShow) return;
+    focusCollectionView(receivedCardsCategory);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  };
+
   return (
     <div className="min-h-screen relative">
       <BackgroundDecorations />
@@ -1851,23 +1861,17 @@ export default function SimpleAssetsPage() {
                   <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
                   {isCollecting ? 'Collecting...' : 'Recover Stuck Cards'}
                 </Button>
-                {collectionSyncNotice && (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      focusCollectionView(collectionSyncNotice.category ?? undefined);
-                      requestAnimationFrame(() => {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      });
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-1" />
-                    Show Received Cards{collectionSyncNotice.count ? ` (${collectionSyncNotice.count})` : ''}
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  onClick={handleShowReceivedCards}
+                  disabled={!hasReceivedCardsToShow}
+                  variant="outline"
+                  size="sm"
+                  className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8 disabled:opacity-60"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Show Received Cards{hasReceivedCardsToShow ? ` (${receivedCardsCount})` : ''}
+                </Button>
               </>
             )}
           </div>
