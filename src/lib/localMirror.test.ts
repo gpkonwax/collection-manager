@@ -18,14 +18,12 @@ beforeEach(() => {
   __resetLocalMirrorForTests();
   blobCounter = 0;
   createdUrls.clear();
-  // @ts-expect-error jsdom polyfill
   URL.createObjectURL = vi.fn((blob: Blob) => {
     const url = `blob:mock/${++blobCounter}-${blob.size}`;
     createdUrls.add(url);
     return url;
-  });
-  // @ts-expect-error jsdom polyfill
-  URL.revokeObjectURL = vi.fn((url: string) => { createdUrls.delete(url); });
+  }) as unknown as typeof URL.createObjectURL;
+  URL.revokeObjectURL = vi.fn((url: string) => { createdUrls.delete(url); }) as unknown as typeof URL.revokeObjectURL;
 });
 
 function makeFixtureZip() {
