@@ -22,6 +22,44 @@ export const MIRRORS: MirrorConfig[] = [
   { key: 'backupB', label: 'Backup mirror B', url: BACKUP_MIRROR_B },
 ];
 
+export interface MirrorProviderInfo {
+  name: string;
+  colorClass: string;
+}
+
+/**
+ * Detect a friendly hosting-provider name from a mirror base URL.
+ * Returns null when the URL is empty or the host is not recognized.
+ */
+export function getMirrorProviderName(url: string): MirrorProviderInfo | null {
+  if (!url) return null;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.endsWith('github.io')) return { name: 'GitHub Pages', colorClass: 'bg-gray-500/20 text-gray-300' };
+    if (host.endsWith('pages.dev')) return { name: 'Cloudflare Pages', colorClass: 'bg-orange-500/20 text-orange-300' };
+    if (host.endsWith('gitlab.io')) return { name: 'GitLab Pages', colorClass: 'bg-orange-600/20 text-orange-300' };
+    if (host.endsWith('vercel.app')) return { name: 'Vercel', colorClass: 'bg-black/30 text-white' };
+    if (host.endsWith('netlify.app')) return { name: 'Netlify', colorClass: 'bg-teal-500/20 text-teal-300' };
+    if (host.endsWith('surge.sh')) return { name: 'Surge', colorClass: 'bg-purple-500/20 text-purple-300' };
+    if (host.endsWith('onrender.com')) return { name: 'Render', colorClass: 'bg-emerald-500/20 text-emerald-300' };
+    if (host.endsWith('web.app') || host.endsWith('firebaseapp.com')) return { name: 'Firebase', colorClass: 'bg-amber-500/20 text-amber-300' };
+    if (host.includes('s3-website') || host.endsWith('amazonaws.com')) return { name: 'AWS S3', colorClass: 'bg-yellow-500/20 text-yellow-300' };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * User-facing label for a mirror. When the host is recognizable, the provider
+ * name is appended so it's clear which of the 3 providers each entry points to.
+ */
+export function getMirrorDisplayLabel(config: MirrorConfig): string {
+  const provider = getMirrorProviderName(config.url);
+  if (!provider) return config.label;
+  return `${config.label} — ${provider.name}`;
+}
+
 export function isMirrorConfigured(key: MirrorKey): boolean {
   const cfg = MIRRORS.find((m) => m.key === key);
   return !!cfg?.url && /^https:\/\//i.test(cfg.url);

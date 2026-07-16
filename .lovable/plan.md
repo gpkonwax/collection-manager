@@ -1,70 +1,29 @@
-# Plan: Make the offline ZIP durable and proactively recommended
+## Plan: Label mirrors by hosting provider
 
-## Why
+### What
+Keep the primary mirror as the automatic fallback, but detect and display the hosting provider name (GitHub Pages, Cloudflare Pages, GitLab Pages, etc.) for each configured mirror in the BackupPanel. Unconfigured mirrors stay labeled "Not configured yet."
 
-Right now the ZIP download only points at GitHub Releases. If GitHub disappears — the exact scenario the mirrors exist for — the ZIP disappears with it. And users only think to grab it when images already stopped loading, which is too late. Fix both.
+### Why
+You are deploying 3 mirrors on different providers. The current generic "Backup mirror A / B" labels don't tell you which provider each entry points to, which makes the fallback UI harder to reason about.
 
-## What changes
+### Changes
 
-### 1. Host the ZIP on all three mirrors, not just GitHub Releases
+1. **`src/lib/remoteMirror.ts`**
+   - Add `getMirrorProviderName(url: string): { name: string; colorClass?: string }` that recognizes common static hosts from the hostname (GitHub Pages, Cloudflare Pages, GitLab Pages, Vercel, Netlify, Surge, etc.).
+   - Add `getMirrorDisplayLabel(config: MirrorConfig): string` that returns a friendly label like "Backup mirror A — Cloudflare Pages" when a provider is detected, otherwise falls back to the base label.
+   - Export both helpers.
 
-Place `gpk-image-mirror.zip` inside the `mirror/` folder itself, so it deploys alongside the images to every host:
+2. **`src/components/BackupPanel.tsx`**
+   - Use `getMirrorDisplayLabel` for backup mirror card titles and action buttons.
+   - Show a small provider badge next to each configured mirror URL.
+   - Update the "Recommended" ZIP download buttons so the primary mirror button shows its detected provider name (e.g., "GitHub Pages") instead of the generic "Built-in primary mirror."
 
-- Primary (GitHub Pages): `…/mirror/gpk-image-mirror.zip`
-- Backup A (Cloudflare Pages): `…/gpk-image-mirror.zip`
-- Backup B (GitLab Pages): `…/gpk-image-mirror.zip`
+3. **`src/lib/remoteMirror.test.ts`**
+   - Add tests for provider detection from hostnames.
+   - Add tests for display label formatting.
 
-If any one host survives, the ZIP is reachable. GitHub Release stays as a fourth link — bonus, not sole source.
-
-### 2. Hash-verify the downloaded ZIP
-
-Add `zipSha256` and `zipBytes` fields to the pinned `gpk-manifest.json` at build time. The BackupPanel shows the expected SHA-256 next to the download links, and (nice-to-have) auto-verifies the file when the user then loads it via "Load backup ZIP" — same "trust the math, not the host" story as the image mirrors.
-
-### 3. Proactively recommend the download — strong but polite
-
-Two nudges, both dismissible, never blocking:
-
-**a. First-visit banner** (thin bar under the header, once per device):
-> "Tip: download the offline backup ZIP now while everything's working — it's your safety net if all mirrors ever go down." `[Download ZIP]` `[Maybe later]` `[×]`
-
-Dismissal is remembered in localStorage. Auto-hides forever once the user either downloads or loads a ZIP with the "Remember on this device" toggle on.
-
-**b. Prominent card at the top of the BackupPanel dialog**, above Step 1:
-> "**Recommended: keep a copy on your device**
-> The ZIP is ~[size] and works fully offline. Grab it from any of the three mirrors below — all hashes are checked against the pinned manifest."
-> `[Download from Primary]` `[Download from Backup A]` `[Download from Backup B]`
-> Small text: `SHA-256: abc123…`
-
-Once a verified ZIP is loaded and persisted, this card collapses to a green "You're protected — offline backup loaded ([N] files, [size])" line.
-
-### 4. Copy tone
-
-Reassuring, not alarmist. No red warnings, no "you must do this now." Uses the cheese/muted palette, not `destructive`. Phrases like "safety net", "recommended", "while everything's working" — not "act now" or "before it's too late".
-
-## Files to touch
-
-- `scripts/build-image-mirror.mjs` — place `gpk-image-mirror.zip` inside `mirror/`; write `zipSha256` and `zipBytes` into `manifest.json`; keep copying it to `public/gpk-manifest.json`.
-- `scripts/README.md` — update deploy instructions: the ZIP ships inside `mirror/` and is served by all three hosts automatically.
-- `src/lib/remoteMirror.ts` — expose `getZipDownloadUrls()` returning `{ primary, backupA, backupB }` and `getZipManifest()` returning `{ sha256, bytes }` from the pinned manifest.
-- `src/components/BackupPanel.tsx` — add the "Recommended" card at the top with three download links + hash; collapse it when a persisted ZIP is loaded.
-- `src/components/BackupNudgeBanner.tsx` — new dismissible banner shown under the header on first visit; hidden after download, persisted-ZIP load, or explicit dismiss.
-- `src/pages/Index.tsx` — mount the banner just under the header.
-- `src/lib/localMirror.ts` — (small) add a `hasPersistedMirror()` helper the banner and card can subscribe to so they auto-hide once the user is protected.
-- `src/lib/remoteMirror.test.ts` — cover ZIP URL/hash lookup.
-
-## Out of scope
-
-- No changes to image-loading logic, IPFS rotation, or the 3-step mirror fallback shipped last turn.
-- No backend, no analytics, no forced download.
-
-## Acceptance criteria
-
-- The ZIP is downloadable from all three mirror hosts, not just GitHub.
-- BackupPanel shows three download buttons + the expected SHA-256.
-- A polite, dismissible banner recommends downloading on first visit and disappears once the user is protected or dismisses it.
-- Manifest build step emits `zipSha256` and `zipBytes`, and tests pass.
-- No alarmist copy or red styling anywhere in the nudge.
-
-## After the plan lands
-
-You run the mirror builder once, then deploy the same `mirror/` folder (now containing the ZIP) to GitHub Pages, Cloudflare Pages, and GitLab Pages. I then swap the placeholder URLs in `src/lib/ipfsGateways.ts` for your real ones in a small follow-up.
+### Edge cases handled
+- Empty/unconfigured mirrors still show "Not configured yet."
+- Unknown providers fall back to the existing generic labels.
+- The primary mirror remains automatic; this plan does not turn it into a manual selectable option.
+- Provider detection is purely presentational — no routing or fallback logic changes.

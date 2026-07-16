@@ -32,6 +32,8 @@ import {
 import {
   MIRRORS,
   type MirrorKey,
+  getMirrorDisplayLabel,
+  getMirrorProviderName,
   getRemoteMirrorState,
   getZipDownloadUrls,
   getZipManifest,
@@ -218,6 +220,8 @@ export function BackupPanel({ triggerClassName }: Props) {
                 const statusBadge = remoteState.statuses[key];
                 const isActive = remoteState.active === key;
                 const { label, className } = STEP_BADGES[statusBadge];
+                const provider = getMirrorProviderName(cfg.url);
+                const displayLabel = getMirrorDisplayLabel(cfg);
                 return (
                   <div
                     key={key}
@@ -227,10 +231,15 @@ export function BackupPanel({ triggerClassName }: Props) {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-medium text-xs">{cfg.label}</p>
+                        <p className="font-medium text-xs">{displayLabel}</p>
                         <p className="text-[10px] text-muted-foreground break-all">
                           {cfg.url || 'Not configured yet'}
                         </p>
+                        {provider && (
+                          <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full ${provider.colorClass}`}>
+                            {provider.name}
+                          </span>
+                        )}
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}>
                         {configured ? label : 'Not configured'}
@@ -246,7 +255,7 @@ export function BackupPanel({ triggerClassName }: Props) {
                       {statusBadge === 'checking' && (
                         <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
                       )}
-                      {isActive ? 'Active' : `Use ${cfg.label}`}
+                      {isActive ? 'Active' : `Use ${displayLabel}`}
                     </Button>
                   </div>
                 );
@@ -358,20 +367,25 @@ function RecommendedZipCard({
         mirror below serves the same ZIP; the hash is checked against the pinned manifest.
       </p>
       <div className="flex flex-wrap gap-2">
-        {options.map((opt) => (
-          <Button
-            key={opt.key}
-            asChild
-            size="sm"
-            variant={opt.key === 'primary' ? 'default' : 'outline'}
-            className="h-8"
-          >
-            <a href={opt.url} target="_blank" rel="noopener noreferrer">
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              {opt.label}
-            </a>
-          </Button>
-        ))}
+        {options.map((opt) => {
+          const mirror = MIRRORS.find((m) => m.key === opt.key);
+          const provider = mirror ? getMirrorProviderName(mirror.url) : null;
+          const buttonLabel = provider ? provider.name : opt.label;
+          return (
+            <Button
+              key={opt.key}
+              asChild
+              size="sm"
+              variant={opt.key === 'primary' ? 'default' : 'outline'}
+              className="h-8"
+            >
+              <a href={opt.url} target="_blank" rel="noopener noreferrer">
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                {buttonLabel}
+              </a>
+            </Button>
+          );
+        })}
       </div>
       {shortHash && (
         <p className="text-[10px] text-muted-foreground font-mono break-all" title={zipInfo?.sha256 ?? ''}>
