@@ -415,7 +415,6 @@ export default function SimpleAssetsPage() {
       const latestRows = collected.filter((r: any) => Number(r.unboxingid) === latestUnboxingId);
       setCollectionSyncNotice({
         category: getGpkCategoryForBoxtype(String(latestRows[0]?.boxtype ?? '')),
-        count: latestRows.length || undefined,
       });
     } catch { }
   }, [accountName, isViewing]);
@@ -494,7 +493,7 @@ export default function SimpleAssetsPage() {
       };
 
       setPackAudit(audit);
-      setCollectionSyncNotice({ category, count: latestRows.length || undefined });
+      setCollectionSyncNotice({ category });
       if (options?.focus !== false) focusCollectionView(category);
       if (!options?.silent) {
         if (status === 'unclaimed') toast.info('Latest pack still has unclaimed cards');
@@ -629,7 +628,7 @@ export default function SimpleAssetsPage() {
       const unclaimed = rows.filter((r: any) => r.done === 0);
       if (unclaimed.length === 0) {
         toast.info('No unclaimed cards found');
-        setCollectionSyncNotice({ category: null });
+      setCollectionSyncNotice({ category: null });
         setShowCollectUnclaimed(false);
         setIsCollecting(false);
         return;
@@ -660,7 +659,7 @@ export default function SimpleAssetsPage() {
       const newest = await waitForNewCollectionAssets(preCollectIdsRef.current, expectedCategory, 20_000);
       pendingAnimationRef.current = null;
       focusCollectionView(expectedCategory);
-      setCollectionSyncNotice({ category: expectedCategory, count: newest.length || unclaimed.length });
+      setCollectionSyncNotice({ category: expectedCategory });
       reconstructLatestPackOpen({ focus: false, silent: true });
       recheckUnclaimed();
     } catch (e) {
