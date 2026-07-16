@@ -43,7 +43,7 @@ function makeManifest(files: Record<string, Uint8Array>) {
 }
 
 function mockFetch(responses: Record<string, { status?: number; body?: Uint8Array | Buffer }>) {
-  globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+  vi.stubGlobal('fetch', vi.fn(async (url: string | URL | Request) => {
     const key = String(url);
     const match = Object.entries(responses).find(([prefix]) => key.startsWith(prefix));
     if (!match) {
@@ -54,7 +54,7 @@ function mockFetch(responses: Record<string, { status?: number; body?: Uint8Arra
       return new Response(null, { status: res.status });
     }
     return new Response(res.body as BodyInit, { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
-  }) as unknown as typeof fetch;
+  }));
 }
 
 describe('remoteMirror', () => {
