@@ -108,8 +108,8 @@ describe('remoteMirror', () => {
     const primaryUrl = MIRRORS[0].url;
 
     mockFetch({
-      '/gpk-manifest.json': { body: new TextEncoder().encode(JSON.stringify(manifest)) },
-      [primaryUrl]: { body: fileBytes },
+      '/gpk-manifest.json': { body: Buffer.from(JSON.stringify(manifest)) },
+      [primaryUrl]: { body: Buffer.from(fileBytes) },
     });
 
     const first = await fetchVerifiedMirrorFile('QmTest/prism/1a.gif', primaryUrl);
