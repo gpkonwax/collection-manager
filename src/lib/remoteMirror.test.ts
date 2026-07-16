@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import {
   __resetRemoteMirrorForTests,
   fetchVerifiedMirrorFile,
+  getMirrorDisplayLabel,
+  getMirrorProviderName,
   getRemoteMirrorState,
   loadPinnedManifest,
   setActiveMirror,
