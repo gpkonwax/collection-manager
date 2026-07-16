@@ -2632,9 +2632,6 @@ export default function SimpleAssetsPage() {
               <p>• <button type="button" onClick={() => footerRequestNav('https://geepeekay.com/')} className="hover:underline">GeePeekay</button></p>
             </div>
           </div>
-          <div className="mt-4 flex justify-center">
-            <BackupPanel />
-          </div>
           <div className="mt-6 pt-4 border-t border-cheese/10 text-[10px] leading-relaxed text-muted-foreground max-w-4xl mx-auto space-y-2">
 
             <p>
