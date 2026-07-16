@@ -1856,7 +1856,6 @@ export default function SimpleAssetsPage() {
                     type="button"
                     onClick={() => {
                       focusCollectionView(collectionSyncNotice.category ?? undefined);
-                      setCollectionSyncNotice(null);
                       requestAnimationFrame(() => {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       });
