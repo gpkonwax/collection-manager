@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS } from '@/lib/ipfsGateways';
+import { resolveLocalMirror, subscribeLocalMirror, hasLocalMirror } from '@/lib/localMirror';
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
@@ -145,6 +146,12 @@ export function useIpfsMedia(
   const baseTimeout = context === 'detail' ? IMAGE_LOAD_TIMEOUT.detail : IMAGE_LOAD_TIMEOUT.card;
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
+
+  // Subscribe to local mirror so newly-ingested ZIPs cause mounted images
+  // to re-render and pick up their blob: URL without needing a page reload.
+  useSyncExternalStore(subscribeLocalMirror, () => (hasLocalMirror() ? 1 : 0), () => 0);
+  const localMirrorUrl = hash ? resolveLocalMirror(hash) : null;
+
   const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
 
@@ -300,7 +307,10 @@ export function useIpfsMedia(
   }, [advance, enabled]);
 
   let src: string;
-  if (cachedLoadedUrl) {
+  if (localMirrorUrl) {
+    // Local ZIP mirror hit — bypass every gateway attempt, fully offline.
+    src = localMirrorUrl;
+  } else if (cachedLoadedUrl) {
     // Already successfully loaded once — reuse the exact known-good URL (browser HTTP cache will serve it)
     src = cachedLoadedUrl;
   } else if (!enabled) {
@@ -328,7 +338,7 @@ export function useIpfsMedia(
     hasLoadedRef.current = true;
     setIsLoading(false);
     setFailed(false);
-    if (hash) {
+    if (hash && !src.startsWith('blob:')) {
       setCachedGateway(hash, gwIdx);
       setCachedLoadedUrl(hash, src);
     }
@@ -338,7 +348,7 @@ export function useIpfsMedia(
     src,
     onError,
     onLoad: onLoadFinal,
-    isLoading: cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
-    failed: hasLoadedRef.current ? false : failed,
+    isLoading: localMirrorUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
+    failed: localMirrorUrl || hasLoadedRef.current ? false : failed,
   };
 }

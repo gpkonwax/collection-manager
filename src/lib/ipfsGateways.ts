@@ -1,12 +1,87 @@
 // Unified IPFS gateway configuration
 // Ordered by reliability and speed (based on real-world testing)
-export const IPFS_GATEWAYS = [
+
+/**
+ * Public IPFS gateways — used for the parallel race and primary rotation.
+ * Order matters: winners get promoted via lastGoodGatewayIndex.
+ */
+export const PUBLIC_IPFS_GATEWAYS = [
   'https://gateway.pinata.cloud/ipfs/',
   'https://dweb.link/ipfs/',
   'https://nftstorage.link/ipfs/',
   'https://ipfs.io/ipfs/',
   'https://cloudflare-ipfs.com/ipfs/', // Moved to last - experiencing tunnel errors
 ];
+
+/**
+ * Static mirror base URLs — appended after all public gateways as pure fallbacks.
+ * Excluded from the parallel race so they never generate speculative traffic.
+ *
+ * The `gpk-backup` GitHub Pages URL is a frozen one-time snapshot of every
+ * card / pack / puzzle image. Because the folder mirrors IPFS paths exactly,
+ * `${MIRROR}${hash}/prism/42lg.gif` resolves identically to a real gateway.
+ */
+export const TRUSTED_MIRRORS = [
+  'https://gpkonwaxbackup.github.io/gpk-backup/mirror/',
+];
+
+const COMMUNITY_MIRROR_KEY = 'gpk-community-mirror-url';
+
+/** User-supplied additional mirror base URL from localStorage. */
+export function getCommunityMirrorUrl(): string | null {
+  try {
+    const raw = localStorage.getItem(COMMUNITY_MIRROR_KEY);
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    // Only allow https to avoid mixed-content issues and typos.
+    if (!/^https:\/\//i.test(trimmed)) return null;
+    return trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
+  } catch { return null; }
+}
+
+export function setCommunityMirrorUrl(url: string | null): void {
+  try {
+    if (!url) { localStorage.removeItem(COMMUNITY_MIRROR_KEY); return; }
+    localStorage.setItem(COMMUNITY_MIRROR_KEY, url);
+  } catch { /* noop */ }
+}
+
+/**
+ * Full rotation list, in priority order:
+ *   [public gateways..., hardcoded mirrors..., community mirror if set]
+ * Recomputed on access so a freshly-set community URL takes effect immediately.
+ */
+function computeGateways(): string[] {
+  const list = [...PUBLIC_IPFS_GATEWAYS, ...TRUSTED_MIRRORS];
+  const community = getCommunityMirrorUrl();
+  if (community && !list.includes(community)) list.push(community);
+  return list;
+}
+
+/**
+ * Live proxy so existing `IPFS_GATEWAYS[i]` / `IPFS_GATEWAYS.length` reads keep
+ * working, while the underlying list is always fresh (picks up a new community
+ * URL without a page reload).
+ */
+export const IPFS_GATEWAYS: readonly string[] = new Proxy([] as string[], {
+  get(_target, prop, receiver) {
+    const arr = computeGateways();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const val = (arr as any)[prop];
+    return typeof val === 'function' ? val.bind(arr) : val;
+  },
+  has(_target, prop) { return prop in computeGateways(); },
+  ownKeys() { return Reflect.ownKeys(computeGateways()); },
+  getOwnPropertyDescriptor(_target, prop) {
+    return Object.getOwnPropertyDescriptor(computeGateways(), prop);
+  },
+});
+
+/** Number of leading gateways that participate in the parallel race. */
+export function getPublicGatewayCount(): number {
+  return PUBLIC_IPFS_GATEWAYS.length;
+}
 
 // Timeout configuration for different contexts
 export const IMAGE_LOAD_TIMEOUT = {
@@ -17,12 +92,13 @@ export const IMAGE_LOAD_TIMEOUT = {
 };
 
 // Parallel gateway race (used for detail-context images and prefetch)
+// Capped at the number of public gateways so mirrors never get raced.
 export const RACE_GATEWAY_COUNT = 3;
 export const RACE_TIMEOUT_MS = 4000;
 
 // Helper to get primary IPFS gateway URL
 export function getIpfsUrl(hash: string): string {
-  return `${IPFS_GATEWAYS[0]}${hash}`;
+  return `${PUBLIC_IPFS_GATEWAYS[0]}${hash}`;
 }
 
 // Helper to extract IPFS hash from various URL formats
