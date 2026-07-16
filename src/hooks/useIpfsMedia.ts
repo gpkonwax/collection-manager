@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS } from '@/lib/ipfsGateways';
 import { resolveLocalMirror, subscribeLocalMirror, hasLocalMirror } from '@/lib/localMirror';
+import { fetchVerifiedMirrorFile, getRemoteMirrorState, subscribeRemoteMirror, type MirrorKey } from '@/lib/remoteMirror';
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
