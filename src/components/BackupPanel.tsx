@@ -33,11 +33,14 @@ import {
   MIRRORS,
   type MirrorKey,
   getRemoteMirrorState,
+  getZipDownloadUrls,
+  getZipManifest,
   isMirrorConfigured,
   resetActiveMirror,
   setActiveMirror,
   subscribeRemoteMirror,
   type MirrorStatus,
+  type ZipManifestInfo,
 } from '@/lib/remoteMirror';
 
 function formatBytes(n: number): string {
@@ -76,11 +79,13 @@ export function BackupPanel({ triggerClassName }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [persist, setPersistState] = useState(false);
+  const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setPersistState(getPersistPreference());
+    getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
   }, [open]);
 
   const onPickFile = () => inputRef.current?.click();
