@@ -153,6 +153,30 @@ export function useIpfsMedia(
   useSyncExternalStore(subscribeLocalMirror, () => (hasLocalMirror() ? 1 : 0), () => 0);
   const localMirrorUrl = hash ? resolveLocalMirror(hash) : null;
 
+  // Subscribe to the manually-selected remote mirror. If a backup mirror is active,
+  // fetch and verify the file from that mirror before falling back to gateways.
+  const remoteState = useSyncExternalStore(subscribeRemoteMirror, getRemoteMirrorState, getRemoteMirrorState);
+  const activeMirror = remoteState.active;
+  const [verifiedMirrorUrl, setVerifiedMirrorUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeMirror || !hash) {
+      setVerifiedMirrorUrl(null);
+      return;
+    }
+    const cfg = remoteState.mirrors.find((m: { key: MirrorKey; url: string }) => m.key === activeMirror);
+    if (!cfg?.url) {
+      setVerifiedMirrorUrl(null);
+      return;
+    }
+    let cancelled = false;
+    fetchVerifiedMirrorFile(hash, cfg.url).then((url) => {
+      if (cancelled) return;
+      setVerifiedMirrorUrl(url);
+    });
+    return () => { cancelled = true; };
+  }, [activeMirror, hash, remoteState.mirrors]);
+
   const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
 
