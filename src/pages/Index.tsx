@@ -26,7 +26,7 @@ import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDe
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
-import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
+import { fetchPendingNfts, fetchPendingNftsDetailed } from '@/components/simpleassets/PackRevealDialog';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
@@ -400,7 +400,13 @@ export default function SimpleAssetsPage() {
   const recheckUnclaimed = useCallback(async () => {
     if (!accountName || isViewing) { setShowCollectUnclaimed(false); return; }
     try {
-      const rows = await fetchPendingNfts(accountName);
+      // Descending scan with an early-exit: we only need the newest unboxing
+      // for the sync notice, plus enough context to detect any recent done=0.
+      // Stops after we've seen ~2000 newest rows (well past a normal mega pack).
+      const rows = await fetchPendingNfts(accountName, {
+        descending: true,
+        maxRows: 2000,
+      });
       const unclaimed = rows.filter((r: any) => r.done === 0);
       setShowCollectUnclaimed(unclaimed.length > 0);
       if (unclaimed.length > 0) return;
@@ -418,6 +424,7 @@ export default function SimpleAssetsPage() {
       });
     } catch { }
   }, [accountName, isViewing]);
+
 
   const focusCollectionView = useCallback((category?: string | null) => {
     if (category) setCategoryFilter(category);
@@ -455,7 +462,12 @@ export default function SimpleAssetsPage() {
     if (!accountName || isViewing) return null;
     setIsReconstructingOpen(true);
     try {
-      const rows = (await fetchPendingNfts(accountName)) as PendingNftAuditRow[];
+      // Descending scan — the latest unboxing is by definition among the newest
+      // rows, so we can bound this cheaply instead of walking the whole table.
+      const rows = (await fetchPendingNfts(accountName, {
+        descending: true,
+        maxRows: 2000,
+      })) as PendingNftAuditRow[];
       if (rows.length === 0) {
         const emptyAudit: PackAuditState = {
           unboxingId: null,
@@ -624,11 +636,21 @@ export default function SimpleAssetsPage() {
     try {
       preCollectIdsRef.current = new Set(assetsRef.current.map(a => a.id));
 
-      const rows = await fetchPendingNfts(accountName);
+      // Full-table scan — a stuck done=0 row can be anywhere in the table,
+      // even from months ago. `truncated` tells us if we hit the 100k ceiling
+      // or a network failure so we can warn the user instead of silently
+      // missing rows.
+      const { rows, truncated, pagesFetched } = await fetchPendingNftsDetailed(accountName);
       const unclaimed = rows.filter((r: any) => r.done === 0);
+      if (truncated) {
+        toast.warning(
+          `Scanned ${rows.length.toLocaleString()} pending rows across ${pagesFetched} pages but could not reach the end of the table. If cards are still missing, click Recover Stuck Cards again.`,
+          { duration: 8000 },
+        );
+      }
       if (unclaimed.length === 0) {
-        toast.info('No unclaimed cards found');
-      setCollectionSyncNotice({ category: null });
+        if (!truncated) toast.info('No unclaimed cards found');
+        setCollectionSyncNotice({ category: null });
         setShowCollectUnclaimed(false);
         setIsCollecting(false);
         return;

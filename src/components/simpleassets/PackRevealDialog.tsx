@@ -94,39 +94,108 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
 const POLL_INTERVAL = 3000;
 
 /**
- * Fetch ALL pendingnft.a rows for an owner, paginating through the table.
+ * Fetch pendingnft.a rows for an owner, paginating through the table.
  *
  * Why pagination matters: WAX `get_table_rows` returns at most a few hundred
- * rows per call in ascending primary-key order. Accounts that have opened a
- * lot of packs — especially without clicking "Collect Assets" every time —
- * can accumulate hundreds of stale `done=0` rows. Without pagination the
- * newest mega-pack rows (highest ids) never appear in the response, so the
- * reveal dialog polls forever and Collect Unclaimed can't see them either.
+ * rows per call. Accounts that have opened a lot of packs — especially
+ * without clicking "Collect Assets" every time — can accumulate thousands of
+ * stale `done=0` rows. Without pagination the newest rows (highest primary
+ * keys) never appear in an ascending scan, so the reveal dialog polls forever
+ * and Collect Unclaimed / Recover Stuck Cards can't see them either.
  *
- * We cap at MAX_PAGES to avoid runaway loops if the table is truly enormous;
- * that still covers thousands of rows.
+ * We cap at MAX_PAGES (100k rows) to avoid runaway loops if the table is
+ * truly enormous, and surface a `truncated` flag so callers can warn the user
+ * when the scan did not reach the end of the table.
+ *
+ * When `descending: true`, the scan walks the table newest-first via
+ * `reverse: true` — guaranteed to include the most recent unboxings even when
+ * the account has more rows than the ceiling.
  */
-export async function fetchPendingNfts(owner: string): Promise<PendingNftRow[]> {
-  const MAX_PAGES = 20;
-  const PAGE_SIZE = 500;
+
+export interface FetchPendingNftsOptions {
+  descending?: boolean;
+  /** Stop early when this many rows have been collected (defensive early-exit). */
+  maxRows?: number;
+  /** Stop early when the callback returns true after each page. */
+  shouldStop?: (rowsSoFar: PendingNftRow[]) => boolean;
+}
+
+export interface FetchPendingNftsResult {
+  rows: PendingNftRow[];
+  truncated: boolean;
+  pagesFetched: number;
+  lastError: Error | null;
+}
+
+const PENDING_NFTS_MAX_PAGES = 200; // 200 * 500 = 100,000 row ceiling
+const PENDING_NFTS_PAGE_SIZE = 500;
+
+export async function fetchPendingNftsDetailed(
+  owner: string,
+  options?: FetchPendingNftsOptions,
+): Promise<FetchPendingNftsResult> {
+  const descending = !!options?.descending;
+  const maxRows = options?.maxRows ?? Number.POSITIVE_INFINITY;
+  const shouldStop = options?.shouldStop;
+
   const all: PendingNftRow[] = [];
-  let lowerBound: string | undefined = undefined;
-  try {
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const result = await fetchTableRows<PendingNftRow>({
-        code: 'gpk.topps', scope: owner, table: 'pendingnft.a',
-        limit: PAGE_SIZE, lower_bound: lowerBound,
-      });
-      if (result.rows.length > 0) all.push(...result.rows);
-      if (!result.more || !result.next_key) break;
-      // next_key is the primary key of the next row to fetch
-      lowerBound = String(result.next_key);
+  let bound: string | undefined = undefined;
+  let lastError: Error | null = null;
+  let page = 0;
+  let more = false;
+
+  for (page = 0; page < PENDING_NFTS_MAX_PAGES; page++) {
+    let result: { rows: PendingNftRow[]; more: boolean; next_key?: string } | null = null;
+    // One retry with short backoff — fetchTableRows already fails over RPC
+    // endpoints, so a total failure here is real network trouble.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        result = await fetchTableRows<PendingNftRow>({
+          code: 'gpk.topps',
+          scope: owner,
+          table: 'pendingnft.a',
+          limit: PENDING_NFTS_PAGE_SIZE,
+          ...(descending
+            ? { reverse: true, ...(bound ? { upper_bound: bound } : {}) }
+            : { ...(bound ? { lower_bound: bound } : {}) }),
+        });
+        lastError = null;
+        break;
+      } catch (e) {
+        lastError = e as Error;
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
     }
-    return all;
-  } catch (e) {
-    console.error('[pack-reveal] fetchPendingNfts error', e);
-    return all;
+    if (!result) {
+      console.error('[pack-reveal] fetchPendingNftsDetailed page failed', { page, lastError });
+      // Truncated due to network failure — bail out but keep partial rows.
+      more = true;
+      break;
+    }
+    if (result.rows.length > 0) all.push(...result.rows);
+    more = !!result.more && !!result.next_key;
+    if (!more) break;
+    if (all.length >= maxRows) break;
+    if (shouldStop && shouldStop(all)) break;
+    bound = String(result.next_key);
   }
+
+  const truncated = more || page >= PENDING_NFTS_MAX_PAGES;
+  return { rows: all, truncated, pagesFetched: page + 1, lastError };
+}
+
+/**
+ * Backward-compatible wrapper — returns just the rows.
+ * Callers that need truncation info should use `fetchPendingNftsDetailed`.
+ */
+export async function fetchPendingNfts(
+  owner: string,
+  options?: FetchPendingNftsOptions,
+): Promise<PendingNftRow[]> {
+  const { rows } = await fetchPendingNftsDetailed(owner, options);
+  return rows;
 }
 
 export function PackRevealDialog({
