@@ -41,7 +41,52 @@ interface PinnedManifest {
   seriesCount?: number;
   fileCount?: number;
   missingCount?: number;
+  zipFileName?: string;
+  zipBytes?: number;
+  zipSha256?: string;
 }
+
+/** GitHub Releases URL — kept as a bonus fallback link. */
+export const ZIP_GITHUB_RELEASE_URL =
+  'https://github.com/gpkonwaxbackup/gpk-backup/releases/latest';
+
+export interface ZipDownloadOption {
+  key: MirrorKey | 'github';
+  label: string;
+  url: string;
+}
+
+/**
+ * Direct download URLs for the offline ZIP, in priority order. Every
+ * configured mirror hosts `gpk-image-mirror.zip` at its base URL; the
+ * GitHub Releases link is appended as a bonus fallback.
+ */
+export function getZipDownloadUrls(): ZipDownloadOption[] {
+  const options: ZipDownloadOption[] = [];
+  for (const m of MIRRORS) {
+    if (!m.url || !/^https:\/\//i.test(m.url)) continue;
+    options.push({ key: m.key, label: m.label, url: `${m.url}gpk-image-mirror.zip` });
+  }
+  options.push({ key: 'github', label: 'GitHub Release', url: ZIP_GITHUB_RELEASE_URL });
+  return options;
+}
+
+export interface ZipManifestInfo {
+  sha256: string | null;
+  bytes: number | null;
+  fileName: string;
+}
+
+/** Pinned ZIP hash + size for user-facing verification display. */
+export async function getZipManifest(): Promise<ZipManifestInfo> {
+  const manifest = await loadPinnedManifest();
+  return {
+    sha256: manifest?.zipSha256 ?? null,
+    bytes: manifest?.zipBytes ?? null,
+    fileName: manifest?.zipFileName ?? 'gpk-image-mirror.zip',
+  };
+}
+
 
 let manifestPromise: Promise<PinnedManifest | null> | null = null;
 
