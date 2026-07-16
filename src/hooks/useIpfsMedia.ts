@@ -164,7 +164,7 @@ export function useIpfsMedia(
       setVerifiedMirrorUrl(null);
       return;
     }
-    const cfg = remoteState.mirrors.find((m: { key: MirrorKey; url: string }) => m.key === activeMirror);
+    const cfg = MIRRORS.find((m) => m.key === activeMirror);
     if (!cfg?.url) {
       setVerifiedMirrorUrl(null);
       return;
@@ -175,7 +175,7 @@ export function useIpfsMedia(
       setVerifiedMirrorUrl(url);
     });
     return () => { cancelled = true; };
-  }, [activeMirror, hash, remoteState.mirrors]);
+  }, [activeMirror, hash]);
 
   const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
