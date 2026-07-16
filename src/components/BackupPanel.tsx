@@ -315,3 +315,69 @@ export function BackupPanel({ triggerClassName }: Props) {
     </Dialog>
   );
 }
+
+interface RecommendedZipCardProps {
+  protectedOnDevice: boolean;
+  fileCount: number;
+  totalBytes: number;
+  zipInfo: ZipManifestInfo | null;
+}
+
+function RecommendedZipCard({
+  protectedOnDevice,
+  fileCount,
+  totalBytes,
+  zipInfo,
+}: RecommendedZipCardProps) {
+  const options = getZipDownloadUrls();
+
+  if (protectedOnDevice) {
+    return (
+      <section className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+        <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium">
+          <ShieldCheck className="w-4 h-4" />
+          You're protected — offline backup loaded ({fileCount.toLocaleString()} files,{' '}
+          {formatBytes(totalBytes)}).
+        </div>
+      </section>
+    );
+  }
+
+  const approxSize = zipInfo?.bytes ? formatBytes(zipInfo.bytes) : null;
+  const shortHash = zipInfo?.sha256 ? `${zipInfo.sha256.slice(0, 12)}…` : null;
+
+  return (
+    <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <Download className="w-4 h-4 text-cheese" />
+        <p className="font-medium text-cheese">Recommended: keep a copy on your device</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Grab the offline backup ZIP{approxSize ? ` (~${approxSize})` : ''} now while
+        everything's working — it's your safety net if all mirrors ever go down. Every
+        mirror below serves the same ZIP; the hash is checked against the pinned manifest.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <Button
+            key={opt.key}
+            asChild
+            size="sm"
+            variant={opt.key === 'primary' ? 'default' : 'outline'}
+            className="h-8"
+          >
+            <a href={opt.url} target="_blank" rel="noopener noreferrer">
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              {opt.label}
+            </a>
+          </Button>
+        ))}
+      </div>
+      {shortHash && (
+        <p className="text-[10px] text-muted-foreground font-mono break-all" title={zipInfo?.sha256 ?? ''}>
+          SHA-256: {shortHash}
+        </p>
+      )}
+    </section>
+  );
+}
