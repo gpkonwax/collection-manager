@@ -332,7 +332,10 @@ export function useIpfsMedia(
   }, [advance, enabled]);
 
   let src: string;
-  if (localMirrorUrl) {
+  if (verifiedMirrorUrl) {
+    // Active backup mirror with a hash-verified file — use it in preference to gateways.
+    src = verifiedMirrorUrl;
+  } else if (localMirrorUrl) {
     // Local ZIP mirror hit — bypass every gateway attempt, fully offline.
     src = localMirrorUrl;
   } else if (cachedLoadedUrl) {
