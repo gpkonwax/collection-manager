@@ -223,6 +223,12 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
     log(`Wrote ZIP (${(zipBytes / 1024 / 1024).toFixed(1)} MB)\n`);
   }
 
+  // Copy the manifest into the public folder so the app can pin it at build time.
+  const publicDir = path.resolve(process.cwd(), 'public');
+  await fs.mkdir(publicDir, { recursive: true });
+  await fs.copyFile(path.join(outDir, 'manifest.json'), path.join(publicDir, 'gpk-manifest.json'));
+  log(`Copied pinned manifest → public/gpk-manifest.json\n`);
+
   return { outDir, zipPath, manifest, errors };
 }
 
