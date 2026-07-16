@@ -32,6 +32,8 @@ import {
 import {
   MIRRORS,
   type MirrorKey,
+  getMirrorDisplayLabel,
+  getMirrorProviderName,
   getRemoteMirrorState,
   getZipDownloadUrls,
   getZipManifest,
