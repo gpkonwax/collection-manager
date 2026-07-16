@@ -146,6 +146,12 @@ export function useIpfsMedia(
   const baseTimeout = context === 'detail' ? IMAGE_LOAD_TIMEOUT.detail : IMAGE_LOAD_TIMEOUT.card;
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
+
+  // Subscribe to local mirror so newly-ingested ZIPs cause mounted images
+  // to re-render and pick up their blob: URL without needing a page reload.
+  useSyncExternalStore(subscribeLocalMirror, () => (hasLocalMirror() ? 1 : 0), () => 0);
+  const localMirrorUrl = hash ? resolveLocalMirror(hash) : null;
+
   const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
 
