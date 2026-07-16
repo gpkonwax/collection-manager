@@ -307,7 +307,10 @@ export function useIpfsMedia(
   }, [advance, enabled]);
 
   let src: string;
-  if (cachedLoadedUrl) {
+  if (localMirrorUrl) {
+    // Local ZIP mirror hit — bypass every gateway attempt, fully offline.
+    src = localMirrorUrl;
+  } else if (cachedLoadedUrl) {
     // Already successfully loaded once — reuse the exact known-good URL (browser HTTP cache will serve it)
     src = cachedLoadedUrl;
   } else if (!enabled) {
