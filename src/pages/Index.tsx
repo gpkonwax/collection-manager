@@ -400,7 +400,13 @@ export default function SimpleAssetsPage() {
   const recheckUnclaimed = useCallback(async () => {
     if (!accountName || isViewing) { setShowCollectUnclaimed(false); return; }
     try {
-      const rows = await fetchPendingNfts(accountName);
+      // Descending scan with an early-exit: we only need the newest unboxing
+      // for the sync notice, plus enough context to detect any recent done=0.
+      // Stops after we've seen ~2000 newest rows (well past a normal mega pack).
+      const rows = await fetchPendingNfts(accountName, {
+        descending: true,
+        maxRows: 2000,
+      });
       const unclaimed = rows.filter((r: any) => r.done === 0);
       setShowCollectUnclaimed(unclaimed.length > 0);
       if (unclaimed.length > 0) return;
@@ -418,6 +424,7 @@ export default function SimpleAssetsPage() {
       });
     } catch { }
   }, [accountName, isViewing]);
+
 
   const focusCollectionView = useCallback((category?: string | null) => {
     if (category) setCategoryFilter(category);
