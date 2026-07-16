@@ -220,6 +220,8 @@ export function BackupPanel({ triggerClassName }: Props) {
                 const statusBadge = remoteState.statuses[key];
                 const isActive = remoteState.active === key;
                 const { label, className } = STEP_BADGES[statusBadge];
+                const provider = getMirrorProviderName(cfg.url);
+                const displayLabel = getMirrorDisplayLabel(cfg);
                 return (
                   <div
                     key={key}
@@ -229,10 +231,15 @@ export function BackupPanel({ triggerClassName }: Props) {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-medium text-xs">{cfg.label}</p>
+                        <p className="font-medium text-xs">{displayLabel}</p>
                         <p className="text-[10px] text-muted-foreground break-all">
                           {cfg.url || 'Not configured yet'}
                         </p>
+                        {provider && (
+                          <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full ${provider.colorClass}`}>
+                            {provider.name}
+                          </span>
+                        )}
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}>
                         {configured ? label : 'Not configured'}
@@ -248,7 +255,7 @@ export function BackupPanel({ triggerClassName }: Props) {
                       {statusBadge === 'checking' && (
                         <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
                       )}
-                      {isActive ? 'Active' : `Use ${cfg.label}`}
+                      {isActive ? 'Active' : `Use ${displayLabel}`}
                     </Button>
                   </div>
                 );
