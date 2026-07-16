@@ -348,7 +348,7 @@ export function useIpfsMedia(
     src,
     onError,
     onLoad: onLoadFinal,
-    isLoading: cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
-    failed: hasLoadedRef.current ? false : failed,
+    isLoading: localMirrorUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
+    failed: localMirrorUrl || hasLoadedRef.current ? false : failed,
   };
 }
