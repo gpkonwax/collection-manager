@@ -367,20 +367,25 @@ function RecommendedZipCard({
         mirror below serves the same ZIP; the hash is checked against the pinned manifest.
       </p>
       <div className="flex flex-wrap gap-2">
-        {options.map((opt) => (
-          <Button
-            key={opt.key}
-            asChild
-            size="sm"
-            variant={opt.key === 'primary' ? 'default' : 'outline'}
-            className="h-8"
-          >
-            <a href={opt.url} target="_blank" rel="noopener noreferrer">
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              {opt.label}
-            </a>
-          </Button>
-        ))}
+        {options.map((opt) => {
+          const mirror = MIRRORS.find((m) => m.key === opt.key);
+          const provider = mirror ? getMirrorProviderName(mirror.url) : null;
+          const buttonLabel = provider ? provider.name : opt.label;
+          return (
+            <Button
+              key={opt.key}
+              asChild
+              size="sm"
+              variant={opt.key === 'primary' ? 'default' : 'outline'}
+              className="h-8"
+            >
+              <a href={opt.url} target="_blank" rel="noopener noreferrer">
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                {buttonLabel}
+              </a>
+            </Button>
+          );
+        })}
       </div>
       {shortHash && (
         <p className="text-[10px] text-muted-foreground font-mono break-all" title={zipInfo?.sha256 ?? ''}>
