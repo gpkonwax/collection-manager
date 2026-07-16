@@ -1,0 +1,63 @@
+{
+  "$schema": "./mirror-config.schema.md",
+  "description": "Enumeration of every image the mirror should hold. Frozen — the GPK collection does not evolve.",
+  "outDir": "./mirror-output",
+  "zipOut": "./gpk-image-mirror.zip",
+  "concurrency": 6,
+  "requestTimeoutMs": 30000,
+  "gateways": [
+    "https://gateway.pinata.cloud/ipfs/",
+    "https://dweb.link/ipfs/",
+    "https://nftstorage.link/ipfs/",
+    "https://ipfs.io/ipfs/",
+    "https://cloudflare-ipfs.com/ipfs/"
+  ],
+  "series": [
+    {
+      "id": "series1",
+      "hash": "QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p",
+      "cardIdRange": [1, 220],
+      "sides": ["a", "b"],
+      "variants": [
+        { "name": "base",      "ext": "jpg" },
+        { "name": "prism",     "ext": "gif" },
+        { "name": "sketch",    "ext": "gif" },
+        { "name": "collector", "ext": "gif" },
+        { "name": "golden",    "ext": "jpg" }
+      ],
+      "includeBacks": true
+    },
+    {
+      "id": "series2",
+      "hash": "QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ",
+      "cardIdRange": [42, 260],
+      "sides": ["a", "b"],
+      "variants": [
+        { "name": "base",         "ext": "jpg" },
+        { "name": "raw",          "ext": "gif" },
+        { "name": "prism",        "ext": "gif" },
+        { "name": "slime",        "ext": "gif" },
+        { "name": "gum",          "ext": "gif" },
+        { "name": "vhs",          "ext": "gif" },
+        { "name": "sketch",       "ext": "gif" },
+        { "name": "tiger stripe", "ext": "gif" },
+        { "name": "tiger claw",   "ext": "gif" }
+      ],
+      "includeBacks": true
+    },
+    {
+      "id": "exotic",
+      "hash": "QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25",
+      "cardIdRange": [1, 100],
+      "sides": ["a", "b"],
+      "variants": [
+        { "name": "base",        "ext": "jpg" },
+        { "name": "prism",       "ext": "gif" },
+        { "name": "sketch",      "ext": "gif" },
+        { "name": "relic",       "ext": "gif" },
+        { "name": "originalart", "ext": "gif" }
+      ],
+      "includeBacks": true
+    }
+  ]
+}
