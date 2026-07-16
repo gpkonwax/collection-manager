@@ -142,7 +142,11 @@ export function clearLocalMirror(): void {
   bytesLoaded = 0;
   loadedAt = null;
   emit();
-  idbDel(IDB_KEY).catch(() => { /* noop */ });
+  try {
+    idbDel(IDB_KEY).catch(() => { /* noop */ });
+  } catch {
+    /* IndexedDB unavailable (e.g. jsdom in tests) — nothing to clear. */
+  }
 }
 
 /** Persist current blobs to IndexedDB as an array of [key, Blob]. */
