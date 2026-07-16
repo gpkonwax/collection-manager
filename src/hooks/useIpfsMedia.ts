@@ -197,7 +197,7 @@ export function useIpfsMedia(
   // Track whether this hash has ever successfully rendered in this hook instance
   const hasLoadedRef = useRef(!!cachedLoadedUrl);
 
-  // Reset state when URL changes
+  // Reset state when URL or active mirror changes
   useEffect(() => {
     const newCached = getCachedLoadedUrl(hash);
     const newStart = getCachedGatewayIndex(hash);
@@ -207,6 +207,7 @@ export function useIpfsMedia(
     setFailed(false);
     setIsLoading(!newCached);
     setNonce(0);
+    setVerifiedMirrorUrl(null);
     hasLoadedRef.current = !!newCached;
     attemptRef.current += 1;
     if (retryTimerRef.current) {
@@ -217,7 +218,7 @@ export function useIpfsMedia(
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }, [originalUrl, hash]);
+  }, [originalUrl, hash, activeMirror]);
 
   useEffect(() => {
     mountedRef.current = true;
