@@ -1,110 +1,109 @@
+# Plan: Idiot-proof offline image backup with 3 mirrors
 
-# ZIP-based image backup — one-time snapshot, `gpkonwaxbackup` repo
+## What we're building
 
-The GPK/Topps collection is **frozen** — no new cards, packs, variants, or puzzle pieces will ever be added. The mirror is a **one-time snapshot**. No update workflow, no cron, no republishing. Build once, done forever.
+1. Move the **Offline backup** trigger from the footer into the sticky header so it is always visible and the footer is less crowded.
+2. Redesign the backup dialog as a clear, ordered fallback checklist:
+   - **Step 1 — Built-in primary mirror** (automatic, no action needed).
+   - **Step 2 — Backup mirrors A & B** (preseeded URLs you will host on Cloudflare Pages / GitLab Pages; one-click activate if Step 1 fails).
+   - **Step 3 — Load ZIP** (ultimate offline fallback; local file, persists optionally in IndexedDB).
+3. Add **hash verification** for every file fetched from any mirror, using a pinned `manifest.json`, so any mirror can be used without trust language.
+4. Remove the old free-text "community mirror URL" input and the confusing "trusted member" wording.
 
-Fallback URL will be hardcoded as `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`.
+## Technical changes
 
-## Repo layout
+### 1. Header trigger
+- In `src/pages/Index.tsx`, remove `<BackupPanel />` from the footer.
+- Add a header-left trigger using the existing `HardDrive` icon + "Image backup" label.
+- Keep the existing `BackupPanel` component but update its default trigger styling so it works in both places if needed.
 
-**Main repo (this one, your access only)**
-- `scripts/build-image-mirror.mjs` — enumerator + fetcher + zipper, driven by the same TS constants the app uses (`SERIES_HASH`, `GIF_VARIANTS`, pack art, puzzle IDs). Resumable across runs (skips files already on disk).
-- `scripts/verify-mirror.mjs` — sha256 check of a local folder against `manifest.json`.
-- `scripts/verify-remote-mirror.mjs` — same check against any base URL.
-- `scripts/README.md` — instructions for verifying / re-publishing in the "if I'm gone" case.
-- Script tests: `scripts/__tests__/build-mirror.test.mjs`, `scripts/__tests__/verify-mirror.test.mjs` (both use a local `http.createServer` mock — no real network).
+### 2. Mirror configuration
+- Replace `TRUSTED_MIRRORS` with three explicit constants in `src/lib/ipfsGateways.ts`:
+  - `PRIMARY_MIRROR`
+  - `BACKUP_MIRROR_A`
+  - `BACKUP_MIRROR_B`
+- The list will initially contain placeholder URLs (e.g. your existing GitHub Pages URL as primary, plus two `https://` placeholders). You will update the placeholders after creating the Cloudflare Pages and GitLab Pages mirrors.
+- Remove `getCommunityMirrorUrl` / `setCommunityMirrorUrl` and the community localStorage key.
 
-**Backup repo `gpkonwaxbackup/gpk-backup` (new, public, small collaborator list)**
-- `mirror/` — flat folder mirroring IPFS paths exactly (`<hash>/<variant>/<id><q>.<ext>`).
-- `manifest.json` — sha256 per file. Frozen after the initial snapshot.
-- `gpk-image-mirror.zip` — the same folder zipped, attached as a GitHub Release for direct download.
-- `scripts/` — copies of the verify scripts so anyone can independently confirm integrity.
-- `README.md` — what this repo is, and how a collaborator would republish it elsewhere if GitHub dies.
-- GitHub Pages enabled on `main` → serves `mirror/` at `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`.
+### 3. Pinned manifest + hash verification
+- Ship a pinned `manifest.json` with the app build. The existing `scripts/build-image-mirror.mjs` already emits this file; we will copy it into `public/gpk-manifest.json` at build time and import/fetch it in the app.
+- Create `src/lib/remoteMirror.ts`:
+  - Load the pinned manifest on app boot.
+  - Provide `fetchVerifiedMirrorFile(hash: string, baseUrl: string): Promise<Blob | null>`:
+    - Fetch `${baseUrl}${hash}` with a timeout.
+    - Compute SHA-256 via `crypto.subtle.digest`.
+    - Compare against the manifest entry for that path.
+    - Return the `Blob` only if the hash matches; otherwise log a clear warning and return `null`.
+  - Cache successful verified blobs per hash so repeated renders are instant.
+  - Track which mirror is currently active (primary / A / B / none) and expose `setActiveMirror`, `getActiveMirror`, and a subscription for reactive UI.
 
-Collaborators never need to update anything. They exist purely as a survivability net: if the account or Pages goes away, any collaborator can fork the repo (or hold the ZIP) and re-serve the same content at a new URL that gets pasted into the app's Community mirror URL field.
+### 4. Integrate verified mirrors into image loading
+- In `src/hooks/useIpfsMedia.ts`:
+  - Subscribe to the active mirror.
+  - If an active mirror is set and the hash exists in the pinned manifest, call `fetchVerifiedMirrorFile` and use the resulting blob URL.
+  - If verification fails or the file is missing, fall back to the normal public-gateway rotation.
+  - If the user clicks "Reset to primary", clear the active mirror and let the automatic fallback list (public gateways → primary mirror) resume.
 
-## In-app integration
+### 5. Backup panel UI rewrite (`src/components/BackupPanel.tsx`)
+Order the dialog content top-to-bottom as the user should try it:
 
-Three layers, checked in this order at load time:
+```text
+Step 1 — Built-in primary mirror
+  Status: active / not needed
+  "Used automatically when public IPFS gateways fail. No action needed."
+  Show the primary URL.
 
-1. **Local ZIP (any user, no repo access needed).** In-app "Load offline image backup (.zip)" button ingests the ZIP client-side via `fflate` into an in-memory blob map, optionally persisted to IndexedDB. `useIpfsMedia` checks this first — hits are instant and fully offline.
-2. **`gpkonwaxbackup` GitHub Pages mirror (default, everyone, zero user action).** Hardcoded as the **last** entry in `IPFS_GATEWAYS`. Because the folder mirrors IPFS paths exactly, the existing rotation just falls through to it when public IPFS gateways fail.
-3. **Community mirror URL (optional per-user).** Small settings field to paste an additional base URL from another trusted host, appended to `IPFS_GATEWAYS` for that user's session. Includes a trust warning.
+Step 2 — Backup mirrors
+  "If the primary mirror is down, try one of these:"
+  [Try Backup Mirror A]  [Try Backup Mirror B]  [Reset to primary]
+  Each button shows the mirror URL and a status badge:
+    - "Ready" (URL configured)
+    - "Checking…" while the first file is fetched/verified
+    - "Working" once a verified file succeeds
+    - "Failed" if verification fails or the URL is still a placeholder
 
-Mirror URLs are excluded from the parallel gateway race (still only race the first 3 public gateways), so mirrors stay true fallbacks and don't waste bandwidth.
+Step 3 — Load backup ZIP
+  [Load backup ZIP]   [Download latest ZIP]
+  Show currently loaded ZIP file count / bytes and a Clear button.
+  Keep the "Remember on this device" IndexedDB toggle.
+```
 
-## The "you're gone" scenario, end to end
+- Add a short explainer at the top of the dialog:
+  > "If card images stop loading, work through these steps in order. The app checks every mirror file against a published list of hashes, so you don't have to trust the host — only the math."
 
-1. IPFS gateways start failing.
-2. App automatically falls through to `gpkonwaxbackup.github.io/gpk-backup/mirror/` — every user is fine, no action required.
-3. If GitHub itself ever fails, any ZIP holder drops the ZIP into the in-app loader → works offline.
-4. If a collaborator wants a second host for redundancy, they publish `mirror/` to Cloudflare Pages / IPFS pin / anywhere free — other users paste that URL into Community mirror URL.
+### 6. Build / release workflow
+- Update `scripts/build-image-mirror.mjs` to also copy `outDir/manifest.json` to `public/gpk-manifest.json` after each build, so the pinned manifest stays in sync with the ZIP.
+- Add a note in the plan for you to run the mirror builder once after the plan is implemented, then deploy the same `mirror/` folder to:
+  1. Primary: existing GitHub Pages (`gpkonwaxbackup.github.io/gpk-backup/mirror/`)
+  2. Backup A: Cloudflare Pages
+  3. Backup B: GitLab Pages
 
-No update workflow ever needs to run again. No single point of failure. Nothing hosted by Lovable. Nothing paid.
+## Files to touch
 
-## Trust / verification
+- `src/pages/Index.tsx` — move trigger, add header button.
+- `src/components/BackupPanel.tsx` — rewrite dialog content and order.
+- `src/lib/ipfsGateways.ts` — replace mirror constants, remove community URL helpers.
+- `src/lib/remoteMirror.ts` — new module for verified mirror fetches.
+- `src/hooks/useIpfsMedia.ts` — wire verified mirror fetch into image source selection.
+- `scripts/build-image-mirror.mjs` — copy manifest to `public/gpk-manifest.json`.
+- `src/lib/localMirror.test.ts` — update if community-mirror tests exist; add basic remoteMirror tests if time permits.
 
-- `manifest.json` lists sha256 for every file, generated once and never changed.
-- `verify-mirror.mjs` checks a local folder against it.
-- `verify-remote-mirror.mjs` walks any base URL and verifies against a `manifest.json` at that URL — so before pasting a stranger's community URL, a user can confirm it matches the canonical sha256s.
+## Out of scope / not changing
 
-## What ships in this repo (main)
+- Public IPFS gateway race logic stays the same.
+- Local ZIP ingestion logic stays the same; only the surrounding UI order changes.
+- No backend or Lovable Cloud changes — this remains a client-side feature.
 
-Scripts:
-- `scripts/build-image-mirror.mjs`
-- `scripts/verify-mirror.mjs`
-- `scripts/verify-remote-mirror.mjs`
-- `scripts/README.md`
-- `scripts/__tests__/*`
+## Acceptance criteria
 
-App code:
-- `src/lib/localMirror.ts` — in-memory blob map, ZIP ingest (`fflate`), optional IndexedDB persistence, `resolveLocalMirror(hash, pathTail)` helper.
-- `src/components/BackupPanel.tsx` — Load ZIP button, "Remember on this device" toggle, Clear, Community mirror URL input, status pill, one-line trust warning.
-- Footer entry point ("Offline backup") to open the panel.
-- `src/lib/ipfsGateways.ts` — append `https://gpkonwaxbackup.github.io/gpk-backup/mirror/` to `IPFS_GATEWAYS`; read optional community URL from `localStorage` and append after it; exclude both from the parallel race.
-- `src/hooks/useIpfsMedia.ts` — ~10 lines: local blob first (returns a `blob:` URL, marks `hasLoadedRef.current = true`, skips timers), then existing rotation.
+- Backup trigger is in the header, not the footer.
+- Dialog shows three numbered steps in the exact fallback order above.
+- Clicking "Try Backup Mirror A/B" fetches and verifies a sample file, then switches image loading to that mirror.
+- A failed verification shows a clear error and does not use the bad file.
+- "Load ZIP" still ingests the ZIP and makes images available offline.
+- No "trusted member" or free-text community URL remains in the UI.
+- Build script keeps `public/gpk-manifest.json` up to date.
 
-Dependencies:
-- Runtime: `fflate` (~10 KB, unzip in browser).
-- Runtime (only if persistence enabled): `idb-keyval`.
-- Dev/script only: `jszip`.
+---
 
-Total in-app footprint stays small and presentation-only. No Lovable Cloud, no bucket, no edge function, no bill.
-
-## Testability — every scenario verifiable without real IPFS
-
-Fixture: `src/test/fixtures/mirror-tiny.zip` (~20 KB, 5 fake images with known sha256s).
-
-Unit / integration:
-- `src/lib/localMirror.test.ts` — ingest fixture ZIP, assert blob map + `resolveLocalMirror` return correct `blob:` URL. Test IndexedDB persistence + restore.
-- `src/lib/ipfsGateways.test.ts` — assert backup URL always appended last, community URL appended after it, both excluded from race list.
-- `scripts/__tests__/build-mirror.test.mjs` — run script against local mock HTTP server, assert output + manifest match; delete half the files and re-run to verify resumability.
-- `scripts/__tests__/verify-mirror.test.mjs` — corrupt one file, assert script exits non-zero and names it. Same for remote variant using `http.createServer`.
-
-End-to-end (Playwright with `page.route()` interception, no real network):
-- **A — happy path:** allow gateway #1. Image loads from Pinata, backup URL never requested.
-- **B — first gateway dead:** abort gateway #1. Rotation lands on #2, backup untouched.
-- **C — all public gateways dead:** abort every public gateway. Request eventually hits `gpkonwaxbackup.github.io/gpk-backup/mirror/...` and image renders.
-- **D — everything dead + local ZIP:** abort everything, load fixture ZIP via BackupPanel, assert image resolves from blob map with zero network attempts.
-- **E — community mirror:** paste fake URL, block everything else, assert requests go there and remote-verify catches a tampered file.
-
-Each scenario asserted via screenshot + a temporary `window.__ipfsDebug` counter (test-only) so we can prove exactly which layer served each image.
-
-## Defaults I'll use unless you say otherwise
-
-- **Persistence for the in-app ZIP loader:** off (session-only), with opt-in "Remember on this device" checkbox.
-- **Community mirror URL field:** included from day one, empty preseed.
-- **Footer placement:** small "Offline backup" link.
-
-## Recommended execution order
-
-1. **I build the plan** (scripts + in-app code + tests) with the URL hardcoded to `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`.
-2. **All tests pass** using fixtures and mock servers — no real IPFS needed to prove the mechanism works.
-3. **You run `build-image-mirror.mjs` locally** — hours over IPFS, resumable, produces `./mirror-output/` + `manifest.json`.
-4. **You run `verify-mirror.mjs`** against the output and eyeball a few files.
-5. **You create `github.com/gpkonwaxbackup/gpk-backup`**, push `mirror/` + `manifest.json` + `scripts/` + `README.md`, attach the ZIP to a Release, enable Pages on `/mirror`.
-6. **You add trusted collaborators** to the new repo.
-7. Done. Never touched again.
-
-Ready to build on your go.
+**Note:** The actual URLs for Backup A and Backup B are placeholders until you create the Cloudflare Pages / GitLab Pages mirrors. After you provide the real URLs, I will update the constants in one small follow-up change.

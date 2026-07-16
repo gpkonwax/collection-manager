@@ -1834,6 +1834,11 @@ export default function SimpleAssetsPage() {
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
         <div className="container flex h-12 items-center justify-between">
 
+          {/* Left: offline backup trigger */}
+          <div className="flex items-center gap-2">
+            <BackupPanel triggerClassName="text-cheese/80 hover:text-cheese text-sm inline-flex items-center gap-1.5 transition-colors" />
+          </div>
+
           {/* Right: Info button + view wallet (logged in only) + wallet controls */}
           <div className="flex items-center gap-2 ml-auto">
             <Button
@@ -2626,9 +2631,6 @@ export default function SimpleAssetsPage() {
               <p>• <button type="button" onClick={() => footerRequestNav('https://atomichub.io/')} className="hover:underline">AtomicHub</button></p>
               <p>• <button type="button" onClick={() => footerRequestNav('https://geepeekay.com/')} className="hover:underline">GeePeekay</button></p>
             </div>
-          </div>
-          <div className="mt-4 flex justify-center">
-            <BackupPanel />
           </div>
           <div className="mt-6 pt-4 border-t border-cheese/10 text-[10px] leading-relaxed text-muted-foreground max-w-4xl mx-auto space-y-2">
 

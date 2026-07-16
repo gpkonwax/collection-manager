@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS } from '@/lib/ipfsGateways';
 import { resolveLocalMirror, subscribeLocalMirror, hasLocalMirror } from '@/lib/localMirror';
+import { fetchVerifiedMirrorFile, getRemoteMirrorState, subscribeRemoteMirror, MIRRORS } from '@/lib/remoteMirror';
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
 const gatewayCache = new Map<string, number>();
@@ -152,6 +153,30 @@ export function useIpfsMedia(
   useSyncExternalStore(subscribeLocalMirror, () => (hasLocalMirror() ? 1 : 0), () => 0);
   const localMirrorUrl = hash ? resolveLocalMirror(hash) : null;
 
+  // Subscribe to the manually-selected remote mirror. If a backup mirror is active,
+  // fetch and verify the file from that mirror before falling back to gateways.
+  const remoteState = useSyncExternalStore(subscribeRemoteMirror, getRemoteMirrorState, getRemoteMirrorState);
+  const activeMirror = remoteState.active;
+  const [verifiedMirrorUrl, setVerifiedMirrorUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeMirror || !hash) {
+      setVerifiedMirrorUrl(null);
+      return;
+    }
+    const cfg = MIRRORS.find((m) => m.key === activeMirror);
+    if (!cfg?.url) {
+      setVerifiedMirrorUrl(null);
+      return;
+    }
+    let cancelled = false;
+    fetchVerifiedMirrorFile(hash, cfg.url).then((url) => {
+      if (cancelled) return;
+      setVerifiedMirrorUrl(url);
+    });
+    return () => { cancelled = true; };
+  }, [activeMirror, hash]);
+
   const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
 
@@ -172,7 +197,7 @@ export function useIpfsMedia(
   // Track whether this hash has ever successfully rendered in this hook instance
   const hasLoadedRef = useRef(!!cachedLoadedUrl);
 
-  // Reset state when URL changes
+  // Reset state when URL or active mirror changes
   useEffect(() => {
     const newCached = getCachedLoadedUrl(hash);
     const newStart = getCachedGatewayIndex(hash);
@@ -182,6 +207,7 @@ export function useIpfsMedia(
     setFailed(false);
     setIsLoading(!newCached);
     setNonce(0);
+    setVerifiedMirrorUrl(null);
     hasLoadedRef.current = !!newCached;
     attemptRef.current += 1;
     if (retryTimerRef.current) {
@@ -192,7 +218,7 @@ export function useIpfsMedia(
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }, [originalUrl, hash]);
+  }, [originalUrl, hash, activeMirror]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -307,7 +333,10 @@ export function useIpfsMedia(
   }, [advance, enabled]);
 
   let src: string;
-  if (localMirrorUrl) {
+  if (verifiedMirrorUrl) {
+    // Active backup mirror with a hash-verified file — use it in preference to gateways.
+    src = verifiedMirrorUrl;
+  } else if (localMirrorUrl) {
     // Local ZIP mirror hit — bypass every gateway attempt, fully offline.
     src = localMirrorUrl;
   } else if (cachedLoadedUrl) {
@@ -348,7 +377,7 @@ export function useIpfsMedia(
     src,
     onError,
     onLoad: onLoadFinal,
-    isLoading: localMirrorUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
-    failed: localMirrorUrl || hasLoadedRef.current ? false : failed,
+    isLoading: verifiedMirrorUrl || localMirrorUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
+    failed: verifiedMirrorUrl || localMirrorUrl || hasLoadedRef.current ? false : failed,
   };
 }
