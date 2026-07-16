@@ -9,7 +9,7 @@ needs to be rebuilt.
 ## Files
 
 - **`mirror-config.json`** — enumeration of every series, variant, side, and card ID range to fetch. Edit this to change what gets mirrored.
-- **`build-image-mirror.mjs`** — fetches every file, writes them to `./mirror-output/<hash>/<variant>/<id><side>.<ext>`, emits `manifest.json` with a sha256 per file, and zips the tree into `./gpk-image-mirror.zip`. **Resumable** — re-running skips files already on disk with valid hashes, and won't retry entries recorded as missing.
+- **`build-image-mirror.mjs`** — fetches every file, writes them to `./mirror-output/<hash>/<variant>/<id><side>.<ext>`, emits `manifest.json` with a sha256 per file, and zips the tree into `./mirror-output/gpk-image-mirror.zip` (inside the folder, so every mirror host serves it). The manifest also records `zipSha256` and `zipBytes` for the app to display. **Resumable** — re-running skips files already on disk with valid hashes, and won't retry entries recorded as missing.
 - **`verify-mirror.mjs`** — checks every file in a local mirror folder against the manifest sha256s. Exits non-zero on missing / corrupted / extra files.
 - **`verify-remote-mirror.mjs`** — same check, but against a live URL (e.g. someone's Cloudflare Pages fork).
 
@@ -24,26 +24,27 @@ This will take a while (potentially hours). It's fully resumable — kill it and
 
 Output:
 - `./mirror-output/` — full folder tree
-- `./mirror-output/manifest.json` — sha256 per file
-- `./gpk-image-mirror.zip` — the whole folder, ready to attach to a GitHub Release
+- `./mirror-output/manifest.json` — sha256 per file + `zipSha256`, `zipBytes`
+- `./mirror-output/gpk-image-mirror.zip` — the whole folder, ready to serve from every host
 
 Verify it:
 ```bash
 node scripts/verify-mirror.mjs
 ```
 
-## How to publish (one-time)
+## How to publish (to all three hosts)
 
-1. Create a **public** GitHub repo: `gpkonwaxbackup/gpk-backup`.
-2. Push:
-   - `mirror/` (rename `mirror-output/` → `mirror/`)
-   - `manifest.json`
-   - `scripts/` (copy this whole folder in, so anyone can independently verify or republish)
-   - `README.md` (see the "for the backup repo" section below)
-3. Enable **GitHub Pages** on the repo — Source: `main` branch, folder: `/mirror`.
-   Confirm it serves at `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`.
-4. Create a **GitHub Release** and attach `gpk-image-mirror.zip`.
-5. Add trusted collaborators to the repo (read+write). That's it — the mirror never needs to be updated again.
+Deploy the **same `mirror-output/` folder** to each of these — the app expects
+the ZIP at `<baseUrl>gpk-image-mirror.zip` on every one:
+
+1. **Primary (GitHub Pages):** push `mirror-output/` as `mirror/` in `gpkonwaxbackup/gpk-backup`; Pages source = `main`, folder = `/mirror`. Serves at `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`.
+2. **Backup A (Cloudflare Pages):** create a Pages project, drop `mirror-output/` in as the build output, deploy.
+3. **Backup B (GitLab Pages):** same folder, `.gitlab-ci.yml` publishing `public/` = `mirror-output/`.
+
+Update `PRIMARY_MIRROR`, `BACKUP_MIRROR_A`, `BACKUP_MIRROR_B` in `src/lib/ipfsGateways.ts` with the resulting base URLs (each must end with `/`).
+
+A GitHub Release with the ZIP attached is still nice-to-have as a fourth
+download source, but it is no longer the only place users can grab it.
 
 ## "If I'm gone" — how a collaborator republishes
 
