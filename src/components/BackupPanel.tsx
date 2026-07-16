@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -152,14 +153,18 @@ export function BackupPanel({ triggerClassName }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
-          type="button"
-          className={triggerClassName ?? 'text-cheese/70 hover:text-cheese hover:underline text-sm inline-flex items-center gap-1'}
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            'whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8',
+            triggerClassName,
+          )}
           title="Offline image backup"
         >
-          <HardDrive className="w-3.5 h-3.5" aria-hidden />
+          <HardDrive className="h-4 w-4 mr-1" aria-hidden />
           Offline backup
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>

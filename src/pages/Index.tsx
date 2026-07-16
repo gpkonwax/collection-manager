@@ -1837,7 +1837,7 @@ export default function SimpleAssetsPage() {
 
           {/* Left: offline backup trigger + recovery buttons */}
           <div className="flex items-center gap-2">
-            <BackupPanel triggerClassName="text-cheese/80 hover:text-cheese text-sm inline-flex items-center gap-1.5 transition-colors" />
+            <BackupPanel />
             {isConnected && accountName && !isViewing && (
               <>
                 <Button
