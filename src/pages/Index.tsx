@@ -1854,7 +1854,13 @@ export default function SimpleAssetsPage() {
                 {collectionSyncNotice && (
                   <Button
                     type="button"
-                    onClick={() => collectionSyncNotice.category && focusCollectionView(collectionSyncNotice.category)}
+                    onClick={() => {
+                      focusCollectionView(collectionSyncNotice.category ?? undefined);
+                      setCollectionSyncNotice(null);
+                      requestAnimationFrame(() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      });
+                    }}
                     variant="outline"
                     size="sm"
                     className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8"
