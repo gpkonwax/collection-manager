@@ -17,6 +17,7 @@ function sha256Raw(bytes: Uint8Array): ArrayBuffer {
 
 let blobCounter = 0;
 beforeEach(() => {
+  vi.unstubAllGlobals();
   __resetRemoteMirrorForTests();
   blobCounter = 0;
   URL.createObjectURL = vi.fn(() => `blob:mock/${++blobCounter}`) as unknown as typeof URL.createObjectURL;
