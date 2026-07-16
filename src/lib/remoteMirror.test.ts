@@ -22,13 +22,13 @@ beforeEach(() => {
   URL.createObjectURL = vi.fn(() => `blob:mock/${++blobCounter}`) as unknown as typeof URL.createObjectURL;
   URL.revokeObjectURL = vi.fn(() => {}) as unknown as typeof URL.revokeObjectURL;
 
-  globalThis.crypto = {
+  vi.stubGlobal('crypto', {
     subtle: {
       digest: vi.fn(async (_algorithm: string, data: ArrayBuffer) => {
         return sha256Raw(new Uint8Array(data));
       }),
     },
-  } as unknown as Crypto;
+  });
 });
 
 function makeManifest(files: Record<string, Uint8Array>) {
