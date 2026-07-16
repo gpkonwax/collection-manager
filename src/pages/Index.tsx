@@ -1932,6 +1932,10 @@ export default function SimpleAssetsPage() {
         </div>
       </div>
 
+      <BackupNudgeBanner />
+
+
+
       {isViewing && viewedAccount && (
         <ViewingBanner viewedAccount={viewedAccount} onClear={handleClearViewing} />
       )}
