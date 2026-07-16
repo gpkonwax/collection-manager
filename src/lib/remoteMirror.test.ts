@@ -160,3 +160,43 @@ describe('remoteMirror', () => {
     expect(info.bytes).toBeNull();
   });
 });
+
+describe('getMirrorProviderName', () => {
+  it('detects GitHub Pages', () => {
+    expect(getMirrorProviderName('https://gpkonwaxbackup.github.io/gpk-backup/mirror/')?.name).toBe('GitHub Pages');
+  });
+
+  it('detects Cloudflare Pages', () => {
+    expect(getMirrorProviderName('https://gpk-backup.pages.dev/mirror/')?.name).toBe('Cloudflare Pages');
+  });
+
+  it('detects GitLab Pages', () => {
+    expect(getMirrorProviderName('https://gpkonwaxbackup.gitlab.io/gpk-backup/mirror/')?.name).toBe('GitLab Pages');
+  });
+
+  it('returns null for empty or invalid URLs', () => {
+    expect(getMirrorProviderName('')).toBeNull();
+    expect(getMirrorProviderName('not-a-url')).toBeNull();
+  });
+
+  it('returns null for unknown hosts', () => {
+    expect(getMirrorProviderName('https://example.com/mirror/')).toBeNull();
+  });
+});
+
+describe('getMirrorDisplayLabel', () => {
+  it('appends provider name when detected', () => {
+    const cfg = { key: 'backupA' as const, label: 'Backup mirror A', url: 'https://gpk-backup.pages.dev/mirror/' };
+    expect(getMirrorDisplayLabel(cfg)).toBe('Backup mirror A — Cloudflare Pages');
+  });
+
+  it('falls back to base label when provider is unknown', () => {
+    const cfg = { key: 'backupB' as const, label: 'Backup mirror B', url: 'https://example.com/mirror/' };
+    expect(getMirrorDisplayLabel(cfg)).toBe('Backup mirror B');
+  });
+
+  it('falls back to base label when URL is empty', () => {
+    const cfg = { key: 'backupA' as const, label: 'Backup mirror A', url: '' };
+    expect(getMirrorDisplayLabel(cfg)).toBe('Backup mirror A');
+  });
+});
