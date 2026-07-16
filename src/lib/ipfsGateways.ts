@@ -19,44 +19,24 @@ export const PUBLIC_IPFS_GATEWAYS = [
  *
  * The `gpk-backup` GitHub Pages URL is a frozen one-time snapshot of every
  * card / pack / puzzle image. Because the folder mirrors IPFS paths exactly,
- * `${MIRROR}${hash}/prism/42lg.gif` resolves identically to a real gateway.
+ * `${PRIMARY_MIRROR}${hash}/prism/42lg.gif` resolves identically to a real gateway.
+ *
+ * Backup mirrors A and B are intentionally empty until you create them on
+ * Cloudflare Pages / GitLab Pages. Update the constants below, then redeploy.
  */
-export const TRUSTED_MIRRORS = [
-  'https://gpkonwaxbackup.github.io/gpk-backup/mirror/',
-];
+export const PRIMARY_MIRROR = 'https://gpkonwaxbackup.github.io/gpk-backup/mirror/';
+export const BACKUP_MIRROR_A = '';
+export const BACKUP_MIRROR_B = '';
 
-const COMMUNITY_MIRROR_KEY = 'gpk-community-mirror-url';
-
-/** User-supplied additional mirror base URL from localStorage. */
-export function getCommunityMirrorUrl(): string | null {
-  try {
-    const raw = localStorage.getItem(COMMUNITY_MIRROR_KEY);
-    if (!raw) return null;
-    const trimmed = raw.trim();
-    if (!trimmed) return null;
-    // Only allow https to avoid mixed-content issues and typos.
-    if (!/^https:\/\//i.test(trimmed)) return null;
-    return trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
-  } catch { return null; }
-}
-
-export function setCommunityMirrorUrl(url: string | null): void {
-  try {
-    if (!url) { localStorage.removeItem(COMMUNITY_MIRROR_KEY); return; }
-    localStorage.setItem(COMMUNITY_MIRROR_KEY, url);
-  } catch { /* noop */ }
-}
+export const TRUSTED_MIRRORS = [PRIMARY_MIRROR].filter(Boolean);
 
 /**
  * Full rotation list, in priority order:
- *   [public gateways..., hardcoded mirrors..., community mirror if set]
- * Recomputed on access so a freshly-set community URL takes effect immediately.
+ *   [public gateways..., hardcoded primary mirror]
+ * Recomputed on access so any future constant change takes effect immediately.
  */
 function computeGateways(): string[] {
-  const list = [...PUBLIC_IPFS_GATEWAYS, ...TRUSTED_MIRRORS];
-  const community = getCommunityMirrorUrl();
-  if (community && !list.includes(community)) list.push(community);
-  return list;
+  return [...PUBLIC_IPFS_GATEWAYS, ...TRUSTED_MIRRORS];
 }
 
 /**
