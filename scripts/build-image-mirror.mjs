@@ -163,11 +163,16 @@ async function runPool(items, config, outDir, manifest, onProgress) {
   });
 }
 
+const ZIP_FILE_NAME = 'gpk-image-mirror.zip';
+
 async function buildZip(outDir, zipPath) {
   const zip = new JSZip();
+  const skipTopLevel = new Set([ZIP_FILE_NAME]);
   async function walk(dir, base) {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const e of entries) {
+      // Never include the ZIP itself when the ZIP lives inside outDir.
+      if (base === '' && skipTopLevel.has(e.name)) continue;
       const abs = path.join(dir, e.name);
       const rel = path.posix.join(base, e.name);
       if (e.isDirectory()) await walk(abs, rel);
@@ -183,7 +188,7 @@ async function buildZip(outDir, zipPath) {
     compression: 'STORE', // images are already compressed; no CPU wasted
   });
   await fs.writeFile(zipPath, buf);
-  return buf.length;
+  return buf;
 }
 
 export async function build(configPath = path.join(__dirname, 'mirror-config.json'), opts = {}) {
