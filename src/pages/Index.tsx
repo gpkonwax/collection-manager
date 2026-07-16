@@ -636,11 +636,21 @@ export default function SimpleAssetsPage() {
     try {
       preCollectIdsRef.current = new Set(assetsRef.current.map(a => a.id));
 
-      const rows = await fetchPendingNfts(accountName);
+      // Full-table scan — a stuck done=0 row can be anywhere in the table,
+      // even from months ago. `truncated` tells us if we hit the 100k ceiling
+      // or a network failure so we can warn the user instead of silently
+      // missing rows.
+      const { rows, truncated, pagesFetched } = await fetchPendingNftsDetailed(accountName);
       const unclaimed = rows.filter((r: any) => r.done === 0);
+      if (truncated) {
+        toast.warning(
+          `Scanned ${rows.length.toLocaleString()} pending rows across ${pagesFetched} pages but could not reach the end of the table. If cards are still missing, click Recover Stuck Cards again.`,
+          { duration: 8000 },
+        );
+      }
       if (unclaimed.length === 0) {
-        toast.info('No unclaimed cards found');
-      setCollectionSyncNotice({ category: null });
+        if (!truncated) toast.info('No unclaimed cards found');
+        setCollectionSyncNotice({ category: null });
         setShowCollectUnclaimed(false);
         setIsCollecting(false);
         return;
