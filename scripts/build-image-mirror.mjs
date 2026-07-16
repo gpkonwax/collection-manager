@@ -1,0 +1,245 @@
+#!/usr/bin/env node
+/**
+ * build-image-mirror.mjs — one-time snapshot builder for the GPK image mirror.
+ *
+ * Reads `scripts/mirror-config.json`, enumerates every card front/back across
+ * every configured series/variant/side, fetches each from public IPFS gateways
+ * (rotating on failure), writes them to `<outDir>/<hash>/<variant>/<id><side>.<ext>`,
+ * emits a sha256 `manifest.json`, and zips the tree.
+ *
+ * Resumable: re-running skips files already present on disk with a valid sha256.
+ * 404s are recorded as "missing" in the manifest so a subsequent run doesn't retry them.
+ *
+ * Zero external runtime dependencies — only `jszip` (already a devDependency).
+ */
+import { createHash } from 'node:crypto';
+import { promises as fs, existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import JSZip from 'jszip';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+async function readConfig(configPath) {
+  const raw = await fs.readFile(configPath, 'utf8');
+  return JSON.parse(raw);
+}
+
+function sha256(buf) {
+  return createHash('sha256').update(buf).digest('hex');
+}
+
+/**
+ * Attempt to download one IPFS path from a list of gateway bases, in order.
+ * Returns { ok, status, bytes?, gateway? }.
+ */
+async function fetchWithGateways(ipfsPath, gateways, timeoutMs) {
+  let lastStatus = 0;
+  for (const gw of gateways) {
+    const url = `${gw}${ipfsPath}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (res.status === 404) {
+        // Definitive miss on this gateway — try next in case they disagree.
+        lastStatus = 404;
+        continue;
+      }
+      if (!res.ok) { lastStatus = res.status; continue; }
+      const buf = new Uint8Array(await res.arrayBuffer());
+      if (buf.length === 0) { lastStatus = 204; continue; }
+      return { ok: true, status: res.status, bytes: buf, gateway: gw };
+    } catch (err) {
+      clearTimeout(timer);
+      lastStatus = 0;
+    }
+  }
+  return { ok: false, status: lastStatus };
+}
+
+function* enumerate(config) {
+  for (const series of config.series) {
+    const [lo, hi] = series.cardIdRange;
+    for (let id = lo; id <= hi; id += 1) {
+      for (const side of series.sides) {
+        for (const v of series.variants) {
+          yield {
+            ipfsPath: `${series.hash}/${v.name}/${id}${side}.${v.ext}`,
+            relPath:  path.posix.join(series.hash, v.name, `${id}${side}.${v.ext}`),
+            kind: 'front',
+            series: series.id,
+          };
+        }
+      }
+      if (series.includeBacks) {
+        yield {
+          ipfsPath: `${series.hash}/back/${id}.jpg`,
+          relPath:  path.posix.join(series.hash, 'back', `${id}.jpg`),
+          kind: 'back',
+          series: series.id,
+        };
+      }
+    }
+  }
+}
+
+async function loadExistingManifest(outDir) {
+  const p = path.join(outDir, 'manifest.json');
+  try {
+    const raw = await fs.readFile(p, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return { generatedAt: null, files: {}, missing: [] };
+  }
+}
+
+async function saveManifest(outDir, manifest) {
+  const p = path.join(outDir, 'manifest.json');
+  await fs.writeFile(p, JSON.stringify(manifest, null, 2));
+}
+
+async function processOne(item, config, outDir, manifest) {
+  const absPath = path.join(outDir, item.relPath);
+  // Skip if we already have this file with a valid hash on disk.
+  const existing = manifest.files[item.relPath];
+  if (existing && existsSync(absPath)) {
+    try {
+      const buf = await fs.readFile(absPath);
+      if (sha256(buf) === existing.sha256) return { status: 'skip' };
+    } catch { /* fall through and re-fetch */ }
+  }
+  // Skip if a prior run recorded this as definitively missing.
+  if (manifest.missing.includes(item.relPath)) return { status: 'missing-cached' };
+
+  const res = await fetchWithGateways(item.ipfsPath, config.gateways, config.requestTimeoutMs);
+  if (!res.ok) {
+    if (res.status === 404) {
+      manifest.missing.push(item.relPath);
+      return { status: 'missing' };
+    }
+    return { status: 'error', httpStatus: res.status };
+  }
+  await fs.mkdir(path.dirname(absPath), { recursive: true });
+  await fs.writeFile(absPath, res.bytes);
+  manifest.files[item.relPath] = {
+    sha256: sha256(res.bytes),
+    bytes: res.bytes.length,
+    gateway: res.gateway,
+    fetchedAt: new Date().toISOString(),
+  };
+  return { status: 'ok', bytes: res.bytes.length };
+}
+
+async function runPool(items, config, outDir, manifest, onProgress) {
+  const queue = [...items];
+  let inFlight = 0;
+  let done = 0;
+  const total = queue.length;
+  const errors = [];
+
+  return new Promise((resolve) => {
+    const tick = () => {
+      while (inFlight < config.concurrency && queue.length > 0) {
+        const item = queue.shift();
+        inFlight += 1;
+        processOne(item, config, outDir, manifest)
+          .then((r) => { if (r.status === 'error') errors.push({ item, ...r }); })
+          .catch((err) => errors.push({ item, status: 'throw', message: String(err) }))
+          .finally(() => {
+            inFlight -= 1; done += 1;
+            onProgress(done, total);
+            // Periodic manifest checkpoint every 250 files.
+            if (done % 250 === 0) {
+              saveManifest(outDir, manifest).catch(() => {});
+            }
+            if (queue.length === 0 && inFlight === 0) resolve({ errors });
+            else tick();
+          });
+      }
+    };
+    tick();
+  });
+}
+
+async function buildZip(outDir, zipPath) {
+  const zip = new JSZip();
+  async function walk(dir, base) {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const e of entries) {
+      const abs = path.join(dir, e.name);
+      const rel = path.posix.join(base, e.name);
+      if (e.isDirectory()) await walk(abs, rel);
+      else if (e.isFile()) {
+        const buf = await fs.readFile(abs);
+        zip.file(rel, buf);
+      }
+    }
+  }
+  await walk(outDir, '');
+  const buf = await zip.generateAsync({
+    type: 'nodebuffer',
+    compression: 'STORE', // images are already compressed; no CPU wasted
+  });
+  await fs.writeFile(zipPath, buf);
+  return buf.length;
+}
+
+export async function build(configPath = path.join(__dirname, 'mirror-config.json'), opts = {}) {
+  const config = await readConfig(configPath);
+  const outDir = path.resolve(path.dirname(configPath), config.outDir);
+  const zipPath = opts.zipPath ? path.resolve(opts.zipPath) : path.resolve(path.dirname(configPath), config.zipOut);
+  if (opts.gatewaysOverride) config.gateways = opts.gatewaysOverride;
+  if (opts.concurrencyOverride) config.concurrency = opts.concurrencyOverride;
+  await fs.mkdir(outDir, { recursive: true });
+  const manifest = await loadExistingManifest(outDir);
+
+  const items = Array.from(enumerate(config));
+  const log = opts.quiet ? () => {} : (msg) => process.stdout.write(msg);
+  log(`Enumerated ${items.length} candidate files across ${config.series.length} series.\n`);
+  if (manifest.missing.length) log(`Skipping ${manifest.missing.length} previously-missing entries.\n`);
+
+  let lastLine = 0;
+  const { errors } = await runPool(items, config, outDir, manifest, (done, total) => {
+    if (opts.quiet) return;
+    const now = Date.now();
+    if (now - lastLine > 500 || done === total) {
+      lastLine = now;
+      process.stdout.write(`\r  ${done}/${total} processed`);
+    }
+  });
+  log('\n');
+
+  manifest.generatedAt = new Date().toISOString();
+  manifest.seriesCount = config.series.length;
+  manifest.fileCount = Object.keys(manifest.files).length;
+  manifest.missingCount = manifest.missing.length;
+  await saveManifest(outDir, manifest);
+
+  if (opts.skipZip !== true) {
+    log(`Zipping ${manifest.fileCount} files → ${zipPath}\n`);
+    const zipBytes = await buildZip(outDir, zipPath);
+    log(`Wrote ZIP (${(zipBytes / 1024 / 1024).toFixed(1)} MB)\n`);
+  }
+
+  return { outDir, zipPath, manifest, errors };
+}
+
+// Entrypoint
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  const args = process.argv.slice(2);
+  const idx = args.indexOf('--config');
+  const configPath = idx >= 0 ? args[idx + 1] : path.join(__dirname, 'mirror-config.json');
+  const skipZip = args.includes('--no-zip');
+  build(configPath, { skipZip })
+    .then(({ manifest, errors }) => {
+      console.log(`Done. files=${manifest.fileCount} missing=${manifest.missingCount} errors=${errors.length}`);
+      if (errors.length) {
+        console.log('First 10 errors:');
+        for (const e of errors.slice(0, 10)) console.log('  ', e.item.relPath, e.status, e.httpStatus ?? '');
+        process.exitCode = 1;
+      }
+    })
+    .catch((err) => { console.error(err); process.exit(2); });
+}
