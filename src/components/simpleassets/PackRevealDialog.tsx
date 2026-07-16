@@ -93,15 +93,39 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
 
 const POLL_INTERVAL = 3000;
 
+/**
+ * Fetch ALL pendingnft.a rows for an owner, paginating through the table.
+ *
+ * Why pagination matters: WAX `get_table_rows` returns at most a few hundred
+ * rows per call in ascending primary-key order. Accounts that have opened a
+ * lot of packs — especially without clicking "Collect Assets" every time —
+ * can accumulate hundreds of stale `done=0` rows. Without pagination the
+ * newest mega-pack rows (highest ids) never appear in the response, so the
+ * reveal dialog polls forever and Collect Unclaimed can't see them either.
+ *
+ * We cap at MAX_PAGES to avoid runaway loops if the table is truly enormous;
+ * that still covers thousands of rows.
+ */
 export async function fetchPendingNfts(owner: string): Promise<PendingNftRow[]> {
+  const MAX_PAGES = 20;
+  const PAGE_SIZE = 500;
+  const all: PendingNftRow[] = [];
+  let lowerBound: string | undefined = undefined;
   try {
-    const result = await fetchTableRows<PendingNftRow>({
-      code: 'gpk.topps', scope: owner, table: 'pendingnft.a', limit: 500,
-    });
-    return result.rows;
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const result = await fetchTableRows<PendingNftRow>({
+        code: 'gpk.topps', scope: owner, table: 'pendingnft.a',
+        limit: PAGE_SIZE, lower_bound: lowerBound,
+      });
+      if (result.rows.length > 0) all.push(...result.rows);
+      if (!result.more || !result.next_key) break;
+      // next_key is the primary key of the next row to fetch
+      lowerBound = String(result.next_key);
+    }
+    return all;
   } catch (e) {
     console.error('[pack-reveal] fetchPendingNfts error', e);
-    return [];
+    return all;
   }
 }
 
