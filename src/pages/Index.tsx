@@ -1834,6 +1834,11 @@ export default function SimpleAssetsPage() {
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
         <div className="container flex h-12 items-center justify-between">
 
+          {/* Left: offline backup trigger */}
+          <div className="flex items-center gap-2">
+            <BackupPanel triggerClassName="text-cheese/80 hover:text-cheese text-sm inline-flex items-center gap-1.5 transition-colors" />
+          </div>
+
           {/* Right: Info button + view wallet (logged in only) + wallet controls */}
           <div className="flex items-center gap-2 ml-auto">
             <Button
