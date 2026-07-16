@@ -95,6 +95,9 @@ describe('remoteMirror', () => {
   });
 
   it('notifies subscribers when the active mirror changes', () => {
+    mockFetch({
+      '/gpk-manifest.json': { body: Buffer.from(JSON.stringify({ generatedAt: null, files: {}, missing: [] })) },
+    });
     const spy = vi.fn();
     const unsub = subscribeRemoteMirror(spy);
     setActiveMirror('primary');
