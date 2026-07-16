@@ -26,7 +26,7 @@ import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDe
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
-import { fetchPendingNfts } from '@/components/simpleassets/PackRevealDialog';
+import { fetchPendingNfts, fetchPendingNftsDetailed } from '@/components/simpleassets/PackRevealDialog';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
