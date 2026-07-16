@@ -8,6 +8,8 @@ import {
   setActiveMirror,
   subscribeRemoteMirror,
   MIRRORS,
+  getZipDownloadUrls,
+  getZipManifest,
 } from './remoteMirror';
 
 function sha256Raw(bytes: Uint8Array): ArrayBuffer {
