@@ -48,11 +48,18 @@ interface GpkPackCardProps {
 
 async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
   const ids = new Set<number>();
+  // Paginate: accounts with many stale pendingnft.a rows would otherwise
+  // truncate at 500 and cause the reveal poll to think old unboxings are new.
+  let lowerBound: string | undefined = undefined;
   try {
-    const result = await fetchTableRows<{ unboxingid: number }>({
-      code: 'gpk.topps', scope: owner, table: 'pendingnft.a', limit: 500,
-    });
-    for (const r of result.rows) ids.add(r.unboxingid);
+    for (let page = 0; page < 20; page++) {
+      const result = await fetchTableRows<{ id: number; unboxingid: number }>({
+        code: 'gpk.topps', scope: owner, table: 'pendingnft.a', limit: 500, lower_bound: lowerBound,
+      });
+      for (const r of result.rows) ids.add(r.unboxingid);
+      if (!result.more || !result.next_key) break;
+      lowerBound = String(result.next_key);
+    }
   } catch { /* ignore */ }
   return ids;
 }
