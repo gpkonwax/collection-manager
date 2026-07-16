@@ -338,7 +338,7 @@ export function useIpfsMedia(
     hasLoadedRef.current = true;
     setIsLoading(false);
     setFailed(false);
-    if (hash) {
+    if (hash && !src.startsWith('blob:')) {
       setCachedGateway(hash, gwIdx);
       setCachedLoadedUrl(hash, src);
     }
