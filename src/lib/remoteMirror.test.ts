@@ -12,7 +12,7 @@ import {
 
 function sha256Raw(bytes: Uint8Array): ArrayBuffer {
   const hash = createHash('sha256').update(bytes).digest();
-  return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength);
+  return hash.buffer.slice(hash.byteOffset, hash.byteOffset + hash.byteLength) as ArrayBuffer;
 }
 
 let blobCounter = 0;
