@@ -24,7 +24,7 @@ export const PUBLIC_IPFS_GATEWAYS = [
  * Backup mirrors A and B are intentionally empty until you create them on
  * Cloudflare Pages / GitLab Pages. Update the constants below, then redeploy.
  */
-export const PRIMARY_MIRROR = 'https://gpkonwaxbackup.github.io/gpk-backup/mirror/';
+export const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/mirror/';
 export const BACKUP_MIRROR_A = '';
 export const BACKUP_MIRROR_B = '';
 
