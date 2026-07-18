@@ -86,7 +86,7 @@ interface PinnedManifest {
 
 /** GitHub Releases URL — kept as a bonus fallback link. */
 export const ZIP_GITHUB_RELEASE_URL =
-  'https://github.com/gpkonwaxbackup/gpk-backup/releases/latest';
+  'https://github.com/bewbzz/gpkonwaxbackup/releases/latest';
 
 export interface ZipDownloadOption {
   key: MirrorKey | 'github';
