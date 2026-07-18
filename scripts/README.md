@@ -37,7 +37,7 @@ node scripts/verify-mirror.mjs
 Deploy the **same `mirror-output/` folder** to each of these — the app expects
 the ZIP at `<baseUrl>gpk-image-mirror.zip` on every one:
 
-1. **Primary (GitHub Pages):** push `mirror-output/` as `mirror/` in `gpkonwaxbackup/gpk-backup`; Pages source = `main`, folder = `/mirror`. Serves at `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`.
+1. **Primary (GitHub Pages):** push `mirror-output/` as `mirror/` in `bewbzz/gpkonwaxbackup`; Pages source = `main`, folder = `/mirror`. Serves at `https://bewbzz.github.io/gpkonwaxbackup/mirror/`.
 2. **Backup A (Cloudflare Pages):** create a Pages project, drop `mirror-output/` in as the build output, deploy.
 3. **Backup B (GitLab Pages):** same folder, `.gitlab-ci.yml` publishing `public/` = `mirror-output/`.
 
@@ -51,7 +51,7 @@ download source, but it is no longer the only place users can grab it.
 If the primary account or GitHub Pages disappears, any collaborator (or anyone
 holding the ZIP) can re-serve the same content elsewhere:
 
-1. Get the mirror: either clone `gpkonwaxbackup/gpk-backup` or unzip `gpk-image-mirror.zip`.
+1. Get the mirror: either clone `bewbzz/gpkonwaxbackup` or unzip `gpk-image-mirror.zip`.
 2. Verify it matches the canonical hashes: `node scripts/verify-mirror.mjs ./mirror`.
 3. Publish `mirror/` anywhere that serves static files: GitHub Pages fork, Cloudflare Pages, Netlify, an S3 bucket, an IPFS pin (e.g. web3.storage), or a home HTTP server. No build step needed.
 4. Share the base URL. Users paste it into the app's **Offline backup → Community mirror URL** field.
@@ -59,12 +59,12 @@ holding the ZIP) can re-serve the same content elsewhere:
 
 ## For the backup repo `README.md`
 
-Copy this into `gpkonwaxbackup/gpk-backup/README.md`:
+Copy this into `bewbzz/gpkonwaxbackup/README.md`:
 
 > # gpk-backup
 >
 > Frozen, verifiable mirror of every GPK card image hosted on IPFS. Served at
-> <https://gpkonwaxbackup.github.io/gpk-backup/mirror/> and packaged as a ZIP
+> <https://bewbzz.github.io/gpkonwaxbackup/mirror/> and packaged as a ZIP
 > in the latest [Release](../../releases/latest).
 >
 > Every file's sha256 is recorded in `mirror/manifest.json`. Verify a local copy

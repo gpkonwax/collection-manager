@@ -1,47 +1,94 @@
+# Deploy Primary Mirror (GitHub Pages) — updated for `bewbzz/gpkonwaxbackup`
 
-## Current behavior
+Repo is now: https://github.com/bewbzz/gpkonwaxbackup
+Live URL will be: `https://bewbzz.github.io/gpkonwaxbackup/mirror/`
 
-`Recover Stuck Cards` calls `fetchPendingNfts(owner)` in `src/components/simpleassets/PackRevealDialog.tsx` (lines 109-130). It paginates `gpk.topps / pendingnft.a` via `get_table_rows` in ascending PK order:
+The app currently hardcodes the **old** URL (`https://gpkonwaxbackup.github.io/gpk-backup/mirror/`) in two places:
+- `src/lib/ipfsGateways.ts` → `PRIMARY_MIRROR`
+- `src/lib/remoteMirror.ts` → `ZIP_GITHUB_RELEASE_URL`
 
-- `PAGE_SIZE = 500`
-- `MAX_PAGES = 20`
-- Hard ceiling: **10,000 rows** per scan
-- On network error mid-loop it silently returns whatever it already collected
-- No signal to the caller (or user) when the cap is hit — `recheckUnclaimed` and `reconstructLatestPackOpen` just see a truncated list
+I'll update both to the new owner/repo as part of this plan.
 
-So it can handle a few thousand rows, but an account with heavy stale `done=0` buildup past 10k rows will have the newest unboxings hidden (same class of bug the pagination originally fixed, just at a higher threshold). Because rows are fetched ascending by PK, the *newest* pack is the one that gets cut off — exactly the one users want to recover.
+---
 
-## Goal
+## Phase 0 — Code update (I do this in build mode)
 
-Make Recover Stuck Cards reliably find stuck cards for accounts with many thousands of pendingnft rows, and be transparent when a scan is incomplete.
+1. `PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/mirror/'`
+2. `ZIP_GITHUB_RELEASE_URL = 'https://github.com/bewbzz/gpkonwaxbackup/releases/latest'`
+3. Update the same URLs in `scripts/README.md` for consistency.
 
-## Plan
+No behavior changes — just the strings.
 
-1. **Raise + guard the scan ceiling** in `fetchPendingNfts`
-   - Bump `MAX_PAGES` to `200` (100k row ceiling) — still bounded to prevent runaway loops.
-   - Keep `PAGE_SIZE = 500` (WAX RPC sweet spot; larger pages frequently time out).
-   - Add a per-page retry (1 retry with a short backoff) so a single flaky RPC call doesn't silently truncate the result.
+## Phase 1 — Confirm the repo is ready (you, browser)
 
-2. **Return truncation metadata instead of a bare array**
-   - Change the return shape to `{ rows, truncated, pagesFetched, lastError }`.
-   - Update the three callers in `src/pages/Index.tsx` (`recheckUnclaimed`, `reconstructLatestPackOpen`, the pack-open follow-up at line 627) and the one in `PackRevealDialog.tsx` (line 191) to read `.rows`.
-   - Keep a thin backward-compatible export if needed so `GpkPackCard.tsx` (which does its own paginated fetch) is untouched.
+1. Open https://github.com/bewbzz/gpkonwaxbackup
+2. Confirm it is **Public** (Settings → General → Danger Zone shows "Change visibility" — should say currently Public). Free GitHub Pages requires public.
+3. Leave it empty for now (no README needed — we'll push files in Phase 3).
 
-3. **Prefer newest rows first when scanning for "stuck"**
-   - Recover Stuck Cards only needs `done=0` rows to act, and users care about the most recent pack. Add an optional `descending` mode to `fetchPendingNfts` that walks the table via `upper_bound` / `reverse: true` so the newest pack is guaranteed to appear even if the account has >100k rows.
-   - `recheckUnclaimed` and `reconstructLatestPackOpen` switch to descending scan with an early-exit once we have enough rows to cover the latest `unboxingid` (all rows sharing the max `unboxingid`, plus any `done=0`).
+## Phase 2 — Build the mirror locally (~30–90 min, resumable)
 
-4. **Surface truncation to the user**
-   - When `truncated === true` after clicking Recover Stuck Cards, show a toast: "Scanned N rows — collection is very large. Retry if cards are still missing." No silent partial results.
+Runs on your computer, not in Lovable.
 
-5. **Verification**
-   - Unit-level: mock `fetchTableRows` returning `more:true` for >20 pages and confirm the loop now continues, exits at MAX_PAGES with `truncated:true`, and that a mid-loop rejection retries once.
-   - Manual: with an account known to have a large pendingnft table, confirm the button locates stuck cards from the most recent unboxing and the toast appears only when the cap is actually hit.
-   - No changes to on-chain calls, contracts, or claim logic — only the read/scan path.
+1. Get the app code locally: Lovable **Code editor → Download codebase**, unzip.
+2. In a terminal inside that folder:
+   ```
+   npm install
+   node scripts/build-image-mirror.mjs
+   ```
+3. If IPFS stalls, Ctrl+C and re-run — it resumes.
+4. Result:
+   ```
+   mirror-output/
+     <hash>/<variant>/<id><side>.<ext>   ← all images
+     manifest.json                        ← SHA-256 of every file
+     gpk-image-mirror.zip                 ← whole folder zipped
+   ```
+5. Verify:
+   ```
+   node scripts/verify-mirror.mjs
+   ```
+   Must report 0 missing / 0 corrupted.
 
-## Files touched
+## Phase 3 — Push `mirror-output/` to the repo as `/mirror`
 
-- `src/components/simpleassets/PackRevealDialog.tsx` — `fetchPendingNfts` signature + descending mode + retry
-- `src/pages/Index.tsx` — three call sites (`recheckUnclaimed`, `reconstructLatestPackOpen`, post-open follow-up), plus truncation toast in the Recover Stuck Cards handler
+We push only the built mirror — no app source code.
 
-No UI restyle, no business-logic changes to claiming, no changes to `GpkPackCard.tsx`'s own paginator.
+1. Fresh folder outside the app:
+   ```
+   mkdir ~/gpk-backup-repo && cd ~/gpk-backup-repo
+   git init
+   mkdir mirror
+   cp -r /path/to/app/mirror-output/* mirror/
+   ```
+   You should see `mirror/manifest.json`, `mirror/gpk-image-mirror.zip`, and all the hash folders.
+2. Push (use a fine-grained Personal Access Token as the password):
+   ```
+   git remote add origin https://github.com/bewbzz/gpkonwaxbackup.git
+   git branch -M main
+   git add .
+   git commit -m "Initial image mirror snapshot"
+   git push -u origin main
+   ```
+   Create the token at GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → **Repository access: only `bewbzz/gpkonwaxbackup`**, **Permissions → Contents: Read and write**.
+
+## Phase 4 — Enable GitHub Pages
+
+1. Repo → **Settings → Pages**.
+2. Source: **Deploy from a branch**. Branch: **main**. Folder: **/ (root)**. Save.
+3. Wait ~1 min. Page shows: *"Your site is live at https://bewbzz.github.io/gpkonwaxbackup/"*.
+4. Verify these three URLs load in a browser:
+   - `https://bewbzz.github.io/gpkonwaxbackup/mirror/manifest.json`
+   - `https://bewbzz.github.io/gpkonwaxbackup/mirror/gpk-image-mirror.zip`
+   - Any hash from the manifest, e.g. `https://bewbzz.github.io/gpkonwaxbackup/mirror/<hash>/base/1a.jpg`
+
+## Phase 5 — Optional: attach the ZIP to a GitHub Release
+
+Bonus fallback (the app already links to `/releases/latest`).
+1. Repo → **Releases → Draft a new release**. Tag: `v1.0.0`. Title: `Initial mirror snapshot`.
+2. Drag `mirror/gpk-image-mirror.zip` into the assets area. Publish.
+
+---
+
+## Done signal
+
+Reply **"primary mirror live"** once Phase 4's three URLs load. Then we move on to Backup A (Cloudflare Pages).
