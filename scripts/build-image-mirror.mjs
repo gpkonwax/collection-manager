@@ -89,9 +89,13 @@ async function loadExistingManifest(outDir) {
   const p = path.join(outDir, 'manifest.json');
   try {
     const raw = await fs.readFile(p, 'utf8');
-    return JSON.parse(raw);
+    const m = JSON.parse(raw);
+    if (!m.errorCounts) m.errorCounts = {};
+    if (!m.missing) m.missing = [];
+    if (!m.files) m.files = {};
+    return m;
   } catch {
-    return { generatedAt: null, files: {}, missing: [] };
+    return { generatedAt: null, files: {}, missing: [], errorCounts: {} };
   }
 }
 
@@ -100,7 +104,7 @@ async function saveManifest(outDir, manifest) {
   await fs.writeFile(p, JSON.stringify(manifest, null, 2));
 }
 
-async function processOne(item, config, outDir, manifest) {
+async function processOne(item, config, outDir, manifest, opts) {
   const absPath = path.join(outDir, item.relPath);
   // Skip if we already have this file with a valid hash on disk.
   const existing = manifest.files[item.relPath];
@@ -113,11 +117,29 @@ async function processOne(item, config, outDir, manifest) {
   // Skip if a prior run recorded this as definitively missing.
   if (manifest.missing.includes(item.relPath)) return { status: 'missing-cached' };
 
+  // Optional inter-request pacing (used by --retry-errors slow pass).
+  if (opts && opts.perRequestDelayMs) {
+    await new Promise((r) => setTimeout(r, opts.perRequestDelayMs));
+  }
+
   const res = await fetchWithGateways(item.ipfsPath, config.gateways, config.requestTimeoutMs);
   if (!res.ok) {
     if (res.status === 404) {
       manifest.missing.push(item.relPath);
+      delete manifest.errorCounts[item.relPath];
       return { status: 'missing' };
+    }
+    // Track transient/timeout failures. After maxErrorRetries attempts across
+    // runs where every gateway failed, treat the file as missing so we stop
+    // wasting time on it. (Non-existent CIDs often hang instead of 404ing.)
+    const prev = manifest.errorCounts[item.relPath] ?? 0;
+    const next = prev + 1;
+    manifest.errorCounts[item.relPath] = next;
+    const cap = config.maxErrorRetries ?? 2;
+    if (next >= cap) {
+      manifest.missing.push(item.relPath);
+      delete manifest.errorCounts[item.relPath];
+      return { status: 'missing-timeout' };
     }
     return { status: 'error', httpStatus: res.status };
   }
@@ -129,22 +151,24 @@ async function processOne(item, config, outDir, manifest) {
     gateway: res.gateway,
     fetchedAt: new Date().toISOString(),
   };
+  delete manifest.errorCounts[item.relPath];
   return { status: 'ok', bytes: res.bytes.length };
 }
 
-async function runPool(items, config, outDir, manifest, onProgress) {
+async function runPool(items, config, outDir, manifest, onProgress, opts = {}) {
   const queue = [...items];
   let inFlight = 0;
   let done = 0;
   const total = queue.length;
   const errors = [];
+  const concurrency = opts.concurrency ?? config.concurrency;
 
   return new Promise((resolve) => {
     const tick = () => {
-      while (inFlight < config.concurrency && queue.length > 0) {
+      while (inFlight < concurrency && queue.length > 0) {
         const item = queue.shift();
         inFlight += 1;
-        processOne(item, config, outDir, manifest)
+        processOne(item, config, outDir, manifest, opts)
           .then((r) => { if (r.status === 'error') errors.push({ item, ...r }); })
           .catch((err) => errors.push({ item, status: 'throw', message: String(err) }))
           .finally(() => {
