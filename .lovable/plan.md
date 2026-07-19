@@ -1,94 +1,73 @@
-# Deploy Primary Mirror (GitHub Pages) — updated for `bewbzz/gpkonwaxbackup`
+# Fix the mirror build errors, then continue with deployment
 
-Repo is now: https://github.com/bewbzz/gpkonwaxbackup
-Live URL will be: `https://bewbzz.github.io/gpkonwaxbackup/mirror/`
+Good news: the script worked — it saved 827 files, made a valid ZIP, and is fully resumable. The 6854 "errors" are almost all files that either don't exist on IPFS (not every card has a `golden` or `collector` variant) or timed out on slow gateways. `error 0` means "no HTTP response at all" (timeout / connection abort), not "file confirmed missing".
 
-The app currently hardcodes the **old** URL (`https://gpkonwaxbackup.github.io/gpk-backup/mirror/`) in two places:
-- `src/lib/ipfsGateways.ts` → `PRIMARY_MIRROR`
-- `src/lib/remoteMirror.ts` → `ZIP_GITHUB_RELEASE_URL`
-
-I'll update both to the new owner/repo as part of this plan.
+We just need to re-run with better settings so real files get retried and phantom files get correctly marked as missing.
 
 ---
 
-## Phase 0 — Code update (I do this in build mode)
+## Step 1 — Preserve this plan
 
-1. `PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/mirror/'`
-2. `ZIP_GITHUB_RELEASE_URL = 'https://github.com/bewbzz/gpkonwaxbackup/releases/latest'`
-3. Update the same URLs in `scripts/README.md` for consistency.
+I'll save the deployment walkthrough to `.lovable/plan-primary-mirror.md` so you can reopen it any time from the Code Editor after we're done fixing this. Nothing else changes.
 
-No behavior changes — just the strings.
+## Step 2 — Diagnose the errors (code side, no user action)
 
-## Phase 1 — Confirm the repo is ready (you, browser)
+Cause: `error 0` = fetch timed out or the gateway closed the connection before responding. This happens for two reasons:
 
-1. Open https://github.com/bewbzz/gpkonwaxbackup
-2. Confirm it is **Public** (Settings → General → Danger Zone shows "Change visibility" — should say currently Public). Free GitHub Pages requires public.
-3. Leave it empty for now (no README needed — we'll push files in Phase 3).
+1. **Files that don't exist** (e.g. card 1 has no `golden` variant). A well-behaved gateway returns 404, but Pinata / dweb.link often just **hang** on non-existent CIDs instead of 404ing. Our script only records "missing" on a real 404, so these get logged as errors.
+2. **Real files that got rate-limited** on the first pass. Public IPFS gateways throttle after a burst.
 
-## Phase 2 — Build the mirror locally (~30–90 min, resumable)
+## Step 3 — Improvements I'll make to the build script (build mode)
 
-Runs on your computer, not in Lovable.
+1. **Shorter per-gateway timeout, longer overall**: drop timeout from 30s → 12s per gateway, so a hang moves to the next gateway faster.
+2. **Treat "all gateways timed out" as missing after N retries**: add a `--retry-errors` pass. Files that fail with `status 0` on every gateway across two full passes get recorded in `manifest.missing` so the next run skips them.
+3. **Better gateway list**: reorder to put fastest/most reliable first (`ipfs.io`, `dweb.link`, `4everland.io`, `w3s.link`, then Pinata/Cloudflare as fallbacks). Add `https://w3s.link/ipfs/` and `https://4everland.io/ipfs/`.
+4. **Lower concurrency default**: 6 → 4, to reduce rate-limiting.
+5. **Clearer end-of-run summary**: show how many errors are "likely missing" (all gateways returned 0/404/timeout) vs "worth retrying" (mixed responses).
 
-1. Get the app code locally: Lovable **Code editor → Download codebase**, unzip.
-2. In a terminal inside that folder:
-   ```
-   npm install
-   node scripts/build-image-mirror.mjs
-   ```
-3. If IPFS stalls, Ctrl+C and re-run — it resumes.
-4. Result:
-   ```
-   mirror-output/
-     <hash>/<variant>/<id><side>.<ext>   ← all images
-     manifest.json                        ← SHA-256 of every file
-     gpk-image-mirror.zip                 ← whole folder zipped
-   ```
-5. Verify:
-   ```
-   node scripts/verify-mirror.mjs
-   ```
-   Must report 0 missing / 0 corrupted.
+## Step 4 — What you do after I ship the fix
 
-## Phase 3 — Push `mirror-output/` to the repo as `/mirror`
+Back in your terminal in `C:\Users\User\Desktop\gpk-app`, run **the same command again**:
 
-We push only the built mirror — no app source code.
+```
+node scripts/build-image-mirror.mjs
+```
 
-1. Fresh folder outside the app:
-   ```
-   mkdir ~/gpk-backup-repo && cd ~/gpk-backup-repo
-   git init
-   mkdir mirror
-   cp -r /path/to/app/mirror-output/* mirror/
-   ```
-   You should see `mirror/manifest.json`, `mirror/gpk-image-mirror.zip`, and all the hash folders.
-2. Push (use a fine-grained Personal Access Token as the password):
-   ```
-   git remote add origin https://github.com/bewbzz/gpkonwaxbackup.git
-   git branch -M main
-   git add .
-   git commit -m "Initial image mirror snapshot"
-   git push -u origin main
-   ```
-   Create the token at GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → **Repository access: only `bewbzz/gpkonwaxbackup`**, **Permissions → Contents: Read and write**.
+Because the script is resumable, it will:
+- Skip the 827 files already on disk.
+- Retry the 6854 errored entries with the new timeout / gateway list.
 
-## Phase 4 — Enable GitHub Pages
+Expect a similar runtime to the first pass. When it finishes you should see something like:
+```
+Done. files=~2500 missing=~5000 errors=<small number>
+```
+The `missing` number represents variants that don't exist for that card (this is expected and fine). What matters is that `errors` drops close to 0.
 
-1. Repo → **Settings → Pages**.
-2. Source: **Deploy from a branch**. Branch: **main**. Folder: **/ (root)**. Save.
-3. Wait ~1 min. Page shows: *"Your site is live at https://bewbzz.github.io/gpkonwaxbackup/"*.
-4. Verify these three URLs load in a browser:
-   - `https://bewbzz.github.io/gpkonwaxbackup/mirror/manifest.json`
-   - `https://bewbzz.github.io/gpkonwaxbackup/mirror/gpk-image-mirror.zip`
-   - Any hash from the manifest, e.g. `https://bewbzz.github.io/gpkonwaxbackup/mirror/<hash>/base/1a.jpg`
+If `errors` is still large, run it a third time with:
+```
+node scripts/build-image-mirror.mjs --retry-errors
+```
+This forces retry of anything previously logged as an error using a slower, more patient pass (2s between requests, single gateway at a time).
 
-## Phase 5 — Optional: attach the ZIP to a GitHub Release
+## Step 5 — Verify
 
-Bonus fallback (the app already links to `/releases/latest`).
-1. Repo → **Releases → Draft a new release**. Tag: `v1.0.0`. Title: `Initial mirror snapshot`.
-2. Drag `mirror/gpk-image-mirror.zip` into the assets area. Publish.
+```
+node scripts/verify-mirror.mjs
+```
+
+Should report `0 corrupted`. `missing` will be non-zero — that's expected (phantom variants). As long as no known-good file is missing, the mirror is complete.
+
+## Step 6 — Continue with the deployment plan
+
+Once the build is clean, reopen `.lovable/plan-primary-mirror.md` and resume from **Phase 7 — Create a fresh folder for the backup repo**. Everything from that point on is unchanged.
 
 ---
 
-## Done signal
+## Sanity check before we start
 
-Reply **"primary mirror live"** once Phase 4's three URLs load. Then we move on to Backup A (Cloudflare Pages).
+Two quick questions:
+
+1. Did the 827 files that **did** save look right? (Open `C:\Users\User\Desktop\gpk-app\scripts\mirror-output\<hash>\base\1a.jpg` — should be card #1 side A.)
+2. Is your internet stable / not on a VPN that might be rate-limiting IPFS gateways?
+
+If both are yes, approve this plan and I'll ship the script improvements.

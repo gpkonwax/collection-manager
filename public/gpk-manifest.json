@@ -1,70 +1,71 @@
 {
-  "generatedAt": "2026-07-16T03:09:26.712Z",
+  "generatedAt": "2026-07-19T05:51:38.306Z",
   "files": {
-    "QmAAA/base/1b.jpg": {
-      "sha256": "bf91d01295e4f77bc2bd6fe556b09e75ff48cb3ae7e8cab78732d3b5946f7d31",
-      "bytes": 7,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.703Z"
-    },
     "QmAAA/prism/1a.gif": {
       "sha256": "c833e475311ce1df032a781a974e2659e5626573b38ec39816a0db73d2669ba0",
       "bytes": 8,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.704Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.298Z"
+    },
+    "QmAAA/base/1b.jpg": {
+      "sha256": "bf91d01295e4f77bc2bd6fe556b09e75ff48cb3ae7e8cab78732d3b5946f7d31",
+      "bytes": 7,
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.298Z"
     },
     "QmAAA/base/1a.jpg": {
       "sha256": "32ae25ffb43a398de9c46b1d98ea8ff7e461b5e75c508e32db6aad1c324d3d59",
       "bytes": 7,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.704Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.299Z"
     },
     "QmAAA/prism/1b.gif": {
       "sha256": "81ec674616850f17da64482f50075363193709acbdd0dffd072292334db76764",
       "bytes": 8,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.706Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.301Z"
     },
     "QmAAA/back/1.jpg": {
       "sha256": "f1c1eaa3bdf08304683532050b574392556940bedd51b6530cd8ef8a59e6dede",
       "bytes": 6,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.707Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.302Z"
     },
     "QmAAA/base/2a.jpg": {
       "sha256": "5fd5828123d6df44e808b82326791550ab9959628609e1131e594704d762c105",
       "bytes": 7,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.708Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.303Z"
     },
     "QmAAA/prism/2a.gif": {
       "sha256": "a1aa582a192a8db28b1ed66f91a3ebc9247539ec0caaa0e8ea4c0585b870bc1a",
       "bytes": 8,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.709Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.304Z"
     },
     "QmAAA/base/2b.jpg": {
       "sha256": "4cadd2fb8705bf58dabe5727c82c5828ed5ad4b3367eb70a0fbf3a8eaa580996",
       "bytes": 7,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.710Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.305Z"
     },
     "QmAAA/prism/2b.gif": {
       "sha256": "a7d4422b465e8d92548542a00398d36e7262f7dc8b592c77e95ece218e89bb70",
       "bytes": 8,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.711Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.306Z"
     },
     "QmAAA/back/2.jpg": {
       "sha256": "0600156240d51c1f4feb04b0519a8e38bd55c9283ff48c588572d903146b137f",
       "bytes": 6,
-      "gateway": "http://127.0.0.1:29317/ipfs/",
-      "fetchedAt": "2026-07-16T03:09:26.712Z"
+      "gateway": "http://127.0.0.1:35016/ipfs/",
+      "fetchedAt": "2026-07-19T05:51:38.306Z"
     }
   },
   "missing": [
     "QmMISSING/base/1a.jpg"
   ],
+  "errorCounts": {},
   "seriesCount": 2,
   "fileCount": 10,
   "missingCount": 1

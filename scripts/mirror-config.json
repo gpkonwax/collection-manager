@@ -3,13 +3,16 @@
   "description": "Enumeration of every image the mirror should hold. Frozen — the GPK collection does not evolve.",
   "outDir": "./mirror-output",
   "zipOut": "./gpk-image-mirror.zip",
-  "concurrency": 6,
-  "requestTimeoutMs": 30000,
+  "concurrency": 4,
+  "requestTimeoutMs": 12000,
+  "maxErrorRetries": 2,
   "gateways": [
-    "https://gateway.pinata.cloud/ipfs/",
-    "https://dweb.link/ipfs/",
-    "https://nftstorage.link/ipfs/",
     "https://ipfs.io/ipfs/",
+    "https://dweb.link/ipfs/",
+    "https://w3s.link/ipfs/",
+    "https://4everland.io/ipfs/",
+    "https://nftstorage.link/ipfs/",
+    "https://gateway.pinata.cloud/ipfs/",
     "https://cloudflare-ipfs.com/ipfs/"
   ],
   "series": [

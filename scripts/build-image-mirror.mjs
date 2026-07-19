@@ -89,9 +89,13 @@ async function loadExistingManifest(outDir) {
   const p = path.join(outDir, 'manifest.json');
   try {
     const raw = await fs.readFile(p, 'utf8');
-    return JSON.parse(raw);
+    const m = JSON.parse(raw);
+    if (!m.errorCounts) m.errorCounts = {};
+    if (!m.missing) m.missing = [];
+    if (!m.files) m.files = {};
+    return m;
   } catch {
-    return { generatedAt: null, files: {}, missing: [] };
+    return { generatedAt: null, files: {}, missing: [], errorCounts: {} };
   }
 }
 
@@ -100,7 +104,7 @@ async function saveManifest(outDir, manifest) {
   await fs.writeFile(p, JSON.stringify(manifest, null, 2));
 }
 
-async function processOne(item, config, outDir, manifest) {
+async function processOne(item, config, outDir, manifest, opts) {
   const absPath = path.join(outDir, item.relPath);
   // Skip if we already have this file with a valid hash on disk.
   const existing = manifest.files[item.relPath];
@@ -113,11 +117,29 @@ async function processOne(item, config, outDir, manifest) {
   // Skip if a prior run recorded this as definitively missing.
   if (manifest.missing.includes(item.relPath)) return { status: 'missing-cached' };
 
+  // Optional inter-request pacing (used by --retry-errors slow pass).
+  if (opts && opts.perRequestDelayMs) {
+    await new Promise((r) => setTimeout(r, opts.perRequestDelayMs));
+  }
+
   const res = await fetchWithGateways(item.ipfsPath, config.gateways, config.requestTimeoutMs);
   if (!res.ok) {
     if (res.status === 404) {
       manifest.missing.push(item.relPath);
+      delete manifest.errorCounts[item.relPath];
       return { status: 'missing' };
+    }
+    // Track transient/timeout failures. After maxErrorRetries attempts across
+    // runs where every gateway failed, treat the file as missing so we stop
+    // wasting time on it. (Non-existent CIDs often hang instead of 404ing.)
+    const prev = manifest.errorCounts[item.relPath] ?? 0;
+    const next = prev + 1;
+    manifest.errorCounts[item.relPath] = next;
+    const cap = config.maxErrorRetries ?? 2;
+    if (next >= cap) {
+      manifest.missing.push(item.relPath);
+      delete manifest.errorCounts[item.relPath];
+      return { status: 'missing-timeout' };
     }
     return { status: 'error', httpStatus: res.status };
   }
@@ -129,22 +151,24 @@ async function processOne(item, config, outDir, manifest) {
     gateway: res.gateway,
     fetchedAt: new Date().toISOString(),
   };
+  delete manifest.errorCounts[item.relPath];
   return { status: 'ok', bytes: res.bytes.length };
 }
 
-async function runPool(items, config, outDir, manifest, onProgress) {
+async function runPool(items, config, outDir, manifest, onProgress, opts = {}) {
   const queue = [...items];
   let inFlight = 0;
   let done = 0;
   const total = queue.length;
   const errors = [];
+  const concurrency = opts.concurrency ?? config.concurrency;
 
   return new Promise((resolve) => {
     const tick = () => {
-      while (inFlight < config.concurrency && queue.length > 0) {
+      while (inFlight < concurrency && queue.length > 0) {
         const item = queue.shift();
         inFlight += 1;
-        processOne(item, config, outDir, manifest)
+        processOne(item, config, outDir, manifest, opts)
           .then((r) => { if (r.status === 'error') errors.push({ item, ...r }); })
           .catch((err) => errors.push({ item, status: 'throw', message: String(err) }))
           .finally(() => {
@@ -201,8 +225,24 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
     : path.join(outDir, ZIP_FILE_NAME);
   if (opts.gatewaysOverride) config.gateways = opts.gatewaysOverride;
   if (opts.concurrencyOverride) config.concurrency = opts.concurrencyOverride;
+  if (opts.timeoutOverride) config.requestTimeoutMs = opts.timeoutOverride;
   await fs.mkdir(outDir, { recursive: true });
   const manifest = await loadExistingManifest(outDir);
+
+  // --retry-errors: clear cached "missing-timeout" entries so they get one
+  // more chance under a slower, single-connection pass. Real 404s stay marked
+  // missing because the errorCounts map never held them.
+  if (opts.retryErrors) {
+    const retryable = new Set(Object.keys(manifest.errorCounts || {}));
+    // Also retry entries that got promoted from timeouts into `missing` on the
+    // previous run (they have no file on disk and no 404 confirmation).
+    manifest.missing = manifest.missing.filter((rel) => {
+      // Keep it as missing unless the caller explicitly wants a full retry.
+      if (opts.retryAllMissing) return false;
+      return !retryable.has(rel);
+    });
+    manifest.errorCounts = {};
+  }
 
   const items = Array.from(enumerate(config));
   const log = opts.quiet ? () => {} : (msg) => process.stdout.write(msg);
@@ -210,6 +250,9 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
   if (manifest.missing.length) log(`Skipping ${manifest.missing.length} previously-missing entries.\n`);
 
   let lastLine = 0;
+  const poolOpts = opts.retryErrors
+    ? { concurrency: 1, perRequestDelayMs: 2000 }
+    : {};
   const { errors } = await runPool(items, config, outDir, manifest, (done, total) => {
     if (opts.quiet) return;
     const now = Date.now();
@@ -217,7 +260,7 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
       lastLine = now;
       process.stdout.write(`\r  ${done}/${total} processed`);
     }
-  });
+  }, poolOpts);
   log('\n');
 
   manifest.generatedAt = new Date().toISOString();
@@ -251,13 +294,24 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const idx = args.indexOf('--config');
   const configPath = idx >= 0 ? args[idx + 1] : path.join(__dirname, 'mirror-config.json');
   const skipZip = args.includes('--no-zip');
-  build(configPath, { skipZip })
+  const retryErrors = args.includes('--retry-errors');
+  const retryAllMissing = args.includes('--retry-all-missing');
+  build(configPath, { skipZip, retryErrors, retryAllMissing })
     .then(({ manifest, errors }) => {
-      console.log(`Done. files=${manifest.fileCount} missing=${manifest.missingCount} errors=${errors.length}`);
+      const pendingRetry = Object.keys(manifest.errorCounts || {}).length;
+      console.log(
+        `Done. files=${manifest.fileCount} missing=${manifest.missingCount} ` +
+        `pending-retry=${pendingRetry} errors-this-run=${errors.length}`,
+      );
+      if (pendingRetry > 0) {
+        console.log(
+          `\n${pendingRetry} file(s) failed on this run but will be retried on the next run.\n` +
+          `If they keep failing, run:  node scripts/build-image-mirror.mjs --retry-errors`,
+        );
+      }
       if (errors.length) {
-        console.log('First 10 errors:');
+        console.log('First 10 errors this run:');
         for (const e of errors.slice(0, 10)) console.log('  ', e.item.relPath, e.status, e.httpStatus ?? '');
-        process.exitCode = 1;
       }
     })
     .catch((err) => { console.error(err); process.exit(2); });
