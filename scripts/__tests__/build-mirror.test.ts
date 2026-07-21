@@ -17,6 +17,7 @@ const sha256 = (buf: Buffer | Uint8Array) => createHash('sha256').update(buf).di
 // A tiny fixture "series" with 2 card IDs × 2 sides × 2 variants + 2 backs = 10 files.
 const HASH_A = 'QmAAA';
 const HASH_MISSING = 'QmMISSING';
+const HASH_TIMEOUT = 'QmTIMEOUT';
 
 interface MockContent { [ipfsPath: string]: Uint8Array | 'missing' }
 
@@ -150,6 +151,28 @@ describe('build-image-mirror', () => {
     const res = await build(cfg, { quiet: true });
     const stat = await fs.stat(res.zipPath);
     expect(stat.size).toBeGreaterThan(0);
+  });
+
+  it('finalizes unresolved gateway failures as missing during --retry-errors', async () => {
+    const cfg = await writeConfig('timeout-test', {
+      maxErrorRetries: 99,
+      series: [
+        {
+          id: 'timeout',
+          hash: HASH_TIMEOUT,
+          cardIdRange: [1, 1],
+          sides: ['a'],
+          variants: [{ name: 'base', ext: 'jpg' }],
+          includeBacks: false,
+        },
+      ],
+    });
+
+    const res = await build(cfg, { quiet: true, skipZip: true, retryErrors: true });
+
+    expect(res.errors).toEqual([]);
+    expect(res.manifest.missing).toEqual([`${HASH_TIMEOUT}/base/1a.jpg`]);
+    expect(res.manifest.errorCounts).toEqual({});
   });
 });
 
