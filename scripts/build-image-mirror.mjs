@@ -129,9 +129,18 @@ async function processOne(item, config, outDir, manifest, opts) {
       delete manifest.errorCounts[item.relPath];
       return { status: 'missing' };
     }
-    // Track transient/timeout failures. After maxErrorRetries attempts across
-    // runs where every gateway failed, treat the file as missing so we stop
-    // wasting time on it. (Non-existent CIDs often hang instead of 404ing.)
+    // Track transient/timeout failures. During the explicit --retry-errors slow
+    // pass, treat any file that still fails on every gateway as missing so the
+    // build can finish instead of looping forever on likely-nonexistent CIDs.
+    if (opts?.finalizeTimeoutFailures) {
+      manifest.missing.push(item.relPath);
+      delete manifest.errorCounts[item.relPath];
+      return { status: 'missing-timeout' };
+    }
+
+    // After maxErrorRetries normal attempts across runs where every gateway
+    // failed, treat the file as missing so we stop wasting time on it.
+    // (Non-existent CIDs often hang instead of 404ing.)
     const prev = manifest.errorCounts[item.relPath] ?? 0;
     const next = prev + 1;
     manifest.errorCounts[item.relPath] = next;
@@ -251,7 +260,7 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
 
   let lastLine = 0;
   const poolOpts = opts.retryErrors
-    ? { concurrency: 1, perRequestDelayMs: 2000 }
+    ? { concurrency: 1, perRequestDelayMs: 2000, finalizeTimeoutFailures: true }
     : {};
   const { errors } = await runPool(items, config, outDir, manifest, (done, total) => {
     if (opts.quiet) return;
@@ -303,10 +312,22 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
         `Done. files=${manifest.fileCount} missing=${manifest.missingCount} ` +
         `pending-retry=${pendingRetry} errors-this-run=${errors.length}`,
       );
-      if (pendingRetry > 0) {
+      if (pendingRetry > 0 && !retryErrors) {
         console.log(
           `\n${pendingRetry} file(s) failed on this run but will be retried on the next run.\n` +
           `If they keep failing, run:  node scripts/build-image-mirror.mjs --retry-errors`,
+        );
+      }
+      if (retryErrors) {
+        console.log(
+          '\nSlow retry pass finished. Any files that still timed out on every gateway were marked missing.\n' +
+          'Next run:  node scripts/verify-mirror.mjs scripts/mirror-output',
+        );
+      }
+      if (pendingRetry > 0 && retryErrors) {
+        console.log(
+          `\nWarning: ${pendingRetry} file(s) are still pending retry. ` +
+          'Run the retry command again only if verify-mirror reports missing/corrupt files.',
         );
       }
       if (errors.length) {
