@@ -478,3 +478,26 @@ function RecommendedZipCard({
     </section>
   );
 }
+
+function OfflineAppCard() {
+  return (
+    <section className="rounded-lg border border-border p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <HardDrive className="w-4 h-4 text-cheese" />
+        <p className="font-medium">Run the manager itself offline</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Download the manager as a ZIP. Unzip it, open <span className="font-mono">open-me.html</span>{' '}
+        (or run the tiny local server it explains), then load the image backup ZIP below.
+        Everything image-driven keeps working even if this site, GitHub, and every mirror
+        disappear. Wallet and live NFT features need internet and won't work offline.
+      </p>
+      <Button asChild size="sm" variant="outline" className="w-full h-8">
+        <a href={OFFLINE_APP_RELEASE_ASSET_URL} target="_blank" rel="noopener noreferrer">
+          <Download className="w-3.5 h-3.5 mr-2" />
+          Download the offline app
+        </a>
+      </Button>
+    </section>
+  );
+}
