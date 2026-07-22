@@ -64,11 +64,13 @@ interface Props {
 }
 
 const STEP_BADGES: Record<MirrorStatus, { label: string; className: string }> = {
-  idle: { label: 'Ready', className: 'bg-muted text-muted-foreground' },
+  idle: { label: 'Ready', className: 'bg-emerald-500/20 text-emerald-400' },
   checking: { label: 'Checking…', className: 'bg-blue-500/20 text-blue-400' },
   ok: { label: 'Working', className: 'bg-emerald-500/20 text-emerald-400' },
   failed: { label: 'Failed', className: 'bg-destructive/20 text-destructive' },
 };
+
+const NOT_CONFIGURED_CLASS = 'bg-muted text-muted-foreground';
 
 export function BackupPanel({ triggerClassName }: Props) {
   const status = useSyncExternalStore(
@@ -223,9 +225,10 @@ export function BackupPanel({ triggerClassName }: Props) {
                       : s === 'checking'
                         ? 'Checking…'
                         : 'Ready';
+                const className = !configured ? NOT_CONFIGURED_CLASS : badge.className;
                 return (
                   <span
-                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
+                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}
                   >
                     {s === 'checking' && <Loader2 className="w-3 h-3 animate-spin" />}
                     {s === 'ok' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
@@ -285,7 +288,7 @@ export function BackupPanel({ triggerClassName }: Props) {
                           </span>
                         )}
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${configured ? className : NOT_CONFIGURED_CLASS}`}>
                         {configured ? label : 'Not configured'}
                       </span>
                     </div>
