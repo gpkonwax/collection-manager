@@ -1,42 +1,49 @@
-## What is happening
+# Plan: Zero-effort manifest sync + ZIP button fix
 
-The repeated `error 0` lines are almost certainly timeout/abort failures from IPFS gateways, not normal file corruption. The examples are all rare Series 1 variants like `collector` and `golden`, which likely do not exist for many card numbers.
+You don't touch a file. Everything happens automatically when the app builds.
 
-The current script records those timeout files as retryable first, so even after `--retry-errors` you can still see thousands of errors instead of getting a clean final `missing` list.
+## What I'll change
 
-## Plan
+### 1. Auto-fetch the real manifest at build time
+Add a small prebuild script `scripts/sync-pinned-manifest.mjs` that runs **before every `vite build`**:
 
-1. **Update the mirror build script retry behavior**
-   - Make `node scripts/build-image-mirror.mjs --retry-errors` act as the final slow pass.
-   - If a file still fails on every gateway during that slow pass, mark it as `missing-timeout` instead of leaving it as a retryable error.
-   - This prevents the same thousands of likely-nonexistent files from looping forever.
+- Fetches `https://bewbzz.github.io/gpkonwaxbackup/mirror/manifest.json` (your live primary mirror).
+- Writes it to `public/gpk-manifest.json`, overwriting the test stub.
+- If the fetch fails (network hiccup, mirror briefly down), it keeps whatever `public/gpk-manifest.json` already exists and logs a warning — the build never breaks.
 
-2. **Keep real successful files safe**
-   - The script will still skip files already downloaded and hash-verified in `scripts/mirror-output/`.
-   - It will not delete existing downloaded images.
-   - It will only change how unresolved timeout files are classified after the deliberate slow retry pass.
+Wire it into `package.json`:
+```json
+"scripts": {
+  "prebuild": "node scripts/sync-pinned-manifest.mjs",
+  "build": "vite build"
+}
+```
 
-3. **Make the terminal message clearer**
-   - Update the final output so it explains:
-     - normal run = retry later if there are pending timeout errors
-     - `--retry-errors` run = remaining timeout files were treated as missing
-   - This should make it obvious when you are allowed to move on.
+Result: every time Lovable (or GitHub Pages, or you locally) builds the app, it pulls the freshest real manifest straight from your live mirror. No copy-paste, no re-upload, no maintenance.
 
-4. **Your next local steps after the fix**
-   - Re-download the updated code from Lovable.
-   - Copy your existing `scripts/mirror-output/` folder into the newly downloaded app folder if needed.
-   - Run:
-     ```bash
-     node scripts/build-image-mirror.mjs --retry-errors
-     ```
-   - Then run:
-     ```bash
-     node scripts/verify-mirror.mjs scripts/mirror-output
-     ```
-   - If it says `OK`, you can resume the saved GitHub Pages deployment plan.
+### 2. Fix the primary "Download ZIP" button
+In `src/lib/remoteMirror.ts`, change `getZipDownloadUrls()` so the **primary GitHub mirror** entry points to the GitHub Release download URL instead of `${PRIMARY_MIRROR}gpk-image-mirror.zip` (which 404s because `.gitignore` excluded the ZIP from the Pages repo).
 
-## Success criteria
+Specifically:
+- Primary mirror → `https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip` (direct download, no clicks).
+- Future GitLab/Cloudflare mirrors → keep using `${baseUrl}gpk-image-mirror.zip` (those platforms accept large files, so the ZIP sits next to the images).
+- The "GitHub Release" bonus link stays as-is.
 
-- The retry command no longer leaves thousands of `pending-retry` files.
-- `manifest.json` has the successfully downloaded images plus a `missing` list for unresolved/nonexistent variants.
-- `verify-mirror.mjs` reports no missing or corrupted downloaded files.
+### 3. Update the test
+`src/lib/remoteMirror.test.ts` covers `getZipDownloadUrls`; adjust the expected URL for the primary entry.
+
+## What you do
+Nothing. After I apply the changes, Lovable rebuilds automatically. Open the Offline Backup dialog and you should see:
+- Real ZIP size + SHA-256 from your actual mirror.
+- A working "Download from GitHub Pages" button (goes to the Release asset).
+- Primary mirror shows **Reachable** (green) because manifest verification now uses real hashes.
+
+## Publishing
+Not needed for this to work in preview. Publish whenever you want the fixes to reach visitors.
+
+## Risks / notes
+- The prebuild fetch adds ~1–2 seconds to each build. Acceptable.
+- If your GitHub mirror is ever offline at build time, the previously synced `public/gpk-manifest.json` is reused — safe fallback.
+- The manifest is a few MB. It's a normal static asset served by the app; no bundling penalty.
+
+Say the word and I'll switch to build mode and apply it.
