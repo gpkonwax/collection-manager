@@ -189,9 +189,6 @@ export function BackupPanel({ triggerClassName }: Props) {
         </DialogHeader>
 
         <div className="space-y-5 text-sm">
-          {/* Run the manager itself offline (hidden inside the offline bundle build) */}
-          {!isOfflineBundle() && <OfflineAppCard />}
-
           {/* Recommended: proactive ZIP download */}
           <RecommendedZipCard
             protectedOnDevice={status.fileCount > 0 && (status.persisted || persist)}
@@ -199,6 +196,8 @@ export function BackupPanel({ triggerClassName }: Props) {
             totalBytes={status.totalBytes}
             zipInfo={zipInfo}
           />
+
+          <hr className="border-border" />
 
           {/* Step 1: built-in primary mirror */}
           <section className="space-y-2 rounded-lg border border-cheese/20 bg-cheese/5 p-3">
@@ -242,7 +241,6 @@ export function BackupPanel({ triggerClassName }: Props) {
               {MIRRORS[0].url || 'Not configured'}
             </div>
           </section>
-
 
           {/* Step 2: backup mirrors */}
           <section className="space-y-3 rounded-lg border border-border p-3">
@@ -363,6 +361,11 @@ export function BackupPanel({ triggerClassName }: Props) {
               <Switch id="persist-mirror" checked={persist} onCheckedChange={onPersistChange} />
             </div>
           </section>
+
+          <hr className="border-border" />
+
+          {/* Run the manager itself offline (hidden inside the offline bundle build) */}
+          {!isOfflineBundle() && <OfflineAppCard />}
         </div>
       </DialogContent>
     </Dialog>
