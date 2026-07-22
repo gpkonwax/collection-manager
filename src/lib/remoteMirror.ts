@@ -146,7 +146,7 @@ export function loadPinnedManifest(): Promise<PinnedManifest | null> {
   if (manifestPromise) return manifestPromise;
   manifestPromise = (async () => {
     try {
-      const res = await fetch('/gpk-manifest.json', { cache: 'no-store' });
+      const res = await fetch(`${import.meta.env.BASE_URL}gpk-manifest.json`, { cache: 'no-store' });
       if (!res.ok) {
         console.warn('[remoteMirror] pinned manifest fetch failed', res.status);
         return null;
