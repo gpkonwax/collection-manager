@@ -392,8 +392,9 @@ function RecommendedZipCard({
   const approxSize = zipInfo?.bytes ? formatBytes(zipInfo.bytes) : null;
   const shortHash = zipInfo?.sha256 ? `${zipInfo.sha256.slice(0, 12)}…` : null;
 
-  const primaryOption = options[0];
-  const alternates = options.slice(1);
+  const primaryOption = options.find((o) => o.key === 'primary');
+  const backupAlternates = options.filter((o) => o.key === 'backupA' || o.key === 'backupB');
+  const hasBackupAlternates = backupAlternates.length > 0;
 
   return (
     <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-3">
@@ -412,24 +413,20 @@ function RecommendedZipCard({
         <Button asChild size="lg" className="w-full h-11 text-base">
           <a href={primaryOption.url} target="_blank" rel="noopener noreferrer">
             <Download className="w-4 h-4 mr-2" />
-            Download backup ZIP{approxSize ? ` (${approxSize})` : ''}
+            Download from GitHub Release{approxSize ? ` (${approxSize})` : ''}
           </a>
         </Button>
       )}
 
-      {alternates.length > 0 && (
+      {hasBackupAlternates && (
         <div className="space-y-1.5">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            If the button above doesn't work, try another source (same file):
+            If GitHub is down, try another source (same file):
           </p>
           <div className="flex flex-wrap gap-2">
-            {alternates.map((opt) => {
+            {backupAlternates.map((opt) => {
               const mirror = MIRRORS.find((m) => m.key === opt.key);
               const provider = mirror ? getMirrorProviderName(mirror.url) : null;
-              const buttonLabel =
-                opt.key === 'github'
-                  ? 'GitHub Releases page'
-                  : `From ${provider?.name ?? opt.label}`;
               return (
                 <Button
                   key={opt.key}
@@ -440,7 +437,7 @@ function RecommendedZipCard({
                 >
                   <a href={opt.url} target="_blank" rel="noopener noreferrer">
                     <Download className="w-3 h-3 mr-1.5" />
-                    {buttonLabel}
+                    From {provider?.name ?? opt.label}
                   </a>
                 </Button>
               );
@@ -448,6 +445,23 @@ function RecommendedZipCard({
           </div>
         </div>
       )}
+
+      {!hasBackupAlternates && (
+        <p className="text-[10px] text-muted-foreground">
+          Backup A and Backup B download links will appear here once those mirrors are online.
+        </p>
+      )}
+
+      <p className="text-[10px] text-muted-foreground">
+        <a
+          href={ZIP_GITHUB_RELEASE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-cheese"
+        >
+          Can't download directly? Open the release page
+        </a>
+      </p>
 
       {shortHash && (
         <p className="text-[10px] text-muted-foreground font-mono break-all" title={zipInfo?.sha256 ?? ''}>
