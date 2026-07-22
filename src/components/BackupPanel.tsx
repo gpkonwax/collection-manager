@@ -33,6 +33,7 @@ import {
 import {
   MIRRORS,
   type MirrorKey,
+  OFFLINE_APP_RELEASE_ASSET_URL,
   ZIP_GITHUB_RELEASE_URL,
   checkMirrorHealth,
   getMirrorDisplayLabel,
@@ -47,6 +48,7 @@ import {
   type MirrorStatus,
   type ZipManifestInfo,
 } from '@/lib/remoteMirror';
+import { isOfflineBundle } from '@/lib/offlineBundle';
 
 function formatBytes(n: number): string {
   if (!n) return '0 B';
@@ -81,7 +83,9 @@ export function BackupPanel({ triggerClassName }: Props) {
     getRemoteMirrorState,
   );
 
-  const [open, setOpen] = useState(false);
+  // Auto-open the panel on first launch of the offline bundle so users see
+  // the "Load backup ZIP" step immediately — the viewer is empty without it.
+  const [open, setOpen] = useState(() => isOfflineBundle() && getLocalMirrorStatus().fileCount === 0);
   const [busy, setBusy] = useState(false);
   const [persist, setPersistState] = useState(false);
   const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
