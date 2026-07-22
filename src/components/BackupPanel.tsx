@@ -225,9 +225,10 @@ export function BackupPanel({ triggerClassName }: Props) {
                       : s === 'checking'
                         ? 'Checking…'
                         : 'Ready';
+                const className = !configured ? NOT_CONFIGURED_CLASS : badge.className;
                 return (
                   <span
-                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
+                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}
                   >
                     {s === 'checking' && <Loader2 className="w-3 h-3 animate-spin" />}
                     {s === 'ok' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
