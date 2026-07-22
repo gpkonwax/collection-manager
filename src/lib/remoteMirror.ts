@@ -96,6 +96,14 @@ export const ZIP_GITHUB_RELEASE_URL =
 export const ZIP_GITHUB_RELEASE_ASSET_URL =
   'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip';
 
+/**
+ * Direct-download URL for the offline app bundle (built + zipped viewer).
+ * Users unzip and open `open-me.html` to run the manager locally without
+ * relying on any hosted URL.
+ */
+export const OFFLINE_APP_RELEASE_ASSET_URL =
+  'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-collection-manager-offline.zip';
+
 export interface ZipDownloadOption {
   key: MirrorKey | 'github';
   label: string;

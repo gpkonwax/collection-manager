@@ -33,6 +33,7 @@ import {
 import {
   MIRRORS,
   type MirrorKey,
+  OFFLINE_APP_RELEASE_ASSET_URL,
   ZIP_GITHUB_RELEASE_URL,
   checkMirrorHealth,
   getMirrorDisplayLabel,
@@ -47,6 +48,7 @@ import {
   type MirrorStatus,
   type ZipManifestInfo,
 } from '@/lib/remoteMirror';
+import { isOfflineBundle } from '@/lib/offlineBundle';
 
 function formatBytes(n: number): string {
   if (!n) return '0 B';
@@ -81,7 +83,9 @@ export function BackupPanel({ triggerClassName }: Props) {
     getRemoteMirrorState,
   );
 
-  const [open, setOpen] = useState(false);
+  // Auto-open the panel on first launch of the offline bundle so users see
+  // the "Load backup ZIP" step immediately — the viewer is empty without it.
+  const [open, setOpen] = useState(() => isOfflineBundle() && getLocalMirrorStatus().fileCount === 0);
   const [busy, setBusy] = useState(false);
   const [persist, setPersistState] = useState(false);
   const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
@@ -185,6 +189,9 @@ export function BackupPanel({ triggerClassName }: Props) {
         </DialogHeader>
 
         <div className="space-y-5 text-sm">
+          {/* Run the manager itself offline (hidden inside the offline bundle build) */}
+          {!isOfflineBundle() && <OfflineAppCard />}
+
           {/* Recommended: proactive ZIP download */}
           <RecommendedZipCard
             protectedOnDevice={status.fileCount > 0 && (status.persisted || persist)}
@@ -468,6 +475,29 @@ function RecommendedZipCard({
           Verified SHA-256: {shortHash}
         </p>
       )}
+    </section>
+  );
+}
+
+function OfflineAppCard() {
+  return (
+    <section className="rounded-lg border border-border p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <HardDrive className="w-4 h-4 text-cheese" />
+        <p className="font-medium">Run the manager itself offline</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Download the manager as a ZIP. Unzip it, open <span className="font-mono">open-me.html</span>{' '}
+        (or run the tiny local server it explains), then load the image backup ZIP below.
+        Everything image-driven keeps working even if this site, GitHub, and every mirror
+        disappear. Wallet and live NFT features need internet and won't work offline.
+      </p>
+      <Button asChild size="sm" variant="outline" className="w-full h-8">
+        <a href={OFFLINE_APP_RELEASE_ASSET_URL} target="_blank" rel="noopener noreferrer">
+          <Download className="w-3.5 h-3.5 mr-2" />
+          Download the offline app
+        </a>
+      </Button>
     </section>
   );
 }
