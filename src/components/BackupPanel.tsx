@@ -391,41 +391,66 @@ function RecommendedZipCard({
   const approxSize = zipInfo?.bytes ? formatBytes(zipInfo.bytes) : null;
   const shortHash = zipInfo?.sha256 ? `${zipInfo.sha256.slice(0, 12)}…` : null;
 
+  const primaryOption = options[0];
+  const alternates = options.slice(1);
+
   return (
-    <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-2">
+    <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-3">
       <div className="flex items-center gap-2">
         <Download className="w-4 h-4 text-cheese" />
         <p className="font-medium text-cheese">Recommended: keep a copy on your device</p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Grab the offline backup ZIP{approxSize ? ` (~${approxSize})` : ''} now while
-        everything's working — it's your safety net if all mirrors ever go down. Every
-        mirror below serves the same ZIP; the hash is checked against the pinned manifest.
+        Save the offline backup ZIP{approxSize ? ` (~${approxSize})` : ''} now while
+        everything's working. If every mirror ever goes down, you can load this file
+        back into the app (Step 3 below) and every image still works.
       </p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt) => {
-          const mirror = MIRRORS.find((m) => m.key === opt.key);
-          const provider = mirror ? getMirrorProviderName(mirror.url) : null;
-          const buttonLabel = provider ? provider.name : opt.label;
-          return (
-            <Button
-              key={opt.key}
-              asChild
-              size="sm"
-              variant={opt.key === 'primary' ? 'default' : 'outline'}
-              className="h-8"
-            >
-              <a href={opt.url} target="_blank" rel="noopener noreferrer">
-                <Download className="w-3.5 h-3.5 mr-1.5" />
-                {buttonLabel}
-              </a>
-            </Button>
-          );
-        })}
-      </div>
+
+      {/* One big obvious button */}
+      {primaryOption && (
+        <Button asChild size="lg" className="w-full h-11 text-base">
+          <a href={primaryOption.url} target="_blank" rel="noopener noreferrer">
+            <Download className="w-4 h-4 mr-2" />
+            Download backup ZIP{approxSize ? ` (${approxSize})` : ''}
+          </a>
+        </Button>
+      )}
+
+      {alternates.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            If the button above doesn't work, try another source (same file):
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {alternates.map((opt) => {
+              const mirror = MIRRORS.find((m) => m.key === opt.key);
+              const provider = mirror ? getMirrorProviderName(mirror.url) : null;
+              const buttonLabel =
+                opt.key === 'github'
+                  ? 'GitHub Releases page'
+                  : `From ${provider?.name ?? opt.label}`;
+              return (
+                <Button
+                  key={opt.key}
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                >
+                  <a href={opt.url} target="_blank" rel="noopener noreferrer">
+                    <Download className="w-3 h-3 mr-1.5" />
+                    {buttonLabel}
+                  </a>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {shortHash && (
         <p className="text-[10px] text-muted-foreground font-mono break-all" title={zipInfo?.sha256 ?? ''}>
-          SHA-256: {shortHash}
+          Verified SHA-256: {shortHash}
         </p>
       )}
     </section>
