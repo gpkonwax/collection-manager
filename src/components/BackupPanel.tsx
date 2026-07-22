@@ -64,7 +64,7 @@ interface Props {
 }
 
 const STEP_BADGES: Record<MirrorStatus, { label: string; className: string }> = {
-  idle: { label: 'Ready', className: 'bg-muted text-muted-foreground' },
+  idle: { label: 'Ready', className: 'bg-emerald-500/20 text-emerald-400' },
   checking: { label: 'Checking…', className: 'bg-blue-500/20 text-blue-400' },
   ok: { label: 'Working', className: 'bg-emerald-500/20 text-emerald-400' },
   failed: { label: 'Failed', className: 'bg-destructive/20 text-destructive' },
