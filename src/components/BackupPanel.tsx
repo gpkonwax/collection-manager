@@ -33,6 +33,7 @@ import {
 import {
   MIRRORS,
   type MirrorKey,
+  ZIP_GITHUB_RELEASE_URL,
   checkMirrorHealth,
   getMirrorDisplayLabel,
   getMirrorProviderName,

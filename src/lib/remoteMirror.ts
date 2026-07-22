@@ -120,7 +120,6 @@ export function getZipDownloadUrls(): ZipDownloadOption[] {
         : `${m.url}gpk-image-mirror.zip`;
     options.push({ key: m.key, label: m.label, url });
   }
-  options.push({ key: 'github', label: 'GitHub Release', url: ZIP_GITHUB_RELEASE_URL });
   return options;
 }
 
