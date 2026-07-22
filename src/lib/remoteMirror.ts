@@ -317,6 +317,14 @@ async function verifyMirror(key: MirrorKey) {
   }
 }
 
+/**
+ * Public entry point — check a mirror's health without making it active.
+ * Safe to call repeatedly; results are surfaced via subscribeRemoteMirror.
+ */
+export function checkMirrorHealth(key: MirrorKey): void {
+  void verifyMirror(key);
+}
+
 export function setActiveMirror(key: MirrorKey | null): void {
   if (state.active === key) return;
   state = { ...state, active: key };

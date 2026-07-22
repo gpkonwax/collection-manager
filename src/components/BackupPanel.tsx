@@ -33,6 +33,7 @@ import {
 import {
   MIRRORS,
   type MirrorKey,
+  checkMirrorHealth,
   getMirrorDisplayLabel,
   getMirrorProviderName,
   getRemoteMirrorState,
@@ -89,6 +90,9 @@ export function BackupPanel({ triggerClassName }: Props) {
     if (!open) return;
     setPersistState(getPersistPreference());
     getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
+    // Health-check the built-in primary mirror every time the panel opens so
+    // users get an obvious green/red indicator without having to click anything.
+    checkMirrorHealth('primary');
   }, [open]);
 
   const onPickFile = () => inputRef.current?.click();
@@ -190,11 +194,37 @@ export function BackupPanel({ triggerClassName }: Props) {
 
           {/* Step 1: built-in primary mirror */}
           <section className="space-y-2 rounded-lg border border-cheese/20 bg-cheese/5 p-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold">
-                1
-              </span>
-              <p className="font-medium">Built-in primary mirror</p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold flex-shrink-0">
+                  1
+                </span>
+                <p className="font-medium truncate">Built-in primary mirror</p>
+              </div>
+              {(() => {
+                const s = remoteState.statuses.primary;
+                const configured = isMirrorConfigured('primary');
+                const badge = STEP_BADGES[s];
+                const label = !configured
+                  ? 'Not configured'
+                  : s === 'ok'
+                    ? 'Reachable'
+                    : s === 'failed'
+                      ? 'Unreachable'
+                      : s === 'checking'
+                        ? 'Checking…'
+                        : 'Ready';
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
+                  >
+                    {s === 'checking' && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {s === 'ok' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                    {s === 'failed' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
+                    {label}
+                  </span>
+                );
+              })()}
             </div>
             <p className="text-muted-foreground text-xs">
               Used automatically when public IPFS gateways fail. No action needed.
@@ -204,6 +234,7 @@ export function BackupPanel({ triggerClassName }: Props) {
               {MIRRORS[0].url || 'Not configured'}
             </div>
           </section>
+
 
           {/* Step 2: backup mirrors */}
           <section className="space-y-3 rounded-lg border border-border p-3">
