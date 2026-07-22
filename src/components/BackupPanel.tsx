@@ -189,6 +189,9 @@ export function BackupPanel({ triggerClassName }: Props) {
         </DialogHeader>
 
         <div className="space-y-5 text-sm">
+          {/* Run the manager itself offline (hidden inside the offline bundle build) */}
+          {!isOfflineBundle() && <OfflineAppCard />}
+
           {/* Recommended: proactive ZIP download */}
           <RecommendedZipCard
             protectedOnDevice={status.fileCount > 0 && (status.persisted || persist)}
