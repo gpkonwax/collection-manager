@@ -288,7 +288,7 @@ export function BackupPanel({ triggerClassName }: Props) {
                           </span>
                         )}
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${configured ? className : NOT_CONFIGURED_CLASS}`}>
                         {configured ? label : 'Not configured'}
                       </span>
                     </div>
