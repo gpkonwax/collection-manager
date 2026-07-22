@@ -128,12 +128,13 @@ describe('remoteMirror', () => {
 
   it('exposes ZIP download URLs for every configured mirror', () => {
     const options = getZipDownloadUrls();
-    // Only the primary mirror is configured in this test environment.
-    expect(options.length).toBe(1);
-    const primary = options[0];
-    expect(primary.key).toBe('primary');
-    // Primary points at the GitHub Release asset because the ZIP is excluded
-    // from the GitHub Pages repo (>100 MB).
+    // Primary (GitHub Release asset) is always present. Backup A (Cloudflare)
+    // is intentionally excluded even when configured — its 25 MB per-file cap
+    // means the ZIP isn't uploaded there.
+    const keys = options.map((o) => o.key);
+    expect(keys).toContain('primary');
+    expect(keys).not.toContain('backupA');
+    const primary = options.find((o) => o.key === 'primary')!;
     expect(primary.url).toBe(
       'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip'
     );
