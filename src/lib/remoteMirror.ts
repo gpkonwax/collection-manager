@@ -122,6 +122,9 @@ export function getZipDownloadUrls(): ZipDownloadOption[] {
   const options: ZipDownloadOption[] = [];
   for (const m of MIRRORS) {
     if (!m.url || !/^https:\/\//i.test(m.url)) continue;
+    // Backup A (Cloudflare Pages) has a 25 MB per-file cap on the free tier,
+    // so the ZIP is deliberately not uploaded there — it stays image-only.
+    if (m.key === 'backupA') continue;
     const url =
       m.key === 'primary'
         ? ZIP_GITHUB_RELEASE_ASSET_URL

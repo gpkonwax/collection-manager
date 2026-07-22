@@ -25,7 +25,7 @@ export const PUBLIC_IPFS_GATEWAYS = [
  * Cloudflare Pages / GitLab Pages. Update the constants below, then redeploy.
  */
 export const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/mirror/';
-export const BACKUP_MIRROR_A = '';
+export const BACKUP_MIRROR_A = 'https://gpkonwaxbackup.pages.dev/';
 export const BACKUP_MIRROR_B = '';
 
 export const TRUSTED_MIRRORS = [PRIMARY_MIRROR].filter(Boolean);
