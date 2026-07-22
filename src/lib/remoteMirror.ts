@@ -84,9 +84,17 @@ interface PinnedManifest {
   zipSha256?: string;
 }
 
-/** GitHub Releases URL — kept as a bonus fallback link. */
+/** GitHub Releases landing page — bonus fallback link. */
 export const ZIP_GITHUB_RELEASE_URL =
   'https://github.com/bewbzz/gpkonwaxbackup/releases/latest';
+
+/**
+ * Direct-download URL for the ZIP asset attached to the latest GitHub Release.
+ * Used for the primary mirror because the ZIP is excluded from the GitHub
+ * Pages repo (100 MB per-file limit); it lives on Releases instead.
+ */
+export const ZIP_GITHUB_RELEASE_ASSET_URL =
+  'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip';
 
 export interface ZipDownloadOption {
   key: MirrorKey | 'github';
@@ -95,15 +103,22 @@ export interface ZipDownloadOption {
 }
 
 /**
- * Direct download URLs for the offline ZIP, in priority order. Every
- * configured mirror hosts `gpk-image-mirror.zip` at its base URL; the
- * GitHub Releases link is appended as a bonus fallback.
+ * Direct download URLs for the offline ZIP, in priority order.
+ *
+ * - Primary (GitHub Pages) → GitHub Release asset (Pages repo can't hold >100 MB files).
+ * - Other mirrors (GitLab / Cloudflare) → `${baseUrl}gpk-image-mirror.zip`
+ *   because those platforms accept large files alongside the images.
+ * - GitHub Release landing page is appended as a bonus fallback.
  */
 export function getZipDownloadUrls(): ZipDownloadOption[] {
   const options: ZipDownloadOption[] = [];
   for (const m of MIRRORS) {
     if (!m.url || !/^https:\/\//i.test(m.url)) continue;
-    options.push({ key: m.key, label: m.label, url: `${m.url}gpk-image-mirror.zip` });
+    const url =
+      m.key === 'primary'
+        ? ZIP_GITHUB_RELEASE_ASSET_URL
+        : `${m.url}gpk-image-mirror.zip`;
+    options.push({ key: m.key, label: m.label, url });
   }
   options.push({ key: 'github', label: 'GitHub Release', url: ZIP_GITHUB_RELEASE_URL });
   return options;

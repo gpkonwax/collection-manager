@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/sync-pinned-manifest.mjs",
     "build": "vite build",
+    "prebuild:dev": "node scripts/sync-pinned-manifest.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

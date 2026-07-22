@@ -131,7 +131,11 @@ describe('remoteMirror', () => {
     expect(options.length).toBeGreaterThanOrEqual(2);
     const primary = options[0];
     expect(primary.key).toBe('primary');
-    expect(primary.url).toBe(`${MIRRORS[0].url}gpk-image-mirror.zip`);
+    // Primary points at the GitHub Release asset because the ZIP is excluded
+    // from the GitHub Pages repo (>100 MB).
+    expect(primary.url).toBe(
+      'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip'
+    );
     expect(options[options.length - 1].key).toBe('github');
   });
 
