@@ -188,16 +188,18 @@ export function BackupPanel({ triggerClassName }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-5 text-sm">
-          {/* Recommended: proactive ZIP download */}
+        {/* Recommended: proactive ZIP download — pinned in the fixed header */}
+        <div className="px-6 pt-4 text-sm">
           <RecommendedZipCard
             protectedOnDevice={status.fileCount > 0 && (status.persisted || persist)}
             fileCount={status.fileCount}
             totalBytes={status.totalBytes}
             zipInfo={zipInfo}
           />
+        </div>
 
-          <hr className="border-border" />
+        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-5 space-y-5 text-sm">
+
 
           {/* Step 1: built-in primary mirror */}
           <section className="space-y-2 rounded-lg border border-cheese/20 bg-cheese/5 p-3">
