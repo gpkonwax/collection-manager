@@ -126,9 +126,10 @@ describe('remoteMirror', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(2); // manifest + one file fetch
   });
 
-  it('exposes ZIP download URLs for every configured mirror + GitHub Release', () => {
+  it('exposes ZIP download URLs for every configured mirror', () => {
     const options = getZipDownloadUrls();
-    expect(options.length).toBeGreaterThanOrEqual(2);
+    // Only the primary mirror is configured in this test environment.
+    expect(options.length).toBe(1);
     const primary = options[0];
     expect(primary.key).toBe('primary');
     // Primary points at the GitHub Release asset because the ZIP is excluded
@@ -136,7 +137,6 @@ describe('remoteMirror', () => {
     expect(primary.url).toBe(
       'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip'
     );
-    expect(options[options.length - 1].key).toBe('github');
   });
 
   it('reads pinned zipSha256 / zipBytes from the manifest', async () => {
