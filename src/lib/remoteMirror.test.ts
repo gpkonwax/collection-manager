@@ -191,6 +191,30 @@ describe('remoteMirror', () => {
     );
   });
 
+  it('normalizes stale single ZIP metadata to the real split release parts', async () => {
+    const manifest = {
+      generatedAt: null,
+      files: {},
+      missing: [],
+      zipSha256: 'a'.repeat(64),
+      zipBytes: 1349536047,
+      zipFileName: 'gpk-image-mirror.zip',
+    };
+    mockFetch({
+      '/gpk-manifest.json': { body: Buffer.from(JSON.stringify(manifest)) },
+    });
+
+    const info = await getZipManifest();
+    expect(info.sha256).toBeNull();
+    expect(info.bytes).toBe(4260168540);
+    expect(info.fileName).toBeNull();
+    expect(info.parts.map((part) => part.fileName)).toEqual([
+      'gpk-image-mirror-part-001.zip',
+      'gpk-image-mirror-part-002.zip',
+      'gpk-image-mirror-part-003.zip',
+    ]);
+  });
+
   it('reads pinned zipSha256 / zipBytes from the manifest', async () => {
     const manifest = {
       generatedAt: null,
@@ -198,9 +222,9 @@ describe('remoteMirror', () => {
       missing: [],
       zipSha256: 'a'.repeat(64),
       zipBytes: 12345,
-      zipFileName: 'gpk-image-mirror.zip',
+      zipFileName: 'custom-single-mirror.zip',
       zipParts: [
-        { index: 1, fileName: 'gpk-image-mirror-part-001.zip', bytes: 12345, sha256: 'b'.repeat(64), fileCount: 5 },
+        { index: 1, fileName: 'custom-single-mirror.zip', bytes: 12345, sha256: 'b'.repeat(64), fileCount: 5 },
       ],
     };
     mockFetch({
@@ -209,9 +233,9 @@ describe('remoteMirror', () => {
     const info = await getZipManifest();
     expect(info.sha256).toBe('a'.repeat(64));
     expect(info.bytes).toBe(12345);
-    expect(info.fileName).toBe('gpk-image-mirror.zip');
+    expect(info.fileName).toBe('custom-single-mirror.zip');
     expect(info.parts).toHaveLength(1);
-    expect(info.parts[0].fileName).toBe('gpk-image-mirror-part-001.zip');
+    expect(info.parts[0].fileName).toBe('custom-single-mirror.zip');
   });
 
   it('returns null zip fields when the manifest is unavailable', async () => {
