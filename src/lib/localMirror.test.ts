@@ -79,7 +79,8 @@ describe('localMirror', () => {
   it('resolves atomic assets by bare CID even though the file has an extension', async () => {
     await ingestMirrorZip(makeFixtureZip());
 
-    const bare = resolveLocalMirror('QmAtomicBareCid');
+    const bare = resolveLocalMirror('QmT2injqNvKs9eBjf6chS6srTCGeoVoZFNmV1xSkqjy8yy');
+
     const folderPath = resolveLocalMirror('QmAtomicFolder/gold/card.gif');
 
     expect(bare).toMatch(/^blob:/);
