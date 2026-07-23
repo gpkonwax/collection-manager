@@ -6,7 +6,7 @@ import {
   getPersistPreference,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
-import { getZipDownloadUrls } from '@/lib/remoteMirror';
+import { getZipDownloadUrls, getZipManifest, type ZipManifestInfo } from '@/lib/remoteMirror';
 
 const DISMISS_KEY = 'gpk-backup-nudge-dismissed-v1';
 
@@ -30,9 +30,11 @@ export function BackupNudgeBanner() {
   );
 
   const [dismissed, setDismissed] = useState(true);
+  const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
 
   useEffect(() => {
     setDismissed(isDismissed());
+    getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
   }, []);
 
   const protectedOnDevice =
@@ -40,9 +42,10 @@ export function BackupNudgeBanner() {
 
   if (dismissed || protectedOnDevice) return null;
 
-  const zipOptions = getZipDownloadUrls();
+  const zipOptions = getZipDownloadUrls(zipInfo);
   const primary = zipOptions[0];
-  if (!primary) return null;
+  const firstPart = primary?.parts[0];
+  if (!primary || !firstPart) return null;
 
   const onDismiss = () => {
     markDismissed();
@@ -61,7 +64,7 @@ export function BackupNudgeBanner() {
         <ShieldCheck className="h-4 w-4 text-cheese flex-shrink-0" aria-hidden />
         <p className="text-cheese/90 flex-1 min-w-[16rem]">
           <span className="font-medium">Recommended:</span>{' '}
-          download the offline backup ZIP now while everything's working — it's
+          download the offline backup ZIP parts now while everything's working — it's
           your safety net if all mirrors ever go down.
         </p>
         <div className="flex items-center gap-1.5">
@@ -71,9 +74,9 @@ export function BackupNudgeBanner() {
             className="h-8"
             onClick={onDownload}
           >
-            <a href={primary.url} target="_blank" rel="noopener noreferrer">
+            <a href={firstPart.url} target="_blank" rel="noopener noreferrer">
               <Download className="h-3.5 w-3.5 mr-1.5" />
-              Download ZIP
+              Download ZIP{primary.parts.length > 1 ? ' part 1' : ''}
             </a>
           </Button>
           <Button

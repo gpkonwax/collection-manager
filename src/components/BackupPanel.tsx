@@ -105,15 +105,21 @@ export function BackupPanel({ triggerClassName }: Props) {
   const onPickFile = () => inputRef.current?.click();
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []).sort((a, b) => a.name.localeCompare(b.name));
     e.target.value = ''; // allow re-selecting the same file later
-    if (!file) return;
+    if (files.length === 0) return;
     setBusy(true);
     try {
-      const { added, bytes } = await ingestMirrorZip(file);
+      let added = 0;
+      let bytes = 0;
+      for (const file of files) {
+        const result = await ingestMirrorZip(file);
+        added += result.added;
+        bytes += result.bytes;
+      }
       toast({
         title: 'Backup loaded',
-        description: `${added.toLocaleString()} images (${formatBytes(bytes)}) available offline.`,
+        description: `${added.toLocaleString()} images (${formatBytes(bytes)}) loaded from ${files.length} ZIP ${files.length === 1 ? 'file' : 'parts'}.`,
       });
     } catch (err) {
       console.error('[BackupPanel] ingest failed', err);
@@ -346,15 +352,16 @@ export function BackupPanel({ triggerClassName }: Props) {
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={onPickFile} disabled={busy}>
                 {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                {busy ? 'Reading ZIP…' : 'Load backup ZIP'}
+                {busy ? 'Reading ZIP…' : 'Load ZIP part(s)'}
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Don't have a ZIP yet? Grab one from the "Recommended" card above.
+              If the backup is split into parts, select all part ZIP files at once.
             </p>
             <input
               ref={inputRef}
               type="file"
+              multiple
               accept=".zip,application/zip"
               className="hidden"
               onChange={onFileChange}
@@ -390,7 +397,7 @@ function RecommendedZipCard({
   totalBytes,
   zipInfo,
 }: RecommendedZipCardProps) {
-  const options = getZipDownloadUrls();
+  const options = getZipDownloadUrls(zipInfo);
 
   if (protectedOnDevice) {
     return (
@@ -405,7 +412,8 @@ function RecommendedZipCard({
   }
 
   const approxSize = zipInfo?.bytes ? formatBytes(zipInfo.bytes) : null;
-  const shortHash = zipInfo?.sha256 ? `${zipInfo.sha256.slice(0, 12)}…` : null;
+  const hasParts = (zipInfo?.parts.length ?? 0) > 1;
+  const shortHash = !hasParts && zipInfo?.sha256 ? `${zipInfo.sha256.slice(0, 12)}…` : null;
 
   const primaryOption = options.find((o) => o.key === 'primary');
   const backupAlternates = options.filter((o) => o.key === 'backupA' || o.key === 'backupB');
@@ -418,19 +426,36 @@ function RecommendedZipCard({
         <p className="font-medium text-cheese">Recommended: keep a copy on your device</p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Save the offline backup ZIP{approxSize ? ` (~${approxSize})` : ''} now while
-        everything's working. If every mirror ever goes down, you can load this file
+        Save the offline backup ZIP{hasParts ? ' parts' : ''}{approxSize ? ` (~${approxSize} total)` : ''} now while
+        everything's working. If every mirror ever goes down, you can load these files
         back into the app (Step 3 below) and every image still works.
       </p>
 
-      {/* One big obvious button */}
-      {primaryOption && (
+      {primaryOption && primaryOption.parts.length <= 1 && (
         <Button asChild size="lg" className="w-full h-11 text-base">
-          <a href={primaryOption.url} target="_blank" rel="noopener noreferrer">
+          <a href={primaryOption.url ?? primaryOption.parts[0]?.url} target="_blank" rel="noopener noreferrer">
             <Download className="w-4 h-4 mr-2" />
             Download from GitHub Release{approxSize ? ` (${approxSize})` : ''}
           </a>
         </Button>
+      )}
+
+      {primaryOption && primaryOption.parts.length > 1 && (
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Download every part from GitHub Release:
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {primaryOption.parts.map((part) => (
+              <Button key={part.fileName} asChild size="sm" className="w-full h-8 justify-start">
+                <a href={part.url} target="_blank" rel="noopener noreferrer">
+                  <Download className="w-3.5 h-3.5 mr-2" />
+                  Part {part.index}: {formatBytes(part.bytes)}
+                </a>
+              </Button>
+            ))}
+          </div>
+        </div>
       )}
 
       {hasBackupAlternates && (
@@ -450,7 +475,7 @@ function RecommendedZipCard({
                   variant="outline"
                   className="h-7 text-xs"
                 >
-                  <a href={opt.url} target="_blank" rel="noopener noreferrer">
+                  <a href={opt.url ?? ZIP_GITHUB_RELEASE_URL} target="_blank" rel="noopener noreferrer">
                     <Download className="w-3 h-3 mr-1.5" />
                     From {provider?.name ?? opt.label}
                   </a>
