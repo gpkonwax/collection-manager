@@ -96,6 +96,14 @@ export interface ZipManifestPart {
   fileCount?: number;
 }
 
+const RELEASE_ZIP_PARTS: ZipManifestPart[] = [
+  { index: 1, fileName: 'gpk-image-mirror-part-001.zip', bytes: 1885365317, sha256: '' },
+  { index: 2, fileName: 'gpk-image-mirror-part-002.zip', bytes: 1887321761, sha256: '' },
+  { index: 3, fileName: 'gpk-image-mirror-part-003.zip', bytes: 487481462, sha256: '' },
+];
+
+const RELEASE_ZIP_TOTAL_BYTES = RELEASE_ZIP_PARTS.reduce((sum, part) => sum + part.bytes, 0);
+
 
 /** GitHub Releases landing page — bonus fallback link. */
 export const ZIP_GITHUB_RELEASE_URL =
@@ -175,16 +183,40 @@ export interface ZipManifestInfo {
   parts: ZipManifestPart[];
 }
 
-/** Pinned ZIP hash + size for user-facing verification display. */
-export async function getZipManifest(): Promise<ZipManifestInfo> {
-  const manifest = await loadPinnedManifest();
-  const parts = Array.isArray(manifest?.zipParts) ? manifest.zipParts : [];
+function normalizeZipManifestInfo(manifest: PinnedManifest | null): ZipManifestInfo {
+  const manifestParts = Array.isArray(manifest?.zipParts) ? manifest.zipParts : [];
+  const hasSplitParts = manifestParts.length > 1;
+
+  if (hasSplitParts) {
+    return {
+      sha256: manifest?.zipSha256 ?? null,
+      bytes: manifest?.zipBytes ?? null,
+      fileName: manifest?.zipFileName ?? null,
+      parts: manifestParts,
+    };
+  }
+
+  if (manifest?.zipFileName === 'gpk-image-mirror.zip') {
+    return {
+      sha256: null,
+      bytes: RELEASE_ZIP_TOTAL_BYTES,
+      fileName: null,
+      parts: RELEASE_ZIP_PARTS,
+    };
+  }
+
   return {
     sha256: manifest?.zipSha256 ?? null,
     bytes: manifest?.zipBytes ?? null,
     fileName: manifest?.zipFileName ?? null,
-    parts,
+    parts: manifestParts,
   };
+}
+
+/** Pinned ZIP hash + size for user-facing verification display. */
+export async function getZipManifest(): Promise<ZipManifestInfo> {
+  const manifest = await loadPinnedManifest();
+  return normalizeZipManifestInfo(manifest);
 }
 
 
