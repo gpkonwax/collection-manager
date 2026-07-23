@@ -432,18 +432,19 @@ function RecommendedZipCard({
 
   const triggerBulkDownload = () => {
     if (!primaryOption || primaryOption.parts.length <= 1) return;
-    primaryOption.parts.forEach((part, i) => {
-      setTimeout(() => {
-        const a = document.createElement('a');
-        a.href = part.url;
-        a.download = part.fileName;
-        a.rel = 'noopener noreferrer';
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => a.remove(), 1000);
-      }, i * 400);
+    const anchors: HTMLAnchorElement[] = [];
+    primaryOption.parts.forEach((part) => {
+      const a = document.createElement('a');
+      a.href = part.url;
+      a.download = part.fileName;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      anchors.push(a);
+      a.click();
     });
+    window.setTimeout(() => anchors.forEach((a) => a.remove()), 1000);
   };
 
   return (
@@ -474,7 +475,7 @@ function RecommendedZipCard({
             Download all {primaryOption.parts.length} parts{primaryTotalLabel ? ` (~${primaryTotalLabel})` : ''}
           </Button>
           <p className="text-[10px] text-muted-foreground">
-            Your browser may ask permission to download multiple files — allow it. If it blocks the bulk download, use the per-part buttons below.
+            This opens one download tab per part. If your browser blocks multiple tabs, allow pop-ups for this site or use the per-part buttons below.
           </p>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground pt-1">
             Or download individually:
