@@ -16,8 +16,12 @@ const IDB_PERSIST_KEY = 'gpk-local-mirror-persist';
 // key = IPFS path (hash or hash/tail). value = { blob, url } (url is a blob: URL).
 type Entry = { blob: Blob; url: string };
 const store = new Map<string, Entry>();
+// Maps an IPFS lookup key to the actual stored path. Used for atomic assets
+// where the file lives under atomic/ and may have an extension added.
+const atomicIndex = new Map<string, string>();
 let bytesLoaded = 0;
 let loadedAt: number | null = null;
+
 
 const listeners = new Set<() => void>();
 export function subscribeLocalMirror(fn: () => void): () => void {
