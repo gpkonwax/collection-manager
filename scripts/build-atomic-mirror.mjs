@@ -316,11 +316,10 @@ async function buildAtomic(opts = {}) {
   const log = opts.quiet ? () => {} : (msg) => process.stdout.write(msg);
 
   if (opts.zipOnly) {
-    log('ZIP-only mode: skipping AtomicAssets discovery/download and rebuilding the archive from existing files.\n');
-    const result = await buildImageMirror(configPath, { skipZip: false, quiet: opts.quiet, zipOnly: true });
-    if ((result.manifest.zipBytes || 0) > 1500 * 1024 * 1024) {
-      const gb = result.manifest.zipBytes / 1024 / 1024 / 1024;
-      log(`\nReminder: ZIP is ${gb.toFixed(2)} GB — upload it via GitHub Release, do not git push it, and exclude it from Cloudflare.\n`);
+    log('ZIP-only mode: skipping AtomicAssets discovery/download and rebuilding uploadable ZIP parts from existing files.\n');
+    const result = await buildImageMirror(configPath, { skipZip: false, quiet: opts.quiet, zipOnly: true, splitZip: true });
+    if (result.manifest.zipParts?.length) {
+      log(`\nUpload these ${result.manifest.zipParts.length} ZIP parts to the GitHub Release; do not git push them, and exclude them from Cloudflare.\n`);
     }
     return { outDir, manifest: result.manifest, images: [], downloaded: 0, errors: result.errors || [] };
   }
@@ -381,11 +380,10 @@ async function buildAtomic(opts = {}) {
 
   // Rebuild the ZIP and copy the pinned manifest into the app so the new
   // atomic entries are immediately available to the frontend.
-  log('Rebuilding mirror ZIP and copying pinned manifest...\n');
-  const result = await buildImageMirror(configPath, { skipZip: false, quiet: opts.quiet, zipOnly: true });
-  if ((result.manifest.zipBytes || 0) > 1500 * 1024 * 1024) {
-    const gb = result.manifest.zipBytes / 1024 / 1024 / 1024;
-    log(`\nReminder: ZIP is ${gb.toFixed(2)} GB — upload it via GitHub Release, do not git push it, and exclude it from Cloudflare.\n`);
+  log('Rebuilding mirror ZIP parts and copying pinned manifest...\n');
+  const result = await buildImageMirror(configPath, { skipZip: false, quiet: opts.quiet, zipOnly: true, splitZip: true });
+  if (result.manifest.zipParts?.length) {
+    log(`\nUpload these ${result.manifest.zipParts.length} ZIP parts to the GitHub Release; do not git push them, and exclude them from Cloudflare.\n`);
   }
 
   return { outDir, manifest: result.manifest, images: allImages, downloaded: allImages.length, errors };
