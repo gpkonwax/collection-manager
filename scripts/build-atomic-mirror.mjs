@@ -218,8 +218,39 @@ async function processImage(item, config, outDir, manifest, opts) {
     return { status: 'dry-run' };
   }
 
+  // Optional inter-request pacing (used by --retry-errors slow pass).
+  if (opts && opts.perRequestDelayMs) {
+    await new Promise((r) => setTimeout(r, opts.perRequestDelayMs));
+  }
+
   const res = await fetchWithGateways(item.ipfsPath, config.gateways, config.requestTimeoutMs);
   if (!res.ok) {
+    if (res.status === 404) {
+      manifest.missing.push(item.ipfsPath);
+      delete (manifest.errorCounts || {})[item.ipfsPath];
+      return { status: 'missing' };
+    }
+
+    // During the explicit --retry-errors slow pass, treat any file that still
+    // fails on every gateway as missing so the build can finish.
+    if (opts?.finalizeTimeoutFailures) {
+      manifest.missing.push(item.ipfsPath);
+      delete (manifest.errorCounts || {})[item.ipfsPath];
+      return { status: 'missing-timeout' };
+    }
+
+    // Track transient/timeout failures. After maxErrorRetries normal attempts,
+    // treat the file as missing so we stop wasting time on likely-nonexistent CIDs.
+    if (!manifest.errorCounts) manifest.errorCounts = {};
+    const prev = manifest.errorCounts[item.ipfsPath] ?? 0;
+    const next = prev + 1;
+    manifest.errorCounts[item.ipfsPath] = next;
+    const cap = config.maxErrorRetries ?? 2;
+    if (next >= cap) {
+      manifest.missing.push(item.ipfsPath);
+      delete manifest.errorCounts[item.ipfsPath];
+      return { status: 'missing-timeout' };
+    }
     return { status: 'error', httpStatus: res.status };
   }
 
@@ -237,9 +268,11 @@ async function processImage(item, config, outDir, manifest, opts) {
     gateway: res.gateway,
     fetchedAt: new Date().toISOString(),
   };
+  delete (manifest.errorCounts || {})[item.ipfsPath];
 
   return { status: 'ok', bytes: res.bytes.length };
 }
+
 
 
 async function runPool(items, config, outDir, manifest, onProgress, opts = {}) {
