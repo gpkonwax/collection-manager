@@ -425,6 +425,26 @@ function RecommendedZipCard({
   const primaryOption = options.find((o) => o.key === 'primary');
   const backupAlternates = options.filter((o) => o.key === 'backupA' || o.key === 'backupB');
   const hasBackupAlternates = backupAlternates.length > 0;
+  const primaryPartsTotal = primaryOption
+    ? primaryOption.parts.reduce((sum, p) => sum + (p.bytes || 0), 0)
+    : 0;
+  const primaryTotalLabel = primaryPartsTotal > 0 ? formatBytes(primaryPartsTotal) : approxSize;
+
+  const triggerBulkDownload = () => {
+    if (!primaryOption || primaryOption.parts.length <= 1) return;
+    primaryOption.parts.forEach((part, i) => {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = part.url;
+        a.download = part.fileName;
+        a.rel = 'noopener noreferrer';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 1000);
+      }, i * 400);
+    });
+  };
 
   return (
     <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-3">
@@ -433,7 +453,7 @@ function RecommendedZipCard({
         <p className="font-medium text-cheese">Recommended: keep a copy on your device</p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Save the offline backup ZIP{hasParts ? ' parts' : ''}{approxSize ? ` (~${approxSize} total)` : ''} now while
+        Save the offline backup ZIP{hasParts ? ' parts' : ''}{primaryTotalLabel ? ` (~${primaryTotalLabel} total)` : ''} now while
         everything's working. If every mirror ever goes down, you can load these files
         back into the app (Step 3 below) and every image still works.
       </p>
@@ -449,13 +469,20 @@ function RecommendedZipCard({
 
       {primaryOption && primaryOption.parts.length > 1 && (
         <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            Download every part from GitHub Release:
+          <Button size="lg" className="w-full h-11 text-base" onClick={triggerBulkDownload}>
+            <Download className="w-4 h-4 mr-2" />
+            Download all {primaryOption.parts.length} parts{primaryTotalLabel ? ` (~${primaryTotalLabel})` : ''}
+          </Button>
+          <p className="text-[10px] text-muted-foreground">
+            Your browser may ask permission to download multiple files — allow it. If it blocks the bulk download, use the per-part buttons below.
+          </p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground pt-1">
+            Or download individually:
           </p>
           <div className="grid grid-cols-1 gap-2">
             {primaryOption.parts.map((part) => (
-              <Button key={part.fileName} asChild size="sm" className="w-full h-8 justify-start">
-                <a href={part.url} target="_blank" rel="noopener noreferrer">
+              <Button key={part.fileName} asChild size="sm" variant="outline" className="w-full h-8 justify-start">
+                <a href={part.url} target="_blank" rel="noopener noreferrer" download={part.fileName}>
                   <Download className="w-3.5 h-3.5 mr-2" />
                   Part {part.index}: {formatBytes(part.bytes)}
                 </a>

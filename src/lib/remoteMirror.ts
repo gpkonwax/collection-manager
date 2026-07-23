@@ -138,14 +138,25 @@ export interface ZipDownloadOption {
 export function getZipDownloadUrls(zipInfo?: ZipManifestInfo | null): ZipDownloadOption[] {
   if (!zipInfo) return [];
   const options: ZipDownloadOption[] = [];
-  const parts = zipInfo.parts.length > 0
+  const hasRealParts = zipInfo.parts.length > 0;
+  const hasSingleFile = !hasRealParts && !!zipInfo.fileName;
+  const parts = hasRealParts
     ? zipInfo.parts
-    : [{ index: 1, fileName: zipInfo.fileName, bytes: zipInfo.bytes ?? 0, sha256: zipInfo.sha256 ?? '' }];
+    : hasSingleFile
+      ? [{ index: 1, fileName: zipInfo.fileName as string, bytes: zipInfo.bytes ?? 0, sha256: zipInfo.sha256 ?? '' }]
+      : [];
   for (const m of MIRRORS) {
     if (!m.url || !/^https:\/\//i.test(m.url)) continue;
     // Backup A (Cloudflare Pages) has a 25 MB per-file cap on the free tier,
     // so the ZIP is deliberately not uploaded there — it stays image-only.
     if (m.key === 'backupA') continue;
+    if (parts.length === 0) {
+      // Manifest has no ZIP metadata — never fabricate a filename that might 404.
+      // Point users at the release landing page instead so they always land somewhere real.
+      if (m.key !== 'primary') continue;
+      options.push({ key: m.key, label: m.label, url: ZIP_GITHUB_RELEASE_URL, parts: [] });
+      continue;
+    }
     const optionParts = parts.map((part) => ({
       ...part,
       url: m.key === 'primary'
@@ -160,7 +171,7 @@ export function getZipDownloadUrls(zipInfo?: ZipManifestInfo | null): ZipDownloa
 export interface ZipManifestInfo {
   sha256: string | null;
   bytes: number | null;
-  fileName: string;
+  fileName: string | null;
   parts: ZipManifestPart[];
 }
 
@@ -171,7 +182,7 @@ export async function getZipManifest(): Promise<ZipManifestInfo> {
   return {
     sha256: manifest?.zipSha256 ?? null,
     bytes: manifest?.zipBytes ?? null,
-    fileName: manifest?.zipFileName ?? 'gpk-image-mirror.zip',
+    fileName: manifest?.zipFileName ?? null,
     parts,
   };
 }

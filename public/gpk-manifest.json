@@ -68,5 +68,29 @@
   "errorCounts": {},
   "seriesCount": 2,
   "fileCount": 10,
-  "missingCount": 1
+  "missingCount": 1,
+  "zipFileName": null,
+  "zipBytes": 4260168540,
+  "zipSha256": null,
+  "zipPartCount": 3,
+  "zipParts": [
+    {
+      "index": 1,
+      "fileName": "gpk-image-mirror-part-001.zip",
+      "bytes": 1885365317,
+      "sha256": ""
+    },
+    {
+      "index": 2,
+      "fileName": "gpk-image-mirror-part-002.zip",
+      "bytes": 1887321761,
+      "sha256": ""
+    },
+    {
+      "index": 3,
+      "fileName": "gpk-image-mirror-part-003.zip",
+      "bytes": 487481462,
+      "sha256": ""
+    }
+  ]
 }
