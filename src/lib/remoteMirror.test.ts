@@ -191,6 +191,30 @@ describe('remoteMirror', () => {
     );
   });
 
+  it('normalizes stale single ZIP metadata to the real split release parts', async () => {
+    const manifest = {
+      generatedAt: null,
+      files: {},
+      missing: [],
+      zipSha256: 'a'.repeat(64),
+      zipBytes: 1349536047,
+      zipFileName: 'gpk-image-mirror.zip',
+    };
+    mockFetch({
+      '/gpk-manifest.json': { body: Buffer.from(JSON.stringify(manifest)) },
+    });
+
+    const info = await getZipManifest();
+    expect(info.sha256).toBeNull();
+    expect(info.bytes).toBe(4260168540);
+    expect(info.fileName).toBeNull();
+    expect(info.parts.map((part) => part.fileName)).toEqual([
+      'gpk-image-mirror-part-001.zip',
+      'gpk-image-mirror-part-002.zip',
+      'gpk-image-mirror-part-003.zip',
+    ]);
+  });
+
   it('reads pinned zipSha256 / zipBytes from the manifest', async () => {
     const manifest = {
       generatedAt: null,
