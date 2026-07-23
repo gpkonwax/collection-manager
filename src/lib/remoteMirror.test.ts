@@ -222,9 +222,9 @@ describe('remoteMirror', () => {
       missing: [],
       zipSha256: 'a'.repeat(64),
       zipBytes: 12345,
-      zipFileName: 'gpk-image-mirror.zip',
+      zipFileName: 'custom-single-mirror.zip',
       zipParts: [
-        { index: 1, fileName: 'gpk-image-mirror-part-001.zip', bytes: 12345, sha256: 'b'.repeat(64), fileCount: 5 },
+        { index: 1, fileName: 'custom-single-mirror.zip', bytes: 12345, sha256: 'b'.repeat(64), fileCount: 5 },
       ],
     };
     mockFetch({
@@ -233,9 +233,9 @@ describe('remoteMirror', () => {
     const info = await getZipManifest();
     expect(info.sha256).toBe('a'.repeat(64));
     expect(info.bytes).toBe(12345);
-    expect(info.fileName).toBe('gpk-image-mirror.zip');
+    expect(info.fileName).toBe('custom-single-mirror.zip');
     expect(info.parts).toHaveLength(1);
-    expect(info.parts[0].fileName).toBe('gpk-image-mirror-part-001.zip');
+    expect(info.parts[0].fileName).toBe('custom-single-mirror.zip');
   });
 
   it('returns null zip fields when the manifest is unavailable', async () => {
