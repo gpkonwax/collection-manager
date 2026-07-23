@@ -2027,6 +2027,19 @@ export default function SimpleAssetsPage() {
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔒</span> No New Smart Contracts</h4>
                 <p className="text-foreground">This manager is a pure front-end client. It does <strong>not</strong> deploy or rely on any custom smart contracts — every action is built from the existing, audited <strong>simpleassets</strong> and <strong>atomicassets</strong> tables and actions on WAX.</p>
               </div>
+              <div className="rounded-lg border border-cheese/30 bg-cheese/5 p-3">
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🛡️</span> Built-in Resistance</h4>
+                <p className="text-foreground mb-2">The manager is designed to keep card images loading even when individual services go down. It stacks several independent fallback layers:</p>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li><strong>Public IPFS gateway rotation</strong> — multiple public gateways are raced in parallel; the fastest healthy one wins. Strict timeouts (cards ~6s, detail view ~3.5s, max 8s) prevent dead gateways from hanging the UI.</li>
+                  <li><strong>Primary mirror</strong> — a frozen snapshot of every card/pack/puzzle image is hosted on GitHub Pages. It mirrors IPFS paths exactly, so the same image URL resolves identically and is used automatically when public gateways fail.</li>
+                  <li><strong>Backup mirrors</strong> — Backup A is Cloudflare Pages; Backup B is a placeholder ready for a second provider. You can manually switch to a backup mirror from the Offline backup panel.</li>
+                  <li><strong>Hash verification</strong> — every mirrored file is recorded in a pinned manifest with its SHA-256 hash. The app verifies bytes before using them, so you don't have to trust the host — only the math.</li>
+                  <li><strong>Local ZIP / fully offline backup</strong> — download split ZIP parts from the GitHub Release and load them directly into the browser. Images are stored as blob URLs (with optional IndexedDB persistence) and work with no internet at all.</li>
+                  <li><strong>Live image-source indicator</strong> — the header pill shows which layer is currently healthy: IPFS → Primary mirror → Backup A → Local ZIP → None. Background canary checks run every 60 seconds and on tab focus.</li>
+                  <li><strong>Offline app bundle (coming soon)</strong> — the manager itself will be downloadable as a ZIP, runnable locally via <span className="font-mono">open-me.html</span>. Wallet/live features will still need internet, but image viewing and collection management will keep working without any hosted site or mirror.</li>
+                </ul>
+              </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
