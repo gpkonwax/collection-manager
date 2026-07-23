@@ -35,7 +35,8 @@ function makeFixtureZip() {
     // An entry under a "mirror/" prefix — must be normalised away
     'mirror/QmXXX/base/1a.jpg': strToU8('fake-jpg-bytes-3'),
     // Atomic asset: bare CID with extension added by the mirror builder
-    'atomic/QmAtomicBareCid.png': strToU8('fake-png-bytes-4'),
+    'atomic/QmT2injqNvKs9eBjf6chS6srTCGeoVoZFNmV1xSkqjy8yy.png': strToU8('fake-png-bytes-4'),
+
     // Atomic asset: CID/path preserved exactly
     'atomic/QmAtomicFolder/gold/card.gif': strToU8('fake-gif-bytes-5'),
     // A manifest that must be ignored for lookup
