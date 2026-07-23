@@ -1572,6 +1572,7 @@ export default function SimpleAssetsPage() {
 
   const renderClassicView = () => (
     <>
+      {renderSelectNote()}
       <div className="flex items-center gap-3 relative z-10 mb-4">
         <div className="flex items-center gap-3 flex-1">
           <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
@@ -1656,6 +1657,7 @@ export default function SimpleAssetsPage() {
     const cooldownActive = alertsCooldownRemaining > 0;
     return (
       <>
+        {renderSelectNote()}
         <div className="flex items-center gap-3 relative z-10 mb-4 flex-wrap">
           <div className="flex items-center gap-3 flex-1 min-w-[280px]">
             {binderGrid ? (
@@ -1760,6 +1762,7 @@ export default function SimpleAssetsPage() {
 
     return (
       <>
+        {renderSelectNote()}
         <div className="flex items-center gap-3 relative z-10 mb-4">
           <div className="flex items-center gap-3 flex-1">
             <p className="text-sm text-muted-foreground">{visibleAssets.length} card{visibleAssets.length !== 1 ? 's' : ''} in saved layout</p>
@@ -2529,6 +2532,7 @@ export default function SimpleAssetsPage() {
                   <TabsContent value="collection">
                     {viewMode === 'binder' && binderGrid ? (
                       <>
+                        {renderSelectNote()}
                         <div className="flex items-center gap-3 mb-4 relative z-10">
                           <div className="flex items-center gap-3 flex-1">
                             <p className="text-sm text-muted-foreground">
