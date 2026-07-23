@@ -201,17 +201,16 @@ function collectImages(templates) {
 }
 
 async function processImage(item, config, outDir, manifest, opts) {
-  const ext = hasExtension(item.ipfsPath) ? '' : null; // will detect after download
-  const filePath = ext ? getAtomicFilePath(item.ipfsPath, ext) : null;
-  const absPath = filePath ? path.join(outDir, filePath) : null;
-
   // If the manifest already has a verified entry and the file exists, skip.
   const existing = manifest.files[item.ipfsPath];
-  if (existing && existing.path && absPath && existsSync(absPath)) {
-    try {
-      const buf = await fs.readFile(absPath);
-      if (sha256(buf) === existing.sha256) return { status: 'skip' };
-    } catch { /* fall through */ }
+  if (existing && existing.path) {
+    const absPath = path.join(outDir, existing.path);
+    if (existsSync(absPath)) {
+      try {
+        const buf = await fs.readFile(absPath);
+        if (sha256(buf) === existing.sha256) return { status: 'skip' };
+      } catch { /* fall through */ }
+    }
   }
 
   if (opts.dryRun) {
@@ -223,23 +222,24 @@ async function processImage(item, config, outDir, manifest, opts) {
     return { status: 'error', httpStatus: res.status };
   }
 
-  const detectedExt = ext || detectExtension(res.contentType, res.bytes);
-  const finalFilePath = getAtomicFilePath(item.ipfsPath, detectedExt);
-  const finalAbsPath = path.join(outDir, finalFilePath);
+  const ext = hasExtension(item.ipfsPath) ? '' : detectExtension(res.contentType, res.bytes);
+  const filePath = getAtomicFilePath(item.ipfsPath, ext);
+  const absPath = path.join(outDir, filePath);
 
-  await fs.mkdir(path.dirname(finalAbsPath), { recursive: true });
-  await fs.writeFile(finalAbsPath, res.bytes);
+  await fs.mkdir(path.dirname(absPath), { recursive: true });
+  await fs.writeFile(absPath, res.bytes);
 
   manifest.files[item.ipfsPath] = {
     sha256: sha256(res.bytes),
     bytes: res.bytes.length,
-    path: finalFilePath,
+    path: filePath,
     gateway: res.gateway,
     fetchedAt: new Date().toISOString(),
   };
 
   return { status: 'ok', bytes: res.bytes.length };
 }
+
 
 async function runPool(items, config, outDir, manifest, onProgress, opts = {}) {
   const queue = [...items];
