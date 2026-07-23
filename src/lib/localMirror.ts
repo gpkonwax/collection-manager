@@ -99,7 +99,29 @@ function extToMime(name: string): string {
 }
 
 /**
+ * For atomic assets the file is stored under atomic/ and may have an extension
+ * that is not present in the metadata CID. Build a lookup index from the
+ * IPFS key (bare CID or CID/path) to the actual stored path.
+ */
+function indexAtomicPath(storedPath: string) {
+  if (!storedPath.startsWith('atomic/')) return;
+  const rest = storedPath.slice('atomic/'.length);
+  if (!rest) return;
+
+  // If the stored path is a bare CID with an added extension, index by CID.
+  const bareCidMatch = rest.match(/^(Qm[a-zA-Z0-9]{44}|bafy[a-zA-Z0-9]+|bafk[a-zA-Z0-9]+)\.[a-zA-Z0-9]+$/);
+  if (bareCidMatch) {
+    atomicIndex.set(bareCidMatch[1], storedPath);
+    return;
+  }
+
+  // Otherwise index the full CID/path as the lookup key.
+  atomicIndex.set(rest, storedPath);
+}
+
+/**
  * Ingest a ZIP produced by `scripts/build-image-mirror.mjs`.
+
  * Expected internal layout: `<hash>/...` or `mirror/<hash>/...`.
  * A top-level `manifest.json` is ignored for lookup purposes.
  */
