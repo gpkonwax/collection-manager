@@ -217,12 +217,30 @@ async function buildZip(outDir, zipPath) {
     }
   }
   await walk(outDir, '');
-  const buf = await zip.generateAsync({
-    type: 'nodebuffer',
-    compression: 'STORE', // images are already compressed; no CPU wasted
+
+  // Stream the ZIP to disk AND into a sha256 hash simultaneously. This avoids
+  // holding the entire archive in a single Buffer, which breaks past ~2 GB
+  // (JSZip nodebuffer cap and Node's Hash.update argument cap).
+  return await new Promise((resolve, reject) => {
+    const hash = createHash('sha256');
+    const out = createWriteStream(zipPath);
+    let bytes = 0;
+    const stream = zip.generateNodeStream({
+      type: 'nodebuffer',
+      streamFiles: true,
+      compression: 'STORE',
+    });
+    stream.on('data', (chunk) => {
+      hash.update(chunk);
+      bytes += chunk.length;
+    });
+    stream.on('error', reject);
+    out.on('error', reject);
+    out.on('finish', () => {
+      resolve({ bytes, sha256: hash.digest('hex') });
+    });
+    stream.pipe(out);
   });
-  await fs.writeFile(zipPath, buf);
-  return buf;
 }
 
 export async function build(configPath = path.join(__dirname, 'mirror-config.json'), opts = {}) {
