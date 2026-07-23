@@ -34,6 +34,10 @@ function makeFixtureZip() {
     'QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/42.jpg':   strToU8('fake-jpg-bytes-2'),
     // An entry under a "mirror/" prefix — must be normalised away
     'mirror/QmXXX/base/1a.jpg': strToU8('fake-jpg-bytes-3'),
+    // Atomic asset: bare CID with extension added by the mirror builder
+    'atomic/QmAtomicBareCid.png': strToU8('fake-png-bytes-4'),
+    // Atomic asset: CID/path preserved exactly
+    'atomic/QmAtomicFolder/gold/card.gif': strToU8('fake-gif-bytes-5'),
     // A manifest that must be ignored for lookup
     'manifest.json': strToU8('{"files":{}}'),
     // A hidden file that must be ignored
@@ -41,6 +45,7 @@ function makeFixtureZip() {
   };
   return zipSync(files);
 }
+
 
 describe('localMirror', () => {
   it('starts empty', () => {
