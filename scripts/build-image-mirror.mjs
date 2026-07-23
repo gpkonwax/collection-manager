@@ -299,12 +299,17 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
 
   if (opts.skipZip !== true) {
     log(`Zipping ${manifest.fileCount} files → ${zipPath}\n`);
-    const zipBuf = await buildZip(outDir, zipPath);
+    const { bytes, sha256: zipHash } = await buildZip(outDir, zipPath);
     manifest.zipFileName = ZIP_FILE_NAME;
-    manifest.zipBytes = zipBuf.length;
-    manifest.zipSha256 = sha256(zipBuf);
+    manifest.zipBytes = bytes;
+    manifest.zipSha256 = zipHash;
     await saveManifest(outDir, manifest);
-    log(`Wrote ZIP (${(zipBuf.length / 1024 / 1024).toFixed(1)} MB) sha256=${manifest.zipSha256}\n`);
+    const sizeMb = bytes / 1024 / 1024;
+    log(`Wrote ZIP (${sizeMb.toFixed(1)} MB) sha256=${zipHash}\n`);
+    if (sizeMb > 1900) {
+      log(`\nNote: ZIP is ${(sizeMb / 1024).toFixed(2)} GB — too large for a normal 'git push'.\n` +
+          `Upload it as a GitHub Release asset instead, and push the folder contents in batches.\n`);
+    }
   }
 
   // Copy the manifest into the public folder so the app can pin it at build time.
