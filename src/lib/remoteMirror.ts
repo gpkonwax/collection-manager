@@ -219,7 +219,8 @@ export async function fetchVerifiedMirrorFile(
   const fileEntry = manifest.files[ipfsPath];
   if (!fileEntry) return null;
 
-  const cacheKey = `${baseUrl}${ipfsPath}`;
+  const mirrorPath = fileEntry.path ?? ipfsPath;
+  const cacheKey = `${baseUrl}${mirrorPath}`;
   const cached = verifiedCache.get(cacheKey);
   if (cached) return cached.url;
 
@@ -227,7 +228,7 @@ export async function fetchVerifiedMirrorFile(
   if (existing) return existing;
 
   const promise = (async (): Promise<string | null> => {
-    const url = `${baseUrl}${ipfsPath}`;
+    const url = `${baseUrl}${mirrorPath}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
     try {
@@ -269,6 +270,7 @@ export async function fetchVerifiedMirrorFile(
     inFlight.delete(cacheKey);
   }
 }
+
 
 export type MirrorStatus = 'idle' | 'checking' | 'ok' | 'failed';
 
