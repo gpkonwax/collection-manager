@@ -70,6 +70,8 @@ interface ManifestFile {
   bytes: number;
   gateway?: string;
   fetchedAt?: string;
+  /** Actual on-disk/mirror path when it differs from the manifest key. */
+  path?: string;
 }
 
 interface PinnedManifest {
@@ -83,6 +85,7 @@ interface PinnedManifest {
   zipBytes?: number;
   zipSha256?: string;
 }
+
 
 /** GitHub Releases landing page — bonus fallback link. */
 export const ZIP_GITHUB_RELEASE_URL =
