@@ -315,6 +315,16 @@ async function buildAtomic(opts = {}) {
 
   const log = opts.quiet ? () => {} : (msg) => process.stdout.write(msg);
 
+  if (opts.zipOnly) {
+    log('ZIP-only mode: skipping AtomicAssets discovery/download and rebuilding the archive from existing files.\n');
+    const result = await buildImageMirror(configPath, { skipZip: false, quiet: opts.quiet, zipOnly: true });
+    if ((result.manifest.zipBytes || 0) > 1500 * 1024 * 1024) {
+      const gb = result.manifest.zipBytes / 1024 / 1024 / 1024;
+      log(`\nReminder: ZIP is ${gb.toFixed(2)} GB — upload it via GitHub Release, do not git push it, and exclude it from Cloudflare.\n`);
+    }
+    return { outDir, manifest: result.manifest, images: [], downloaded: 0, errors: result.errors || [] };
+  }
+
   log('Discovering AtomicAssets templates...\n');
   const schemaStats = [];
   const allImages = [];
@@ -372,9 +382,13 @@ async function buildAtomic(opts = {}) {
   // Rebuild the ZIP and copy the pinned manifest into the app so the new
   // atomic entries are immediately available to the frontend.
   log('Rebuilding mirror ZIP and copying pinned manifest...\n');
-  await buildImageMirror(configPath, { skipZip: false, quiet: opts.quiet });
+  const result = await buildImageMirror(configPath, { skipZip: false, quiet: opts.quiet, zipOnly: true });
+  if ((result.manifest.zipBytes || 0) > 1500 * 1024 * 1024) {
+    const gb = result.manifest.zipBytes / 1024 / 1024 / 1024;
+    log(`\nReminder: ZIP is ${gb.toFixed(2)} GB — upload it via GitHub Release, do not git push it, and exclude it from Cloudflare.\n`);
+  }
 
-  return { outDir, manifest, images: allImages, downloaded: allImages.length, errors };
+  return { outDir, manifest: result.manifest, images: allImages, downloaded: allImages.length, errors };
 }
 
 
@@ -382,9 +396,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const quiet = args.includes('--quiet');
+  const zipOnly = args.includes('--zip-only');
   const retryErrors = args.includes('--retry-errors');
   const retryAllMissing = args.includes('--retry-all-missing');
-  buildAtomic({ dryRun, quiet, retryErrors, retryAllMissing })
+  buildAtomic({ dryRun, quiet, zipOnly, retryErrors, retryAllMissing })
     .then(({ manifest, images, errors }) => {
       const totalFiles = Object.keys(manifest.files || {}).length;
       const pendingRetry = Object.keys(manifest.errorCounts || {}).length;

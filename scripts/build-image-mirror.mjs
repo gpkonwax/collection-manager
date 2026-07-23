@@ -13,11 +13,11 @@
  * Zero external runtime dependencies — only `jszip` (already a devDependency).
  */
 import { createHash } from 'node:crypto';
-import { createWriteStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { promises as fs, existsSync } from 'node:fs';
+import { once } from 'node:events';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import JSZip from 'jszip';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -198,49 +198,228 @@ async function runPool(items, config, outDir, manifest, onProgress, opts = {}) {
 }
 
 const ZIP_FILE_NAME = 'gpk-image-mirror.zip';
+const ZIP_PREFLIGHT_NAME = '.gpk-image-mirror-preflight.zip';
+const ZIP_GENERAL_PURPOSE_FLAGS = 0x0808; // data descriptor + UTF-8 filenames
+const UINT16_MAX = 0xffff;
+const UINT32_MAX = 0xffffffff;
 
-async function buildZip(outDir, zipPath) {
-  const zip = new JSZip();
-  const skipTopLevel = new Set([ZIP_FILE_NAME]);
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    let c = i;
+    for (let k = 0; k < 8; k += 1) {
+      c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+function updateCrc32(crc, chunk) {
+  let next = crc;
+  for (const byte of chunk) {
+    next = CRC32_TABLE[(next ^ byte) & 0xff] ^ (next >>> 8);
+  }
+  return next >>> 0;
+}
+
+function finalCrc32(crc) {
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function getDosDateTime(date = new Date()) {
+  const year = Math.max(1980, date.getFullYear());
+  return {
+    time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+    date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate(),
+  };
+}
+
+function ensureZip32(value, label) {
+  if (value > UINT32_MAX) {
+    throw new Error(`${label} exceeds standard ZIP limit (${value} bytes). Split the mirror ZIP before uploading.`);
+  }
+}
+
+function formatBytes(bytes) {
+  const mb = bytes / 1024 / 1024;
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  return `${mb.toFixed(1)} MB`;
+}
+
+async function collectZipFiles(outDir) {
+  const files = [];
+  const skipTopLevel = new Set([ZIP_FILE_NAME, ZIP_PREFLIGHT_NAME]);
   async function walk(dir, base) {
     const entries = await fs.readdir(dir, { withFileTypes: true });
+    entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const e of entries) {
-      // Never include the ZIP itself when the ZIP lives inside outDir.
+      // Never include generated ZIPs when they live inside outDir.
       if (base === '' && skipTopLevel.has(e.name)) continue;
       const abs = path.join(dir, e.name);
       const rel = path.posix.join(base, e.name);
       if (e.isDirectory()) await walk(abs, rel);
       else if (e.isFile()) {
-        const buf = await fs.readFile(abs);
-        zip.file(rel, buf);
+        const stat = await fs.stat(abs);
+        ensureZip32(stat.size, `File ${rel}`);
+        files.push({ abs, rel, size: stat.size, mtime: stat.mtime });
       }
     }
   }
   await walk(outDir, '');
+  return files;
+}
 
-  // Stream the ZIP to disk AND into a sha256 hash simultaneously. This avoids
-  // holding the entire archive in a single Buffer, which breaks past ~2 GB
-  // (JSZip nodebuffer cap and Node's Hash.update argument cap).
-  return await new Promise((resolve, reject) => {
-    const hash = createHash('sha256');
-    const out = createWriteStream(zipPath);
-    let bytes = 0;
-    const stream = zip.generateNodeStream({
-      type: 'nodebuffer',
-      streamFiles: true,
-      compression: 'STORE',
-    });
-    stream.on('data', (chunk) => {
-      hash.update(chunk);
-      bytes += chunk.length;
-    });
-    stream.on('error', reject);
-    out.on('error', reject);
-    out.on('finish', () => {
-      resolve({ bytes, sha256: hash.digest('hex') });
-    });
-    stream.pipe(out);
-  });
+async function writeZipBuffer(out, hash, state, buf) {
+  hash.update(buf);
+  state.bytes += buf.length;
+  if (!out.write(buf)) await once(out, 'drain');
+}
+
+function makeLocalHeader(file) {
+  const name = Buffer.from(file.rel, 'utf8');
+  if (name.length > UINT16_MAX) throw new Error(`ZIP path is too long: ${file.rel}`);
+  const { time, date } = getDosDateTime(file.mtime);
+  const header = Buffer.alloc(30);
+  header.writeUInt32LE(0x04034b50, 0);
+  header.writeUInt16LE(20, 4); // version needed to extract
+  header.writeUInt16LE(ZIP_GENERAL_PURPOSE_FLAGS, 6);
+  header.writeUInt16LE(0, 8); // STORE, no compression
+  header.writeUInt16LE(time, 10);
+  header.writeUInt16LE(date, 12);
+  header.writeUInt32LE(0, 14); // crc32 comes in data descriptor
+  header.writeUInt32LE(0, 18); // compressed size comes in data descriptor
+  header.writeUInt32LE(0, 22); // uncompressed size comes in data descriptor
+  header.writeUInt16LE(name.length, 26);
+  header.writeUInt16LE(0, 28); // extra length
+  return { header, name, time, date };
+}
+
+function makeDataDescriptor(crc32, size) {
+  ensureZip32(size, 'File size');
+  const descriptor = Buffer.alloc(16);
+  descriptor.writeUInt32LE(0x08074b50, 0);
+  descriptor.writeUInt32LE(crc32, 4);
+  descriptor.writeUInt32LE(size, 8);
+  descriptor.writeUInt32LE(size, 12);
+  return descriptor;
+}
+
+function makeCentralDirectoryHeader(entry) {
+  const name = Buffer.from(entry.rel, 'utf8');
+  const header = Buffer.alloc(46);
+  header.writeUInt32LE(0x02014b50, 0);
+  header.writeUInt16LE(20, 4); // version made by
+  header.writeUInt16LE(20, 6); // version needed to extract
+  header.writeUInt16LE(ZIP_GENERAL_PURPOSE_FLAGS, 8);
+  header.writeUInt16LE(0, 10); // STORE
+  header.writeUInt16LE(entry.time, 12);
+  header.writeUInt16LE(entry.date, 14);
+  header.writeUInt32LE(entry.crc32, 16);
+  header.writeUInt32LE(entry.size, 20);
+  header.writeUInt32LE(entry.size, 24);
+  header.writeUInt16LE(name.length, 28);
+  header.writeUInt16LE(0, 30); // extra length
+  header.writeUInt16LE(0, 32); // comment length
+  header.writeUInt16LE(0, 34); // disk number start
+  header.writeUInt16LE(0, 36); // internal file attrs
+  header.writeUInt32LE(0, 38); // external file attrs
+  header.writeUInt32LE(entry.offset, 42);
+  return { header, name };
+}
+
+function makeEndOfCentralDirectory(fileCount, centralSize, centralOffset) {
+  if (fileCount > UINT16_MAX) throw new Error(`ZIP has too many files (${fileCount}); ZIP64 splitting is required.`);
+  ensureZip32(centralSize, 'Central directory size');
+  ensureZip32(centralOffset, 'Central directory offset');
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(fileCount, 8);
+  eocd.writeUInt16LE(fileCount, 10);
+  eocd.writeUInt32LE(centralSize, 12);
+  eocd.writeUInt32LE(centralOffset, 16);
+  eocd.writeUInt16LE(0, 20);
+  return eocd;
+}
+
+async function writeStreamingZip(files, zipPath, opts = {}) {
+  const hash = createHash('sha256');
+  const out = createWriteStream(zipPath);
+  const state = { bytes: 0 };
+  const centralEntries = [];
+  let completedFiles = 0;
+  let lastProgressAt = 0;
+
+  try {
+    for (const file of files) {
+      ensureZip32(state.bytes, 'Local header offset');
+      const offset = state.bytes;
+      const { header, name, time, date } = makeLocalHeader(file);
+      await writeZipBuffer(out, hash, state, header);
+      await writeZipBuffer(out, hash, state, name);
+
+      let crc = 0xffffffff;
+      let size = 0;
+      const input = createReadStream(file.abs);
+      try {
+        for await (const chunk of input) {
+          crc = updateCrc32(crc, chunk);
+          size += chunk.length;
+          await writeZipBuffer(out, hash, state, chunk);
+        }
+      } catch (err) {
+        input.destroy();
+        throw err;
+      }
+
+      const crc32 = finalCrc32(crc);
+      await writeZipBuffer(out, hash, state, makeDataDescriptor(crc32, size));
+      centralEntries.push({ rel: file.rel, crc32, size, offset, time, date });
+      completedFiles += 1;
+
+      if (opts.onProgress) {
+        const now = Date.now();
+        if (now - lastProgressAt > 30000 || completedFiles === files.length) {
+          lastProgressAt = now;
+          opts.onProgress(completedFiles, files.length, state.bytes);
+        }
+      }
+    }
+
+    ensureZip32(state.bytes, 'Central directory offset');
+    const centralOffset = state.bytes;
+    for (const entry of centralEntries) {
+      const { header, name } = makeCentralDirectoryHeader(entry);
+      await writeZipBuffer(out, hash, state, header);
+      await writeZipBuffer(out, hash, state, name);
+    }
+    const centralSize = state.bytes - centralOffset;
+    await writeZipBuffer(out, hash, state, makeEndOfCentralDirectory(centralEntries.length, centralSize, centralOffset));
+
+    out.end();
+    await once(out, 'finish');
+    return { bytes: state.bytes, sha256: hash.digest('hex'), fileCount: files.length };
+  } catch (err) {
+    out.destroy();
+    throw err;
+  }
+}
+
+async function buildZip(outDir, zipPath, opts = {}) {
+  const files = await collectZipFiles(outDir);
+  if (files.length === 0) throw new Error(`No files found to ZIP in ${outDir}`);
+
+  const preflightPath = path.join(outDir, ZIP_PREFLIGHT_NAME);
+  await fs.rm(preflightPath, { force: true });
+  try {
+    await writeStreamingZip(files.slice(0, Math.min(files.length, 3)), preflightPath);
+  } finally {
+    await fs.rm(preflightPath, { force: true });
+  }
+
+  return await writeStreamingZip(files, zipPath, opts);
 }
 
 export async function build(configPath = path.join(__dirname, 'mirror-config.json'), opts = {}) {
@@ -272,43 +451,53 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
     manifest.errorCounts = {};
   }
 
-  const items = Array.from(enumerate(config));
   const log = opts.quiet ? () => {} : (msg) => process.stdout.write(msg);
-  log(`Enumerated ${items.length} candidate files across ${config.series.length} series.\n`);
-  if (manifest.missing.length) log(`Skipping ${manifest.missing.length} previously-missing entries.\n`);
+  let errors = [];
 
-  let lastLine = 0;
-  const poolOpts = opts.retryErrors
-    ? { concurrency: 1, perRequestDelayMs: 2000, finalizeTimeoutFailures: true }
-    : {};
-  const { errors } = await runPool(items, config, outDir, manifest, (done, total) => {
-    if (opts.quiet) return;
-    const now = Date.now();
-    if (now - lastLine > 500 || done === total) {
-      lastLine = now;
-      process.stdout.write(`\r  ${done}/${total} processed`);
-    }
-  }, poolOpts);
-  log('\n');
+  if (opts.zipOnly === true) {
+    log('ZIP-only mode: skipping downloads and rebuilding the archive from existing mirror-output files.\n');
+  } else {
+    const items = Array.from(enumerate(config));
+    log(`Enumerated ${items.length} candidate files across ${config.series.length} series.\n`);
+    if (manifest.missing.length) log(`Skipping ${manifest.missing.length} previously-missing entries.\n`);
+
+    let lastLine = 0;
+    const poolOpts = opts.retryErrors
+      ? { concurrency: 1, perRequestDelayMs: 2000, finalizeTimeoutFailures: true }
+      : {};
+    ({ errors } = await runPool(items, config, outDir, manifest, (done, total) => {
+      if (opts.quiet) return;
+      const now = Date.now();
+      if (now - lastLine > 500 || done === total) {
+        lastLine = now;
+        process.stdout.write(`\r  ${done}/${total} processed`);
+      }
+    }, poolOpts));
+    log('\n');
+  }
 
   manifest.generatedAt = new Date().toISOString();
-  manifest.seriesCount = config.series.length;
+  if (opts.zipOnly !== true) manifest.seriesCount = config.series.length;
   manifest.fileCount = Object.keys(manifest.files).length;
   manifest.missingCount = manifest.missing.length;
   await saveManifest(outDir, manifest);
 
   if (opts.skipZip !== true) {
-    log(`Zipping ${manifest.fileCount} files → ${zipPath}\n`);
-    const { bytes, sha256: zipHash } = await buildZip(outDir, zipPath);
+    log(`Zipping ${manifest.fileCount} manifest files → ${zipPath}\n`);
+    const { bytes, sha256: zipHash, fileCount: zippedFileCount } = await buildZip(outDir, zipPath, {
+      onProgress: (done, total, writtenBytes) => {
+        log(`  ${done}/${total} files, ${formatBytes(writtenBytes)} written\n`);
+      },
+    });
     manifest.zipFileName = ZIP_FILE_NAME;
     manifest.zipBytes = bytes;
     manifest.zipSha256 = zipHash;
     await saveManifest(outDir, manifest);
     const sizeMb = bytes / 1024 / 1024;
-    log(`Wrote ZIP (${sizeMb.toFixed(1)} MB) sha256=${zipHash}\n`);
+    log(`Wrote ZIP (${formatBytes(bytes)}, ${zippedFileCount} files) sha256=${zipHash}\n`);
     if (sizeMb > 1900) {
       log(`\nNote: ZIP is ${(sizeMb / 1024).toFixed(2)} GB — too large for a normal 'git push'.\n` +
-          `Upload it as a GitHub Release asset instead, and push the folder contents in batches.\n`);
+          `Upload it as a GitHub Release asset instead, skip it on Cloudflare, and push only the folder contents in batches.\n`);
     }
   }
 
@@ -327,9 +516,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const idx = args.indexOf('--config');
   const configPath = idx >= 0 ? args[idx + 1] : path.join(__dirname, 'mirror-config.json');
   const skipZip = args.includes('--no-zip');
+  const zipOnly = args.includes('--zip-only');
   const retryErrors = args.includes('--retry-errors');
   const retryAllMissing = args.includes('--retry-all-missing');
-  build(configPath, { skipZip, retryErrors, retryAllMissing })
+  build(configPath, { skipZip, zipOnly, retryErrors, retryAllMissing })
     .then(({ manifest, errors }) => {
       const pendingRetry = Object.keys(manifest.errorCounts || {}).length;
       console.log(
