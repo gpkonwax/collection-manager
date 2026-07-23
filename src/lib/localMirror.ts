@@ -219,9 +219,11 @@ export async function restoreLocalMirrorFromIdb(): Promise<number> {
       const existing = store.get(key);
       if (existing) URL.revokeObjectURL(existing.url);
       store.set(key, { blob, url });
+      indexAtomicPath(key);
       restored += 1;
       bytes += blob.size;
     }
+
     bytesLoaded += bytes;
     if (restored > 0) loadedAt = Date.now();
     emit();
