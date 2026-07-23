@@ -149,9 +149,11 @@ export async function ingestMirrorZip(source: File | Blob | ArrayBuffer | Uint8A
     const existing = store.get(path);
     if (existing) URL.revokeObjectURL(existing.url);
     store.set(path, { blob, url });
+    indexAtomicPath(path);
     added += 1;
     addedBytes += data.length;
   }
+
 
   bytesLoaded += addedBytes;
   loadedAt = Date.now();
