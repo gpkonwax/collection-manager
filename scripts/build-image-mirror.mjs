@@ -13,6 +13,7 @@
  * Zero external runtime dependencies — only `jszip` (already a devDependency).
  */
 import { createHash } from 'node:crypto';
+import { createWriteStream } from 'node:fs';
 import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
