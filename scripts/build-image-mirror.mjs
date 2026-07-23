@@ -198,7 +198,11 @@ async function runPool(items, config, outDir, manifest, onProgress, opts = {}) {
 }
 
 const ZIP_FILE_NAME = 'gpk-image-mirror.zip';
+const ZIP_PART_PREFIX = 'gpk-image-mirror-part-';
 const ZIP_PREFLIGHT_NAME = '.gpk-image-mirror-preflight.zip';
+// GitHub Release uploads become unreliable at/above 2 GiB. Keep parts safely
+// under that line while leaving room for ZIP headers/central-directory bytes.
+const DEFAULT_ZIP_PART_LIMIT_BYTES = 1800 * 1024 * 1024;
 const ZIP_GENERAL_PURPOSE_FLAGS = 0x0808; // data descriptor + UTF-8 filenames
 const UINT16_MAX = 0xffff;
 const UINT32_MAX = 0xffffffff;
@@ -255,7 +259,7 @@ async function collectZipFiles(outDir) {
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const e of entries) {
       // Never include generated ZIPs when they live inside outDir.
-      if (base === '' && skipTopLevel.has(e.name)) continue;
+      if (base === '' && (skipTopLevel.has(e.name) || isZipPartFileName(e.name))) continue;
       const abs = path.join(dir, e.name);
       const rel = path.posix.join(base, e.name);
       if (e.isDirectory()) await walk(abs, rel);
@@ -268,6 +272,14 @@ async function collectZipFiles(outDir) {
   }
   await walk(outDir, '');
   return files;
+}
+
+function isZipPartFileName(name) {
+  return name.startsWith(ZIP_PART_PREFIX) && name.endsWith('.zip');
+}
+
+function zipPartFileName(index) {
+  return `${ZIP_PART_PREFIX}${String(index).padStart(3, '0')}.zip`;
 }
 
 async function writeZipBuffer(out, hash, state, buf) {
@@ -422,6 +434,81 @@ async function buildZip(outDir, zipPath, opts = {}) {
   return await writeStreamingZip(files, zipPath, opts);
 }
 
+function estimateZipEntryBytes(file) {
+  const nameBytes = Buffer.byteLength(file.rel, 'utf8');
+  // local header + filename + file bytes + data descriptor + central header + filename
+  return 30 + nameBytes + file.size + 16 + 46 + nameBytes;
+}
+
+function splitZipFiles(files, maxPartBytes) {
+  const chunks = [];
+  let current = [];
+  let currentEstimate = 22; // end-of-central-directory
+
+  for (const file of files) {
+    const entryEstimate = estimateZipEntryBytes(file);
+    if (current.length > 0 && currentEstimate + entryEstimate > maxPartBytes) {
+      chunks.push(current);
+      current = [];
+      currentEstimate = 22;
+    }
+    current.push(file);
+    currentEstimate += entryEstimate;
+  }
+
+  if (current.length > 0) chunks.push(current);
+  return chunks;
+}
+
+async function removeGeneratedZips(outDir) {
+  const entries = await fs.readdir(outDir, { withFileTypes: true }).catch(() => []);
+  await Promise.all(entries
+    .filter((e) => e.isFile() && (e.name === ZIP_FILE_NAME || isZipPartFileName(e.name) || e.name === ZIP_PREFLIGHT_NAME))
+    .map((e) => fs.rm(path.join(outDir, e.name), { force: true })));
+}
+
+async function buildSplitZip(outDir, opts = {}) {
+  const files = await collectZipFiles(outDir);
+  if (files.length === 0) throw new Error(`No files found to ZIP in ${outDir}`);
+
+  const preflightPath = path.join(outDir, ZIP_PREFLIGHT_NAME);
+  await fs.rm(preflightPath, { force: true });
+  try {
+    await writeStreamingZip(files.slice(0, Math.min(files.length, 3)), preflightPath);
+  } finally {
+    await fs.rm(preflightPath, { force: true });
+  }
+
+  await removeGeneratedZips(outDir);
+  const maxPartBytes = opts.maxPartBytes ?? DEFAULT_ZIP_PART_LIMIT_BYTES;
+  const chunks = splitZipFiles(files, maxPartBytes);
+  const parts = [];
+  let totalBytes = 0;
+  let totalFiles = 0;
+
+  for (let i = 0; i < chunks.length; i += 1) {
+    const fileName = zipPartFileName(i + 1);
+    const zipPath = path.join(outDir, fileName);
+    if (opts.onPartStart) opts.onPartStart(i + 1, chunks.length, fileName, chunks[i].length);
+    const result = await writeStreamingZip(chunks[i], zipPath, {
+      onProgress: (done, total, writtenBytes) => {
+        if (opts.onProgress) opts.onProgress(i + 1, chunks.length, done, total, writtenBytes);
+      },
+    });
+    parts.push({
+      index: i + 1,
+      fileName,
+      bytes: result.bytes,
+      sha256: result.sha256,
+      fileCount: result.fileCount,
+    });
+    totalBytes += result.bytes;
+    totalFiles += result.fileCount;
+  }
+
+  return { parts, totalBytes, totalFiles };
+}
+
 export async function build(configPath = path.join(__dirname, 'mirror-config.json'), opts = {}) {
   const config = await readConfig(configPath);
   const outDir = path.resolve(path.dirname(configPath), config.outDir);
@@ -483,21 +570,47 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
   await saveManifest(outDir, manifest);
 
   if (opts.skipZip !== true) {
-    log(`Zipping ${manifest.fileCount} manifest files → ${zipPath}\n`);
-    const { bytes, sha256: zipHash, fileCount: zippedFileCount } = await buildZip(outDir, zipPath, {
-      onProgress: (done, total, writtenBytes) => {
-        log(`  ${done}/${total} files, ${formatBytes(writtenBytes)} written\n`);
-      },
-    });
-    manifest.zipFileName = ZIP_FILE_NAME;
-    manifest.zipBytes = bytes;
-    manifest.zipSha256 = zipHash;
-    await saveManifest(outDir, manifest);
-    const sizeMb = bytes / 1024 / 1024;
-    log(`Wrote ZIP (${formatBytes(bytes)}, ${zippedFileCount} files) sha256=${zipHash}\n`);
-    if (sizeMb > 1900) {
-      log(`\nNote: ZIP is ${(sizeMb / 1024).toFixed(2)} GB — too large for a normal 'git push'.\n` +
-          `Upload it as a GitHub Release asset instead, skip it on Cloudflare, and push only the folder contents in batches.\n`);
+    if (opts.splitZip) {
+      log(`Zipping ${manifest.fileCount} manifest files into GitHub-safe parts (max ${formatBytes(opts.maxPartBytes ?? DEFAULT_ZIP_PART_LIMIT_BYTES)} each)\n`);
+      const { parts, totalBytes, totalFiles } = await buildSplitZip(outDir, {
+        maxPartBytes: opts.maxPartBytes,
+        onPartStart: (part, totalParts, fileName, fileCount) => {
+          log(`  Part ${part}/${totalParts}: ${fileName} (${fileCount} files)\n`);
+        },
+        onProgress: (part, totalParts, done, total, writtenBytes) => {
+          log(`    part ${part}/${totalParts}: ${done}/${total} files, ${formatBytes(writtenBytes)} written\n`);
+        },
+      });
+      delete manifest.zipFileName;
+      delete manifest.zipSha256;
+      manifest.zipBytes = totalBytes;
+      manifest.zipPartCount = parts.length;
+      manifest.zipParts = parts;
+      await saveManifest(outDir, manifest);
+      log(`Wrote ${parts.length} ZIP parts (${formatBytes(totalBytes)}, ${totalFiles} files total)\n`);
+      for (const part of parts) {
+        log(`  ${part.fileName}: ${formatBytes(part.bytes)} sha256=${part.sha256}\n`);
+      }
+      log(`\nUpload all ${parts.length} part files to the GitHub Release. Keep excluding ZIP files from Cloudflare.\n`);
+    } else {
+      log(`Zipping ${manifest.fileCount} manifest files → ${zipPath}\n`);
+      const { bytes, sha256: zipHash, fileCount: zippedFileCount } = await buildZip(outDir, zipPath, {
+        onProgress: (done, total, writtenBytes) => {
+          log(`  ${done}/${total} files, ${formatBytes(writtenBytes)} written\n`);
+        },
+      });
+      delete manifest.zipParts;
+      delete manifest.zipPartCount;
+      manifest.zipFileName = ZIP_FILE_NAME;
+      manifest.zipBytes = bytes;
+      manifest.zipSha256 = zipHash;
+      await saveManifest(outDir, manifest);
+      const sizeMb = bytes / 1024 / 1024;
+      log(`Wrote ZIP (${formatBytes(bytes)}, ${zippedFileCount} files) sha256=${zipHash}\n`);
+      if (sizeMb > 1900) {
+        log(`\nNote: ZIP is ${(sizeMb / 1024).toFixed(2)} GB — too large for GitHub Release upload.\n` +
+            `Re-run with --split-zip, or use node scripts/build-atomic-mirror.mjs --zip-only to create uploadable parts.\n`);
+      }
     }
   }
 
@@ -517,9 +630,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const configPath = idx >= 0 ? args[idx + 1] : path.join(__dirname, 'mirror-config.json');
   const skipZip = args.includes('--no-zip');
   const zipOnly = args.includes('--zip-only');
+  const splitZip = args.includes('--split-zip');
   const retryErrors = args.includes('--retry-errors');
   const retryAllMissing = args.includes('--retry-all-missing');
-  build(configPath, { skipZip, zipOnly, retryErrors, retryAllMissing })
+  build(configPath, { skipZip, zipOnly, splitZip, retryErrors, retryAllMissing })
     .then(({ manifest, errors }) => {
       const pendingRetry = Object.keys(manifest.errorCounts || {}).length;
       console.log(
