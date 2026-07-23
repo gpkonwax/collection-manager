@@ -109,11 +109,12 @@ function indexAtomicPath(storedPath: string) {
   if (!rest) return;
 
   // If the stored path is a bare CID with an added extension, index by CID.
-  const bareCidMatch = rest.match(/^(Qm[a-zA-Z0-9]{44}|bafy[a-zA-Z0-9]+|bafk[a-zA-Z0-9]+)\.[a-zA-Z0-9]+$/);
+  const bareCidMatch = rest.match(/^(Qm[^/]+|bafy[^/]+|bafk[^/]+)\.[a-zA-Z0-9]+$/);
   if (bareCidMatch) {
     atomicIndex.set(bareCidMatch[1], storedPath);
     return;
   }
+
 
   // Otherwise index the full CID/path as the lookup key.
   atomicIndex.set(rest, storedPath);
