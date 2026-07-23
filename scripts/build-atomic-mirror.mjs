@@ -335,7 +335,8 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const quiet = args.includes('--quiet');
   buildAtomic({ dryRun, quiet })
     .then(({ manifest, images, errors }) => {
-      console.log(`\nDone. atomicImages=${images.length} totalFiles=${manifest.fileCount} errors=${errors.length}`);
+      const totalFiles = Object.keys(manifest.files || {}).length;
+      console.log(`\nDone. atomicImages=${images.length} totalFiles=${totalFiles} errors=${errors.length}`);
       if (errors.length) {
         console.log('First 10 errors:');
         for (const e of errors.slice(0, 10)) {
@@ -343,5 +344,6 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
         }
       }
     })
+
     .catch((err) => { console.error(err); process.exit(2); });
 }
