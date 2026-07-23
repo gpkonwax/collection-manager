@@ -238,7 +238,9 @@ export async function restoreLocalMirrorFromIdb(): Promise<number> {
 export function __resetLocalMirrorForTests(): void {
   for (const entry of store.values()) URL.revokeObjectURL(entry.url);
   store.clear();
+  atomicIndex.clear();
   bytesLoaded = 0;
   loadedAt = null;
   listeners.clear();
 }
+
