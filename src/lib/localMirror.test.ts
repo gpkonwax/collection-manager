@@ -58,8 +58,8 @@ describe('localMirror', () => {
     const zip = makeFixtureZip();
     const { added, bytes } = await ingestMirrorZip(zip);
 
-    // manifest.json + .DS_Store excluded; 3 real files kept
-    expect(added).toBe(3);
+    // manifest.json + .DS_Store excluded; 5 real files kept
+    expect(added).toBe(5);
     expect(bytes).toBeGreaterThan(0);
     expect(hasLocalMirror()).toBe(true);
 
@@ -74,6 +74,17 @@ describe('localMirror', () => {
     expect(resolveLocalMirror('does/not/exist')).toBeNull();
     expect(resolveLocalMirror('manifest.json')).toBeNull(); // ignored
   });
+
+  it('resolves atomic assets by bare CID even though the file has an extension', async () => {
+    await ingestMirrorZip(makeFixtureZip());
+
+    const bare = resolveLocalMirror('QmAtomicBareCid');
+    const folderPath = resolveLocalMirror('QmAtomicFolder/gold/card.gif');
+
+    expect(bare).toMatch(/^blob:/);
+    expect(folderPath).toMatch(/^blob:/);
+  });
+
 
   it('notifies subscribers when contents change', async () => {
     const spy = vi.fn();
