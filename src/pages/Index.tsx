@@ -1374,15 +1374,20 @@ export default function SimpleAssetsPage() {
   const renderSelectButton = () => {
     if (isViewing) return null;
     return (
-      <Button
-        onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
-        variant="outline"
-        size="sm"
-        className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
-      >
-        <CheckSquare className="h-4 w-4 mr-1" />
-        {selectionMode ? 'Cancel Select' : 'Select'}
-      </Button>
+      <div className="flex flex-col items-start gap-0.5">
+        <p className="text-[11px] text-muted-foreground leading-tight">
+          * To send or burn NFTs from either contract press the "Select" button below
+        </p>
+        <Button
+          onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+          variant="outline"
+          size="sm"
+          className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+        >
+          <CheckSquare className="h-4 w-4 mr-1" />
+          {selectionMode ? 'Cancel Select' : 'Select'}
+        </Button>
+      </div>
     );
   };
 
