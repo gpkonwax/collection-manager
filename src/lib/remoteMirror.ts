@@ -171,7 +171,7 @@ export function getZipDownloadUrls(zipInfo?: ZipManifestInfo | null): ZipDownloa
 export interface ZipManifestInfo {
   sha256: string | null;
   bytes: number | null;
-  fileName: string;
+  fileName: string | null;
   parts: ZipManifestPart[];
 }
 
@@ -182,7 +182,7 @@ export async function getZipManifest(): Promise<ZipManifestInfo> {
   return {
     sha256: manifest?.zipSha256 ?? null,
     bytes: manifest?.zipBytes ?? null,
-    fileName: manifest?.zipFileName ?? 'gpk-image-mirror.zip',
+    fileName: manifest?.zipFileName ?? null,
     parts,
   };
 }
