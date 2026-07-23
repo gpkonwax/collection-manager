@@ -83,6 +83,32 @@ describe('remoteMirror', () => {
     expect(url).toMatch(/^blob:/);
   });
 
+  it('fetches atomic assets using the manifest path field', async () => {
+    const fileBytes = new Uint8Array([1, 2, 3, 4, 5]);
+    const hash = createHash('sha256').update(fileBytes).digest('hex');
+    const manifest = {
+      generatedAt: new Date().toISOString(),
+      files: {
+        'QmAtomicBareCid': {
+          sha256: hash,
+          bytes: fileBytes.length,
+          path: 'atomic/QmAtomicBareCid.png',
+        },
+      },
+      missing: [],
+    };
+    const primaryUrl = MIRRORS[0].url;
+
+    mockFetch({
+      '/gpk-manifest.json': { body: Buffer.from(JSON.stringify(manifest)) },
+      [`${primaryUrl}atomic/QmAtomicBareCid.png`]: { body: Buffer.from(fileBytes) },
+    });
+
+    const url = await fetchVerifiedMirrorFile('QmAtomicBareCid', primaryUrl);
+    expect(url).toMatch(/^blob:/);
+  });
+
+
   it('rejects a mirror file whose hash does not match', async () => {
     const fileBytes = new Uint8Array([1, 2, 3, 4, 5]);
     const wrongBytes = new Uint8Array([9, 9, 9, 9]);
