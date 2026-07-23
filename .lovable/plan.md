@@ -1,98 +1,178 @@
-## Safer fix so you do not waste another hours-long ZIP run
+## Fix for the GitHub 2GB ZIP limit
 
-You are right — just changing one line is not enough. The current ZIP step still risks wasting hours because it:
+GitHub Release assets cannot reliably accept your new 4GB `gpk-image-mirror.zip`. Do not keep retrying that upload — it is expected to fail.
 
-- Re-checks/download-skips all image candidates before zipping.
-- Uses `JSZip`, which can still hold too much file data/state for a 2GB+ archive.
-- Only proves the ZIP works at the very end.
+The correct fix is to split the backup into smaller independent ZIP files and make the app understand them.
 
-### I will change the scripts so the next run is safe
+---
 
-#### 1. Stop using JSZip for the large mirror ZIP
-Replace the ZIP builder with a true streaming ZIP writer so files are read from disk one at a time and hashed chunk-by-chunk.
+## What I will change
 
-This means:
+### 1. Keep the mirror folders exactly as they are
 
-- No giant ZIP buffer in memory.
-- No `Hash.update()` call with a >2GB buffer.
-- No loading all image files into RAM before writing.
+Nothing about your actual backed-up image files is wasted or undone.
 
-#### 2. Add a fast preflight test before the real ZIP
-Before it spends hours writing the full archive, the script will run a tiny streaming ZIP test on a few files and confirm:
-
-- ZIP stream starts correctly.
-- sha256 hashing works chunk-by-chunk.
-- output file can be created.
-
-If that test fails, it fails in seconds, not hours.
-
-#### 3. Add a `--zip-only` mode
-After your images are already downloaded, you should not have to wait through:
+Your existing folder stays valid:
 
 ```text
-1547/1547 processed
-7681/7681 processed
+C:\Users\User\Desktop\gpk-app-latest\scripts\mirror-output\
 ```
 
-every time just to retry the ZIP.
+It still contains:
 
-I will add:
+```text
+atomic/
+QmSRti...
+QmcAky...
+QmYkMD...
+manifest.json
+```
+
+Those are the important files.
+
+---
+
+### 2. Replace the single huge ZIP with smaller ZIP parts
+
+Instead of making one file:
+
+```text
+gpk-image-mirror.zip   3.97 GB
+```
+
+The script will make several smaller valid ZIPs, for example:
+
+```text
+gpk-image-mirror-part-001.zip   about 1.7 GB
+gpk-image-mirror-part-002.zip   about 1.7 GB
+gpk-image-mirror-part-003.zip   about 0.6 GB
+```
+
+Each part will be a normal ZIP file by itself.
+
+This is important: these will not be `.zip.001`, `.zip.002` split archives that require special software. They will be separate normal ZIP files that the app can load one after another.
+
+---
+
+### 3. Add a safe command for you to run
+
+After I patch the scripts, you will run:
 
 ```cmd
-node scripts/build-atomic-mirror.mjs --zip-only
+node scripts/build-atomic-mirror.mjs --zip-only --split-zip
 ```
 
 That will:
 
-- Not redownload anything.
-- Not reprocess AtomicAssets templates.
-- Not reprocess the old Series 1/2/Exotic candidate list.
-- Only rebuild `gpk-image-mirror.zip` from the existing `scripts/mirror-output` folder.
-- Update `zipSha256`, `zipBytes`, and `public/gpk-manifest.json`.
+- Not download the images again.
+- Not process AtomicAssets again.
+- Use the files already in `scripts\mirror-output`.
+- Create the smaller ZIP parts.
+- Update `manifest.json` with the size and hash of each ZIP part.
 
-#### 4. Add clearer progress during ZIP creation
-Instead of waiting for hours with no useful feedback, it will show progress like:
+---
+
+### 4. Update the app backup panel
+
+The Offline backup panel will stop treating the backup as one giant ZIP.
+
+It will show multiple download files instead, something like:
 
 ```text
-Zipping 2378 files...
-  250/2378 files, 410.2 MB written
-  500/2378 files, 825.7 MB written
+Download backup ZIP part 1
+Download backup ZIP part 2
+Download backup ZIP part 3
 ```
 
-So you can tell it is genuinely moving.
+The load button will also support selecting multiple ZIP files at once, so a user can select all parts together instead of loading them one by one.
 
-#### 5. Keep `--no-zip` working
-The existing `--no-zip` path will stay intact, so if we ever need to verify/upload folder files without building the ZIP, that still works.
+---
 
-### What you will run after I patch it
+### 5. What you will upload after the fix
 
-From:
+#### GitHub Release
+
+Instead of uploading this failing file:
+
+```text
+gpk-image-mirror.zip
+```
+
+You will upload:
+
+```text
+gpk-image-mirror-part-001.zip
+gpk-image-mirror-part-002.zip
+gpk-image-mirror-part-003.zip
+```
+
+Each one will be under GitHub's asset limit.
+
+#### Cloudflare
+
+Same as before: upload the mirror files but exclude ZIP files.
+
+So on Cloudflare, upload:
+
+```text
+atomic/
+QmSRti...
+QmcAky...
+QmYkMD...
+manifest.json
+```
+
+Do not upload:
+
+```text
+gpk-image-mirror.zip
+gpk-image-mirror-part-001.zip
+gpk-image-mirror-part-002.zip
+gpk-image-mirror-part-003.zip
+```
+
+---
+
+## Beginner workflow after this is patched
+
+You will do this:
+
+### Step 1 — Get the updated code from Lovable
+
+Download the latest codebase from Lovable again and copy your existing `scripts\mirror-output` folder into it, like before.
+
+### Step 2 — Build smaller ZIP parts
+
+From the new app folder, run:
 
 ```cmd
-C:\Users\User\Desktop\gpk-app-new
+node scripts/build-atomic-mirror.mjs --zip-only --split-zip
 ```
 
-run only this:
+### Step 3 — Upload ZIP parts to GitHub Release
 
-```cmd
-node scripts/build-atomic-mirror.mjs --zip-only
+On GitHub Releases, delete the old ZIP asset if it exists, then upload the new part files:
+
+```text
+gpk-image-mirror-part-001.zip
+gpk-image-mirror-part-002.zip
+gpk-image-mirror-part-003.zip
 ```
 
-That should avoid another full download/check loop and go straight to the corrected streaming ZIP build.
+### Step 4 — Upload mirror files to Cloudflare
 
-After it finishes:
+Upload the mirror folder contents to Cloudflare again, excluding all ZIP files.
 
-```cmd
-node scripts/verify-mirror.mjs scripts/mirror-output
-```
+### Step 5 — Publish the Lovable app
 
-Then continue uploading:
+Publish/update the app so the Backup Panel knows about the new split backup files.
 
-1. Push folder files to GitHub, excluding the ZIP.
-2. Upload `gpk-image-mirror.zip` as a GitHub Release asset.
-3. Upload the mirror folder to Cloudflare, excluding the ZIP.
-4. Publish the app in Lovable.
+---
 
-### Why this is safer
+## Why this is the right fix
 
-The next expensive operation will use the same streaming path from the first byte to the last byte. There will be no final >2GB buffer/hash step left that can suddenly fail at the end.
+- GitHub cannot take the 4GB single asset.
+- Your existing downloaded images are still good.
+- Cloudflare can still host the loose image files.
+- GitHub Release can host multiple smaller ZIP assets.
+- The app can still support offline recovery, just using multiple ZIP files instead of one giant ZIP.
