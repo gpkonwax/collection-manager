@@ -164,7 +164,8 @@ async function fetchTemplatesForSchema(schema, config) {
   let page = 1;
   let hasMore = true;
   while (hasMore) {
-    const path = `/atomicassets/v1/templates?collection_name=${COLLECTION}&schema_name=${schema}&limit=100&page=${page}&order=asc&sort=template_id`;
+    const path = `/atomicassets/v1/templates?collection_name=${COLLECTION}&schema_name=${schema}&limit=100&page=${page}&order=asc&sort=created`;
+
     const res = await fetchWithFallback(ATOMIC_API_BASES, path, 15000);
     const json = await res.json();
     if (!json.success || !Array.isArray(json.data)) {
