@@ -153,7 +153,12 @@ describe('remoteMirror', () => {
   });
 
   it('exposes ZIP download URLs for every configured mirror', () => {
-    const options = getZipDownloadUrls();
+    const options = getZipDownloadUrls({
+      sha256: 'a'.repeat(64),
+      bytes: 12345,
+      fileName: 'gpk-image-mirror.zip',
+      parts: [],
+    });
     // Primary (GitHub Release asset) is always present. Backup A (Cloudflare)
     // is intentionally excluded even when configured — its 25 MB per-file cap
     // means the ZIP isn't uploaded there.
@@ -161,8 +166,28 @@ describe('remoteMirror', () => {
     expect(keys).toContain('primary');
     expect(keys).not.toContain('backupA');
     const primary = options.find((o) => o.key === 'primary')!;
-    expect(primary.url).toBe(
+    expect(primary.parts[0].url).toBe(
       'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip'
+    );
+  });
+
+  it('exposes split ZIP part URLs from manifest metadata', () => {
+    const options = getZipDownloadUrls({
+      sha256: null,
+      bytes: 3000,
+      fileName: 'gpk-image-mirror.zip',
+      parts: [
+        { index: 1, fileName: 'gpk-image-mirror-part-001.zip', bytes: 1000, sha256: 'a'.repeat(64), fileCount: 10 },
+        { index: 2, fileName: 'gpk-image-mirror-part-002.zip', bytes: 2000, sha256: 'b'.repeat(64), fileCount: 20 },
+      ],
+    });
+    const primary = options.find((o) => o.key === 'primary')!;
+    expect(primary.parts).toHaveLength(2);
+    expect(primary.parts[0].url).toBe(
+      'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror-part-001.zip'
+    );
+    expect(primary.parts[1].url).toBe(
+      'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror-part-002.zip'
     );
   });
 
@@ -174,6 +199,9 @@ describe('remoteMirror', () => {
       zipSha256: 'a'.repeat(64),
       zipBytes: 12345,
       zipFileName: 'gpk-image-mirror.zip',
+      zipParts: [
+        { index: 1, fileName: 'gpk-image-mirror-part-001.zip', bytes: 12345, sha256: 'b'.repeat(64), fileCount: 5 },
+      ],
     };
     mockFetch({
       '/gpk-manifest.json': { body: Buffer.from(JSON.stringify(manifest)) },
@@ -182,6 +210,8 @@ describe('remoteMirror', () => {
     expect(info.sha256).toBe('a'.repeat(64));
     expect(info.bytes).toBe(12345);
     expect(info.fileName).toBe('gpk-image-mirror.zip');
+    expect(info.parts).toHaveLength(1);
+    expect(info.parts[0].fileName).toBe('gpk-image-mirror-part-001.zip');
   });
 
   it('returns null zip fields when the manifest is unavailable', async () => {
@@ -189,6 +219,7 @@ describe('remoteMirror', () => {
     const info = await getZipManifest();
     expect(info.sha256).toBeNull();
     expect(info.bytes).toBeNull();
+    expect(info.parts).toEqual([]);
   });
 });
 
