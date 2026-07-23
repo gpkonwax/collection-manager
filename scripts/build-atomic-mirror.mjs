@@ -382,17 +382,32 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const quiet = args.includes('--quiet');
-  buildAtomic({ dryRun, quiet })
+  const retryErrors = args.includes('--retry-errors');
+  const retryAllMissing = args.includes('--retry-all-missing');
+  buildAtomic({ dryRun, quiet, retryErrors, retryAllMissing })
     .then(({ manifest, images, errors }) => {
       const totalFiles = Object.keys(manifest.files || {}).length;
-      console.log(`\nDone. atomicImages=${images.length} totalFiles=${totalFiles} errors=${errors.length}`);
+      const pendingRetry = Object.keys(manifest.errorCounts || {}).length;
+      console.log(`\nDone. atomicImages=${images.length} totalFiles=${totalFiles} pending-retry=${pendingRetry} errors=${errors.length}`);
       if (errors.length) {
         console.log('First 10 errors:');
         for (const e of errors.slice(0, 10)) {
           console.log('  ', e.item?.ipfsPath, e.status, e.httpStatus ?? '', e.message ?? '');
         }
       }
+      if (pendingRetry > 0 && !retryErrors) {
+        console.log(
+          `\n${pendingRetry} file(s) failed on this run but will be retried on the next run.\n` +
+          `If they keep failing, run:  node scripts/build-atomic-mirror.mjs --retry-errors`,
+        );
+      }
+      if (retryErrors && pendingRetry > 0) {
+        console.log(
+          `\nWarning: ${pendingRetry} file(s) are still pending retry. ` +
+          'Run the retry command again only if verify-mirror reports missing/corrupt files.',
+        );
+      }
     })
-
     .catch((err) => { console.error(err); process.exit(2); });
 }
+
