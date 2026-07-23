@@ -1,46 +1,98 @@
-## Fix "data is too long" when zipping the expanded mirror
+## Safer fix so you do not waste another hours-long ZIP run
 
-### What's happening
-After the atomic download finished (1545 files OK), the script tried to rebuild `gpk-image-mirror.zip` covering the combined mirror (Series 1/2/Exotic + all new atomic files). The resulting buffer is now well over Node's ~2 GB single-buffer limit, so two things blow up:
+You are right — just changing one line is not enough. The current ZIP step still risks wasting hours because it:
 
-1. `JSZip.generateAsync({ type: 'nodebuffer' })` builds the whole ZIP in memory.
-2. `sha256(zipBuf)` then calls `Hash.update` on that same >2 GB buffer → `RangeError: data is too long`.
+- Re-checks/download-skips all image candidates before zipping.
+- Uses `JSZip`, which can still hold too much file data/state for a 2GB+ archive.
+- Only proves the ZIP works at the very end.
 
-Your **downloaded images are safe** — they're on disk in `scripts/mirror-output/`. Only the final ZIP + manifest hashing step failed. The manifest.json for the atomic files was already saved before the zip step.
+### I will change the scripts so the next run is safe
 
-### The fix (script-only, no app changes)
+#### 1. Stop using JSZip for the large mirror ZIP
+Replace the ZIP builder with a true streaming ZIP writer so files are read from disk one at a time and hashed chunk-by-chunk.
 
-Change `scripts/build-image-mirror.mjs` so the ZIP is built and hashed as a **stream** instead of one giant buffer:
+This means:
 
-1. Replace `JSZip.generateAsync({ type: 'nodebuffer' })` with `zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true, compression: 'STORE' })`.
-2. Pipe that stream into **both** `fs.createWriteStream(zipPath)` and a `crypto.createHash('sha256')` transform, tracking byte count as it flows.
-3. On stream `finish`, read the final digest + byte count and write them into `manifest.json` (`zipSha256`, `zipBytes`) exactly like today.
-4. Keep the existing `--no-zip` flag working (already supported).
+- No giant ZIP buffer in memory.
+- No `Hash.update()` call with a >2GB buffer.
+- No loading all image files into RAM before writing.
 
-Also add a safety net in `scripts/build-atomic-mirror.mjs`:
+#### 2. Add a fast preflight test before the real ZIP
+Before it spends hours writing the full archive, the script will run a tiny streaming ZIP test on a few files and confirm:
 
-5. When the combined mirror is likely to exceed the practical ZIP size, print a clear note ("ZIP is ~2.5 GB — upload via GitHub Release, not `git push`") so you don't hit the GitHub push limit again.
+- ZIP stream starts correctly.
+- sha256 hashing works chunk-by-chunk.
+- output file can be created.
 
-### What you'll run after I ship the fix
+If that test fails, it fails in seconds, not hours.
 
-Nothing needs re-downloading. Just re-run:
+#### 3. Add a `--zip-only` mode
+After your images are already downloaded, you should not have to wait through:
 
-```cmd
-node scripts/build-atomic-mirror.mjs
+```text
+1547/1547 processed
+7681/7681 processed
 ```
 
-It will skip all 1545 already-downloaded files (resumable), rebuild the ZIP via streaming, write the correct `zipSha256` / `zipBytes`, and copy the pinned manifest into `public/gpk-manifest.json`. Then verify:
+every time just to retry the ZIP.
+
+I will add:
+
+```cmd
+node scripts/build-atomic-mirror.mjs --zip-only
+```
+
+That will:
+
+- Not redownload anything.
+- Not reprocess AtomicAssets templates.
+- Not reprocess the old Series 1/2/Exotic candidate list.
+- Only rebuild `gpk-image-mirror.zip` from the existing `scripts/mirror-output` folder.
+- Update `zipSha256`, `zipBytes`, and `public/gpk-manifest.json`.
+
+#### 4. Add clearer progress during ZIP creation
+Instead of waiting for hours with no useful feedback, it will show progress like:
+
+```text
+Zipping 2378 files...
+  250/2378 files, 410.2 MB written
+  500/2378 files, 825.7 MB written
+```
+
+So you can tell it is genuinely moving.
+
+#### 5. Keep `--no-zip` working
+The existing `--no-zip` path will stay intact, so if we ever need to verify/upload folder files without building the ZIP, that still works.
+
+### What you will run after I patch it
+
+From:
+
+```cmd
+C:\Users\User\Desktop\gpk-app-new
+```
+
+run only this:
+
+```cmd
+node scripts/build-atomic-mirror.mjs --zip-only
+```
+
+That should avoid another full download/check loop and go straight to the corrected streaming ZIP build.
+
+After it finishes:
 
 ```cmd
 node scripts/verify-mirror.mjs scripts/mirror-output
 ```
 
-Then upload as before (GitHub push for the folder in batches, Release asset for the ZIP, Cloudflare re-upload minus the ZIP).
+Then continue uploading:
 
-### Technical notes
-- Streaming avoids ever holding the full ZIP in a single Buffer, sidestepping both the JSZip nodebuffer cap and the `Hash.update` 2 GB argument cap.
-- `compression: 'STORE'` is unchanged (images are already compressed; no CPU wasted).
-- The manifest schema (`zipSha256`, `zipBytes`, `zipFileName`) stays identical, so `remoteMirror.ts` and `localMirror.ts` need no changes.
-- Existing resumability (`errorCounts`, `missing`) is untouched — only the final zip+hash stage changes.
+1. Push folder files to GitHub, excluding the ZIP.
+2. Upload `gpk-image-mirror.zip` as a GitHub Release asset.
+3. Upload the mirror folder to Cloudflare, excluding the ZIP.
+4. Publish the app in Lovable.
 
-Approve and I'll patch the script.
+### Why this is safer
+
+The next expensive operation will use the same streaming path from the first byte to the last byte. There will be no final >2GB buffer/hash step left that can suddenly fail at the end.
