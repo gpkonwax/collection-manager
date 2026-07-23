@@ -335,8 +335,23 @@ async function buildAtomic(opts = {}) {
     return { outDir, manifest, images: allImages, downloaded: 0, errors: [] };
   }
 
+  // --retry-errors: clear cached "missing-timeout" entries so they get one
+  // more chance under a slower, single-connection pass. Real 404s stay marked
+  // missing because the errorCounts map never held them.
+  if (opts.retryErrors) {
+    const retryable = new Set(Object.keys(manifest.errorCounts || {}));
+    manifest.missing = (manifest.missing || []).filter((ipfsPath) => {
+      if (opts.retryAllMissing) return false;
+      return !retryable.has(ipfsPath);
+    });
+    manifest.errorCounts = {};
+  }
+
   log('\nDownloading...\n');
   let lastLine = 0;
+  const poolOpts = opts.retryErrors
+    ? { ...opts, concurrency: 1, perRequestDelayMs: 2000, finalizeTimeoutFailures: true }
+    : opts;
   const { errors } = await runPool(allImages, config, outDir, manifest, (done, total) => {
     if (opts.quiet) return;
     const now = Date.now();
@@ -344,7 +359,7 @@ async function buildAtomic(opts = {}) {
       lastLine = now;
       process.stdout.write(`\r  ${done}/${total} processed`);
     }
-  }, opts);
+  }, poolOpts);
   log('\n');
 
   manifest.generatedAt = new Date().toISOString();
@@ -361,6 +376,7 @@ async function buildAtomic(opts = {}) {
 
   return { outDir, manifest, images: allImages, downloaded: allImages.length, errors };
 }
+
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const args = process.argv.slice(2);
