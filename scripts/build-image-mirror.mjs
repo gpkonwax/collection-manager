@@ -13,6 +13,7 @@
  * Zero external runtime dependencies — only `jszip` (already a devDependency).
  */
 import { createHash } from 'node:crypto';
+import { createWriteStream } from 'node:fs';
 import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -216,12 +217,30 @@ async function buildZip(outDir, zipPath) {
     }
   }
   await walk(outDir, '');
-  const buf = await zip.generateAsync({
-    type: 'nodebuffer',
-    compression: 'STORE', // images are already compressed; no CPU wasted
+
+  // Stream the ZIP to disk AND into a sha256 hash simultaneously. This avoids
+  // holding the entire archive in a single Buffer, which breaks past ~2 GB
+  // (JSZip nodebuffer cap and Node's Hash.update argument cap).
+  return await new Promise((resolve, reject) => {
+    const hash = createHash('sha256');
+    const out = createWriteStream(zipPath);
+    let bytes = 0;
+    const stream = zip.generateNodeStream({
+      type: 'nodebuffer',
+      streamFiles: true,
+      compression: 'STORE',
+    });
+    stream.on('data', (chunk) => {
+      hash.update(chunk);
+      bytes += chunk.length;
+    });
+    stream.on('error', reject);
+    out.on('error', reject);
+    out.on('finish', () => {
+      resolve({ bytes, sha256: hash.digest('hex') });
+    });
+    stream.pipe(out);
   });
-  await fs.writeFile(zipPath, buf);
-  return buf;
 }
 
 export async function build(configPath = path.join(__dirname, 'mirror-config.json'), opts = {}) {
@@ -280,12 +299,17 @@ export async function build(configPath = path.join(__dirname, 'mirror-config.jso
 
   if (opts.skipZip !== true) {
     log(`Zipping ${manifest.fileCount} files → ${zipPath}\n`);
-    const zipBuf = await buildZip(outDir, zipPath);
+    const { bytes, sha256: zipHash } = await buildZip(outDir, zipPath);
     manifest.zipFileName = ZIP_FILE_NAME;
-    manifest.zipBytes = zipBuf.length;
-    manifest.zipSha256 = sha256(zipBuf);
+    manifest.zipBytes = bytes;
+    manifest.zipSha256 = zipHash;
     await saveManifest(outDir, manifest);
-    log(`Wrote ZIP (${(zipBuf.length / 1024 / 1024).toFixed(1)} MB) sha256=${manifest.zipSha256}\n`);
+    const sizeMb = bytes / 1024 / 1024;
+    log(`Wrote ZIP (${sizeMb.toFixed(1)} MB) sha256=${zipHash}\n`);
+    if (sizeMb > 1900) {
+      log(`\nNote: ZIP is ${(sizeMb / 1024).toFixed(2)} GB — too large for a normal 'git push'.\n` +
+          `Upload it as a GitHub Release asset instead, and push the folder contents in batches.\n`);
+    }
   }
 
   // Copy the manifest into the public folder so the app can pin it at build time.

@@ -1,150 +1,46 @@
-## Extend GPK Mirror to All WAX Series — 6-Step Plan for First-Timers
+## Fix "data is too long" when zipping the expanded mirror
 
-### Why you got that error
-The file `scripts/build-atomic-mirror.mjs` does **not exist yet**. This plan is a proposal — once you approve it, I will create that script and update the app. Then you can run the commands.
+### What's happening
+After the atomic download finished (1545 files OK), the script tried to rebuild `gpk-image-mirror.zip` covering the combined mirror (Series 1/2/Exotic + all new atomic files). The resulting buffer is now well over Node's ~2 GB single-buffer limit, so two things blow up:
 
-### Goal
-Add every remaining GPK series (AtomicAssets templates) plus pack artwork to your existing GitHub + Cloudflare mirrors. The 833 Series 1/2/Exotic files already online stay untouched — this just adds more files.
+1. `JSZip.generateAsync({ type: 'nodebuffer' })` builds the whole ZIP in memory.
+2. `sha256(zipBuf)` then calls `Hash.update` on that same >2 GB buffer → `RangeError: data is too long`.
 
-### Before you start
-Make sure you are in the project folder on your computer. On Windows open **Command Prompt** or **Git Bash**. On Mac open **Terminal**. Type this and press Enter:
+Your **downloaded images are safe** — they're on disk in `scripts/mirror-output/`. Only the final ZIP + manifest hashing step failed. The manifest.json for the atomic files was already saved before the zip step.
 
-```cmd
-cd C:\Users\User\Desktop\gpk-app
-```
+### The fix (script-only, no app changes)
 
-Then check you are in the right place:
+Change `scripts/build-image-mirror.mjs` so the ZIP is built and hashed as a **stream** instead of one giant buffer:
 
-```cmd
-dir package.json
-```
+1. Replace `JSZip.generateAsync({ type: 'nodebuffer' })` with `zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true, compression: 'STORE' })`.
+2. Pipe that stream into **both** `fs.createWriteStream(zipPath)` and a `crypto.createHash('sha256')` transform, tracking byte count as it flows.
+3. On stream `finish`, read the final digest + byte count and write them into `manifest.json` (`zipSha256`, `zipBytes`) exactly like today.
+4. Keep the existing `--no-zip` flag working (already supported).
 
-If you see `package.json` listed, you are good to go.
+Also add a safety net in `scripts/build-atomic-mirror.mjs`:
 
----
+5. When the combined mirror is likely to exceed the practical ZIP size, print a clear note ("ZIP is ~2.5 GB — upload via GitHub Release, not `git push`") so you don't hit the GitHub push limit again.
 
-### Step 1 — See what will be downloaded before downloading anything
+### What you'll run after I ship the fix
 
-This is called a **dry run**. It is like a practice run — it tells you how many images it found and where they will go, but it does **not** download anything yet.
-
-Run this command:
-
-```cmd
-node scripts/build-atomic-mirror.mjs --dry-run
-```
-
-**What you will see:** a list of schemas (like `foodfightb`, `crashgordon`, `packs`, etc.) and a total file count.
-
-**Expected result:** around 2,600 or more new image files across all schemas plus packs.
-
-If this step works, move to Step 2.
-
----
-
-### Step 2 — Download the missing images for real
-
-Now run the same command but without `--dry-run`:
+Nothing needs re-downloading. Just re-run:
 
 ```cmd
 node scripts/build-atomic-mirror.mjs
 ```
 
-**What it does:**
-- Talks to the WAX AtomicAssets API.
-- Finds every GPK template for every series.
-- Downloads the front image and back image for each card.
-- Saves them into a new folder called `mirror-output/atomic/`.
-- Updates the file list in `mirror-output/manifest.json`.
-
-**This will take a while** because there are thousands of images. If your internet cuts out or the script stops, just run the same command again. It skips files already downloaded and continues where it left off.
-
----
-
-### Step 3 — Check that everything downloaded correctly
-
-Run the verify command:
+It will skip all 1545 already-downloaded files (resumable), rebuild the ZIP via streaming, write the correct `zipSha256` / `zipBytes`, and copy the pinned manifest into `public/gpk-manifest.json`. Then verify:
 
 ```cmd
-node scripts/verify-mirror.mjs
+node scripts/verify-mirror.mjs scripts/mirror-output
 ```
 
-**What it does:** compares every image on your computer against the list in `manifest.json` and checks the file size is correct.
+Then upload as before (GitHub push for the folder in batches, Release asset for the ZIP, Cloudflare re-upload minus the ZIP).
 
-**What you want to see:** something like `files=2600 missing=0 errors=0`.
+### Technical notes
+- Streaming avoids ever holding the full ZIP in a single Buffer, sidestepping both the JSZip nodebuffer cap and the `Hash.update` 2 GB argument cap.
+- `compression: 'STORE'` is unchanged (images are already compressed; no CPU wasted).
+- The manifest schema (`zipSha256`, `zipBytes`, `zipFileName`) stays identical, so `remoteMirror.ts` and `localMirror.ts` need no changes.
+- Existing resumability (`errorCounts`, `missing`) is untouched — only the final zip+hash stage changes.
 
-If it says some files are missing or have errors, go back to Step 2 and run the download command again. Do **not** upload until this step shows zero missing files and zero errors.
-
----
-
-### Step 4 — Upload the new files to your GitHub mirror
-
-You already have a GitHub mirror at `https://github.com/bewbzz/gpkonwaxbackup.git`. You only need to add the new `atomic/` folder and the updated `manifest.json`.
-
-Run these commands one at a time:
-
-```cmd
-git add mirror-output/manifest.json
-git add mirror-output/atomic
-git commit -m "Add all remaining GPK series and packs to mirror"
-```
-
-Now push it. Because there are many files, push in small batches so GitHub does not time out:
-
-```cmd
-git push origin main
-```
-
-If the push fails because it is too big, push the manifest first, then push the `atomic` folder in smaller chunks. I can help you with that if it happens.
-
----
-
-### Step 5 — Upload the new files to your Cloudflare mirror
-
-1. Go to the Cloudflare Pages dashboard.
-2. Find your `gpkonwaxbackup` project.
-3. Click **Upload files** or **Deploy site**.
-4. Upload the new `atomic/` folder and the updated `manifest.json`.
-5. Do **not** upload the ZIP file — Cloudflare has a 25 MB limit per file.
-6. Click **Deploy**.
-
-Wait a few minutes, then test these URLs in a new browser tab:
-
-```text
-https://gpkonwaxbackup.pages.dev/manifest.json
-https://gpkonwaxbackup.pages.dev/atomic/<some-cid>.png
-```
-
-Replace `<some-cid>` with an actual CID from the new `atomic/` folder, or test any image that loads in the folder.
-
----
-
-### Step 6 — Update the app and publish it
-
-Once both mirrors are live and the test URLs work, I will update the app code so it knows how to find the new `atomic/` images and verify them against the expanded manifest.
-
-After I make those code changes, you just click the **Publish** button in Lovable to push the updated frontend live.
-
-Then open the app, go to the **Offline Backup** panel in the header, and check that the mirrors show as reachable.
-
----
-
-### Summary of commands in order
-
-```cmd
-cd C:\Users\User\Desktop\gpk-app
-dir package.json
-
-node scripts/build-atomic-mirror.mjs --dry-run
-node scripts/build-atomic-mirror.mjs
-node scripts/verify-mirror.mjs
-
-git add mirror-output/manifest.json
-git add mirror-output/atomic
-git commit -m "Add all remaining GPK series and packs to mirror"
-git push origin main
-```
-
-Then upload to Cloudflare and click **Publish**.
-
-### What I need from you now
-Approve this plan. Then I will create `scripts/build-atomic-mirror.mjs` and update the app code. After that the commands above will work.
+Approve and I'll patch the script.
