@@ -16,8 +16,12 @@ const IDB_PERSIST_KEY = 'gpk-local-mirror-persist';
 // key = IPFS path (hash or hash/tail). value = { blob, url } (url is a blob: URL).
 type Entry = { blob: Blob; url: string };
 const store = new Map<string, Entry>();
+// Maps an IPFS lookup key to the actual stored path. Used for atomic assets
+// where the file lives under atomic/ and may have an extension added.
+const atomicIndex = new Map<string, string>();
 let bytesLoaded = 0;
 let loadedAt: number | null = null;
+
 
 const listeners = new Set<() => void>();
 export function subscribeLocalMirror(fn: () => void): () => void {
@@ -69,8 +73,15 @@ export function setPersistPreference(v: boolean): void {
 export function resolveLocalMirror(key: string | null | undefined): string | null {
   if (!key) return null;
   const entry = store.get(key);
-  return entry ? entry.url : null;
+  if (entry) return entry.url;
+  const atomicPath = atomicIndex.get(key);
+  if (atomicPath) {
+    const atomicEntry = store.get(atomicPath);
+    if (atomicEntry) return atomicEntry.url;
+  }
+  return null;
 }
+
 
 /** True if any local-mirror file is loaded in memory. */
 export function hasLocalMirror(): boolean {
@@ -88,7 +99,30 @@ function extToMime(name: string): string {
 }
 
 /**
+ * For atomic assets the file is stored under atomic/ and may have an extension
+ * that is not present in the metadata CID. Build a lookup index from the
+ * IPFS key (bare CID or CID/path) to the actual stored path.
+ */
+function indexAtomicPath(storedPath: string) {
+  if (!storedPath.startsWith('atomic/')) return;
+  const rest = storedPath.slice('atomic/'.length);
+  if (!rest) return;
+
+  // If the stored path is a bare CID with an added extension, index by CID.
+  const bareCidMatch = rest.match(/^(Qm[^/]+|bafy[^/]+|bafk[^/]+)\.[a-zA-Z0-9]+$/);
+  if (bareCidMatch) {
+    atomicIndex.set(bareCidMatch[1], storedPath);
+    return;
+  }
+
+
+  // Otherwise index the full CID/path as the lookup key.
+  atomicIndex.set(rest, storedPath);
+}
+
+/**
  * Ingest a ZIP produced by `scripts/build-image-mirror.mjs`.
+
  * Expected internal layout: `<hash>/...` or `mirror/<hash>/...`.
  * A top-level `manifest.json` is ignored for lookup purposes.
  */
@@ -116,9 +150,11 @@ export async function ingestMirrorZip(source: File | Blob | ArrayBuffer | Uint8A
     const existing = store.get(path);
     if (existing) URL.revokeObjectURL(existing.url);
     store.set(path, { blob, url });
+    indexAtomicPath(path);
     added += 1;
     addedBytes += data.length;
   }
+
 
   bytesLoaded += addedBytes;
   loadedAt = Date.now();
@@ -152,6 +188,7 @@ function unzipAsync(bytes: Uint8Array): Promise<Unzipped> {
 export function clearLocalMirror(): void {
   for (const entry of store.values()) URL.revokeObjectURL(entry.url);
   store.clear();
+  atomicIndex.clear();
   bytesLoaded = 0;
   loadedAt = null;
   emit();
@@ -161,6 +198,7 @@ export function clearLocalMirror(): void {
     /* IndexedDB unavailable (e.g. jsdom in tests) — nothing to clear. */
   }
 }
+
 
 /** Persist current blobs to IndexedDB as an array of [key, Blob]. */
 async function persistToIdb(): Promise<void> {
@@ -182,9 +220,11 @@ export async function restoreLocalMirrorFromIdb(): Promise<number> {
       const existing = store.get(key);
       if (existing) URL.revokeObjectURL(existing.url);
       store.set(key, { blob, url });
+      indexAtomicPath(key);
       restored += 1;
       bytes += blob.size;
     }
+
     bytesLoaded += bytes;
     if (restored > 0) loadedAt = Date.now();
     emit();
@@ -199,7 +239,9 @@ export async function restoreLocalMirrorFromIdb(): Promise<number> {
 export function __resetLocalMirrorForTests(): void {
   for (const entry of store.values()) URL.revokeObjectURL(entry.url);
   store.clear();
+  atomicIndex.clear();
   bytesLoaded = 0;
   loadedAt = null;
   listeners.clear();
 }
+

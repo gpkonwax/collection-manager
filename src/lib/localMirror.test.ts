@@ -34,6 +34,11 @@ function makeFixtureZip() {
     'QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/42.jpg':   strToU8('fake-jpg-bytes-2'),
     // An entry under a "mirror/" prefix — must be normalised away
     'mirror/QmXXX/base/1a.jpg': strToU8('fake-jpg-bytes-3'),
+    // Atomic asset: bare CID with extension added by the mirror builder
+    'atomic/QmT2injqNvKs9eBjf6chS6srTCGeoVoZFNmV1xSkqjy8yy.png': strToU8('fake-png-bytes-4'),
+
+    // Atomic asset: CID/path preserved exactly
+    'atomic/QmAtomicFolder/gold/card.gif': strToU8('fake-gif-bytes-5'),
     // A manifest that must be ignored for lookup
     'manifest.json': strToU8('{"files":{}}'),
     // A hidden file that must be ignored
@@ -41,6 +46,7 @@ function makeFixtureZip() {
   };
   return zipSync(files);
 }
+
 
 describe('localMirror', () => {
   it('starts empty', () => {
@@ -53,8 +59,8 @@ describe('localMirror', () => {
     const zip = makeFixtureZip();
     const { added, bytes } = await ingestMirrorZip(zip);
 
-    // manifest.json + .DS_Store excluded; 3 real files kept
-    expect(added).toBe(3);
+    // manifest.json + .DS_Store excluded; 5 real files kept
+    expect(added).toBe(5);
     expect(bytes).toBeGreaterThan(0);
     expect(hasLocalMirror()).toBe(true);
 
@@ -69,6 +75,18 @@ describe('localMirror', () => {
     expect(resolveLocalMirror('does/not/exist')).toBeNull();
     expect(resolveLocalMirror('manifest.json')).toBeNull(); // ignored
   });
+
+  it('resolves atomic assets by bare CID even though the file has an extension', async () => {
+    await ingestMirrorZip(makeFixtureZip());
+
+    const bare = resolveLocalMirror('QmT2injqNvKs9eBjf6chS6srTCGeoVoZFNmV1xSkqjy8yy');
+
+    const folderPath = resolveLocalMirror('QmAtomicFolder/gold/card.gif');
+
+    expect(bare).toMatch(/^blob:/);
+    expect(folderPath).toMatch(/^blob:/);
+  });
+
 
   it('notifies subscribers when contents change', async () => {
     const spy = vi.fn();

@@ -35,22 +35,31 @@ export async function verify(mirrorDir) {
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
   const expected = new Map(Object.entries(manifest.files || {}));
 
+  // Build a set of expected on-disk paths. When a manifest entry has a
+  // "path" field (e.g. atomic assets saved under atomic/), the file lives at
+  // that path instead of the manifest key.
+  const expectedPaths = new Map();
+  for (const [key, rec] of expected) {
+    expectedPaths.set(rec.path ?? key, { key, rec });
+  }
+
   const onDisk = await walk(mirrorDir);
-  const seen = new Set();
+  const seenKeys = new Set();
   const corrupt = [];
   const extra = [];
 
   for (const { abs, rel } of onDisk) {
-    seen.add(rel);
-    const rec = expected.get(rel);
-    if (!rec) { extra.push(rel); continue; }
+    const entry = expectedPaths.get(rel);
+    if (!entry) { extra.push(rel); continue; }
+    seenKeys.add(entry.key);
     const buf = await fs.readFile(abs);
-    if (sha256(buf) !== rec.sha256) corrupt.push(rel);
+    if (sha256(buf) !== entry.rec.sha256) corrupt.push(rel);
   }
 
-  const missing = [...expected.keys()].filter((k) => !seen.has(k));
+  const missing = [...expected.keys()].filter((k) => !seenKeys.has(k));
   return { checked: onDisk.length, missing, corrupt, extra };
 }
+
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const dir = process.argv[2] ?? path.resolve(__dirname, '../mirror-output');
