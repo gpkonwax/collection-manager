@@ -38,6 +38,7 @@ import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { BannerAd } from '@/components/BannerAd';
 import { BackupPanel } from '@/components/BackupPanel';
 import { BackupNudgeBanner } from '@/components/BackupNudgeBanner';
+import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
 import { OfflineBundleBanner } from '@/components/OfflineBundleBanner';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -1899,8 +1900,9 @@ export default function SimpleAssetsPage() {
             )}
           </div>
 
-          {/* Right: Info button + view wallet (logged in only) + wallet controls */}
+          {/* Right: Image source status + Info button + view wallet (logged in only) + wallet controls */}
           <div className="flex items-center gap-2 ml-auto">
+            <ImageSourceIndicator />
             <Button
               variant="ghost"
               size="sm"

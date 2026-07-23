@@ -88,6 +88,13 @@ export function BackupPanel({ triggerClassName }: Props) {
   // Auto-open the panel on first launch of the offline bundle so users see
   // the "Load backup ZIP" step immediately — the viewer is empty without it.
   const [open, setOpen] = useState(() => isOfflineBundle() && getLocalMirrorStatus().fileCount === 0);
+
+  // Allow other components (e.g. header status pill) to open this dialog.
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener('open-backup-panel', handler);
+    return () => window.removeEventListener('open-backup-panel', handler);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [persist, setPersistState] = useState(false);
   const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
