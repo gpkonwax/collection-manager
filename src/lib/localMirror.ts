@@ -187,6 +187,7 @@ function unzipAsync(bytes: Uint8Array): Promise<Unzipped> {
 export function clearLocalMirror(): void {
   for (const entry of store.values()) URL.revokeObjectURL(entry.url);
   store.clear();
+  atomicIndex.clear();
   bytesLoaded = 0;
   loadedAt = null;
   emit();
@@ -196,6 +197,7 @@ export function clearLocalMirror(): void {
     /* IndexedDB unavailable (e.g. jsdom in tests) — nothing to clear. */
   }
 }
+
 
 /** Persist current blobs to IndexedDB as an array of [key, Blob]. */
 async function persistToIdb(): Promise<void> {
