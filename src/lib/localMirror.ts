@@ -73,8 +73,15 @@ export function setPersistPreference(v: boolean): void {
 export function resolveLocalMirror(key: string | null | undefined): string | null {
   if (!key) return null;
   const entry = store.get(key);
-  return entry ? entry.url : null;
+  if (entry) return entry.url;
+  const atomicPath = atomicIndex.get(key);
+  if (atomicPath) {
+    const atomicEntry = store.get(atomicPath);
+    if (atomicEntry) return atomicEntry.url;
+  }
+  return null;
 }
+
 
 /** True if any local-mirror file is loaded in memory. */
 export function hasLocalMirror(): boolean {
