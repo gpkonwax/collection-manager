@@ -507,7 +507,7 @@ function RecommendedZipCard({
               )}
 
               <div className="grid grid-cols-1 gap-2">
-                {primaryParts.map((part, partIndex) => (
+                {primaryParts.map((part) => (
                   <Button
                     key={part.fileName}
                     asChild
