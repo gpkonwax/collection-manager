@@ -202,7 +202,7 @@ export function BackupPanel({ triggerClassName }: Props) {
         {/* Recommended: proactive ZIP download — pinned in the fixed header */}
         <div className="px-6 pt-4 text-sm">
           <RecommendedZipCard
-            protectedOnDevice={status.fileCount > 0 && (status.persisted || persist)}
+            protectedOnDevice={status.fileCount > 0}
             fileCount={status.fileCount}
             totalBytes={status.totalBytes}
             zipInfo={zipInfo}
