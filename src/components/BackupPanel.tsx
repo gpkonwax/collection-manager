@@ -479,14 +479,14 @@ function RecommendedZipCard({
           {showDownloadLauncher && (
             <div className="rounded-md border border-border bg-background/60 p-3 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium">Download all {primaryParts.length} ZIP parts</p>
+                <p className="text-xs font-medium">Download {primaryParts.length} ZIP parts one at a time</p>
                 <p className="text-[10px] text-muted-foreground whitespace-nowrap">
                   {downloadedCount}/{primaryParts.length} started
                 </p>
               </div>
 
               {nextPart && (
-                <Button asChild size="sm" className="w-full h-9 justify-start">
+                <Button asChild size="lg" className="w-full h-11 justify-start text-sm">
                   <a
                     href={nextPart.url}
                     target="_blank"
@@ -494,40 +494,46 @@ function RecommendedZipCard({
                     download={nextPart.fileName}
                     onClick={() => markPartStarted(nextPart.fileName)}
                   >
-                    <Download className="w-3.5 h-3.5 mr-2" />
-                    Start next download: Part {nextPart.index} ({formatBytes(nextPart.bytes)})
+                    <Download className="w-4 h-4 mr-2" />
+                    {downloadedCount === 0 ? 'Start download' : 'Start next download'}
+                    {`: Part ${nextPart.index} of ${primaryParts.length} (${formatBytes(nextPart.bytes)})`}
                   </a>
                 </Button>
               )}
 
+              <p className="text-[10px] text-muted-foreground">
+                Wait until Part {nextPart?.index ?? primaryParts.length} finishes downloading, then press the button again to start the next part.
+              </p>
+
+              <ol className="space-y-1 text-[11px] text-muted-foreground">
+                {primaryParts.map((part) => {
+                  const started = startedPartSet.has(part.fileName);
+                  return (
+                    <li key={part.fileName} className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold flex-shrink-0',
+                          started
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : 'bg-muted text-muted-foreground',
+                        )}
+                      >
+                        {started ? '✓' : part.index}
+                      </span>
+                      <span className={started ? 'text-emerald-400' : ''}>
+                        Part {part.index} — {formatBytes(part.bytes)}
+                        {started ? ' (started)' : ''}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+
               {!nextPart && (
                 <p className="text-xs text-emerald-400">
-                  All ZIP part downloads have been started. Keep all {primaryParts.length} files together before loading them in Step 3.
+                  All {primaryParts.length} ZIP part downloads have been started. Keep all files together before loading them in Step 3.
                 </p>
               )}
-
-              <div className="grid grid-cols-1 gap-2">
-                {primaryParts.map((part) => (
-                  <Button
-                    key={part.fileName}
-                    asChild
-                    size="sm"
-                    variant={startedPartSet.has(part.fileName) ? 'default' : 'outline'}
-                    className="w-full h-8 justify-start"
-                  >
-                    <a
-                      href={part.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={part.fileName}
-                      onClick={() => markPartStarted(part.fileName)}
-                    >
-                      <Download className="w-3.5 h-3.5 mr-2" />
-                      Part {part.index}: {formatBytes(part.bytes)}
-                    </a>
-                  </Button>
-                ))}
-              </div>
             </div>
           )}
         </div>
