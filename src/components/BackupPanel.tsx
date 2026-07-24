@@ -405,6 +405,8 @@ function RecommendedZipCard({
   zipInfo,
 }: RecommendedZipCardProps) {
   const options = getZipDownloadUrls(zipInfo);
+  const [showDownloadLauncher, setShowDownloadLauncher] = useState(false);
+  const [startedPartNames, setStartedPartNames] = useState<string[]>([]);
 
   if (protectedOnDevice) {
     return (
@@ -430,21 +432,13 @@ function RecommendedZipCard({
     : 0;
   const primaryTotalLabel = primaryPartsTotal > 0 ? formatBytes(primaryPartsTotal) : approxSize;
 
-  const triggerBulkDownload = () => {
-    if (!primaryOption || primaryOption.parts.length <= 1) return;
-    const anchors: HTMLAnchorElement[] = [];
-    primaryOption.parts.forEach((part) => {
-      const a = document.createElement('a');
-      a.href = part.url;
-      a.download = part.fileName;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      anchors.push(a);
-      a.click();
-    });
-    window.setTimeout(() => anchors.forEach((a) => a.remove()), 1000);
+  const primaryParts = primaryOption?.parts ?? [];
+  const startedPartSet = new Set(startedPartNames);
+  const nextPart = primaryParts.find((part) => !startedPartSet.has(part.fileName));
+  const downloadedCount = primaryParts.filter((part) => startedPartSet.has(part.fileName)).length;
+
+  const markPartStarted = (fileName: string) => {
+    setStartedPartNames((current) => current.includes(fileName) ? current : [...current, fileName]);
   };
 
   return (
@@ -470,26 +464,72 @@ function RecommendedZipCard({
 
       {primaryOption && primaryOption.parts.length > 1 && (
         <div className="space-y-2">
-          <Button size="lg" className="w-full h-11 text-base" onClick={triggerBulkDownload}>
+          <Button
+            size="lg"
+            className="w-full h-11 text-base"
+            onClick={() => setShowDownloadLauncher(true)}
+          >
             <Download className="w-4 h-4 mr-2" />
-            Download all {primaryOption.parts.length} parts{primaryTotalLabel ? ` (~${primaryTotalLabel})` : ''}
+            Download ZIP parts{primaryTotalLabel ? ` (~${primaryTotalLabel})` : ''}
           </Button>
           <p className="text-[10px] text-muted-foreground">
-            This opens one download tab per part. If your browser blocks multiple tabs, allow pop-ups for this site or use the per-part buttons below.
+            Large GitHub release files may need one click per part so your browser does not block the downloads.
           </p>
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground pt-1">
-            Or download individually:
-          </p>
-          <div className="grid grid-cols-1 gap-2">
-            {primaryOption.parts.map((part) => (
-              <Button key={part.fileName} asChild size="sm" variant="outline" className="w-full h-8 justify-start">
-                <a href={part.url} target="_blank" rel="noopener noreferrer" download={part.fileName}>
-                  <Download className="w-3.5 h-3.5 mr-2" />
-                  Part {part.index}: {formatBytes(part.bytes)}
-                </a>
-              </Button>
-            ))}
-          </div>
+
+          {showDownloadLauncher && (
+            <div className="rounded-md border border-border bg-background/60 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium">Download all {primaryParts.length} ZIP parts</p>
+                <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {downloadedCount}/{primaryParts.length} started
+                </p>
+              </div>
+
+              {nextPart && (
+                <Button asChild size="sm" className="w-full h-9 justify-start">
+                  <a
+                    href={nextPart.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={nextPart.fileName}
+                    onClick={() => markPartStarted(nextPart.fileName)}
+                  >
+                    <Download className="w-3.5 h-3.5 mr-2" />
+                    Start next download: Part {nextPart.index} ({formatBytes(nextPart.bytes)})
+                  </a>
+                </Button>
+              )}
+
+              {!nextPart && (
+                <p className="text-xs text-emerald-400">
+                  All ZIP part downloads have been started. Keep all {primaryParts.length} files together before loading them in Step 3.
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 gap-2">
+                {primaryParts.map((part) => (
+                  <Button
+                    key={part.fileName}
+                    asChild
+                    size="sm"
+                    variant={startedPartSet.has(part.fileName) ? 'default' : 'outline'}
+                    className="w-full h-8 justify-start"
+                  >
+                    <a
+                      href={part.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={part.fileName}
+                      onClick={() => markPartStarted(part.fileName)}
+                    >
+                      <Download className="w-3.5 h-3.5 mr-2" />
+                      Part {part.index}: {formatBytes(part.bytes)}
+                    </a>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
