@@ -143,39 +143,8 @@ export function BackupPanel({ triggerClassName }: Props) {
     toast({ title: 'Offline backup cleared' });
   };
 
-  const onPersistChange = (v: boolean) => {
-    setPersistState(v);
-    setPersistPreference(v);
-    if (!v) return;
 
-    if (status.fileCount === 0) {
-      toast({
-        title: 'Remember enabled',
-        description: 'Load the ZIP parts once and they will be saved on this device.',
-      });
-      return;
-    }
 
-    setBusy(true);
-    persistLocalMirrorToIdb()
-      .then(() => {
-        toast({
-          title: 'Offline backup saved',
-          description: `${status.fileCount.toLocaleString()} files will restore automatically on this device.`,
-        });
-      })
-      .catch((err) => {
-        console.error('[BackupPanel] persist failed', err);
-        setPersistState(false);
-        setPersistPreference(false);
-        toast({
-          title: 'Could not save backup on this device',
-          description: err instanceof Error ? err.message : 'Browser storage was unavailable or full.',
-          variant: 'destructive',
-        });
-      })
-      .finally(() => setBusy(false));
-  };
 
   const onUseMirror = (key: MirrorKey) => {
     if (!isMirrorConfigured(key)) {
