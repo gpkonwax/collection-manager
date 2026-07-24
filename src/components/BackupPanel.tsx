@@ -93,14 +93,13 @@ export function BackupPanel({ triggerClassName }: Props) {
     return () => window.removeEventListener('open-backup-panel', handler);
   }, []);
   const [busy, setBusy] = useState(false);
-  const [persist, setPersistState] = useState(false);
   const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setPersistState(getPersistPreference());
     getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
+
     // Health-check every configured mirror when the panel opens so users get
     // obvious green/red indicators without having to click anything.
     (['primary', 'backupA', 'backupB'] as MirrorKey[]).forEach((key) => {
