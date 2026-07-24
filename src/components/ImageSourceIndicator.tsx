@@ -24,6 +24,7 @@ const DOT_COLOR: Record<SourceKey, string> = {
   ipfs: 'bg-emerald-400',
   primary: 'bg-yellow-400',
   backupA: 'bg-yellow-400',
+  backupB: 'bg-yellow-400',
   local: 'bg-sky-400',
   none: 'bg-red-500',
 };
@@ -57,15 +58,17 @@ export function ImageSourceIndicator() {
       { key: 'ipfs' as const, name: 'Public IPFS gateways', s: status.ipfs },
       { key: 'primary' as const, name: 'Primary mirror (GitHub Pages)', s: status.primary },
       { key: 'backupA' as const, name: 'Backup A (Cloudflare Pages)', s: status.backupA },
+      { key: 'backupB' as const, name: 'Backup B (GitLab Pages)', s: status.backupB },
       { key: 'local' as const, name: 'Offline ZIP (this device)', s: status.local },
     ],
-    [status.ipfs, status.primary, status.backupA, status.local],
+    [status.ipfs, status.primary, status.backupA, status.backupB, status.local],
   );
 
   const isChecking =
     status.ipfs === 'checking' ||
     status.primary === 'checking' ||
-    status.backupA === 'checking';
+    status.backupA === 'checking' ||
+    status.backupB === 'checking';
 
   return (
     <TooltipProvider delayDuration={200}>
