@@ -432,13 +432,32 @@ function RecommendedZipCard({
     : 0;
   const primaryTotalLabel = primaryPartsTotal > 0 ? formatBytes(primaryPartsTotal) : approxSize;
 
-  const primaryParts = primaryOption?.parts ?? [];
+  const primaryParts = [...(primaryOption?.parts ?? [])].sort((a, b) => a.index - b.index);
   const startedPartSet = new Set(startedPartNames);
   const nextPart = primaryParts.find((part) => !startedPartSet.has(part.fileName));
   const downloadedCount = primaryParts.filter((part) => startedPartSet.has(part.fileName)).length;
 
   const markPartStarted = (fileName: string) => {
     setStartedPartNames((current) => current.includes(fileName) ? current : [...current, fileName]);
+  };
+
+  const startNextPartDownload = () => {
+    if (!nextPart) return;
+
+    // Capture the current part before updating state. If this is an <a href>
+    // and React advances to the next part during the click, some browsers can
+    // follow the newly-rendered href instead of the intended file.
+    const partToDownload = nextPart;
+    const link = document.createElement('a');
+    link.href = partToDownload.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.download = partToDownload.fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    markPartStarted(partToDownload.fileName);
   };
 
   return (
@@ -486,18 +505,10 @@ function RecommendedZipCard({
               </div>
 
               {nextPart && (
-                <Button asChild size="lg" className="w-full h-11 justify-start text-sm">
-                  <a
-                    href={nextPart.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download={nextPart.fileName}
-                    onClick={() => markPartStarted(nextPart.fileName)}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    {downloadedCount === 0 ? 'Start download' : 'Start next download'}
-                    {`: Part ${nextPart.index} of ${primaryParts.length} (${formatBytes(nextPart.bytes)})`}
-                  </a>
+                <Button size="lg" className="w-full h-11 justify-start text-sm" onClick={startNextPartDownload}>
+                  <Download className="w-4 h-4 mr-2" />
+                  {downloadedCount === 0 ? 'Start download' : 'Start next download'}
+                  {`: Part ${nextPart.index} of ${primaryParts.length} (${formatBytes(nextPart.bytes)})`}
                 </Button>
               )}
 
