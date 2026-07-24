@@ -1,78 +1,45 @@
 ## Goal
-Deploy the existing image mirror to GitLab Pages and wire it into the app as Backup B, so the Image Source Indicator can fall back to GitLab if GitHub and Cloudflare are unreachable.
+Swap Backup B from the (abandoned) GitLab Pages URL to the live Netlify mirror at `https://gpkonwaxbackup.netlify.app/`, and relabel it everywhere the user sees "GitLab" so the indicator, tooltip, and backup panel match reality.
 
-## What we already know
-- The mirror contents were pushed to `https://gitlab.com/bewbzz/gpkonwaxbackup.git` (2.31 GiB, 1533 objects).
-- GitHub Pages primary mirror is live at `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`.
-- Cloudflare Pages backup A is live at `https://gpkonwaxbackup.pages.dev/`.
-- The app reads mirror URLs from `src/lib/ipfsGateways.ts` and expects each mirror to serve the same folder structure as the primary (images + `gpk-manifest.json`).
+## Verified current state
+- `src/lib/ipfsGateways.ts` line 29: `BACKUP_MIRROR_B = 'https://bewbzz.gitlab.io/gpkonwaxbackup/mirror/'` — needs to change.
+- `src/hooks/useImageSourceStatus.ts` already probes `BACKUP_MIRROR_B` via `${base}manifest.json` — no logic change needed, just the constant.
+- `src/components/ImageSourceIndicator.tsx` line 61 hardcodes the label `Backup B (GitLab Pages)` — needs relabel.
+- `SOURCE_LABELS.backupB = 'Backup B'` is generic, safe to leave.
+- `BACKUP_MIRROR_B` is also consumed by `src/lib/remoteMirror.ts` (for hash-verified image fallback and mirror listing in the Backup Panel) — the URL change flows through automatically.
 
-## Steps
+## Changes
 
-### 1. Add GitLab Pages CI config
-Create `.gitlab-ci.yml` in the root of `gpkonwaxbackup/gpkonwaxbackup` so GitLab knows to publish the `public/` folder to Pages.
-
-```yaml
-pages:
-  stage: deploy
-  script:
-    - echo "Deploying to GitLab Pages"
-  artifacts:
-    paths:
-      - public
-  publish: public
-  only:
-    - main
+### 1. `src/lib/ipfsGateways.ts`
+Replace the `BACKUP_MIRROR_B` constant and update the comment above it.
+```ts
+// Backup mirror A is Cloudflare Pages; backup mirror B is Netlify.
+export const BACKUP_MIRROR_B = 'https://gpkonwaxbackup.netlify.app/';
 ```
 
-GitLab serves whatever is in the `public/` directory at `https://<user>.gitlab.io/<project>/`.
+### 2. `src/components/ImageSourceIndicator.tsx`
+Change the tooltip row label from `Backup B (GitLab Pages)` to `Backup B (Netlify)`.
 
-### 2. Re-organise the repository contents (if needed)
-Check whether the pushed files are already inside a `public/` folder. If they are at the repository root, move them into `public/` so GitLab Pages can serve them.
+### 3. `src/components/BackupPanel.tsx`
+Any user-facing string that says "GitLab" (mirror list, verify labels, download source names) becomes "Netlify". No structural changes — just text.
 
-### 3. Commit and push the CI file
-```bash
-git add .gitlab-ci.yml
-git commit -m "Add GitLab Pages deployment"
-git push origin main
-```
+### 4. `src/lib/remoteMirror.ts`
+If the mirror registry / labels array references "GitLab" for Backup B, rename to "Netlify". URL is picked up automatically from `BACKUP_MIRROR_B`.
 
-### 4. Wait for the Pages pipeline
-- Go to **Project → CI/CD → Pipelines** in GitLab.
-- Wait for the `pages` job to finish.
-- The site URL will be shown under **Project → Settings → Pages**.
+### 5. `src/hooks/useImageSourceStatus.ts`
+No code change required. The doc comment on line 10 (`Backup B (GitLab Pages)`) gets updated to `Backup B (Netlify)` for accuracy.
 
-### 5. Verify the GitLab mirror is serving files
-Check that these URLs return the expected content:
+### 6. Verification (post-build)
+- Confirm `https://gpkonwaxbackup.netlify.app/manifest.json` returns JSON (in-browser sanity check).
+- In the app, open the header pill tooltip and confirm the third mirror row reads "Backup B (Netlify)" and shows "Reachable".
+- Open the Offline Backup panel and confirm Netlify appears in the mirror list.
+- Trigger a "Recheck now" and confirm no console errors.
 
-```text
-https://bewbzz.gitlab.io/gpkonwaxbackup/mirror/gpk-manifest.json
-https://bewbzz.gitlab.io/gpkonwaxbackup/mirror/1a.png   (or another known image path)
-```
+## What is intentionally NOT changing
+- Primary mirror (GitHub Pages) and Backup A (Cloudflare) — untouched.
+- Fallback ordering — IPFS → GitHub → Cloudflare → Netlify → Local ZIP stays as-is.
+- ZIP part download URLs — those still come from the GitHub Release; Netlify is images-only for now (matches how you deployed it).
+- No changes to `.gitlab-ci.yml`, `scripts/`, or any GitLab-specific tooling — those files are inert now and can be deleted later if you want, but leaving them costs nothing.
 
-### 6. Wire Backup B into the app
-Update `src/lib/ipfsGateways.ts`:
-
-- Add `BACKUP_MIRROR_B = 'https://bewbzz.gitlab.io/gpkonwaxbackup/mirror/'`.
-- Append it to the mirror fallback list used by `useImageSourceStatus` and the download/verification flows.
-
-### 7. Update the Image Source Indicator
-In `src/hooks/useImageSourceStatus.ts` and `src/components/ImageSourceIndicator.tsx`, ensure GitLab is probed as the third fallback and reported correctly (e.g. "Backup B (GitLab) live").
-
-### 8. Update the Backup Panel
-In `src/components/BackupPanel.tsx`, add a "Download from GitLab" option alongside the existing GitHub and Cloudflare options.
-
-### 9. Test the full fallback chain
-Use the in-app indicator and Backup Panel to confirm:
-1. IPFS is preferred when live.
-2. GitHub primary mirror is next.
-3. Cloudflare is third.
-4. GitLab is fourth and reachable.
-
-## Open question before implementation
-Please confirm the final GitLab Pages URL you want baked into the app:
-
-- `https://bewbzz.gitlab.io/gpkonwaxbackup/` (matches the push you just did)
-- Or `https://gpkonwaxbackup.gitlab.io/gpkonwaxbackup/` (if you move/rename the project)
-
-Once confirmed, I will implement steps 1–9.
+## Open question
+Do you want me to also **delete** the leftover GitLab plan file (`.lovable/plan.md` currently describes the GitLab deploy) and the mention of GitLab in any README/scripts, or leave them as historical notes? Default: leave them alone unless you say otherwise.
