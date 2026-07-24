@@ -11,8 +11,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -25,12 +23,10 @@ import { toast } from '@/hooks/use-toast';
 import {
   clearLocalMirror,
   getLocalMirrorStatus,
-  getPersistPreference,
   ingestMirrorZip,
-  persistLocalMirrorToIdb,
-  setPersistPreference,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
+
 import {
   MIRRORS,
   type MirrorKey,
