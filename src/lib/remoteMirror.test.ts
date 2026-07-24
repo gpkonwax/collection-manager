@@ -159,12 +159,12 @@ describe('remoteMirror', () => {
       fileName: 'gpk-image-mirror.zip',
       parts: [],
     });
-    // Primary (GitHub Release asset) is always present. Backup A (Cloudflare)
+    // Primary (GitHub Release asset) is always present. Backup B (Cloudflare)
     // is intentionally excluded even when configured — its 25 MB per-file cap
     // means the ZIP isn't uploaded there.
     const keys = options.map((o) => o.key);
     expect(keys).toContain('primary');
-    expect(keys).not.toContain('backupA');
+    expect(keys).not.toContain('backupB');
     const primary = options.find((o) => o.key === 'primary')!;
     expect(primary.parts[0].url).toBe(
       'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/gpk-image-mirror.zip'

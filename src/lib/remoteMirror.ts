@@ -139,7 +139,7 @@ export interface ZipDownloadOption {
  * Direct download URLs for the offline ZIP, in priority order.
  *
  * - Primary (GitHub Pages) → GitHub Release asset (Pages repo can't hold >100 MB files).
- * - Other mirrors (GitLab / Cloudflare) → `${baseUrl}gpk-image-mirror.zip`
+ * - Other mirrors (Netlify) → `${baseUrl}gpk-image-mirror-part-NNN.zip`
  *   because those platforms accept large files alongside the images.
  * - GitHub Release landing page is appended as a bonus fallback.
  */
@@ -155,9 +155,9 @@ export function getZipDownloadUrls(zipInfo?: ZipManifestInfo | null): ZipDownloa
       : [];
   for (const m of MIRRORS) {
     if (!m.url || !/^https:\/\//i.test(m.url)) continue;
-    // Backup A (Cloudflare Pages) has a 25 MB per-file cap on the free tier,
+    // Backup B (Cloudflare Pages) has a 25 MB per-file cap on the free tier,
     // so the ZIP is deliberately not uploaded there — it stays image-only.
-    if (m.key === 'backupA') continue;
+    if (m.key === 'backupB') continue;
     if (parts.length === 0) {
       // Manifest has no ZIP metadata — never fabricate a filename that might 404.
       // Point users at the release landing page instead so they always land somewhere real.
