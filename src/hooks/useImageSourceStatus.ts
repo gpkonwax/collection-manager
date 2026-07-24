@@ -7,7 +7,7 @@
  *   1. IPFS live  — at least one public gateway responds
  *   2. Primary mirror (GitHub Pages)
  *   3. Backup A (Cloudflare Pages)
- *   4. Backup B (GitLab Pages)
+ *   4. Backup B (Netlify)
  *   5. Offline ZIP loaded in the browser
  *   6. All sources down
  */
