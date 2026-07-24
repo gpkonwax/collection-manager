@@ -27,6 +27,7 @@ import {
   getLocalMirrorStatus,
   getPersistPreference,
   ingestMirrorZip,
+  persistLocalMirrorToIdb,
   setPersistPreference,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
@@ -150,6 +151,35 @@ export function BackupPanel({ triggerClassName }: Props) {
   const onPersistChange = (v: boolean) => {
     setPersistState(v);
     setPersistPreference(v);
+    if (!v) return;
+
+    if (status.fileCount === 0) {
+      toast({
+        title: 'Remember enabled',
+        description: 'Load the ZIP parts once and they will be saved on this device.',
+      });
+      return;
+    }
+
+    setBusy(true);
+    persistLocalMirrorToIdb()
+      .then(() => {
+        toast({
+          title: 'Offline backup saved',
+          description: `${status.fileCount.toLocaleString()} files will restore automatically on this device.`,
+        });
+      })
+      .catch((err) => {
+        console.error('[BackupPanel] persist failed', err);
+        setPersistState(false);
+        setPersistPreference(false);
+        toast({
+          title: 'Could not save backup on this device',
+          description: err instanceof Error ? err.message : 'Browser storage was unavailable or full.',
+          variant: 'destructive',
+        });
+      })
+      .finally(() => setBusy(false));
   };
 
   const onUseMirror = (key: MirrorKey) => {
@@ -377,10 +407,13 @@ export function BackupPanel({ triggerClassName }: Props) {
             />
             <div className="flex items-center justify-between pt-1">
               <Label htmlFor="persist-mirror" className="text-xs text-muted-foreground">
-                Remember on this device (IndexedDB)
+                Remember loaded ZIPs on this device
               </Label>
               <Switch id="persist-mirror" checked={persist} onCheckedChange={onPersistChange} />
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              Restores automatically from this browser unless site data is cleared.
+            </p>
           </section>
 
           <hr className="border-border" />
