@@ -11,8 +11,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -25,12 +23,10 @@ import { toast } from '@/hooks/use-toast';
 import {
   clearLocalMirror,
   getLocalMirrorStatus,
-  getPersistPreference,
   ingestMirrorZip,
-  persistLocalMirrorToIdb,
-  setPersistPreference,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
+
 import {
   MIRRORS,
   type MirrorKey,
@@ -97,14 +93,13 @@ export function BackupPanel({ triggerClassName }: Props) {
     return () => window.removeEventListener('open-backup-panel', handler);
   }, []);
   const [busy, setBusy] = useState(false);
-  const [persist, setPersistState] = useState(false);
   const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setPersistState(getPersistPreference());
     getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
+
     // Health-check every configured mirror when the panel opens so users get
     // obvious green/red indicators without having to click anything.
     (['primary', 'backupA', 'backupB'] as MirrorKey[]).forEach((key) => {
@@ -148,39 +143,8 @@ export function BackupPanel({ triggerClassName }: Props) {
     toast({ title: 'Offline backup cleared' });
   };
 
-  const onPersistChange = (v: boolean) => {
-    setPersistState(v);
-    setPersistPreference(v);
-    if (!v) return;
 
-    if (status.fileCount === 0) {
-      toast({
-        title: 'Remember enabled',
-        description: 'Load the ZIP parts once and they will be saved on this device.',
-      });
-      return;
-    }
 
-    setBusy(true);
-    persistLocalMirrorToIdb()
-      .then(() => {
-        toast({
-          title: 'Offline backup saved',
-          description: `${status.fileCount.toLocaleString()} files will restore automatically on this device.`,
-        });
-      })
-      .catch((err) => {
-        console.error('[BackupPanel] persist failed', err);
-        setPersistState(false);
-        setPersistPreference(false);
-        toast({
-          title: 'Could not save backup on this device',
-          description: err instanceof Error ? err.message : 'Browser storage was unavailable or full.',
-          variant: 'destructive',
-        });
-      })
-      .finally(() => setBusy(false));
-  };
 
   const onUseMirror = (key: MirrorKey) => {
     if (!isMirrorConfigured(key)) {
@@ -238,7 +202,7 @@ export function BackupPanel({ triggerClassName }: Props) {
         {/* Recommended: proactive ZIP download — pinned in the fixed header */}
         <div className="px-6 pt-4 text-sm">
           <RecommendedZipCard
-            protectedOnDevice={status.fileCount > 0 && (status.persisted || persist)}
+            protectedOnDevice={status.fileCount > 0}
             fileCount={status.fileCount}
             totalBytes={status.totalBytes}
             zipInfo={zipInfo}
@@ -405,15 +369,10 @@ export function BackupPanel({ triggerClassName }: Props) {
               className="hidden"
               onChange={onFileChange}
             />
-            <div className="flex items-center justify-between pt-1">
-              <Label htmlFor="persist-mirror" className="text-xs text-muted-foreground">
-                Remember loaded ZIPs on this device
-              </Label>
-              <Switch id="persist-mirror" checked={persist} onCheckedChange={onPersistChange} />
-            </div>
             <p className="text-[10px] text-muted-foreground">
-              Restores automatically from this browser unless site data is cleared.
+              ZIPs stay loaded for this browser session. Reload the page to clear them.
             </p>
+
           </section>
 
           <hr className="border-border" />
