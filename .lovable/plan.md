@@ -1,19 +1,42 @@
-## Backup B (Netlify) is fully live
+## What should happen
 
-All three ZIP parts respond on Netlify, and the manifest is already reachable. The app was wired to `https://gpkonwaxbackup.netlify.app/` in the previous step, so no further code changes are required.
+Your assumption is correct: **after you load the ZIP parts and turn on “Remember on this device”, you should not have to select the ZIPs again every time.**
 
-### What's already in place
-- `BACKUP_MIRROR_B` → `https://gpkonwaxbackup.netlify.app/` (in `src/lib/ipfsGateways.ts`)
-- Header pill (`ImageSourceIndicator`) labels the third mirror as **Backup B (Netlify)**
-- `remoteMirror.getZipDownloadUrls` auto-includes Netlify as a second ZIP source in the Offline Backup panel because parts 001–003 exist at the mirror root
+On future page loads, the manager should automatically restore the already-loaded image backup from the browser’s IndexedDB storage.
 
-### Verification steps (no code changes)
-1. Hard-reload the Collection Manager (Ctrl+F5) to bust the manifest cache.
-2. Confirm the header pill shows three green dots: IPFS, Backup A (Cloudflare), Backup B (Netlify).
-3. Open the Offline Backup panel and confirm each of parts 1/2/3 now lists **two** download sources (GitHub Release + Netlify).
+## What is wrong now
 
-### If anything looks off
-- Header pill red on Backup B → CORS or caching; re-check `https://gpkonwaxbackup.netlify.app/manifest.json` returns 200 with `application/json`.
-- Only GitHub shown for ZIP parts → the runtime probe hasn't picked Netlify yet; reload once more.
+The current code only saves the ZIP contents if “Remember on this device” was already turned on **before** the ZIPs were loaded.
 
-No plan step requires editing files. Approve to switch to build mode only if you want me to run the in-app verification via the preview and confirm the three-dot state visually.
+So if you did this:
+
+1. Load ZIP part 1, 2, and 3
+2. Then click “Remember on this device”
+3. Reload the page
+
+…the app remembers the switch setting, but it may not have actually saved the already-loaded ZIP data into IndexedDB. That makes you load the ZIPs again.
+
+## Fix plan
+
+1. **Make the remember switch actually save what is already loaded**
+   - When you turn “Remember on this device” ON, immediately persist the currently loaded offline mirror into IndexedDB.
+   - Show a toast like “Offline backup saved on this device”.
+
+2. **Make ZIP loading save automatically when remember is enabled**
+   - If “Remember on this device” is already ON, loading ZIP parts will continue to save automatically after ingesting them.
+
+3. **Make reload restore reliable**
+   - Keep the existing startup restore from IndexedDB.
+   - After restore completes, refresh the visible image-source status so “Offline ZIP” shows reachable immediately instead of stale/unreachable.
+
+4. **Improve the wording**
+   - Change the label from `Remember on this device (IndexedDB)` to something clearer, such as:
+     - `Remember loaded ZIPs on this device`
+   - Add a short note that this uses the browser’s local storage and will be lost if browser site data is cleared.
+
+5. **Verify**
+   - Load the ZIP parts.
+   - Turn on remember.
+   - Reload the page.
+   - Confirm the Offline Backup section still says the files are loaded without selecting ZIPs again.
+   - Confirm the header status shows Offline ZIP as reachable when needed.
