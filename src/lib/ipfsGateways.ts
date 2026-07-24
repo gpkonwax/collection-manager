@@ -21,12 +21,12 @@ export const PUBLIC_IPFS_GATEWAYS = [
  * card / pack / puzzle image. Because the folder mirrors IPFS paths exactly,
  * `${PRIMARY_MIRROR}${hash}/prism/42lg.gif` resolves identically to a real gateway.
  *
- * Backup mirrors A and B are intentionally empty until you create them on
- * Cloudflare Pages / GitLab Pages. Update the constants below, then redeploy.
+ * Backup mirror A is Cloudflare Pages; backup mirror B is GitLab Pages.
+ * Update these constants if you recreate or move a mirror.
  */
 export const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/mirror/';
 export const BACKUP_MIRROR_A = 'https://gpkonwaxbackup.pages.dev/';
-export const BACKUP_MIRROR_B = '';
+export const BACKUP_MIRROR_B = 'https://bewbzz.gitlab.io/gpkonwaxbackup/mirror/';
 
 export const TRUSTED_MIRRORS = [PRIMARY_MIRROR].filter(Boolean);
 
