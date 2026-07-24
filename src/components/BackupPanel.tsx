@@ -369,15 +369,10 @@ export function BackupPanel({ triggerClassName }: Props) {
               className="hidden"
               onChange={onFileChange}
             />
-            <div className="flex items-center justify-between pt-1">
-              <Label htmlFor="persist-mirror" className="text-xs text-muted-foreground">
-                Remember loaded ZIPs on this device
-              </Label>
-              <Switch id="persist-mirror" checked={persist} onCheckedChange={onPersistChange} />
-            </div>
             <p className="text-[10px] text-muted-foreground">
-              Restores automatically from this browser unless site data is cleared.
+              ZIPs stay loaded for this browser session. Reload the page to clear them.
             </p>
+
           </section>
 
           <hr className="border-border" />
