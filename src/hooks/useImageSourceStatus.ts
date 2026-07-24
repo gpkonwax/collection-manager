@@ -7,27 +7,30 @@
  *   1. IPFS live  — at least one public gateway responds
  *   2. Primary mirror (GitHub Pages)
  *   3. Backup A (Cloudflare Pages)
- *   4. Offline ZIP loaded in the browser
- *   5. All sources down
+ *   4. Backup B (GitLab Pages)
+ *   5. Offline ZIP loaded in the browser
+ *   6. All sources down
  */
 import { useSyncExternalStore } from 'react';
 import {
   PUBLIC_IPFS_GATEWAYS,
   PRIMARY_MIRROR,
   BACKUP_MIRROR_A,
+  BACKUP_MIRROR_B,
 } from '@/lib/ipfsGateways';
 import {
   getLocalMirrorStatus,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
 
-export type SourceKey = 'ipfs' | 'primary' | 'backupA' | 'local' | 'none';
+export type SourceKey = 'ipfs' | 'primary' | 'backupA' | 'backupB' | 'local' | 'none';
 export type CheckStatus = 'idle' | 'checking' | 'ok' | 'failed';
 
 export interface SourceStatus {
   ipfs: CheckStatus;
   primary: CheckStatus;
   backupA: CheckStatus;
+  backupB: CheckStatus;
   local: CheckStatus;
   active: SourceKey;
   lastCheckedAt: number | null;
@@ -41,6 +44,7 @@ let state: SourceStatus = {
   ipfs: 'idle',
   primary: 'idle',
   backupA: 'idle',
+  backupB: 'idle',
   local: 'idle',
   active: 'none',
   lastCheckedAt: null,
@@ -55,6 +59,7 @@ function computeActive(next: Omit<SourceStatus, 'active' | 'lastCheckedAt'>): So
   if (next.ipfs === 'ok') return 'ipfs';
   if (next.primary === 'ok') return 'primary';
   if (next.backupA === 'ok') return 'backupA';
+  if (next.backupB === 'ok') return 'backupB';
   if (next.local === 'ok') return 'local';
   return 'none';
 }
@@ -107,6 +112,11 @@ async function checkBackupA(): Promise<boolean> {
   return probe(`${BACKUP_MIRROR_A}manifest.json`);
 }
 
+async function checkBackupB(): Promise<boolean> {
+  if (!BACKUP_MIRROR_B) return false;
+  return probe(`${BACKUP_MIRROR_B}manifest.json`);
+}
+
 function checkLocal(): boolean {
   return getLocalMirrorStatus().fileCount > 0;
 }
@@ -118,18 +128,21 @@ export function runImageSourceChecks(): Promise<void> {
     ipfs: 'checking',
     primary: 'checking',
     backupA: 'checking',
+    backupB: 'checking',
     local: checkLocal() ? 'ok' : 'failed',
   });
   inFlight = (async () => {
-    const [ipfs, primary, backupA] = await Promise.all([
+    const [ipfs, primary, backupA, backupB] = await Promise.all([
       checkIpfs(),
       checkPrimary(),
       checkBackupA(),
+      checkBackupB(),
     ]);
     update({
       ipfs: ipfs ? 'ok' : 'failed',
       primary: primary ? 'ok' : 'failed',
       backupA: backupA ? 'ok' : 'failed',
+      backupB: backupB ? 'ok' : 'failed',
       local: checkLocal() ? 'ok' : 'failed',
       lastCheckedAt: Date.now(),
     });
@@ -173,6 +186,7 @@ export const SOURCE_LABELS: Record<SourceKey, string> = {
   ipfs: 'IPFS live',
   primary: 'Primary mirror',
   backupA: 'Backup A',
+  backupB: 'Backup B',
   local: 'Offline ZIP',
   none: 'All sources down',
 };
