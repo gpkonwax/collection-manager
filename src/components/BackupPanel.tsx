@@ -406,7 +406,7 @@ function RecommendedZipCard({
 }: RecommendedZipCardProps) {
   const options = getZipDownloadUrls(zipInfo);
   const [showDownloadLauncher, setShowDownloadLauncher] = useState(false);
-  const [nextPartIndex, setNextPartIndex] = useState(0);
+  const [startedPartNames, setStartedPartNames] = useState<string[]>([]);
 
   if (protectedOnDevice) {
     return (
@@ -433,11 +433,12 @@ function RecommendedZipCard({
   const primaryTotalLabel = primaryPartsTotal > 0 ? formatBytes(primaryPartsTotal) : approxSize;
 
   const primaryParts = primaryOption?.parts ?? [];
-  const nextPart = primaryParts[nextPartIndex];
-  const downloadedCount = Math.min(nextPartIndex, primaryParts.length);
+  const startedPartSet = new Set(startedPartNames);
+  const nextPart = primaryParts.find((part) => !startedPartSet.has(part.fileName));
+  const downloadedCount = primaryParts.filter((part) => startedPartSet.has(part.fileName)).length;
 
-  const markPartStarted = (partIndex: number) => {
-    setNextPartIndex((current) => Math.max(current, Math.min(partIndex + 1, primaryParts.length)));
+  const markPartStarted = (fileName: string) => {
+    setStartedPartNames((current) => current.includes(fileName) ? current : [...current, fileName]);
   };
 
   return (
@@ -491,7 +492,7 @@ function RecommendedZipCard({
                     target="_blank"
                     rel="noopener noreferrer"
                     download={nextPart.fileName}
-                    onClick={() => markPartStarted(nextPartIndex)}
+                    onClick={() => markPartStarted(nextPart.fileName)}
                   >
                     <Download className="w-3.5 h-3.5 mr-2" />
                     Start next download: Part {nextPart.index} ({formatBytes(nextPart.bytes)})
@@ -511,7 +512,7 @@ function RecommendedZipCard({
                     key={part.fileName}
                     asChild
                     size="sm"
-                    variant={partIndex < nextPartIndex ? 'default' : 'outline'}
+                    variant={startedPartSet.has(part.fileName) ? 'default' : 'outline'}
                     className="w-full h-8 justify-start"
                   >
                     <a
@@ -519,7 +520,7 @@ function RecommendedZipCard({
                       target="_blank"
                       rel="noopener noreferrer"
                       download={part.fileName}
-                      onClick={() => markPartStarted(partIndex)}
+                      onClick={() => markPartStarted(part.fileName)}
                     >
                       <Download className="w-3.5 h-3.5 mr-2" />
                       Part {part.index}: {formatBytes(part.bytes)}
