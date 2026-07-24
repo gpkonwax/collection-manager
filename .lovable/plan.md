@@ -1,45 +1,60 @@
-## Goal
-Swap Backup B from the (abandoned) GitLab Pages URL to the live Netlify mirror at `https://gpkonwaxbackup.netlify.app/`, and relabel it everywhere the user sees "GitLab" so the indicator, tooltip, and backup panel match reality.
+## Status
 
-## Verified current state
-- `src/lib/ipfsGateways.ts` line 29: `BACKUP_MIRROR_B = 'https://bewbzz.gitlab.io/gpkonwaxbackup/mirror/'` — needs to change.
-- `src/hooks/useImageSourceStatus.ts` already probes `BACKUP_MIRROR_B` via `${base}manifest.json` — no logic change needed, just the constant.
-- `src/components/ImageSourceIndicator.tsx` line 61 hardcodes the label `Backup B (GitLab Pages)` — needs relabel.
-- `SOURCE_LABELS.backupB = 'Backup B'` is generic, safe to leave.
-- `BACKUP_MIRROR_B` is also consumed by `src/lib/remoteMirror.ts` (for hash-verified image fallback and mirror listing in the Backup Panel) — the URL change flows through automatically.
+Phase 1 (images) is confirmed live — `https://gpkonwaxbackup.netlify.app/manifest.json` returns JSON. You've said the 3 ZIP parts were in `public\` before the deploy, so they likely uploaded in the same pass.
 
-## Changes
+Before I change any app code, we need to **prove the ZIPs are actually on Netlify**. If they aren't, the app will link users to 404s.
 
-### 1. `src/lib/ipfsGateways.ts`
-Replace the `BACKUP_MIRROR_B` constant and update the comment above it.
-```ts
-// Backup mirror A is Cloudflare Pages; backup mirror B is Netlify.
-export const BACKUP_MIRROR_B = 'https://gpkonwaxbackup.netlify.app/';
+## Step 0 — Verify the ZIPs are live (do this first)
+
+Open each URL in your browser. A working file will pop up a download prompt or show the browser's download bar within a second or two. A missing file shows Netlify's 404 page.
+
+- `https://gpkonwaxbackup.netlify.app/gpk-image-mirror-part-001.zip`
+- `https://gpkonwaxbackup.netlify.app/gpk-image-mirror-part-002.zip`
+- `https://gpkonwaxbackup.netlify.app/gpk-image-mirror-part-003.zip`
+
+Cancel each download as soon as it starts — we're only checking they exist.
+
+**Case A — all 3 start downloading:** skip Phase 2, go straight to Phase 3.
+**Case B — any of them 404:** run Phase 2 to upload the missing parts, then Phase 3.
+
+## Phase 2 — Only if any ZIP 404s
+
+**1. Confirm the missing files are actually in `public\`**
+```powershell
+cd C:\Users\User\Desktop\gpk-gitlab-mirror
+dir public\gpk-image-mirror-part-*.zip
 ```
+You should see all 3 with sizes ~1.76 GB, ~1.76 GB, ~465 MB. If any are missing locally, copy them in from wherever you saved them (or re-download from `https://github.com/bewbzz/gpkonwaxbackup/releases/latest`).
 
-### 2. `src/components/ImageSourceIndicator.tsx`
-Change the tooltip row label from `Backup B (GitLab Pages)` to `Backup B (Netlify)`.
+**2. Re-deploy**
+```powershell
+netlify deploy --dir=public --site=2298deaf-0948-42c4-971f-e25c8c1afba6 --prod
+```
+Only the missing parts upload. Expect a slow byte transfer — 30–60 min depending on your connection.
 
-### 3. `src/components/BackupPanel.tsx`
-Any user-facing string that says "GitLab" (mirror list, verify labels, download source names) becomes "Netlify". No structural changes — just text.
+**3. Re-check the 3 URLs from Step 0.**
 
-### 4. `src/lib/remoteMirror.ts`
-If the mirror registry / labels array references "GitLab" for Backup B, rename to "Netlify". URL is picked up automatically from `BACKUP_MIRROR_B`.
+## Phase 3 — Wire Netlify ZIPs into the app
 
-### 5. `src/hooks/useImageSourceStatus.ts`
-No code change required. The doc comment on line 10 (`Backup B (GitLab Pages)`) gets updated to `Backup B (Netlify)` for accuracy.
+One file change: `src/lib/remoteMirror.ts`, function `getZipDownloadUrls`.
 
-### 6. Verification (post-build)
-- Confirm `https://gpkonwaxbackup.netlify.app/manifest.json` returns JSON (in-browser sanity check).
-- In the app, open the header pill tooltip and confirm the third mirror row reads "Backup B (Netlify)" and shows "Reachable".
-- Open the Offline Backup panel and confirm Netlify appears in the mirror list.
-- Trigger a "Recheck now" and confirm no console errors.
+Currently it skips Backup A (Cloudflare's 25 MiB cap) and only emits GitHub Release URLs for the primary mirror. **Change:** for `m.key === 'backupB'` (Netlify), emit `${m.url}${part.fileName}` per part — same shape non-primary mirrors already use. Backup A stays skipped.
+
+Result in the Offline Backup panel:
+- Existing GitHub Release source (unchanged, stays primary).
+- New **Backup mirror B — Netlify** source listing the same 3 parts, each pointing at `https://gpkonwaxbackup.netlify.app/gpk-image-mirror-part-00X.zip`.
+
+The existing "Start download → Start next download" launcher works per source with no other changes.
+
+## Phase 4 — Verify in the app
+
+1. Hard-reload the Collection Manager.
+2. Open the Offline Backup panel — two ZIP sources should now be listed, each with 3 parts.
+3. Click Part 1 under Netlify and confirm the download begins from `gpkonwaxbackup.netlify.app`.
 
 ## What is intentionally NOT changing
-- Primary mirror (GitHub Pages) and Backup A (Cloudflare) — untouched.
-- Fallback ordering — IPFS → GitHub → Cloudflare → Netlify → Local ZIP stays as-is.
-- ZIP part download URLs — those still come from the GitHub Release; Netlify is images-only for now (matches how you deployed it).
-- No changes to `.gitlab-ci.yml`, `scripts/`, or any GitLab-specific tooling — those files are inert now and can be deleted later if you want, but leaving them costs nothing.
 
-## Open question
-Do you want me to also **delete** the leftover GitLab plan file (`.lovable/plan.md` currently describes the GitLab deploy) and the mention of GitLab in any README/scripts, or leave them as historical notes? Default: leave them alone unless you say otherwise.
+- No changes to Primary (GitHub) or Backup A (Cloudflare).
+- No changes to hash-verified image fallback — Netlify already flows through `fetchVerifiedMirrorFile` via `BACKUP_MIRROR_B`.
+- No manifest regeneration — existing `zipParts` metadata is reused verbatim.
+- GitHub Release stays the primary ZIP source; Netlify is added as a peer.
