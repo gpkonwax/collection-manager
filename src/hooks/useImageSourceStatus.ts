@@ -152,6 +152,13 @@ export function runImageSourceChecks(): Promise<void> {
 
 let bootstrapped = false;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+// Reflect local-mirror changes immediately, including the IndexedDB restore
+// that can finish before any React component subscribes to this hook.
+subscribeLocalMirror(() => {
+  update({ local: checkLocal() ? 'ok' : 'failed' });
+});
+
 function bootstrap() {
   if (bootstrapped) return;
   bootstrapped = true;
@@ -162,10 +169,6 @@ function bootstrap() {
       if (document.visibilityState === 'visible') void runImageSourceChecks();
     });
   }
-  // Reflect local-mirror changes immediately (ZIP loaded/cleared).
-  subscribeLocalMirror(() => {
-    update({ local: checkLocal() ? 'ok' : 'failed' });
-  });
 }
 
 function subscribe(fn: () => void): () => void {

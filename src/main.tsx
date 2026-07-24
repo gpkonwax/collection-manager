@@ -7,9 +7,17 @@ import { getPersistPreference, restoreLocalMirrorFromIdb } from "./lib/localMirr
 // Best-effort restore of a previously-persisted local image mirror.
 // Runs in the background; if IDB is unavailable or empty, this is a silent no-op.
 if (getPersistPreference()) {
-  restoreLocalMirrorFromIdb().catch((err) => {
-    console.warn('[main] local mirror restore failed', err);
-  });
+  restoreLocalMirrorFromIdb()
+    .then((restored) => {
+      if (restored > 0) {
+        import("./hooks/useImageSourceStatus").then(({ runImageSourceChecks }) => {
+          void runImageSourceChecks();
+        }).catch(() => { /* status refresh is best-effort */ });
+      }
+    })
+    .catch((err) => {
+      console.warn('[main] local mirror restore failed', err);
+    });
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

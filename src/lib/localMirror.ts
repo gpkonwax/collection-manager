@@ -162,7 +162,7 @@ export async function ingestMirrorZip(source: File | Blob | ArrayBuffer | Uint8A
 
   if (getPersistPreference()) {
     // Best-effort persist — don't fail ingest if IDB is unavailable.
-    persistToIdb().catch((err) => console.warn('[localMirror] persist failed', err));
+    persistLocalMirrorToIdb().catch((err) => console.warn('[localMirror] persist failed', err));
   }
 
   return { added, bytes: addedBytes };
@@ -201,7 +201,7 @@ export function clearLocalMirror(): void {
 
 
 /** Persist current blobs to IndexedDB as an array of [key, Blob]. */
-async function persistToIdb(): Promise<void> {
+export async function persistLocalMirrorToIdb(): Promise<void> {
   const payload: Array<[string, Blob]> = [];
   for (const [key, entry] of store.entries()) payload.push([key, entry.blob]);
   await idbSet(IDB_KEY, payload);
