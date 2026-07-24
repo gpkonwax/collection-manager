@@ -160,10 +160,8 @@ export async function ingestMirrorZip(source: File | Blob | ArrayBuffer | Uint8A
   loadedAt = Date.now();
   emit();
 
-  if (getPersistPreference()) {
-    // Best-effort persist — don't fail ingest if IDB is unavailable.
-    persistLocalMirrorToIdb().catch((err) => console.warn('[localMirror] persist failed', err));
-  }
+
+
 
   return { added, bytes: addedBytes };
 }
