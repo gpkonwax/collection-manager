@@ -405,6 +405,8 @@ function RecommendedZipCard({
   zipInfo,
 }: RecommendedZipCardProps) {
   const options = getZipDownloadUrls(zipInfo);
+  const [showDownloadLauncher, setShowDownloadLauncher] = useState(false);
+  const [nextPartIndex, setNextPartIndex] = useState(0);
 
   if (protectedOnDevice) {
     return (
@@ -430,8 +432,6 @@ function RecommendedZipCard({
     : 0;
   const primaryTotalLabel = primaryPartsTotal > 0 ? formatBytes(primaryPartsTotal) : approxSize;
 
-  const [showDownloadLauncher, setShowDownloadLauncher] = useState(false);
-  const [nextPartIndex, setNextPartIndex] = useState(0);
   const primaryParts = primaryOption?.parts ?? [];
   const nextPart = primaryParts[nextPartIndex];
   const downloadedCount = Math.min(nextPartIndex, primaryParts.length);
