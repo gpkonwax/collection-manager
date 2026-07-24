@@ -104,9 +104,11 @@ export function BackupPanel({ triggerClassName }: Props) {
     if (!open) return;
     setPersistState(getPersistPreference());
     getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
-    // Health-check the built-in primary mirror every time the panel opens so
-    // users get an obvious green/red indicator without having to click anything.
-    checkMirrorHealth('primary');
+    // Health-check every configured mirror when the panel opens so users get
+    // obvious green/red indicators without having to click anything.
+    (['primary', 'backupA', 'backupB'] as MirrorKey[]).forEach((key) => {
+      checkMirrorHealth(key);
+    });
   }, [open]);
 
   const onPickFile = () => inputRef.current?.click();
