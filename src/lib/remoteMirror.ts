@@ -139,7 +139,7 @@ export interface ZipDownloadOption {
  * Direct download URLs for the offline ZIP, in priority order.
  *
  * - Primary (GitHub Pages) → GitHub Release asset (Pages repo can't hold >100 MB files).
- * - Other mirrors (GitLab / Cloudflare) → `${baseUrl}gpk-image-mirror.zip`
+ * - Other mirrors (Netlify) → `${baseUrl}gpk-image-mirror-part-NNN.zip`
  *   because those platforms accept large files alongside the images.
  * - GitHub Release landing page is appended as a bonus fallback.
  */
