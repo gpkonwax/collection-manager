@@ -215,12 +215,14 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {(mintInfo || hasContained) && (
+        {((mintInfo && !isAtomic) || (isAtomic && asset.idata?.bridge_mint) || hasContained) && (
           <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-            {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>}
-            {asset.idata?.bridge_mint ? (
+            {mintInfo && !isAtomic && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>
+            )}
+            {isAtomic && asset.idata?.bridge_mint ? (
               <span
-                className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium"
                 title="Original bridge order mint from SimpleAssets → AtomicAssets bridging"
               >
                 Bridge Mint #{String(asset.idata.bridge_mint)}
