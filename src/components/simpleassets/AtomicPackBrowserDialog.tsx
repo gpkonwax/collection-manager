@@ -101,14 +101,23 @@ export function AtomicPackBrowserDialog({
               const isThis = openingIdx === globalIdx;
               return (
                 <Card key={localAssetIds[globalIdx]} className="bg-card border-border hover:border-primary/40 transition-colors">
-                  <CardContent className="p-3 flex flex-col items-center text-center space-y-2">
+                  <CardContent className="p-0 flex flex-col items-center text-center">
+                    <div
+                      className="w-full flex justify-center py-1 bg-muted/30"
+                      title="Pack mint number"
+                    >
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
+                        {localMints[globalIdx] ? `#${localMints[globalIdx]}` : '#--'}
+                      </span>
+                    </div>
+                    <div className="p-3 pt-2 flex flex-col items-center text-center space-y-2 w-full">
                     <img src={pack.image} alt={pack.name} className="w-3/4 h-auto rounded mx-auto" />
-                    <p className="text-xs text-muted-foreground">Mint #{localMints[globalIdx] || globalIdx + 1}</p>
                     <Button size="sm" variant="outline" className="w-full text-xs"
                       disabled={!session || openingIdx !== null}
                       onClick={() => handleOpen(i)}>
                       {isThis ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : 'Open'}
                     </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
