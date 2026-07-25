@@ -340,7 +340,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             <span aria-hidden>·</span>
             <span className="inline-flex items-center gap-1.5">
               <img
-                src={asset.source === 'atomicassets' ? atomicAssetsLogo.url : simpleAssetsLogo.url}
+                src={asset.source === 'atomicassets' ? atomicAssetsLogo : simpleAssetsLogo}
                 alt=""
                 className={`h-4 w-4 rounded-full object-cover ${asset.source === 'atomicassets' ? '' : 'bg-white p-[1px]'}`}
               />
