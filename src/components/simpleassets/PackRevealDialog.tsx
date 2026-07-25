@@ -253,7 +253,7 @@ export function PackRevealDialog({
   open, onOpenChange, packSymbol, packLabel, packImage,
   accountName, preOpenUnboxingIds, onComplete, onDemoCollect, demoCards, session,
 }: PackRevealDialogProps) {
-  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
+  const [phase, setPhase] = useState<'waiting' | 'preloading' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
   const [pendingRowIds, setPendingRowIds] = useState<number[]>([]);
   const [unboxingId, setUnboxingId] = useState<number | null>(null);
