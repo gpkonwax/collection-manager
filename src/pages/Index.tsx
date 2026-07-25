@@ -587,16 +587,34 @@ export default function SimpleAssetsPage() {
       return;
     }
 
-    // Poll for matched delivery up to ~45s.
-    const deadline = Date.now() + 45_000;
-    const delays = [1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000];
+    // Scope the polling refetch by reveal source (SA packs only need SA
+    // refetches — an AA refetch during an SA open is pure render churn) and
+    // guard it so refetches never stack.
+    const source = reveal!.source;
+    const scopedRefetch = source === 'simpleassets' ? refetchSa : refetchAa;
+    let refetchInFlight = false;
+    const guardedRefetch = async () => {
+      if (refetchInFlight) return;
+      refetchInFlight = true;
+      try { await scopedRefetch(); } finally { refetchInFlight = false; }
+    };
+
+    // Progressive backoff, no hard deadline for confirmed opens — we've got
+    // the on-chain tx, so cards WILL land. Wait as long as it takes.
+    const delays = [2000, 2000, 3000, 4000, 5000, 6000, 8000, 8000];
+    const totalMatchers = reveal!.matchers.length;
     let attempt = 0;
     let matched: SimpleAsset[] = [];
-    while (Date.now() < deadline) {
-      // Let React commit the latest refetch into state before reading assetsRef.
+    const cancelToken = { cancelled: false };
+    preparingDealCancelRef.current = cancelToken;
+    setPreparingDeal({ matched: 0, total: totalMatchers, stage: 'indexing' });
+
+    while (!cancelToken.cancelled) {
       await new Promise<void>(r => requestAnimationFrame(() => r()));
       await new Promise(r => setTimeout(r, 50));
       const result = matchRevealedAssets(reveal!.matchers, assetsRef.current, preCollectIdsRef.current);
+      console.debug(`[sa-open] matched=${result.matched.length}/${totalMatchers} unresolved=${result.unresolved.length}`);
+      setPreparingDeal({ matched: result.matched.length, total: totalMatchers, stage: 'indexing' });
       if (result.unresolved.length === 0 && result.matched.length > 0) {
         matched = result.matched;
         break;
@@ -604,10 +622,25 @@ export default function SimpleAssetsPage() {
       const delay = delays[Math.min(attempt, delays.length - 1)];
       attempt++;
       await new Promise(r => setTimeout(r, delay));
-      await Promise.all([refetchSa(), refetchAa()]);
+      if (cancelToken.cancelled) break;
+      await guardedRefetch();
     }
 
-    if (matched.length === reveal!.matchers.length && matched.length > 0) {
+    if (cancelToken.cancelled) {
+      preparingDealCancelRef.current = null;
+      return;
+    }
+
+    if (matched.length === totalMatchers && matched.length > 0) {
+      // Preload every deal-card image before we start the animation. No time
+      // cap — a slow gateway is better than a broken animation.
+      setPreparingDeal({ matched: matched.length, total: totalMatchers, stage: 'preloading' });
+      await Promise.all(matched.map(a => preloadImageThroughGateways(a.image, 4000)));
+      if (cancelToken.cancelled) {
+        preparingDealCancelRef.current = null;
+        return;
+      }
+
       const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory || null;
       focusCollectionView(cat);
       setCollectionSyncNotice({ category: cat });
@@ -620,21 +653,26 @@ export default function SimpleAssetsPage() {
         status: 'collected',
         checkedAt: Date.now(),
       });
+      preparingDealCancelRef.current = null;
+      setPreparingDeal(null);
       setDealingCards([...matched].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
-    } else {
-      // Delivery didn't land in the indexer window — do NOT start an animation
-      // with the wrong cards. Surface Collect Unclaimed (if applicable) and let
-      // the user find their new cards on the next refetch.
-      pendingAnimationRef.current = null;
-      recheckUnclaimed();
-      focusCollectionView(reveal!.expectedCategory);
-      setCollectionSyncNotice({ category: reveal!.expectedCategory ?? null });
-      reconstructLatestPackOpen({ focus: false, silent: true });
-      toast.info('Cards delivered on-chain — they will appear in your collection shortly.', { duration: 6000 });
     }
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView, reconstructLatestPackOpen]);
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView]);
+
+  // Manual bail-out from the "Preparing deal" indicator: user chose to skip
+  // the animation and just see thumbnails.
+  const skipPreparingDeal = useCallback(() => {
+    const token = preparingDealCancelRef.current;
+    if (token) token.cancelled = true;
+    preparingDealCancelRef.current = null;
+    pendingAnimationRef.current = null;
+    setPreparingDeal(null);
+    recheckUnclaimed();
+    reconstructLatestPackOpen({ focus: true, silent: true });
+    toast.info('Skipped the deal animation — your new cards will appear as they land in your collection.', { duration: 5000 });
+  }, [recheckUnclaimed, reconstructLatestPackOpen]);
 
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
     if (demoAssets.length === 0) return;
