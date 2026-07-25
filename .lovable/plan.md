@@ -1,42 +1,48 @@
+## Goal
 
-## Root cause
+Make "Newest" sort reflect when an NFT entered the wallet, as accurately as each contract allows.
 
-In `src/pages/Index.tsx` (lines 887–896), the "Newest" comparator returns the wrong sign:
+- **AtomicAssets**: sort by real `transferred_at_time` from the Atomic API (accurate).
+- **SimpleAssets**: keep asset-ID descending as a best-effort proxy (the `sassets` table has no receipt timestamp). Label the option so users know the caveat.
 
-```ts
-arr.sort((a, b) => {
-  const aId = BigInt(a.id);
-  const bId = BigInt(b.id);
-  return bId > aId ? 1 : bId < aId ? -1 : 0;   // ← inverted
-});
-```
+## Changes
 
-A comparator that returns `+1` when `b > a` places `a` before `b`, which produces **ascending** order (oldest first). That's why "Newest" appears to do nothing / show oldest cards first. The other sort modes (`name`, `variant`) use the standard `x - y` pattern and are unaffected.
+### 1. Capture transfer time for AtomicAssets
+`src/hooks/useGpkAtomicAssets.ts`
+- Add `transferredAt?: number` (ms epoch) to the internal asset shape.
+- Read `transferred_at_time` from each Atomic API row (string ms since epoch) and parse to number.
+- Pass it through when constructing the unified asset object handed to the page.
 
-Note: asset IDs are unique per contract, not globally comparable across SimpleAssets and AtomicAssets, but within each contract a higher numeric ID = newer mint. That's the intended behaviour of this sort and doesn't need to change.
+`src/hooks/useSimpleAssets.ts`
+- Add `transferredAt?: number` to the exported `SimpleAsset` interface, left `undefined` for SA rows (no source of truth).
 
-## Fix
+`src/pages/Index.tsx` (wherever atomic assets are merged into the unified `SimpleAsset[]`)
+- Propagate `transferredAt` from the atomic hook into the merged asset object. No change to SA merge path.
 
-Flip the sign in the Newest comparator so bigger IDs come first:
+### 2. Update the Newest comparator
+`src/pages/Index.tsx` around line 887:
+- New rule for `sortMode === 'newest'`:
+  1. If both assets have `transferredAt`, sort by it descending.
+  2. If only one has `transferredAt`, the one with a real timestamp comes first (Atomic is genuinely "newer info" than an ID guess).
+  3. If neither has `transferredAt` (both SA), fall back to the current BigInt asset-ID descending compare.
+- Keep the existing try/catch around BigInt parsing.
 
-```ts
-if (sortMode === 'newest') {
-  arr.sort((a, b) => {
-    try {
-      const aId = BigInt(a.id);
-      const bId = BigInt(b.id);
-      return bId > aId ? -1 : bId < aId ? 1 : 0;   // descending
-    } catch {
-      return b.id.localeCompare(a.id);              // already descending — keep
-    }
-  });
-  return arr;
-}
-```
+### 3. Label the option honestly
+`src/pages/Index.tsx` around line 2439:
+- Change the SelectItem label from `Newest` to `Recently received`.
+- Add a small helper text / tooltip near the sort dropdown (or extend the existing note) explaining: "AtomicAssets use real transfer time. SimpleAssets fall back to asset ID (mint order) — no on-chain receipt time exists for SA."
 
-The `localeCompare` fallback is already descending (`b.id.localeCompare(a.id)`) and stays as-is.
+No other sort modes, filters, or views change. No backend/data-model changes. No new dependencies.
 
-## Files touched
-- `src/pages/Index.tsx` — 4 characters changed inside the `sortMode === 'newest'` block.
+## Verification
 
-No other logic, filters, view modes, or state paths are affected.
+- Wallet with mixed Atomic + SA cards: with "Recently received" selected, the most recently transferred Atomic cards appear first, ahead of SA cards, and SA cards among themselves order by asset ID descending (matches today's behavior for SA).
+- Wallet with Atomic-only: order matches Atomic API `sort=transferred` order.
+- Wallet with SA-only: order is unchanged from today.
+- Confirm no regression in Classic, Binder, and Saved views.
+
+## Out of scope
+
+- Scanning WAX action history for SA transfer times (rejected: slow, rate-limited).
+- Changing any other sort mode.
+- Persisting a locally-observed "first seen in wallet" timestamp — not requested.
