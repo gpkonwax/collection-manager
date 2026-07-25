@@ -1386,7 +1386,7 @@ export default function SimpleAssetsPage() {
   const renderSelectNote = () => {
     if (isViewing) return null;
     return (
-      <p className="text-[11px] text-muted-foreground leading-tight -mb-2">
+      <p className="text-[11px] text-muted-foreground leading-tight mb-1">
         * To send or burn NFTs from either contract press the "Select" button below
       </p>
     );
