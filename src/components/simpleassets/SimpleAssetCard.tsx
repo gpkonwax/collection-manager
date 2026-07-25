@@ -149,10 +149,17 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         </button>
       )}
       {isStacked && (
-        <div className="absolute top-2 right-2 z-10 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
+        <div className="absolute top-2 right-2 z-20 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
           x{stackCount}
         </div>
       )}
+      {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) */}
+      <div
+        className="absolute top-1.5 left-1/2 -translate-x-1/2 z-10 text-[10px] font-bold px-1.5 py-0.5 rounded bg-background/80 backdrop-blur-sm border border-border/60 text-cheese shadow-sm pointer-events-none"
+        title="Mint number (placeholder — real mint will populate when available)"
+      >
+        {realMintDisplay}
+      </div>
       {effectiveSelectionMode && (
         <div className="absolute top-2 left-2 z-10">
           <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
