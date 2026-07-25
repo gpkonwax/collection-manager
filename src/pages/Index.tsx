@@ -2728,6 +2728,7 @@ export default function SimpleAssetsPage() {
               <p>• <button type="button" onClick={() => footerRequestNav('https://www.greymass.com/anchor#download')} className="hover:underline">Anchor Wallet</button></p>
               <p>• <button type="button" onClick={() => footerRequestNav('https://www.mycloudwallet.com/')} className="hover:underline">Cloud Wallet</button></p>
               <p>• <button type="button" onClick={() => footerRequestNav('https://atomichub.io/')} className="hover:underline">AtomicHub</button></p>
+              <p>• <button type="button" onClick={() => footerRequestNav('https://atomichub.io/bridge')} className="hover:underline">Bridge</button></p>
               <p>• <button type="button" onClick={() => footerRequestNav('https://geepeekay.com/')} className="hover:underline">GeePeekay</button></p>
             </div>
           </div>
