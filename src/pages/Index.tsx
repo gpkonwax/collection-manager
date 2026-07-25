@@ -2555,7 +2555,7 @@ export default function SimpleAssetsPage() {
             {!isLoading && !error && (
               categoryFilter === 'series2' && viewMode !== 'saved' ? (
                 <Tabs value={series2SubTab} onValueChange={setSeries2SubTab} className="w-full">
-                  <TabsList className="mb-4">
+                  <TabsList className="mb-1">
                     <TabsTrigger value="collection">Collection</TabsTrigger>
                     {!isViewing && <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>}
                   </TabsList>
