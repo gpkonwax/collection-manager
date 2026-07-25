@@ -311,7 +311,6 @@ async function preloadWithPool<T>(
   },
 ): Promise<PreloadResult[]> {
   const { concurrency = PRELOAD_CARD_CONCURRENCY, manifest, signal, onStatus } = opts;
-  const results: Array<string | null> = new Array(items.length).fill(null);
   const resultDetails: PreloadResult[] = new Array(items.length).fill(null).map(() => ({ url: null, label: null, elapsedMs: 0 }));
   let cursor = 0;
 
@@ -322,7 +321,6 @@ async function preloadWithPool<T>(
       if (i >= items.length) return;
       const item = items[i];
       const result = await preloadCardImage(getUrl(item), manifest, signal, onStatus);
-      results[i] = result.url;
       resultDetails[i] = result;
       if (!signal.aborted) onCardDone(i, item, result);
     }
@@ -757,14 +755,14 @@ export function PackRevealDialog({
                 <span>{preloadProgress.done} / {preloadProgress.total} cards ready</span>
               </div>
               <p className="text-xs text-muted-foreground/60 max-w-sm text-center">
-                We're pre-loading every card image so the reveal plays without any blank tiles. Larger packs and GIF variants can take a moment while we rotate through IPFS gateways.
+                {preloadStatus}
               </p>
               {showPreloadEscape && (
                 <div className="flex flex-col items-center gap-2 pt-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => { preloadSkipRef.current = true; }}
+                    onClick={() => finishPreload('skip')}
                   >
                     Reveal now
                   </Button>
