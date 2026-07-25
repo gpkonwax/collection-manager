@@ -1,45 +1,25 @@
 ## Goal
-Replace the CSS `rotateX/Y` tilt inside the card detail dialog with a real WebGL card: an extruded 3D mesh with front and back textures and a thick side edge, so the edge visibly thickens and thins as it tilts — closer to topps.wdny.io/catalog. Detail dialog only; grid stays as-is.
+Enable 3D tilt on the Series 1 landscape back (currently disabled).
 
-## Dependencies (exact versions, per project rule)
-- `three@^0.160.0`
-- `@react-three/fiber@^8.18.0`
-- `@react-three/drei@^9.122.0`
+## Why it was disabled
+The landscape back is rendered by rotating the child image `rotate(90deg) scale(1.33)` inside a 4:3 container. Tilt was skipped defensively, but the rotate/scale is on the inner `<img>` while tilt transforms live on the outer wrapper — they compose fine. The only real issue is perceived axes: because the visible artwork is rotated 90°, a cursor moving left/right feels like it should tilt around the card's long edge, but the hook currently maps it to `rotateY` of the wrapper (which is the artwork's short edge after rotation).
 
-No 3D asset files, no paid packages, no build config changes.
-
-## New component
-`src/components/simpleassets/Card3DViewer.tsx`
-- Props: `{ frontUrl, backUrl, isLandscape, showBack, className }`.
-- Renders a `<Canvas>` sized to the parent (uses the same aspect ratio the current `ImageWithModes` uses: `3/4` portrait, `4/3` landscape).
-- Scene contents:
-  - `PerspectiveCamera` at a fixed distance, framing the card.
-  - Two lights: a soft ambient + one directional key light. No env HDR (keeps bundle small, matches Dark Cheese theme).
-  - A single mesh built from `BoxGeometry(width, height, depth)` where `depth ≈ 2% of width` — this gives a real physical edge that thickens/thins on rotation.
-  - Materials array (BoxGeometry submesh order: +X, -X, +Y, -Y, +Z=front, -Z=back):
-    - Front face: `MeshStandardMaterial` with `map` = front texture (via `useTexture`), `roughness 0.55`, `metalness 0.05`.
-    - Back face: same, with `map` = back texture. When landscape (Series 1 back), the texture is rotated 90° via `texture.center=(0.5,0.5); texture.rotation = Math.PI/2` so the artwork reads upright without needing a CSS rotate.
-    - Four edge faces: solid off-white `MeshStandardMaterial` (`#f2ede4`, `roughness 0.9`) to mimic card stock.
-  - A subtle top glare: an additive-blended `PlaneGeometry` slightly in front of the card whose position follows pointer X/Y (gives the moving highlight WDNY uses, without a full shader).
-- Interaction: track pointer over the `<Canvas>` container; drive `mesh.rotation.x` and `mesh.rotation.y` with the same mapping the current `useCardTilt` uses (±12°), lerped each frame for smoothness. `showBack` flips `mesh.rotation.y` by `Math.PI` with a spring-like lerp.
-- Texture loading uses `useTexture` (drei). Passes the already-resolved gateway URL — no changes to IPFS resolution logic. Sets `texture.anisotropy = 8` and `texture.colorSpace = SRGBColorSpace` for sharp results.
-- Loading fallback: while textures load, render the existing `<IpfsMedia>` as a `<Suspense>` fallback via a wrapper so users never see a blank canvas.
-
-## Wiring into the detail dialog
-`src/components/simpleassets/SimpleAssetDetailDialog.tsx`
-- In `ImageWithModes`, when `mode === 'tilt'`, render `<Card3DViewer ... />` in place of the current tilt wrapper. Magnifier and Draw modes stay on the existing flat `<IpfsMedia>` path unchanged (drawing on a WebGL canvas is out of scope).
-- Remove the CSS `perspective` / `transform` wrapper only in the tilt branch; keep everything else (aspect ratio container, mode toolbar, canvas overlays for draw) exactly as it is.
-- Keep `useCardTilt` in the codebase — still used by the grid.
-
-## Non-goals (explicit)
-- No per-card parallax / "elements popping out" of the artwork itself — that requires a depth map per card (option C, deferred).
-- No holo/foil shader — can be layered on later as a second pass.
-- No changes to grid cards.
-- No changes to IPFS pipeline, mirrors, or offline bundle.
+## Fix
+1. `src/hooks/useCardTilt.ts` — accept an optional `landscape?: boolean` option. When true, swap the axes and invert one so the tilt matches the visually rotated card:
+   - `rotateX = (x - 0.5) * MAX_TILT * 2`
+   - `rotateY = (y - 0.5) * MAX_TILT * 2` (inverted vs portrait to keep "push away from cursor" feel)
+   - Adjust signs after a quick visual check; the shape of the change is a 90° axis remap.
+2. `src/components/simpleassets/SimpleAssetDetailDialog.tsx`:
+   - Remove the `!isLandscape` guard: `const tiltActive = mode === 'tilt';`
+   - Pass `landscape: isLandscape` into `useCardTilt`.
+   - Keep the inner `rotate-90 scale-[1.33]` on the image. Container stays `aspect-[4/3]` for landscape so tilt math uses the visible bounding box.
+   - Leave the glare overlay as-is (it lives on the wrapper, so it naturally follows the tilted plane).
+3. No changes to lens or draw modes; they already handle landscape via the existing `bgX/bgY` swap and rotated overlay.
 
 ## Verification
-- Open a Series 1 card detail (portrait front, landscape back): the 3D tilt shows a visible thick edge that widens on the side rotating toward the camera and narrows on the far side. Back flip presents the landscape art upright.
-- Open a Series 2 / Exotic card: front + back both portrait, edge behavior identical.
-- Switch to Magnifier and Draw: works exactly as today (flat image path).
-- Check bundle size delta is limited to three + fiber + drei tree-shaken imports (`Canvas`, `useTexture`, `PerspectiveCamera`).
-- Confirm no console warnings about `colorSpace` or texture flip.
+- Open a Series 1 card detail, flip to back, confirm cursor tilts the landscape back naturally (top edge tips away when cursor is near the top edge of the visible artwork).
+- Confirm portrait fronts/backs still tilt identically to before.
+- Confirm switching to Magnifier and Draw still works on the landscape back.
+
+## Feasibility
+Yes — fully possible. The earlier "conflict" note was conservative; the transforms are on different DOM nodes and compose cleanly.
