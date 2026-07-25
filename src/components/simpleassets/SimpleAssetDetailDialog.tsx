@@ -53,10 +53,17 @@ function getRealMintDisplay(asset: SimpleAsset): string {
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
   const effectiveMint = realMint ?? nativeAAMint;
+  const combined = { ...asset.idata, ...asset.mdata };
+  const total =
+    combined.bridge_total ??
+    combined.maxsupply ??
+    combined.max_supply ??
+    combined.supply;
+  const suffix = total !== undefined && total !== null && String(total).trim() !== '' ? ` / ${total}` : '';
   if (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== '') {
-    return `#${effectiveMint}`;
+    return `#${effectiveMint}${suffix}`;
   }
-  return '#--';
+  return `#--${suffix}`;
 }
 
 const ZOOM = 4;
