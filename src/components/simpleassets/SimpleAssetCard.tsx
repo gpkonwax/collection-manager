@@ -69,6 +69,12 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const mintNumber = getMintNumber(asset);
   const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
+  const isAtomic = asset.source === 'atomicassets';
+  // Placeholder for real on-chain mint number; falls back to "--" until wired.
+  const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
+  const realMintDisplay = realMint !== undefined && realMint !== null && String(realMint).trim() !== ''
+    ? `#${realMint}`
+    : '#--';
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
@@ -143,10 +149,17 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         </button>
       )}
       {isStacked && (
-        <div className="absolute top-2 right-2 z-10 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
+        <div className="absolute top-2 right-2 z-20 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
           x{stackCount}
         </div>
       )}
+      {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) */}
+      <div
+        className="absolute top-1.5 left-1/2 -translate-x-1/2 z-10 text-[10px] font-bold px-1.5 py-0.5 rounded bg-background/80 backdrop-blur-sm border border-border/60 text-cheese shadow-sm pointer-events-none"
+        title="Mint number (placeholder — real mint will populate when available)"
+      >
+        {realMintDisplay}
+      </div>
       {effectiveSelectionMode && (
         <div className="absolute top-2 left-2 z-10">
           <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
@@ -202,12 +215,14 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {(mintInfo || hasContained) && (
+        {((mintInfo && !isAtomic) || (isAtomic && asset.idata?.bridge_mint) || hasContained) && (
           <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-            {mintInfo && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>}
-            {asset.idata?.bridge_mint ? (
+            {mintInfo && !isAtomic && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>
+            )}
+            {isAtomic && asset.idata?.bridge_mint ? (
               <span
-                className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium"
                 title="Original bridge order mint from SimpleAssets → AtomicAssets bridging"
               >
                 Bridge Mint #{String(asset.idata.bridge_mint)}
