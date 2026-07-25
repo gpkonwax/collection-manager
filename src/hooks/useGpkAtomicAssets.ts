@@ -22,6 +22,9 @@ interface AtomicAssetRaw {
   mutable_data: Record<string, string>;
   data: Record<string, string>;
   name: string;
+  transferred_at_time?: string;
+  updated_at_time?: string;
+  minted_at_time?: string;
 }
 
 function resolveRawImage(raw: string): string | null {
