@@ -13,7 +13,7 @@ import { normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { RevealResult } from '@/lib/packReveal';
 
 const EXPECTED_CARDS: Record<string, number> = {
-  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
+  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 35,
   EXOFIVE: 5, EXOMEGA: 25,
 };
 
@@ -65,15 +65,28 @@ function swapGateway(url: string, gatewayIndex: number): string | null {
 
 function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const currentSrc = card.image ? (gwIdx === 0 ? card.image : swapGateway(card.image, gwIdx)) : null;
+
+  // Hang-swap: if the current gateway hasn't fired load or error within 4s,
+  // rotate to the next one so a silently-stalled request doesn't leave a blank
+  // tile mid-reveal.
+  useEffect(() => {
+    if (!currentSrc || loaded) return;
+    const t = setTimeout(() => {
+      if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1);
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [currentSrc, loaded, gwIdx]);
 
   return (
     <div className="relative aspect-[2/3]"
       style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
       <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
         {currentSrc ? (
-          <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center" loading="lazy"
-            onError={() => { if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
+          <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center"
+            onLoad={() => setLoaded(true)}
+            onError={() => { setLoaded(false); if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
         )}
@@ -89,6 +102,44 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
       </div>
     </div>
   );
+}
+
+/**
+ * Preload a single image URL: try the given URL first, then rotate through
+ * every IPFS gateway. Each attempt gets a per-attempt hang timeout (default
+ * 4s) so a silently-stalled gateway doesn't block the whole pack forever.
+ * Resolves with the winning URL, or null if every gateway is unreachable.
+ */
+async function preloadCardImage(originalUrl: string | null, perAttemptMs = 4000): Promise<string | null> {
+  if (!originalUrl) return null;
+  const hash = extractIpfsHash(originalUrl);
+  const candidates: string[] = [originalUrl];
+  if (hash) {
+    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
+      const swapped = swapGateway(originalUrl, i);
+      if (swapped && !candidates.includes(swapped)) candidates.push(swapped);
+    }
+  }
+  for (const url of candidates) {
+    const ok = await new Promise<boolean>((resolve) => {
+      const img = new Image();
+      let settled = false;
+      const done = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        img.onload = null;
+        img.onerror = null;
+        clearTimeout(timer);
+        resolve(result);
+      };
+      const timer = setTimeout(() => done(false), perAttemptMs);
+      img.onload = () => done(true);
+      img.onerror = () => done(false);
+      img.src = url;
+    });
+    if (ok) return url;
+  }
+  return null;
 }
 
 const POLL_INTERVAL = 3000;
