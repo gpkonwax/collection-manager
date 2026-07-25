@@ -2844,6 +2844,37 @@ export default function SimpleAssetsPage() {
         />
       )}
 
+      {preparingDeal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-background/85 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-lg shadow-xl p-6 max-w-sm w-[90%] text-center space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+              <h3 className="text-lg font-bold text-foreground">
+                {preparingDeal.stage === 'preloading' ? 'Loading card images...' : 'Waiting for your new cards...'}
+              </h3>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((preparingDeal.matched / Math.max(1, preparingDeal.total)) * 100))}%` }}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {preparingDeal.stage === 'preloading'
+                ? 'Pre-loading every card image so the deal plays smoothly...'
+                : `Confirmed on-chain — waiting for the indexer to publish ${preparingDeal.total} cards (${preparingDeal.matched}/${preparingDeal.total} ready).`}
+            </p>
+            <button
+              type="button"
+              onClick={skipPreparingDeal}
+              className="text-xs text-muted-foreground/70 hover:text-foreground underline underline-offset-2"
+            >
+              Skip animation — show cards as thumbnails
+            </button>
+          </div>
+        </div>
+      )}
+
       <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
       <BinderStackDialog
         assets={stackedAssets ?? []}
