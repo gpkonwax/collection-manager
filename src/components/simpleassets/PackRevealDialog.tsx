@@ -454,8 +454,15 @@ export function PackRevealDialog({
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  const [preloadStatus, setPreloadStatus] = useState('Checking backup mirrors…');
   const [showPreloadEscape, setShowPreloadEscape] = useState(false);
   const preloadSkipRef = useRef(false);
+  const preloadRunRef = useRef<{
+    controller: AbortController;
+    cards: RevealCard[];
+    winners: Array<string | null>;
+    finalized: boolean;
+  } | null>(null);
 
   const pollStartRef = useRef<number>(0);
   const revealedRowsRef = useRef<PendingNftRow[]>([]);
@@ -471,15 +478,39 @@ export function PackRevealDialog({
       setPhase('waiting'); setNewCards([]); setPendingRowIds([]);
       setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
       setCollectError(null); setShowEscape(false); setShowPreloadEscape(false);
+      setPreloadStatus('Checking backup mirrors…');
       preloadSkipRef.current = false; pollStartRef.current = Date.now();
+      preloadRunRef.current?.controller.abort();
+      preloadRunRef.current = null;
 
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
       return () => clearTimeout(shakeTimer);
     } else {
       setIsShaking(false);
+      preloadRunRef.current?.controller.abort();
+      preloadRunRef.current = null;
     }
   }, [open]);
+
+  const finishPreload = useCallback((reason: 'complete' | 'skip') => {
+    const run = preloadRunRef.current;
+    if (!run || run.finalized) return;
+    run.finalized = true;
+    preloadSkipRef.current = reason === 'skip';
+    run.controller.abort();
+    const resolved = run.cards.map((card, i) => ({
+      ...card,
+      originalImage: card.originalImage ?? card.image,
+      image: run.winners[i] ?? card.image,
+    }));
+    const readyCount = run.winners.filter(Boolean).length;
+    console.log(`[pack-reveal] preload ${reason} — ${readyCount}/${run.cards.length} images ready`);
+    setPreloadProgress({ done: readyCount, total: run.cards.length });
+    setShowPreloadEscape(false);
+    setNewCards(resolved);
+    setPhase('revealing');
+  }, []);
 
   // Escape hatch: show close button after 60s of waiting
   useEffect(() => {
@@ -548,6 +579,7 @@ export function PackRevealDialog({
               asset_id: String(r.id),
               name: `Card #${displayCardId}${r.quality}`,
               image: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
+              originalImage: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
               rarity: `${r.variant} ${r.quality}`,
             };
           });
@@ -561,30 +593,36 @@ export function PackRevealDialog({
           // gateway (or exhausted all of them) so the reveal itself never
           // shows a blank tile.
           setPreloadProgress({ done: 0, total: cards.length });
+          setPreloadStatus('Checking backup mirrors…');
           setPhase('preloading');
           preloadSkipRef.current = false;
+          const controller = new AbortController();
+          preloadRunRef.current = { controller, cards, winners: new Array(cards.length).fill(null), finalized: false };
           let doneCount = 0;
-          const winners = await preloadWithPool(
+          const manifest = await loadPinnedManifest();
+          await preloadWithPool(
             cards,
             (c) => c.image,
-            (i, c, winner) => {
+            (i, c, result) => {
               doneCount++;
+              const activeRun = preloadRunRef.current;
+              if (activeRun && !activeRun.finalized) activeRun.winners[i] = result.url;
               if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
-              if (winner) {
-                console.log(`[pack-reveal] card ${i + 1}/${cards.length} → ${winner}`);
+              if (result.url) {
+                console.log(`[pack-reveal] card ${i + 1}/${cards.length} → ${result.label ?? 'winner'} (${Math.round(result.elapsedMs)}ms) ${result.url}`);
               } else {
                 console.warn(`[pack-reveal] card ${i + 1}/${cards.length} → unreachable (${c.image})`);
               }
             },
-            { concurrency: 4, perAttemptMs: 8000, shouldAbort: () => cancelled || preloadSkipRef.current },
+            {
+              concurrency: PRELOAD_CARD_CONCURRENCY,
+              manifest,
+              signal: controller.signal,
+              onStatus: (status) => { if (!controller.signal.aborted && !cancelled) setPreloadStatus(status); },
+            },
           );
           if (cancelled) return;
-          const resolved = cards.map((c, i) => ({ ...c, image: winners[i] ?? c.image }));
-          const readyCount = winners.filter(Boolean).length;
-          console.log(`[pack-reveal] preload complete — ${readyCount}/${cards.length} images ready${preloadSkipRef.current ? ' (user skipped)' : ''}`);
-
-          setNewCards(resolved);
-          setPhase('revealing');
+          finishPreload('complete');
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
     };
@@ -595,8 +633,13 @@ export function PackRevealDialog({
       interval = setInterval(poll, POLL_INTERVAL);
     }, 4000);
 
-    return () => { cancelled = true; clearTimeout(startDelay); clearInterval(interval); };
-  }, [open, phase, accountName, preOpenUnboxingIds, expectedCount, boxtype, demoCards]);
+    return () => {
+      cancelled = true;
+      preloadRunRef.current?.controller.abort();
+      clearTimeout(startDelay);
+      clearInterval(interval);
+    };
+  }, [open, phase, accountName, preOpenUnboxingIds, expectedCount, boxtype, demoCards, finishPreload]);
 
   // Staggered reveal
   useEffect(() => {
