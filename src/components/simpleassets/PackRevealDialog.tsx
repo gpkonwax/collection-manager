@@ -555,12 +555,27 @@ export function PackRevealDialog({
               <p className="text-lg font-bold text-foreground">Preparing your reveal...</p>
               <div className="flex items-center gap-2 text-muted-foreground text-sm justify-center">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading card {Math.min(preloadProgress.done + 1, preloadProgress.total)} of {preloadProgress.total}...</span>
+                <span>{preloadProgress.done} / {preloadProgress.total} cards ready</span>
               </div>
               <p className="text-xs text-muted-foreground/60 max-w-sm text-center">
-                We're pre-loading every card image so the reveal plays without any blank tiles. This can take a moment on larger packs.
+                We're pre-loading every card image so the reveal plays without any blank tiles. Larger packs and GIF variants can take a moment while we rotate through IPFS gateways.
               </p>
+              {showPreloadEscape && (
+                <div className="flex flex-col items-center gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { preloadSkipRef.current = true; }}
+                  >
+                    Reveal now
+                  </Button>
+                  <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
+                    Skips the wait. Any cards still loading will fetch during the reveal and self-heal if a gateway is slow.
+                  </p>
+                </div>
+              )}
             </div>
+
           </div>
         )}
 
