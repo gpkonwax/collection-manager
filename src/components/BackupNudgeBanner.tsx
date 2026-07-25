@@ -6,7 +6,6 @@ import {
   getPersistPreference,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
-import { getZipDownloadUrls, getZipManifest, type ZipManifestInfo } from '@/lib/remoteMirror';
 
 const DISMISS_KEY = 'gpk-backup-nudge-dismissed-v1';
 
@@ -30,22 +29,15 @@ export function BackupNudgeBanner() {
   );
 
   const [dismissed, setDismissed] = useState(true);
-  const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
 
   useEffect(() => {
     setDismissed(isDismissed());
-    getZipManifest().then(setZipInfo).catch(() => setZipInfo(null));
   }, []);
 
   const protectedOnDevice =
     status.fileCount > 0 && (status.persisted || getPersistPreference());
 
   if (dismissed || protectedOnDevice) return null;
-
-  const zipOptions = getZipDownloadUrls(zipInfo);
-  const primary = zipOptions[0];
-  const firstPart = primary?.parts[0];
-  if (!primary || !firstPart) return null;
 
   const onDismiss = () => {
     markDismissed();
