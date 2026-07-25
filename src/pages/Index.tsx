@@ -383,6 +383,8 @@ export default function SimpleAssetsPage() {
   const [dealingCards, setDealingCards] = useState<SimpleAsset[]>([]);
   const [dealtIds, setDealtIds] = useState<Set<string>>(new Set());
   const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);
+  const [preparingDeal, setPreparingDeal] = useState<{ matched: number; total: number; stage: 'indexing' | 'preloading' } | null>(null);
+  const preparingDealCancelRef = useRef<{ cancelled: boolean } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
   useEffect(() => {
