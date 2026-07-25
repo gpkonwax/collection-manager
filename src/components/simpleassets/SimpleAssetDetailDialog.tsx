@@ -302,7 +302,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const mintDisplay = getMintDisplay(asset);
   const realMintDisplay = getRealMintDisplay(asset);
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
-  const isDrawable = DRAWABLE_CATEGORIES.has(asset.category);
+  const isDrawable = true;
   const isAtomic = asset.source === 'atomicassets';
   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
