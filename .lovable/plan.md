@@ -1,23 +1,29 @@
 ## Goal
+Rework the mint-number ribbon at the top of each card so it no longer spans the full card width as a dark bar. Instead, the number should sit inside a small, rounded, dark pill that is just wide enough to hold the text, centered in a row that uses the lighter grey already surrounding the card artwork.
 
-- **Native AA sets** (everything except `series1`, `series2`, `exotic`): the `template_mint` value that currently populates `bridge_mint` is actually the real on-chain mint number. Use it to fill the top `#` ribbon and hide the "Bridge Mint" pill entirely for these cards.
-- **Bridged sets** (`series1`, `series2`, `exotic`): keep current behavior — the pill still reads `Bridge Mint #…`, and the top ribbon stays as `--` until real SA mints get plumbed.
+## Current state
+In `src/components/simpleassets/SimpleAssetCard.tsx` the ribbon is rendered as:
 
-## Change (single file: `src/components/simpleassets/SimpleAssetCard.tsx`)
+```tsx
+<div className="w-full flex justify-center py-1 bg-background/60 border-b border-border/40">
+  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-cheese">
+    {realMintDisplay}
+  </span>
+</div>
+```
 
-1. Add a small helper near the top of the component:
-   ```ts
-   const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
-   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
-   ```
-2. Update `realMintDisplay` logic so it prefers, in order:
-   - `asset.mintNumber` (future real-mint field, unchanged),
-   - `asset.idata?.bridge_mint` **only when** `isAtomic && !isBridgedAA` (native AA — this value is the true template mint),
-   - otherwise `--`.
-3. Update the pill row condition (line 220) and the inner pill (lines 225–233) so `Bridge Mint #…` only renders when `isAtomic && isBridgedAA && asset.idata?.bridge_mint`. Native AA cards will no longer show the pill; their mint sits in the top ribbon instead.
+This creates a full-width dark ribbon across the top of the card.
 
-## Notes
+## Proposed change
+Update the ribbon container and inner pill in `src/components/simpleassets/SimpleAssetCard.tsx`:
 
-- Bridged schema names confirmed from `src/pages/Index.tsx` `CATEGORY_LABELS` and `src/hooks/useCollectionCompletion.ts`: `series1`, `series2`, `exotic`.
-- `asset.category` on AA assets is set to `schema_name` in `src/hooks/useGpkAtomicAssets.ts`, so it's the correct field to branch on.
-- No changes to hooks, data fetching, or SA cards. SA `mintInfo` pill (green, non-atomic path) is untouched.
+1. Remove the full-width dark background (`bg-background/60`) and bottom border (`border-b border-border/40`).
+2. Keep the row itself centered and short, using the same lighter grey that appears behind/around cards (`bg-muted/30` or the card surface tone) so it blends with the existing card background rather than appearing as a dark strip.
+3. Wrap the mint text in a compact, rounded pill with a dark translucent background (`bg-background/80` or `bg-black/50`) and `text-cheese`, sized only slightly larger than the number itself.
+4. Preserve the existing tooltip/title text and the `#--` / real-mint display logic.
+
+## Verification
+After the change, each card in the grid should show a small centered mint pill above the artwork instead of a full-width dark ribbon, with the surrounding area matching the lighter grey card/artwork background.
+
+## Files to modify
+- `src/components/simpleassets/SimpleAssetCard.tsx`
