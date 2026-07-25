@@ -341,6 +341,15 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             </span>
           </DialogDescription>
         </DialogHeader>
+        {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) */}
+        <div
+          className="w-full flex justify-center py-1 bg-muted/30 -mb-2"
+          title="Mint number (placeholder — real mint will populate when available)"
+        >
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
+            {realMintDisplay}
+          </span>
+        </div>
         <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center overflow-hidden ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
           {images.map((imgUrl, i) => {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
