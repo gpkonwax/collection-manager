@@ -1109,6 +1109,24 @@ export default function SimpleAssetsPage() {
     return [...savedOrder, ...pendingSlots];
   }, [savedOrder, dealingCards]);
 
+  // Grow visibleCount so every dealing card's grid cell is mounted and
+  // measurable by CardDealAnimation. Must be derived from the arrays the grid
+  // actually slices (sortedFiltered / savedGridSlots), not the raw assets list.
+  useEffect(() => {
+    if (dealingCards.length === 0) return;
+    const dealingIdSet = new Set(dealingCards.map((c) => c.id));
+    const list: string[] = viewMode === 'saved'
+      ? savedGridSlots
+      : sortedFiltered.map((a) => a.id);
+    let maxIdx = -1;
+    for (let i = 0; i < list.length; i++) {
+      if (dealingIdSet.has(list[i]) && i > maxIdx) maxIdx = i;
+    }
+    if (maxIdx < 0) return;
+    setVisibleCount((prev) => Math.max(prev, maxIdx + 12));
+  }, [dealingCards, sortedFiltered, savedGridSlots, viewMode]);
+
+
   const assetMap = useMemo(() => new Map(filtered.map((a) => [a.id, a])), [filtered]);
   const allAssetMap = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
 
