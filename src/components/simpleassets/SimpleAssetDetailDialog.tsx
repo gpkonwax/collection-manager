@@ -434,21 +434,26 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             </div>
           )}
         </div>
-        {mintDisplay && (
+        {/* SimpleAssets mint info */}
+        {mintDisplay && !isAtomic && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-cheese">Mint</span>
-            <span className="text-sm font-mono text-primary">{mintDisplay}</span>
-            {asset.idata?.bridge_mint ? (
-              <span
-                className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                title="Original bridge order from SimpleAssets → AtomicAssets bridging"
-              >
-                Bridge Mint #{String(asset.idata.bridge_mint)}
-                {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
-              </span>
-            ) : null}
+            <span className="text-sm font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">{mintDisplay}</span>
           </div>
         )}
+        {/* Bridged AtomicAssets bridge mint (green, like the removed green mint) */}
+        {isBridgedAA && asset.idata?.bridge_mint ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-cheese">Bridge Mint</span>
+            <span
+              className="text-sm font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
+              title="Original bridge order from SimpleAssets → AtomicAssets bridging"
+            >
+              #{String(asset.idata.bridge_mint)}
+              {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
+            </span>
+          </div>
+        ) : null}
         {metaFields.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-cheese">Metadata</h4>
