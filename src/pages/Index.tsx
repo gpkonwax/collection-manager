@@ -889,7 +889,8 @@ export default function SimpleAssetsPage() {
         try {
           const aId = BigInt(a.id);
           const bId = BigInt(b.id);
-          return bId > aId ? 1 : bId < aId ? -1 : 0;
+          return bId > aId ? -1 : bId < aId ? 1 : 0;
+
         }
         catch { return b.id.localeCompare(a.id); }
       });
