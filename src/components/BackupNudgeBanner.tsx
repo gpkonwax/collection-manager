@@ -52,10 +52,9 @@ export function BackupNudgeBanner() {
     setDismissed(true);
   };
 
-  const onDownload = () => {
-    // Downloading is a strong signal they're taking the tip — remember dismissal.
-    markDismissed();
-    setDismissed(true);
+  const openBackupPanel = () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('open-backup-panel'));
   };
 
   return (
@@ -69,15 +68,12 @@ export function BackupNudgeBanner() {
         </p>
         <div className="flex items-center gap-1.5">
           <Button
-            asChild
             size="sm"
             className="h-8"
-            onClick={onDownload}
+            onClick={openBackupPanel}
           >
-            <a href={firstPart.url} target="_blank" rel="noopener noreferrer">
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              Download ZIP{primary.parts.length > 1 ? ' part 1' : ''}
-            </a>
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Download ZIPs
           </Button>
           <Button
             size="sm"
