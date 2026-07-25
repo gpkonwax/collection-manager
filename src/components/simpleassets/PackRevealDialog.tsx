@@ -262,6 +262,7 @@ export function PackRevealDialog({
   const [collectError, setCollectError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
+  const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
   const pollStartRef = useRef<number>(0);
   const revealedRowsRef = useRef<PendingNftRow[]>([]);
   const isDemo = !!(demoCards && demoCards.length > 0);
