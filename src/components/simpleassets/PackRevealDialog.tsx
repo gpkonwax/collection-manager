@@ -461,6 +461,7 @@ export function PackRevealDialog({
     winners: Array<string | null>;
     finalized: boolean;
   } | null>(null);
+  const preparedCardsRef = useRef<RevealCard[]>([]);
   const pollRunRef = useRef(0);
   const phaseRef = useRef(phase);
 
@@ -483,6 +484,7 @@ export function PackRevealDialog({
       setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
       setCollectError(null); setShowEscape(false); setShowPreloadEscape(false);
       setPreloadStatus('Checking backup mirrors…');
+      preparedCardsRef.current = [];
       preloadSkipRef.current = false; pollStartRef.current = Date.now();
       preloadRunRef.current?.controller.abort();
       preloadRunRef.current = null;
@@ -515,6 +517,21 @@ export function PackRevealDialog({
     setNewCards(resolved);
     setPhase('revealing');
   }, []);
+
+  const forceRevealNow = useCallback(() => {
+    const run = preloadRunRef.current;
+    if (run && !run.finalized) {
+      finishPreload('skip');
+      return;
+    }
+    const cards = preparedCardsRef.current;
+    if (cards.length === 0) return;
+    preloadRunRef.current?.controller.abort();
+    preloadRunRef.current = null;
+    setShowPreloadEscape(false);
+    setNewCards(cards);
+    setPhase('revealing');
+  }, [finishPreload]);
 
   // Escape hatch: show close button after 60s of waiting
   useEffect(() => {
@@ -592,31 +609,29 @@ export function PackRevealDialog({
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
           revealedRowsRef.current = sorted;
+          preparedCardsRef.current = cards;
+          setNewCards(cards);
+          setPreloadProgress({ done: cards.length, total: cards.length });
+          setPhase('revealing');
 
-          // Preload every image before revealing anything. Quality-over-speed:
-          // we intentionally wait until every card has been resolved to some
-          // gateway (or exhausted all of them) so the reveal itself never
-          // shows a blank tile.
-          setPreloadProgress({ done: 0, total: cards.length });
-          setPreloadStatus('Checking backup mirrors…');
-          setPhase('preloading');
-          preloadSkipRef.current = false;
+          // Best-effort background warmup only. Never block the visible reveal
+          // on gateway/mirror preloading — the per-card image component already
+          // rotates through fallbacks while the flip sequence proceeds.
           const controller = new AbortController();
-          preloadRunRef.current = { controller, cards, winners: new Array(cards.length).fill(null), finalized: false };
+          preloadRunRef.current?.controller.abort();
+          preloadRunRef.current = { controller, cards, winners: new Array(cards.length).fill(null), finalized: true };
           let doneCount = 0;
-          const manifest = await loadPinnedManifest();
-          await preloadWithPool(
+          loadPinnedManifest().then((manifest) => preloadWithPool(
             cards,
             (c) => c.image,
             (i, c, result) => {
               doneCount++;
               const activeRun = preloadRunRef.current;
-              if (activeRun && !activeRun.finalized) activeRun.winners[i] = result.url;
-              if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
+              if (activeRun && activeRun.cards === cards) activeRun.winners[i] = result.url;
               if (result.url) {
-                console.log(`[pack-reveal] card ${i + 1}/${cards.length} → ${result.label ?? 'winner'} (${Math.round(result.elapsedMs)}ms) ${result.url}`);
+                console.log(`[pack-reveal] background card warmup ${i + 1}/${cards.length} → ${result.label ?? 'winner'} (${Math.round(result.elapsedMs)}ms) ${result.url}`);
               } else {
-                console.warn(`[pack-reveal] card ${i + 1}/${cards.length} → unreachable (${c.image})`);
+                console.warn(`[pack-reveal] background card warmup ${i + 1}/${cards.length} → unreachable (${c.image})`);
               }
             },
             {
@@ -625,9 +640,7 @@ export function PackRevealDialog({
               signal: controller.signal,
               onStatus: (status) => { if (!controller.signal.aborted && !cancelled) setPreloadStatus(status); },
             },
-          );
-          if (cancelled || runId !== pollRunRef.current) return;
-          finishPreload('complete');
+          )).catch((err) => console.warn('[pack-reveal] background warmup failed', err));
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
     };
@@ -769,7 +782,7 @@ export function PackRevealDialog({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => finishPreload('skip')}
+                    onClick={forceRevealNow}
                   >
                     Reveal now
                   </Button>

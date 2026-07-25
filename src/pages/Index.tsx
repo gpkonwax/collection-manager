@@ -69,6 +69,14 @@ async function preloadImageThroughGateways(originalUrl: string | null | undefine
   }
   return false;
 }
+
+async function warmDealImagesWithoutBlocking(cards: SimpleAsset[], maxWaitMs = 6000): Promise<void> {
+  if (cards.length === 0) return;
+  await Promise.race([
+    Promise.allSettled(cards.map((asset) => preloadImageThroughGateways(asset.image, 3000))),
+    new Promise<void>((resolve) => setTimeout(resolve, maxWaitMs)),
+  ]);
+}
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
@@ -624,10 +632,10 @@ export default function SimpleAssetsPage() {
     }
 
     if (matched.length === totalMatchers && matched.length > 0) {
-      // Preload every deal-card image before we start the animation. No time
-      // cap — a slow gateway is better than a broken animation.
+      // Best-effort image warmup before the deal animation. Never let a slow
+      // IPFS gateway block the animation after the cards are confirmed minted.
       setPreparingDeal({ matched: matched.length, total: totalMatchers, stage: 'preloading' });
-      await Promise.all(matched.map(a => preloadImageThroughGateways(a.image, 4000)));
+      await warmDealImagesWithoutBlocking(matched);
       if (cancelToken.cancelled) {
         preparingDealCancelRef.current = null;
         return;
@@ -785,7 +793,7 @@ export default function SimpleAssetsPage() {
 
       if (matched.length > 0) {
         setPreparingDeal({ matched: matched.length, total: expectedCount, stage: 'preloading' });
-        await Promise.all(matched.map(a => preloadImageThroughGateways(a.image, 4000)));
+        await warmDealImagesWithoutBlocking(matched);
         if (cancelToken.cancelled) {
           preparingDealCancelRef.current = null;
           return;
