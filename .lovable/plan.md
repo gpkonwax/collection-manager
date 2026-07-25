@@ -1,36 +1,95 @@
-## Fix Exotic Mega (and every SA pack) getting stuck in "Preparing your reveal…"
+## What is actually happening
 
-### What actually went wrong
+**Do I know what the issue is? Yes.** The current pack reveal preload is still built around `new Image()` attempts that walk sources one-by-one. For an Exotic Mega, one worker can spend roughly this long before it returns:
 
-The screenshot shows the preload phase frozen on "Loading card 1 of 25…" for an Exotic Mega. The preload loop in `src/components/simpleassets/PackRevealDialog.tsx` fires all 25 image requests in parallel through the same first gateway (Pinata):
-
-```ts
-await Promise.all(cards.map(async (c) => preloadCardImage(c.image, 4000)))
+```text
+original Pinata URL + 5 rotated gateways/mirror candidates × 8s each = up to ~48s per card
 ```
 
-That triggers three compounding problems:
+There are 4 workers, so the UI can sit at `0 / 25 cards ready` for a long time if the first 4 images are all on slow GIF/IPFS requests.
 
-1. **All 25 requests hit Pinata simultaneously.** Browsers cap concurrent HTTP/1.1 connections per origin at ~6, and Pinata rate-limits/holds the rest. Nothing decodes within 4s.
-2. **`new Image()` timeouts don't cancel the underlying request.** When the 4s timer fires we move on logically, but the stalled request stays in the browser's per-origin queue and blocks the retry to the same origin. All 25 cards then try gateway 2 in parallel — same wall.
-3. **Exotic packs are mostly GIFs.** Prism / slime / gum / tiger-stripe / etc. variants resolve to multi-MB animated files (`gpkCardImages.ts` flags them as `.gif`). 4s per attempt is too aggressive even on a healthy gateway.
+The **Reveal now** button does not immediately reveal because it only flips `preloadSkipRef.current = true`. The workers only check that flag **between cards**, not while they are currently stuck inside `preloadCardImage()`. So pressing it can appear to do nothing until the current 4 long preload attempts finish.
 
-Secondary UI issue: the progress text reads `Loading card ${done + 1} of ${total}` which makes an all-parallel stall look like it's frozen on card 1 specifically, and the `preloading` phase has no escape hatch, so a user can't bail out the way they can from `waiting` after 60s.
+The reason thumbnails load after refresh / Show Received Cards is that collection thumbnails are not blocked behind an all-cards preload gate. They lazy-load a few visible images at a time through the normal `useIpfsMedia` path, with caches/mirror handling, so slow cards do not freeze the entire UI.
 
-### Fix (single file: `src/components/simpleassets/PackRevealDialog.tsx`)
+## Fix plan
 
-1. **Cap preload concurrency at 4.** Replace the flat `Promise.all` with a small worker pool so we never fan more than 4 requests at the same gateway origin. This eliminates the head-of-line stall entirely — the first few cards actually finish, the "done" counter moves, and slots free up as each resolves.
-2. **Bump the per-attempt hang timeout from 4s → 8s** in the preload path, matching the `IMAGE_LOAD_TIMEOUT.max` we already treat as the ceiling elsewhere. Keeps the mid-reveal `RevealCardImage` hang-swap at its current 4s (it swaps between gateways after the browser has already cached the winner, so it can be aggressive).
-3. **Log each card's outcome** — `[pack-reveal] card N → <winning gateway>` on success and `card N → unreachable` on total failure — so the next stuck report is diagnosable from the console.
-4. **Rewrite the progress line** to `"{done} / {total} cards ready"` and add a subline showing which gateway index the pool is currently reaching for. No more misleading "card 1 of 25".
-5. **Add a "Reveal now" escape hatch** that appears after 20s in the `preloading` phase. Clicking it accepts whatever winners have resolved so far, keeps the original URL for cards still in flight, and transitions to `revealing`. `RevealCardImage` already has hang-swap + error rotation, so unresolved cards still self-heal during the staggered reveal.
+### 1. Make SA reveal preloading genuinely cancellable
 
-No changes to `Index.tsx`, the deal animation, the atomic path, or the polling. This is purely the SA reveal preload robustness fix — and since `PackRevealDialog` is shared across every SA pack symbol, it covers Series 1 five/mega, Series 2 a/b/c, and Exotic five/mega uniformly.
+In `src/components/simpleassets/PackRevealDialog.tsx`:
 
-### Verification
+- Replace the current `preloadCardImage()` loop with an abort-aware resolver.
+- Track active preload work with an `AbortController` / finalizer ref.
+- On timeout, abort/cleanup the active request instead of just resolving false while the browser may continue holding that connection.
+- On dialog close/unmount, abort all active preload work.
 
-- Open an Exotic Mega on the deployed site: console should show `[pack-reveal] targeting 25-card unboxing` immediately followed by a stream of `card N → https://...` lines, the counter should climb steadily past 1, and the reveal should start when all 25 (or the user hits "Reveal now") are ready.
-- Sanity replay: Series 1 mega (30) and Series 2c (35) — same behaviour, no regressions, no changes to demo mode (still short-circuits before the preload branch).
+### 2. Make “Reveal now” immediate
 
-### Files touched
+Change the button so it does not wait for workers to naturally finish.
 
-- `src/components/simpleassets/PackRevealDialog.tsx` — concurrency-limited preload pool, 8s per-attempt timeout, per-card logs, clearer progress copy, "Reveal now" escape hatch after 20s.
+When clicked:
+
+- Abort active preload attempts immediately.
+- Build the reveal card list from winners already resolved.
+- Keep original URLs for cards not yet resolved.
+- Set `newCards` and switch to `revealing` immediately.
+- Guard the async preload completion path so it cannot later double-finalize or jump phases again.
+
+### 3. Use mirror-first loading for pack reveals
+
+The reveal should not start with public IPFS gateways when we have backup mirrors.
+
+For each card, candidate order should be:
+
+1. loaded local ZIP mirror, if present
+2. built-in primary mirror
+3. Backup A / Netlify mirror
+4. Backup B / Cloudflare mirror as best-effort only
+5. public IPFS gateways last
+
+This matches why thumbnails recover better: use the controlled mirrors first, then IPFS only as fallback.
+
+### 4. Race a small set of sources per card instead of walking every gateway serially
+
+For each card:
+
+- Try the best 2-3 sources in a small race.
+- Keep total pack-level concurrency low so we do not flood hosts.
+- Abort losing requests after a winner is found.
+- If the mirror race fails, then fall back to public gateways with bounded attempts.
+
+This avoids the current “wait 8 seconds per gateway per card” wall.
+
+### 5. Make unresolved cards self-heal during reveal using the same source priority
+
+Update `RevealCardImage` so cards that were skipped/unresolved do not restart at Pinata and suffer the same issue again.
+
+- If preload produced a winner URL, render that directly.
+- If no winner exists yet, use the same mirror-first source list.
+- Keep image loading eager during the reveal.
+- Keep the card shell visible so the sequence continues even if one image is slow.
+
+### 6. Improve progress diagnostics
+
+Add clear preload status without blocking user action:
+
+- Keep `X / N cards ready`.
+- Add current mode/source text such as “Checking backup mirrors…” / “Falling back to IPFS…”
+- Console logs should show source category and timing per card, e.g. mirror winner vs IPFS fallback vs skipped.
+
+### 7. Verify the exact failure class
+
+After implementation:
+
+- Run a targeted test/simulation where image loads hang and confirm **Reveal now** switches to `revealing` immediately.
+- Verify a real/simulated 25-card pack cannot remain stuck at `0 / 25` indefinitely.
+- Verify normal collection thumbnails still load unchanged.
+- Verify Series 1 mega, Series 2c, and Exotic mega all use the same fixed SimpleAssets path.
+
+<presentation-actions>
+  <presentation-open-history>View History</presentation-open-history>
+</presentation-actions>
+
+<presentation-actions>
+<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
+</presentation-actions>
