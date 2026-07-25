@@ -320,6 +320,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   url={imgUrl}
                   alt={`${asset.name} - ${label}`}
                   isLandscape={isLandscape}
+                  isBack={isBack}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   mode={mode}
                   drawColor={unifiedColor}
