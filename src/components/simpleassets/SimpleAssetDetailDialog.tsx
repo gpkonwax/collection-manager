@@ -293,8 +293,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   const images = asset.images;
   const mintDisplay = getMintDisplay(asset);
+  const realMintDisplay = getRealMintDisplay(asset);
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
   const isDrawable = DRAWABLE_CATEGORIES.has(asset.category);
+  const isAtomic = asset.source === 'atomicassets';
+  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
