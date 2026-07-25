@@ -346,10 +346,27 @@ export function PackRevealDialog({
               rarity: `${r.variant} ${r.quality}`,
             };
           });
-          setNewCards(cards);
+          console.log(`[pack-reveal] targeting ${cards.length}-card unboxing (boxtype=${sorted[0]?.boxtype})`);
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
           revealedRowsRef.current = sorted;
+
+          // Preload every image before revealing anything. Quality-over-speed:
+          // we intentionally wait until every card has been resolved to some
+          // gateway (or exhausted all of them) so the reveal itself never
+          // shows a blank tile.
+          setPreloadProgress({ done: 0, total: cards.length });
+          setPhase('preloading');
+          let doneCount = 0;
+          const resolved = await Promise.all(cards.map(async (c) => {
+            const winner = await preloadCardImage(c.image, 4000);
+            doneCount++;
+            if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
+            return { ...c, image: winner ?? c.image };
+          }));
+          if (cancelled) return;
+          console.log(`[pack-reveal] preload complete — ${resolved.filter(c => c.image).length}/${resolved.length} images ready`);
+          setNewCards(resolved);
           setPhase('revealing');
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
