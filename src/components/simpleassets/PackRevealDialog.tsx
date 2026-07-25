@@ -332,6 +332,15 @@ export function PackRevealDialog({
     return () => clearTimeout(timer);
   }, [open, phase]);
 
+  // Preload escape hatch: after 20s of preloading, allow the user to reveal
+  // now with whatever winners are ready; RevealCardImage will self-heal the rest.
+  useEffect(() => {
+    if (!open || phase !== 'preloading') { setShowPreloadEscape(false); return; }
+    const timer = setTimeout(() => setShowPreloadEscape(true), 20000);
+    return () => clearTimeout(timer);
+  }, [open, phase]);
+
+
   // Demo mode
   useEffect(() => {
     if (!open || phase !== 'waiting' || !demoCards || demoCards.length === 0) return;
