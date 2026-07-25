@@ -156,10 +156,8 @@ function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, can
   const cachedIdx = getCachedGatewayIndex(hash);
   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
 
-  // Disable tilt on the rotated landscape back — the rotate+scale composition
-  // conflicts with the 3D transform.
-  const tiltActive = mode === 'tilt' && !isLandscape;
-  const { ref: tiltRef, glareRef, onMouseMove: tiltMove, onMouseLeave: tiltLeave } = useCardTilt({ disabled: !tiltActive });
+  const tiltActive = mode === 'tilt';
+  const { ref: tiltRef, glareRef, onMouseMove: tiltMove, onMouseLeave: tiltLeave } = useCardTilt({ disabled: !tiltActive, landscape: isLandscape });
 
   useEffect(() => {
     if (mode === 'draw') setEverDrawn(true);
