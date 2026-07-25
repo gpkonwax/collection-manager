@@ -7,6 +7,8 @@ import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import atomicAssetsLogo from '@/assets/atomicassets-logo.png.asset.json';
+import simpleAssetsLogo from '@/assets/simple_assets.png.asset.json';
 
 interface Props {
   asset: SimpleAsset | null;
