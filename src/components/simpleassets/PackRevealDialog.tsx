@@ -107,10 +107,11 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
 /**
  * Preload a single image URL: try the given URL first, then rotate through
  * every IPFS gateway. Each attempt gets a per-attempt hang timeout (default
- * 4s) so a silently-stalled gateway doesn't block the whole pack forever.
+ * 8s — GIF variants in Exotic/Series packs are multi-MB) so a silently
+ * stalled gateway doesn't block the whole pack forever.
  * Resolves with the winning URL, or null if every gateway is unreachable.
  */
-async function preloadCardImage(originalUrl: string | null, perAttemptMs = 4000): Promise<string | null> {
+async function preloadCardImage(originalUrl: string | null, perAttemptMs = 8000): Promise<string | null> {
   if (!originalUrl) return null;
   const hash = extractIpfsHash(originalUrl);
   const candidates: string[] = [originalUrl];
@@ -141,6 +142,40 @@ async function preloadCardImage(originalUrl: string | null, perAttemptMs = 4000)
   }
   return null;
 }
+
+/**
+ * Concurrency-limited preload pool. Fans out at most `concurrency` requests
+ * at once so we never overwhelm a single gateway origin (browsers cap ~6
+ * concurrent HTTP/1.1 connections per host, and rate-limited gateways like
+ * Pinata stall the rest silently). Callers get progress updates as each
+ * card resolves, and can request early termination via `shouldAbort`.
+ */
+async function preloadWithPool<T>(
+  items: T[],
+  getUrl: (item: T) => string | null,
+  onCardDone: (index: number, item: T, winner: string | null) => void,
+  opts: { concurrency?: number; perAttemptMs?: number; shouldAbort?: () => boolean } = {},
+): Promise<Array<string | null>> {
+  const { concurrency = 4, perAttemptMs = 8000, shouldAbort } = opts;
+  const results: Array<string | null> = new Array(items.length).fill(null);
+  let cursor = 0;
+
+  async function worker() {
+    while (true) {
+      if (shouldAbort?.()) return;
+      const i = cursor++;
+      if (i >= items.length) return;
+      const item = items[i];
+      const winner = await preloadCardImage(getUrl(item), perAttemptMs);
+      results[i] = winner;
+      onCardDone(i, item, winner);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
+}
+
 
 const POLL_INTERVAL = 3000;
 
