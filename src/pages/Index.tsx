@@ -758,20 +758,80 @@ export default function SimpleAssetsPage() {
 
       setShowCollectUnclaimed(false);
       pendingAnimationRef.current = { txId: lastTxId };
-      await Promise.all([refetchSa(), refetchAa(), refetchPacks(), refetchAtomicPacks()]);
-      const newest = await waitForNewCollectionAssets(preCollectIdsRef.current, expectedCategory, 20_000);
-      pendingAnimationRef.current = null;
-      focusCollectionView(expectedCategory);
-      setCollectionSyncNotice({ category: expectedCategory });
-      reconstructLatestPackOpen({ focus: false, silent: true });
+      await Promise.all([refetchPacks(), refetchAtomicPacks()]);
+
+      const expectedCount = unclaimed.length;
+      const cancelToken = { cancelled: false };
+      preparingDealCancelRef.current = cancelToken;
+      setPreparingDeal({ matched: 0, total: expectedCount, stage: 'indexing' });
+
+      // Wait for the indexer to publish every recovered card. No hard deadline
+      // — the tx is confirmed, so they WILL land. Poll with backoff, refetching
+      // both SA and AA in case the stuck rows span contracts.
+      const delays = [1500, 2000, 3000, 4000, 5000, 6000, 8000, 8000];
+      let attempt = 0;
+      let matched: SimpleAsset[] = [];
+      while (!cancelToken.cancelled) {
+        await Promise.all([refetchSa(), refetchAa()]);
+        await new Promise<void>(r => requestAnimationFrame(() => r()));
+        await new Promise(r => setTimeout(r, 50));
+        matched = assetsRef.current.filter((asset) => {
+          if (preCollectIdsRef.current.has(asset.id)) return false;
+          const effectiveCategory = SCHEMA_TO_CATEGORY[asset.category] || asset.category;
+          return !expectedCategory || effectiveCategory === expectedCategory;
+        });
+        setPreparingDeal({ matched: matched.length, total: expectedCount, stage: 'indexing' });
+        if (matched.length >= expectedCount) break;
+        await new Promise(r => setTimeout(r, delays[Math.min(attempt, delays.length - 1)]));
+        attempt++;
+      }
+
+      if (cancelToken.cancelled) {
+        preparingDealCancelRef.current = null;
+        return;
+      }
+
+      if (matched.length > 0) {
+        setPreparingDeal({ matched: matched.length, total: expectedCount, stage: 'preloading' });
+        await Promise.all(matched.map(a => preloadImageThroughGateways(a.image, 4000)));
+        if (cancelToken.cancelled) {
+          preparingDealCancelRef.current = null;
+          return;
+        }
+        focusCollectionView(expectedCategory);
+        setCollectionSyncNotice({ category: expectedCategory });
+        setPackAudit({
+          unboxingId: null,
+          category: expectedCategory,
+          boxtype: null,
+          assets: matched,
+          missing: [],
+          status: 'collected',
+          checkedAt: Date.now(),
+        });
+        preparingDealCancelRef.current = null;
+        setPreparingDeal(null);
+        setPendingSuccessInfo({ txId: lastTxId, count: matched.length });
+        setDealingCards([...matched].reverse());
+        setDealtIds(new Set());
+      } else {
+        preparingDealCancelRef.current = null;
+        setPreparingDeal(null);
+        pendingAnimationRef.current = null;
+        focusCollectionView(expectedCategory);
+        setCollectionSyncNotice({ category: expectedCategory });
+        reconstructLatestPackOpen({ focus: false, silent: true });
+      }
       recheckUnclaimed();
     } catch (e) {
       pendingAnimationRef.current = null;
+      preparingDealCancelRef.current = null;
+      setPreparingDeal(null);
       console.error('Collect unclaimed failed:', e);
     } finally {
       setIsCollecting(false);
     }
-  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed, waitForNewCollectionAssets, focusCollectionView, reconstructLatestPackOpen]);
+  }, [accountName, session, executeRawTransaction, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks, recheckUnclaimed, focusCollectionView, reconstructLatestPackOpen]);
 
   const handleCardDealt = useCallback((id: string) => {
     setDealtIds(prev => new Set([...prev, id]));
