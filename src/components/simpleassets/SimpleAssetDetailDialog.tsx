@@ -22,6 +22,7 @@ const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
 const DRAWABLE_CATEGORIES = new Set(['five', 'series1', 'series2']);
+const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 const DRAW_COLORS = [
   { name: 'Black', value: '#000000' },
   { name: 'Yellow', value: 'hsl(45, 97%, 54%)' },
@@ -43,6 +44,19 @@ function getMintDisplay(asset: SimpleAsset): string | null {
     }
   }
   return null;
+}
+
+function getRealMintDisplay(asset: SimpleAsset): string {
+  const isAtomic = asset.source === 'atomicassets';
+  const category = String(asset.category || '').toLowerCase();
+  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(category);
+  const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
+  const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
+  const effectiveMint = realMint ?? nativeAAMint;
+  if (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== '') {
+    return `#${effectiveMint}`;
+  }
+  return '#--';
 }
 
 const ZOOM = 4;
@@ -279,8 +293,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   const images = asset.images;
   const mintDisplay = getMintDisplay(asset);
+  const realMintDisplay = getRealMintDisplay(asset);
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
   const isDrawable = DRAWABLE_CATEGORIES.has(asset.category);
+  const isAtomic = asset.source === 'atomicassets';
+  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
@@ -324,6 +341,15 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             </span>
           </DialogDescription>
         </DialogHeader>
+        {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) */}
+        <div
+          className="w-full flex justify-center py-1 bg-muted/30 -mb-2"
+          title="Mint number (placeholder — real mint will populate when available)"
+        >
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
+            {realMintDisplay}
+          </span>
+        </div>
         <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center overflow-hidden ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
           {images.map((imgUrl, i) => {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
@@ -408,21 +434,26 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             </div>
           )}
         </div>
-        {mintDisplay && (
+        {/* SimpleAssets mint info */}
+        {mintDisplay && !isAtomic && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-cheese">Mint</span>
-            <span className="text-sm font-mono text-primary">{mintDisplay}</span>
-            {asset.idata?.bridge_mint ? (
-              <span
-                className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                title="Original bridge order from SimpleAssets → AtomicAssets bridging"
-              >
-                Bridge Mint #{String(asset.idata.bridge_mint)}
-                {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
-              </span>
-            ) : null}
+            <span className="text-sm font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">{mintDisplay}</span>
           </div>
         )}
+        {/* Bridged AtomicAssets bridge mint (green, like the removed green mint) */}
+        {isBridgedAA && asset.idata?.bridge_mint ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-cheese">Bridge Mint</span>
+            <span
+              className="text-sm font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
+              title="Original bridge order from SimpleAssets → AtomicAssets bridging"
+            >
+              #{String(asset.idata.bridge_mint)}
+              {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
+            </span>
+          </div>
+        ) : null}
         {metaFields.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-cheese">Metadata</h4>
