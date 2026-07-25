@@ -3,7 +3,7 @@ import { useRef, useCallback } from 'react';
 const MAX_TILT = 12;
 const PERSPECTIVE = 1200;
 
-export function useCardTilt({ disabled = false }: { disabled?: boolean } = {}) {
+export function useCardTilt({ disabled = false, landscape = false }: { disabled?: boolean; landscape?: boolean } = {}) {
   const ref = useRef<HTMLDivElement>(null);
   const glareRef = useRef<HTMLDivElement>(null);
   const rafId = useRef<number>(0);
@@ -18,8 +18,12 @@ export function useCardTilt({ disabled = false }: { disabled?: boolean } = {}) {
 
     cancelAnimationFrame(rafId.current);
     rafId.current = requestAnimationFrame(() => {
-      const rotateY = Math.round((x - 0.5) * MAX_TILT * 2 * 10) / 10;
-      const rotateX = Math.round((0.5 - y) * MAX_TILT * 2 * 10) / 10;
+      // For a landscape image rendered inside a portrait-tilt wrapper via an
+      // inner rotate-90 (clockwise), the artwork's top edge maps to the
+      // wrapper's right edge. Remap axes so the tilt feels natural relative
+      // to the visible artwork orientation.
+      const rotateY = Math.round(((landscape ? (y - 0.5) : (x - 0.5))) * MAX_TILT * 2 * 10) / 10;
+      const rotateX = Math.round(((landscape ? (x - 0.5) : (0.5 - y))) * MAX_TILT * 2 * 10) / 10;
 
       if (!active.current) {
         active.current = true;
@@ -34,7 +38,7 @@ export function useCardTilt({ disabled = false }: { disabled?: boolean } = {}) {
         glareRef.current.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, hsla(0,0%,100%,0.10) 0%, transparent 50%)`;
       }
     });
-  }, [disabled]);
+  }, [disabled, landscape]);
 
   const onMouseLeave = useCallback(() => {
     if (!ref.current) return;

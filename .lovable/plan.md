@@ -1,43 +1,25 @@
 ## Goal
-In the card detail dialog, replace the default magnifier-on-hover behavior with the same 3D tilt effect used on the front-page cards. Magnifier and pencil become explicit opt-in modes selected via the existing toolbar.
+Enable 3D tilt on the Series 1 landscape back (currently disabled).
 
-## Current behavior
-`SimpleAssetDetailDialog` renders each image inside `ImageWithLens`, which always applies the magnifier lens on hover. A toolbar (visible only when the card is drawable and has 2 images) lets the user switch between 🔍 magnifier and ✏️ draw. There is no "tilt" mode, and the front-page tilt (`useCardTilt`) is not used here.
+## Why it was disabled
+The landscape back is rendered by rotating the child image `rotate(90deg) scale(1.33)` inside a 4:3 container. Tilt was skipped defensively, but the rotate/scale is on the inner `<img>` while tilt transforms live on the outer wrapper — they compose fine. The only real issue is perceived axes: because the visible artwork is rotated 90°, a cursor moving left/right feels like it should tilt around the card's long edge, but the hook currently maps it to `rotateY` of the wrapper (which is the artwork's short edge after rotation).
 
-## New behavior
-Three mutually exclusive modes for the detail view, applied to BOTH front and back images:
-1. **Tilt (default)** — cursor over the image applies the 3D tilt + glare (via `useCardTilt`), matching the front page.
-2. **Magnifier (🔍)** — current lens behavior, no tilt.
-3. **Draw (✏️)** — current drawing behavior with color palette, no tilt, no lens.
-
-The toolbar becomes:
-- Always visible (not gated on `isDrawable` + 2 images), because tilt/magnifier apply to every card.
-- Three buttons: Tilt (new, default active), Magnifier, Draw.
-- The Draw button is only shown when `isDrawable` (keeps existing category gating).
-- The color palette row only shows when Draw is active.
-
-## Implementation (single file: `src/components/simpleassets/SimpleAssetDetailDialog.tsx`)
-
-1. Replace the boolean `drawAll` state with `mode: 'tilt' | 'lens' | 'draw'`, defaulting to `'tilt'`. Reset to `'tilt'` on asset change.
-2. Extend `ImageWithLens` props to accept `mode` instead of `drawEnabled`:
-   - `mode === 'lens'` → render existing magnifier overlay on hover.
-   - `mode === 'draw'` → render `DrawCanvas` active (as today).
-   - `mode === 'tilt'` → wrap the media container with a `useCardTilt` instance (one per image so front/back tilt independently). Apply `transform-style: preserve-3d`, `perspective`, and mount the tilt `ref` on the inner media shell (keeping the container's aspect box), plus the glare div — mirroring how the front-page `SimpleAssetCard` composes tilt so text/labels above/below stay outside the transform (per the Card Tilt memory).
-   - Retain the "wasDrawn" canvas persistence so switching away from Draw doesn't wipe strokes; canvas becomes inert (`pointer-events: none`) in non-draw modes.
-3. Toolbar:
-   - Render unconditionally when the dialog has an asset.
-   - Buttons: Tilt (🎴 or a lucide icon like `Move3d`), Magnifier (🔍), Draw (✏️ — only when `isDrawable`).
-   - Highlight the active mode using the existing `bg-cheese/20 text-cheese` styling.
-   - Color palette + Clear button only render when `mode === 'draw'` (unchanged logic, just gated on the new mode).
-4. Landscape back (Series 1): tilt still applies; the existing `rotate-90 scale-[1.33]` visual stays on the image itself, and the tilt transform is composed on the outer shell so rotation + tilt coexist (verify visually — if the rotated back looks off, keep tilt disabled specifically for the Series 1 landscape back and note it in the toolbar tooltip).
-
-## Out of scope
-- No changes to the front-page card, `useCardTilt`, or any other component.
-- No new dependencies.
-- No layout/spacing changes beyond adding the third toolbar button.
+## Fix
+1. `src/hooks/useCardTilt.ts` — accept an optional `landscape?: boolean` option. When true, swap the axes and invert one so the tilt matches the visually rotated card:
+   - `rotateX = (x - 0.5) * MAX_TILT * 2`
+   - `rotateY = (y - 0.5) * MAX_TILT * 2` (inverted vs portrait to keep "push away from cursor" feel)
+   - Adjust signs after a quick visual check; the shape of the change is a 90° axis remap.
+2. `src/components/simpleassets/SimpleAssetDetailDialog.tsx`:
+   - Remove the `!isLandscape` guard: `const tiltActive = mode === 'tilt';`
+   - Pass `landscape: isLandscape` into `useCardTilt`.
+   - Keep the inner `rotate-90 scale-[1.33]` on the image. Container stays `aspect-[4/3]` for landscape so tilt math uses the visible bounding box.
+   - Leave the glare overlay as-is (it lives on the wrapper, so it naturally follows the tilted plane).
+3. No changes to lens or draw modes; they already handle landscape via the existing `bgX/bgY` swap and rotated overlay.
 
 ## Verification
-- Open a Series 2 card → detail defaults to tilt on both images; hover tilts front and back; clicking 🔍 switches to lens; clicking ✏️ switches to draw with palette.
-- Open a Series 1 card → same, with the landscape back tilting correctly (or explicitly disabled if visually broken by the rotate).
-- Open a non-drawable category card → toolbar shows Tilt + Magnifier only.
-- Switch modes back and forth — no residual lens, no residual tilt transform, drawn strokes persist across mode toggles until Clear.
+- Open a Series 1 card detail, flip to back, confirm cursor tilts the landscape back naturally (top edge tips away when cursor is near the top edge of the visible artwork).
+- Confirm portrait fronts/backs still tilt identically to before.
+- Confirm switching to Magnifier and Draw still works on the landscape back.
+
+## Feasibility
+Yes — fully possible. The earlier "conflict" note was conservative; the transforms are on different DOM nodes and compose cleanly.
