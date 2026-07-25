@@ -461,6 +461,7 @@ export function PackRevealDialog({
     winners: Array<string | null>;
     finalized: boolean;
   } | null>(null);
+  const pollRunRef = useRef(0);
 
   const pollStartRef = useRef<number>(0);
   const revealedRowsRef = useRef<PendingNftRow[]>([]);
@@ -536,15 +537,16 @@ export function PackRevealDialog({
   // Real polling
   useEffect(() => {
     if (!open || !accountName || (demoCards && demoCards.length > 0)) return;
-    if (phase !== 'waiting') return;
 
     let cancelled = false;
+    const runId = ++pollRunRef.current;
     let interval: ReturnType<typeof setInterval> | undefined;
 
     const poll = async () => {
+      if (cancelled || runId !== pollRunRef.current || phase !== 'waiting') return;
       try {
         const rows = await fetchPendingNfts(accountName);
-        if (cancelled) return;
+        if (cancelled || runId !== pollRunRef.current) return;
         const newRows = rows.filter((r) => r.done === 0 && !preOpenUnboxingIds.has(r.unboxingid));
         const grouped = new Map<number, PendingNftRow[]>();
         for (const r of newRows) {
@@ -619,7 +621,7 @@ export function PackRevealDialog({
               onStatus: (status) => { if (!controller.signal.aborted && !cancelled) setPreloadStatus(status); },
             },
           );
-          if (cancelled) return;
+          if (cancelled || runId !== pollRunRef.current) return;
           finishPreload('complete');
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
@@ -633,11 +635,12 @@ export function PackRevealDialog({
 
     return () => {
       cancelled = true;
+      pollRunRef.current += 1;
       preloadRunRef.current?.controller.abort();
       clearTimeout(startDelay);
       clearInterval(interval);
     };
-  }, [open, phase, accountName, preOpenUnboxingIds, expectedCount, boxtype, demoCards, finishPreload]);
+  }, [open, accountName, preOpenUnboxingIds, expectedCount, boxtype, demoCards, finishPreload]);
 
   // Staggered reveal
   useEffect(() => {
