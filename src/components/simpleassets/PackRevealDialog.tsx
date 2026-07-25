@@ -462,6 +462,7 @@ export function PackRevealDialog({
     finalized: boolean;
   } | null>(null);
   const pollRunRef = useRef(0);
+  const phaseRef = useRef(phase);
 
   const pollStartRef = useRef<number>(0);
   const revealedRowsRef = useRef<PendingNftRow[]>([]);
@@ -471,6 +472,10 @@ export function PackRevealDialog({
   const boxtype = SYMBOL_TO_BOXTYPE[packSymbol];
 
   usePackRevealAudio({ open, phase, isShaking, revealedCount });
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   useEffect(() => {
     if (open) {
@@ -543,7 +548,7 @@ export function PackRevealDialog({
     let interval: ReturnType<typeof setInterval> | undefined;
 
     const poll = async () => {
-      if (cancelled || runId !== pollRunRef.current || phase !== 'waiting') return;
+      if (cancelled || runId !== pollRunRef.current || phaseRef.current !== 'waiting') return;
       try {
         const rows = await fetchPendingNfts(accountName);
         if (cancelled || runId !== pollRunRef.current) return;
@@ -636,7 +641,6 @@ export function PackRevealDialog({
     return () => {
       cancelled = true;
       pollRunRef.current += 1;
-      preloadRunRef.current?.controller.abort();
       clearTimeout(startDelay);
       clearInterval(interval);
     };
