@@ -107,10 +107,11 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
 /**
  * Preload a single image URL: try the given URL first, then rotate through
  * every IPFS gateway. Each attempt gets a per-attempt hang timeout (default
- * 4s) so a silently-stalled gateway doesn't block the whole pack forever.
+ * 8s — GIF variants in Exotic/Series packs are multi-MB) so a silently
+ * stalled gateway doesn't block the whole pack forever.
  * Resolves with the winning URL, or null if every gateway is unreachable.
  */
-async function preloadCardImage(originalUrl: string | null, perAttemptMs = 4000): Promise<string | null> {
+async function preloadCardImage(originalUrl: string | null, perAttemptMs = 8000): Promise<string | null> {
   if (!originalUrl) return null;
   const hash = extractIpfsHash(originalUrl);
   const candidates: string[] = [originalUrl];
@@ -141,6 +142,40 @@ async function preloadCardImage(originalUrl: string | null, perAttemptMs = 4000)
   }
   return null;
 }
+
+/**
+ * Concurrency-limited preload pool. Fans out at most `concurrency` requests
+ * at once so we never overwhelm a single gateway origin (browsers cap ~6
+ * concurrent HTTP/1.1 connections per host, and rate-limited gateways like
+ * Pinata stall the rest silently). Callers get progress updates as each
+ * card resolves, and can request early termination via `shouldAbort`.
+ */
+async function preloadWithPool<T>(
+  items: T[],
+  getUrl: (item: T) => string | null,
+  onCardDone: (index: number, item: T, winner: string | null) => void,
+  opts: { concurrency?: number; perAttemptMs?: number; shouldAbort?: () => boolean } = {},
+): Promise<Array<string | null>> {
+  const { concurrency = 4, perAttemptMs = 8000, shouldAbort } = opts;
+  const results: Array<string | null> = new Array(items.length).fill(null);
+  let cursor = 0;
+
+  async function worker() {
+    while (true) {
+      if (shouldAbort?.()) return;
+      const i = cursor++;
+      if (i >= items.length) return;
+      const item = items[i];
+      const winner = await preloadCardImage(getUrl(item), perAttemptMs);
+      results[i] = winner;
+      onCardDone(i, item, winner);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
+}
+
 
 const POLL_INTERVAL = 3000;
 
@@ -263,6 +298,9 @@ export function PackRevealDialog({
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  const [showPreloadEscape, setShowPreloadEscape] = useState(false);
+  const preloadSkipRef = useRef(false);
+
   const pollStartRef = useRef<number>(0);
   const revealedRowsRef = useRef<PendingNftRow[]>([]);
   const isDemo = !!(demoCards && demoCards.length > 0);
@@ -276,7 +314,9 @@ export function PackRevealDialog({
     if (open) {
       setPhase('waiting'); setNewCards([]); setPendingRowIds([]);
       setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
-      setCollectError(null); setShowEscape(false); pollStartRef.current = Date.now();
+      setCollectError(null); setShowEscape(false); setShowPreloadEscape(false);
+      preloadSkipRef.current = false; pollStartRef.current = Date.now();
+
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
       return () => clearTimeout(shakeTimer);
@@ -291,6 +331,15 @@ export function PackRevealDialog({
     const timer = setTimeout(() => setShowEscape(true), 60000);
     return () => clearTimeout(timer);
   }, [open, phase]);
+
+  // Preload escape hatch: after 20s of preloading, allow the user to reveal
+  // now with whatever winners are ready; RevealCardImage will self-heal the rest.
+  useEffect(() => {
+    if (!open || phase !== 'preloading') { setShowPreloadEscape(false); return; }
+    const timer = setTimeout(() => setShowPreloadEscape(true), 20000);
+    return () => clearTimeout(timer);
+  }, [open, phase]);
+
 
   // Demo mode
   useEffect(() => {
@@ -357,15 +406,27 @@ export function PackRevealDialog({
           // shows a blank tile.
           setPreloadProgress({ done: 0, total: cards.length });
           setPhase('preloading');
+          preloadSkipRef.current = false;
           let doneCount = 0;
-          const resolved = await Promise.all(cards.map(async (c) => {
-            const winner = await preloadCardImage(c.image, 4000);
-            doneCount++;
-            if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
-            return { ...c, image: winner ?? c.image };
-          }));
+          const winners = await preloadWithPool(
+            cards,
+            (c) => c.image,
+            (i, c, winner) => {
+              doneCount++;
+              if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
+              if (winner) {
+                console.log(`[pack-reveal] card ${i + 1}/${cards.length} → ${winner}`);
+              } else {
+                console.warn(`[pack-reveal] card ${i + 1}/${cards.length} → unreachable (${c.image})`);
+              }
+            },
+            { concurrency: 4, perAttemptMs: 8000, shouldAbort: () => cancelled || preloadSkipRef.current },
+          );
           if (cancelled) return;
-          console.log(`[pack-reveal] preload complete — ${resolved.filter(c => c.image).length}/${resolved.length} images ready`);
+          const resolved = cards.map((c, i) => ({ ...c, image: winners[i] ?? c.image }));
+          const readyCount = winners.filter(Boolean).length;
+          console.log(`[pack-reveal] preload complete — ${readyCount}/${cards.length} images ready${preloadSkipRef.current ? ' (user skipped)' : ''}`);
+
           setNewCards(resolved);
           setPhase('revealing');
         }
@@ -494,12 +555,27 @@ export function PackRevealDialog({
               <p className="text-lg font-bold text-foreground">Preparing your reveal...</p>
               <div className="flex items-center gap-2 text-muted-foreground text-sm justify-center">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading card {Math.min(preloadProgress.done + 1, preloadProgress.total)} of {preloadProgress.total}...</span>
+                <span>{preloadProgress.done} / {preloadProgress.total} cards ready</span>
               </div>
               <p className="text-xs text-muted-foreground/60 max-w-sm text-center">
-                We're pre-loading every card image so the reveal plays without any blank tiles. This can take a moment on larger packs.
+                We're pre-loading every card image so the reveal plays without any blank tiles. Larger packs and GIF variants can take a moment while we rotate through IPFS gateways.
               </p>
+              {showPreloadEscape && (
+                <div className="flex flex-col items-center gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { preloadSkipRef.current = true; }}
+                  >
+                    Reveal now
+                  </Button>
+                  <p className="text-xs text-muted-foreground/60 text-center max-w-xs">
+                    Skips the wait. Any cards still loading will fetch during the reveal and self-heal if a gateway is slow.
+                  </p>
+                </div>
+              )}
             </div>
+
           </div>
         )}
 
