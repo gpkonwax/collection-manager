@@ -387,19 +387,11 @@ export default function SimpleAssetsPage() {
   const preparingDealCancelRef = useRef<{ cancelled: boolean } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
-  useEffect(() => {
-    if (dealingCards.length > 0) {
-      // Instead of rendering the entire collection, find the furthest dealing card
-      // position in filtered list and only render up to that + a buffer
-      const allAssets = [...saAssets, ...aaAssets];
-      let maxIdx = 0;
-      for (const dc of dealingCards) {
-        const idx = allAssets.findIndex(f => f.id === dc.id);
-        if (idx > maxIdx) maxIdx = idx;
-      }
-      setVisibleCount(maxIdx + 12);
-    }
-  }, [dealingCards, saAssets, aaAssets]);
+  // NOTE: visibleCount is grown to cover dealing cards in an effect further
+  // down in the file, once `sortedFiltered` and `savedGridSlots` are defined.
+  // Doing it here against the raw assets array would slice dealing cards off
+  // the grid whenever the current sort re-ordered them past visibleCount.
+
 
   const isLoading = saLoading || aaLoading;
   const error = saError || aaError;
