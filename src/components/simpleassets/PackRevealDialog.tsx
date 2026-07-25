@@ -406,15 +406,27 @@ export function PackRevealDialog({
           // shows a blank tile.
           setPreloadProgress({ done: 0, total: cards.length });
           setPhase('preloading');
+          preloadSkipRef.current = false;
           let doneCount = 0;
-          const resolved = await Promise.all(cards.map(async (c) => {
-            const winner = await preloadCardImage(c.image, 4000);
-            doneCount++;
-            if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
-            return { ...c, image: winner ?? c.image };
-          }));
+          const winners = await preloadWithPool(
+            cards,
+            (c) => c.image,
+            (i, c, winner) => {
+              doneCount++;
+              if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
+              if (winner) {
+                console.log(`[pack-reveal] card ${i + 1}/${cards.length} → ${winner}`);
+              } else {
+                console.warn(`[pack-reveal] card ${i + 1}/${cards.length} → unreachable (${c.image})`);
+              }
+            },
+            { concurrency: 4, perAttemptMs: 8000, shouldAbort: () => cancelled || preloadSkipRef.current },
+          );
           if (cancelled) return;
-          console.log(`[pack-reveal] preload complete — ${resolved.filter(c => c.image).length}/${resolved.length} images ready`);
+          const resolved = cards.map((c, i) => ({ ...c, image: winners[i] ?? c.image }));
+          const readyCount = winners.filter(Boolean).length;
+          console.log(`[pack-reveal] preload complete — ${readyCount}/${cards.length} images ready${preloadSkipRef.current ? ' (user skipped)' : ''}`);
+
           setNewCards(resolved);
           setPhase('revealing');
         }
