@@ -88,6 +88,8 @@ export function useGpkAtomicAssets(account: string | null) {
         const bridgeMint = raw.template_mint || '';
         const bridgeTotal = raw.template?.issued_supply || '';
         const sassetsId = String(raw.immutable_data?.sassets_id ?? raw.data?.sassets_id ?? '');
+        const transferredAtRaw = raw.transferred_at_time ?? raw.updated_at_time ?? raw.minted_at_time;
+        const transferredAt = transferredAtRaw ? Number(transferredAtRaw) : undefined;
         return {
           id: raw.asset_id, owner: raw.owner, author: 'gpk.topps',
           category: schemaName,
@@ -111,6 +113,7 @@ export function useGpkAtomicAssets(account: string | null) {
           mdata: raw.mutable_data as Record<string, unknown>,
           container: [], containerf: [],
           source: 'atomicassets' as const,
+          transferredAt: Number.isFinite(transferredAt) ? transferredAt : undefined,
         };
       });
       parsed.sort((a, b) => {
