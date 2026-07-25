@@ -7,8 +7,8 @@ import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import atomicAssetsLogo from '@/assets/atomicassets-logo.png.asset.json';
-import simpleAssetsLogo from '@/assets/simpleassets-logo.png.asset.json';
+import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
+import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
 interface Props {
   asset: SimpleAsset | null;
@@ -340,7 +340,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             <span aria-hidden>·</span>
             <span className="inline-flex items-center gap-1.5">
               <img
-                src={asset.source === 'atomicassets' ? atomicAssetsLogo.url : simpleAssetsLogo.url}
+                src={asset.source === 'atomicassets' ? atomicAssetsLogo : simpleAssetsLogo}
                 alt=""
                 className={`h-4 w-4 rounded-full object-cover ${asset.source === 'atomicassets' ? '' : 'bg-white p-[1px]'}`}
               />

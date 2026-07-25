@@ -9,8 +9,8 @@ import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
 import type { BinderTemplate } from '@/hooks/useBinderTemplates';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import atomicAssetsLogo from '@/assets/atomicassets-logo.png.asset.json';
-import simpleAssetsLogo from '@/assets/simpleassets-logo.png.asset.json';
+import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
+import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
 interface SimpleAssetCardProps {
   asset: SimpleAsset;
@@ -218,7 +218,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           <div className="flex items-center gap-1">
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{asset.category}</span>
             <img
-              src={asset.source === 'atomicassets' ? atomicAssetsLogo.url : simpleAssetsLogo.url}
+              src={asset.source === 'atomicassets' ? atomicAssetsLogo : simpleAssetsLogo}
               alt={asset.source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}
               title={asset.source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}
               className={cn(
