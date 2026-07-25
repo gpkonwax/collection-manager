@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { getCachedGatewayIndex } from '@/hooks/useIpfsMedia';
 import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
-import { Pen, Search, Eraser } from 'lucide-react';
+import { useCardTilt } from '@/hooks/useCardTilt';
+import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type ViewMode = 'tilt' | 'lens' | 'draw';
 
 const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
@@ -43,22 +46,21 @@ function getMintDisplay(asset: SimpleAsset): string | null {
 const ZOOM = 4;
 const LENS_SIZE = 220;
 
-function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorChange, canvasRegister, active }: {
-  isLandscape: boolean;
-  color?: string;
-  showPalette?: boolean;
-  onColorChange?: (c: string) => void;
+function DrawCanvas({ canvasRegister, active }: {
   canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
   active?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
-  const [localColor, setLocalColor] = useState(DRAW_COLORS[0].value);
-  const color = externalColor || localColor;
   const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const colorRef = useRef<string>(DRAW_COLORS[0].value);
 
   useEffect(() => {
     canvasRegister?.(canvasRef.current);
+    // Expose color setter on the canvas element so parent can update without remounting
+    if (canvasRef.current) {
+      (canvasRef.current as any).__setColor = (c: string) => { colorRef.current = c; };
+    }
     return () => canvasRegister?.(null);
   }, [canvasRegister]);
 
@@ -81,7 +83,7 @@ function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorCha
     const ctx = canvas?.getContext('2d');
     if (!ctx || !canvas) return;
     const pos = getPos(e);
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = colorRef.current;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -90,7 +92,7 @@ function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorCha
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
     lastPos.current = pos;
-  }, [color, getPos]);
+  }, [getPos]);
 
   const onPointerUp = useCallback(() => {
     drawing.current = false;
@@ -103,8 +105,16 @@ function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorCha
     const parent = canvas.parentElement;
     if (!parent) return;
     const ro = new ResizeObserver(() => {
+      // Preserve strokes across resize by saving/restoring image data
+      const ctx = canvas.getContext('2d');
+      const prev = ctx && canvas.width > 0 && canvas.height > 0
+        ? ctx.getImageData(0, 0, canvas.width, canvas.height)
+        : null;
       canvas.width = parent.clientWidth;
       canvas.height = parent.clientHeight;
+      if (prev && ctx) {
+        try { ctx.putImageData(prev, 0, 0); } catch { /* size changed, skip */ }
+      }
     });
     ro.observe(parent);
     canvas.width = parent.clientWidth;
@@ -113,94 +123,89 @@ function DrawCanvas({ isLandscape, color: externalColor, showPalette, onColorCha
   }, []);
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 z-40 rounded-lg"
-        style={{
-          cursor: active ? 'crosshair' : 'default',
-          touchAction: 'none',
-          pointerEvents: active ? 'auto' : 'none',
-        }}
-        onPointerDown={active ? onPointerDown : undefined}
-        onPointerMove={active ? onPointerMove : undefined}
-        onPointerUp={active ? onPointerUp : undefined}
-        onPointerLeave={active ? onPointerUp : undefined}
-      />
-      {showPalette && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
-          {DRAW_COLORS.map((c) => (
-            <button
-              key={c.name}
-              title={c.name}
-              className={`w-5 h-5 rounded-full border-2 transition-transform ${color === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
-              style={{ background: c.value }}
-              onClick={() => (onColorChange || setLocalColor)(c.value)}
-            />
-          ))}
-          <button
-            title="Clear"
-            className="ml-1 w-5 h-5 flex items-center justify-center text-muted-foreground hover:text-cheese transition-colors"
-            onClick={() => {
-              const canvas = canvasRef.current;
-              const ctx = canvas?.getContext('2d');
-              if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }}
-          >
-            <Eraser className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-    </>
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 z-40 rounded-lg"
+      style={{
+        cursor: active ? 'crosshair' : 'default',
+        touchAction: 'none',
+        pointerEvents: active ? 'auto' : 'none',
+      }}
+      onPointerDown={active ? onPointerDown : undefined}
+      onPointerMove={active ? onPointerMove : undefined}
+      onPointerUp={active ? onPointerUp : undefined}
+      onPointerLeave={active ? onPointerUp : undefined}
+    />
   );
 }
 
-function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColor, showPalette, onColorChange, canvasRegister }: {
+function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, canvasRegister }: {
   url: string;
   alt: string;
   isLandscape: boolean;
   className?: string;
-  drawEnabled?: boolean;
-  drawColor?: string;
-  showPalette?: boolean;
-  onColorChange?: (c: string) => void;
+  mode: ViewMode;
+  drawColor: string;
   canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [wasDrawn, setWasDrawn] = useState(false);
+  const [everDrawn, setEverDrawn] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const hash = url ? extractIpfsHash(url) : null;
   const cachedIdx = getCachedGatewayIndex(hash);
   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
 
+  // Disable tilt on the rotated landscape back — the rotate+scale composition
+  // conflicts with the 3D transform.
+  const tiltActive = mode === 'tilt' && !isLandscape;
+  const { ref: tiltRef, glareRef, onMouseMove: tiltMove, onMouseLeave: tiltLeave } = useCardTilt({ disabled: !tiltActive });
+
   useEffect(() => {
-    if (drawEnabled && !wasDrawn) setWasDrawn(true);
-  }, [drawEnabled, wasDrawn]);
+    if (mode === 'draw') setEverDrawn(true);
+  }, [mode]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    setPos({ x, y });
+    if (mode === 'lens') {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+        const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+        setPos({ x, y });
+      }
+    }
+    if (tiltActive) tiltMove(e as React.MouseEvent<HTMLDivElement>);
+  };
+
+  const handleMouseLeave = () => {
+    setHover(false);
+    if (tiltActive) tiltLeave();
+  };
+
+  const handleMouseEnter = () => {
+    if (mode === 'lens') setHover(true);
   };
 
   const bgX = isLandscape ? pos.y : pos.x;
   const bgY = isLandscape ? (100 - pos.x) : pos.y;
 
-  const showCanvas = drawEnabled || wasDrawn;
+  const showCanvas = mode === 'draw' || everDrawn;
+  const cursor = mode === 'lens' ? (hover ? 'crosshair' : 'default') : 'default';
 
   return (
     <div
       ref={containerRef}
       className={`relative ${isLandscape ? 'aspect-[4/3]' : 'aspect-[3/4]'} bg-muted/30 rounded-lg`}
-      onMouseEnter={() => !drawEnabled && setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onMouseMove={!drawEnabled ? handleMouseMove : undefined}
-      style={{ cursor: drawEnabled ? 'default' : hover ? 'crosshair' : 'default' }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
+      style={{ cursor, perspective: tiltActive ? '1200px' : undefined }}
     >
-      <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center">
+      <div
+        ref={tiltRef}
+        className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center relative"
+        style={{ transformStyle: tiltActive ? 'preserve-3d' : undefined, willChange: tiltActive ? 'transform' : undefined }}
+      >
         <IpfsMedia
           url={url}
           alt={alt}
@@ -208,18 +213,20 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
           context="detail"
           showSkeleton
         />
+        <div
+          ref={glareRef}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-lg transition-opacity duration-200"
+          style={{ opacity: 0, mixBlendMode: 'overlay' }}
+        />
       </div>
       {showCanvas && (
         <DrawCanvas
-          isLandscape={isLandscape}
-          color={drawColor}
-          showPalette={showPalette && drawEnabled}
-          onColorChange={onColorChange}
           canvasRegister={canvasRegister}
-          active={drawEnabled}
+          active={mode === 'draw'}
         />
       )}
-      {!drawEnabled && hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
+      {mode === 'lens' && hover && resolvedUrl && !resolvedUrl.includes('placeholder') && (
         <div
           className="absolute pointer-events-none rounded-full border-2 border-cheese/50 shadow-lg z-50 overflow-hidden"
           style={{
@@ -248,18 +255,25 @@ function ImageWithLens({ url, alt, isLandscape, className, drawEnabled, drawColo
 
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
-  const [drawAll, setDrawAll] = useState(false);
+  const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   useEffect(() => {
     if (asset) {
       setShowRawJson(false);
-      setDrawAll(false);
+      setMode('tilt');
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
     }
   }, [asset?.id]);
+
+  // Push color changes into any registered canvases without remounting them
+  useEffect(() => {
+    canvasRefs.current.forEach((canvas) => {
+      if (canvas && (canvas as any).__setColor) (canvas as any).__setColor(unifiedColor);
+    });
+  }, [unifiedColor]);
 
   if (!asset) return null;
 
@@ -285,6 +299,9 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
     });
   };
 
+  const modeBtnCls = (m: ViewMode) =>
+    `h-7 w-7 rounded-md ${mode === m ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${modalMaxWidth} max-h-[90vh] overflow-y-auto overflow-x-hidden`}>
@@ -297,24 +314,23 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const isBack = i === 1;
             const isLandscape = isBack && isSeries1;
-            const isDrawing = isDrawable && drawAll;
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
                 <div className="flex items-center justify-center gap-1.5">
                   <p className="text-xs font-semibold text-cheese text-center">{label}</p>
                 </div>
-                <ImageWithLens
+                <ImageWithModes
                   url={imgUrl}
                   alt={`${asset.name} - ${label}`}
                   isLandscape={isLandscape}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
-                  drawEnabled={isDrawing}
+                  mode={mode}
                   drawColor={unifiedColor}
-                  showPalette={false}
                   canvasRegister={(canvas) => {
                     if (canvas) {
                       if (!canvasRefs.current.includes(canvas)) canvasRefs.current.push(canvas);
+                      (canvas as any).__setColor?.(unifiedColor);
                     } else {
                       canvasRefs.current = canvasRefs.current.filter(Boolean);
                     }
@@ -324,50 +340,59 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             );
           })}
         </div>
-        {isDrawable && images.length > 1 && (
-          <div className="flex flex-col items-center gap-1.5 mt-1">
-            <div className="flex gap-1.5">
+        <div className="flex flex-col items-center gap-1.5 mt-1">
+          <div className="flex gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={modeBtnCls('tilt')}
+              onClick={() => setMode('tilt')}
+              title="3D tilt (default)"
+            >
+              <Move3d className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={modeBtnCls('lens')}
+              onClick={() => setMode('lens')}
+              title="Magnifier"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            {isDrawable && (
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-7 w-7 rounded-md ${!drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
-                onClick={() => setDrawAll(false)}
-                title="Magnifier"
-              >
-                <span className="text-sm">🔍</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-7 w-7 rounded-md ${drawAll ? 'bg-cheese/20 text-cheese' : 'text-muted-foreground'}`}
-                onClick={() => setDrawAll(true)}
+                className={modeBtnCls('draw')}
+                onClick={() => setMode('draw')}
                 title="Draw on card"
               >
-                <span className="text-sm">✏️</span>
+                <Pencil className="h-4 w-4" />
               </Button>
-            </div>
-            {drawAll && (
-              <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
-                {DRAW_COLORS.map((c) => (
-                  <button
-                    key={c.name}
-                    title={c.name}
-                    className={`w-5 h-5 rounded-full border-2 transition-transform ${unifiedColor === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
-                    style={{ background: c.value }}
-                    onClick={() => setUnifiedColor(c.value)}
-                  />
-                ))}
-                <button
-                  title="Clear"
-                  className="ml-1 px-2 py-0.5 rounded-full bg-cheese text-black text-xs font-semibold hover:bg-cheese/80 transition-colors"
-                  onClick={clearAllCanvases}
-                >
-                  Clear
-                </button>
-              </div>
             )}
           </div>
-        )}
+          {mode === 'draw' && (
+            <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur rounded-full px-2 py-1">
+              {DRAW_COLORS.map((c) => (
+                <button
+                  key={c.name}
+                  title={c.name}
+                  className={`w-5 h-5 rounded-full border-2 transition-transform ${unifiedColor === c.value ? 'scale-125 border-cheese' : 'border-muted-foreground/40'}`}
+                  style={{ background: c.value }}
+                  onClick={() => setUnifiedColor(c.value)}
+                />
+              ))}
+              <button
+                title="Clear"
+                className="ml-1 px-2 py-0.5 rounded-full bg-cheese text-black text-xs font-semibold hover:bg-cheese/80 transition-colors flex items-center gap-1"
+                onClick={clearAllCanvases}
+              >
+                <Eraser className="h-3 w-3" /> Clear
+              </button>
+            </div>
+          )}
+        </div>
         {mintDisplay && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-cheese">Mint</span>
