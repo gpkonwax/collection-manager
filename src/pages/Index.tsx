@@ -886,11 +886,22 @@ export default function SimpleAssetsPage() {
     const arr = [...filtered];
     if (sortMode === 'newest') {
       arr.sort((a, b) => {
+        const aT = typeof a.transferredAt === 'number' ? a.transferredAt : undefined;
+        const bT = typeof b.transferredAt === 'number' ? b.transferredAt : undefined;
+        // Both have real transfer time → sort by it, most recent first.
+        if (aT !== undefined && bT !== undefined) {
+          if (aT !== bT) return bT - aT;
+        } else if (aT !== undefined) {
+          // Only a has a real timestamp → a is genuinely "newer info".
+          return -1;
+        } else if (bT !== undefined) {
+          return 1;
+        }
+        // Neither has a transfer time (both SimpleAssets) → fall back to asset ID desc.
         try {
           const aId = BigInt(a.id);
           const bId = BigInt(b.id);
           return bId > aId ? -1 : bId < aId ? 1 : 0;
-
         }
         catch { return b.id.localeCompare(a.id); }
       });
