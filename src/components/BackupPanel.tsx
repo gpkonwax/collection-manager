@@ -399,8 +399,27 @@ function RecommendedZipCard({
   zipInfo,
 }: RecommendedZipCardProps) {
   const options = getZipDownloadUrls(zipInfo);
+  // Only offer sources that actually have downloadable parts (or a single-file url).
+  const sourceOptions = options.filter((o) => o.parts.length > 0 || !!o.url);
+
+  const providerNameFor = (opt: typeof sourceOptions[number]) => {
+    const mirror = MIRRORS.find((m) => m.key === opt.key);
+    const provider = mirror ? getMirrorProviderName(mirror.url) : null;
+    return provider?.name ?? opt.label;
+  };
+
+  const defaultKey = (sourceOptions.find((o) => o.key === 'primary') ?? sourceOptions[0])?.key;
+  const [selectedSourceKey, setSelectedSourceKey] = useState<typeof defaultKey>(defaultKey);
   const [showDownloadLauncher, setShowDownloadLauncher] = useState(false);
   const [startedPartNames, setStartedPartNames] = useState<string[]>([]);
+
+  // Keep selection valid as options load in.
+  useEffect(() => {
+    if (!selectedSourceKey && defaultKey) setSelectedSourceKey(defaultKey);
+    else if (selectedSourceKey && !sourceOptions.some((o) => o.key === selectedSourceKey)) {
+      setSelectedSourceKey(defaultKey);
+    }
+  }, [defaultKey, selectedSourceKey, sourceOptions]);
 
   if (protectedOnDevice) {
     return (
@@ -418,18 +437,26 @@ function RecommendedZipCard({
   const hasParts = (zipInfo?.parts.length ?? 0) > 1;
   const shortHash = !hasParts && zipInfo?.sha256 ? `${zipInfo.sha256.slice(0, 12)}…` : null;
 
-  const primaryOption = options.find((o) => o.key === 'primary');
-  const backupAlternates = options.filter((o) => o.key === 'backupA' || o.key === 'backupB');
-  const hasBackupAlternates = backupAlternates.length > 0;
-  const primaryPartsTotal = primaryOption
-    ? primaryOption.parts.reduce((sum, p) => sum + (p.bytes || 0), 0)
+  const activeOption =
+    sourceOptions.find((o) => o.key === selectedSourceKey) ??
+    sourceOptions.find((o) => o.key === 'primary') ??
+    sourceOptions[0];
+  const activeProviderName = activeOption ? providerNameFor(activeOption) : null;
+  const activePartsTotal = activeOption
+    ? activeOption.parts.reduce((sum, p) => sum + (p.bytes || 0), 0)
     : 0;
-  const primaryTotalLabel = primaryPartsTotal > 0 ? formatBytes(primaryPartsTotal) : approxSize;
-
-  const primaryParts = [...(primaryOption?.parts ?? [])].sort((a, b) => a.index - b.index);
+  const activeTotalLabel = activePartsTotal > 0 ? formatBytes(activePartsTotal) : approxSize;
+  const activeParts = [...(activeOption?.parts ?? [])].sort((a, b) => a.index - b.index);
   const startedPartSet = new Set(startedPartNames);
-  const nextPart = primaryParts.find((part) => !startedPartSet.has(part.fileName));
-  const downloadedCount = primaryParts.filter((part) => startedPartSet.has(part.fileName)).length;
+  const nextPart = activeParts.find((part) => !startedPartSet.has(part.fileName));
+  const downloadedCount = activeParts.filter((part) => startedPartSet.has(part.fileName)).length;
+
+  const changeSource = (key: typeof defaultKey) => {
+    if (key === selectedSourceKey) return;
+    setSelectedSourceKey(key);
+    setStartedPartNames([]);
+    setShowDownloadLauncher(false);
+  };
 
   const markPartStarted = (fileName: string) => {
     setStartedPartNames((current) => current.includes(fileName) ? current : [...current, fileName]);
@@ -437,10 +464,6 @@ function RecommendedZipCard({
 
   const startNextPartDownload = () => {
     if (!nextPart) return;
-
-    // Capture the current part before updating state. If this is an <a href>
-    // and React advances to the next part during the click, some browsers can
-    // follow the newly-rendered href instead of the intended file.
     const partToDownload = nextPart;
     const link = document.createElement('a');
     link.href = partToDownload.url;
@@ -450,7 +473,6 @@ function RecommendedZipCard({
     document.body.appendChild(link);
     link.click();
     link.remove();
-
     markPartStarted(partToDownload.fileName);
   };
 
@@ -461,21 +483,46 @@ function RecommendedZipCard({
         <p className="font-medium text-cheese">Recommended: keep a copy on your device</p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Save the offline backup ZIP{hasParts ? ' parts' : ''}{primaryTotalLabel ? ` (~${primaryTotalLabel} total)` : ''} now while
+        Save the offline backup ZIP{hasParts ? ' parts' : ''}{activeTotalLabel ? ` (~${activeTotalLabel} total)` : ''} now while
         everything's working. If every mirror ever goes down, you can load these files
         back into the app (Step 3 below) and every image still works.
       </p>
 
-      {primaryOption && primaryOption.parts.length <= 1 && (
+      {sourceOptions.length > 1 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Download source (same files, pick whichever works)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {sourceOptions.map((opt) => {
+              const active = opt.key === activeOption?.key;
+              return (
+                <Button
+                  key={opt.key}
+                  type="button"
+                  size="sm"
+                  variant={active ? 'default' : 'outline'}
+                  className="h-7 text-xs"
+                  onClick={() => changeSource(opt.key)}
+                >
+                  {providerNameFor(opt)}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {activeOption && activeOption.parts.length <= 1 && (
         <Button asChild size="lg" className="w-full h-11 text-base">
-          <a href={primaryOption.url ?? primaryOption.parts[0]?.url} target="_blank" rel="noopener noreferrer">
+          <a href={activeOption.url ?? activeOption.parts[0]?.url} target="_blank" rel="noopener noreferrer">
             <Download className="w-4 h-4 mr-2" />
-            Download from GitHub Release{approxSize ? ` (${approxSize})` : ''}
+            Download from {activeProviderName}{approxSize ? ` (${approxSize})` : ''}
           </a>
         </Button>
       )}
 
-      {primaryOption && primaryOption.parts.length > 1 && (
+      {activeOption && activeOption.parts.length > 1 && (
         <div className="space-y-2">
           <Button
             size="lg"
@@ -483,18 +530,18 @@ function RecommendedZipCard({
             onClick={() => setShowDownloadLauncher(true)}
           >
             <Download className="w-4 h-4 mr-2" />
-            Download ZIP parts{primaryTotalLabel ? ` (~${primaryTotalLabel})` : ''}
+            Download ZIP parts from {activeProviderName}{activeTotalLabel ? ` (~${activeTotalLabel})` : ''}
           </Button>
           <p className="text-[10px] text-muted-foreground">
-            Large GitHub release files may need one click per part so your browser does not block the downloads.
+            Large files need one click per part so your browser does not block the downloads.
           </p>
 
           {showDownloadLauncher && (
             <div className="rounded-md border border-border bg-background/60 p-3 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium">Download {primaryParts.length} ZIP parts one at a time</p>
+                <p className="text-xs font-medium">Download {activeParts.length} ZIP parts one at a time</p>
                 <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-                  {downloadedCount}/{primaryParts.length} started
+                  {downloadedCount}/{activeParts.length} started
                 </p>
               </div>
 
@@ -502,16 +549,16 @@ function RecommendedZipCard({
                 <Button size="lg" className="w-full h-11 justify-start text-sm" onClick={startNextPartDownload}>
                   <Download className="w-4 h-4 mr-2" />
                   {downloadedCount === 0 ? 'Start download' : 'Start next download'}
-                  {`: Part ${nextPart.index} of ${primaryParts.length} (${formatBytes(nextPart.bytes)})`}
+                  {`: Part ${nextPart.index} of ${activeParts.length} (${formatBytes(nextPart.bytes)})`}
                 </Button>
               )}
 
               <p className="text-[10px] text-muted-foreground">
-                Wait until Part {nextPart?.index ?? primaryParts.length} finishes downloading, then press the button again to start the next part.
+                Wait until Part {nextPart?.index ?? activeParts.length} finishes downloading, then press the button again to start the next part.
               </p>
 
               <ol className="space-y-1 text-[11px] text-muted-foreground">
-                {primaryParts.map((part) => {
+                {activeParts.map((part) => {
                   const started = startedPartSet.has(part.fileName);
                   return (
                     <li key={part.fileName} className="flex items-center gap-2">
@@ -536,7 +583,7 @@ function RecommendedZipCard({
 
               {!nextPart && (
                 <p className="text-xs text-emerald-400">
-                  All {primaryParts.length} ZIP part downloads have been started. Keep all files together before loading them in Step 3.
+                  All {activeParts.length} ZIP part downloads have been started. Keep all files together before loading them in Step 3.
                 </p>
               )}
             </div>
@@ -544,37 +591,9 @@ function RecommendedZipCard({
         </div>
       )}
 
-      {hasBackupAlternates && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            If GitHub is down, try another source (same file):
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {backupAlternates.map((opt) => {
-              const mirror = MIRRORS.find((m) => m.key === opt.key);
-              const provider = mirror ? getMirrorProviderName(mirror.url) : null;
-              return (
-                <Button
-                  key={opt.key}
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                >
-                  <a href={opt.url ?? ZIP_GITHUB_RELEASE_URL} target="_blank" rel="noopener noreferrer">
-                    <Download className="w-3 h-3 mr-1.5" />
-                    From {provider?.name ?? opt.label}
-                  </a>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {!hasBackupAlternates && (
+      {sourceOptions.length <= 1 && (
         <p className="text-[10px] text-muted-foreground">
-          Backup A and Backup B download links will appear here once those mirrors are online.
+          Additional backup mirror download links will appear here once those mirrors are online.
         </p>
       )}
 
