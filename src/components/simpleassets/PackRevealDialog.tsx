@@ -150,7 +150,7 @@ function buildImageCandidates(originalUrl: string | null | undefined, preferredU
   const candidates: ImageCandidate[] = [];
   const seen = new Set<string>();
 
-  if (preferredUrl) {
+  if (preferredUrl && (preferredUrl !== originalUrl || preferredUrl.startsWith('blob:'))) {
     addCandidate(candidates, seen, { url: preferredUrl, label: 'resolved winner', tier: 'preferred' });
   }
 
