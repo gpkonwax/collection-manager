@@ -30,6 +30,45 @@ import { fetchPendingNfts, fetchPendingNftsDetailed } from '@/components/simplea
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
+import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+
+/**
+ * Preload one image URL through every IPFS gateway with a per-attempt hang
+ * timeout. Used before starting the deal animation so we never begin dealing
+ * with images that haven't decoded yet.
+ */
+async function preloadImageThroughGateways(originalUrl: string | null | undefined, perAttemptMs = 4000): Promise<boolean> {
+  if (!originalUrl) return false;
+  const hash = extractIpfsHash(originalUrl);
+  const candidates: string[] = [originalUrl];
+  if (hash) {
+    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
+      const gw = IPFS_GATEWAYS[i];
+      const swapped = `${gw}${hash}`;
+      if (!candidates.includes(swapped)) candidates.push(swapped);
+    }
+  }
+  for (const url of candidates) {
+    const ok = await new Promise<boolean>((resolve) => {
+      const img = new Image();
+      let settled = false;
+      const done = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        img.onload = null;
+        img.onerror = null;
+        clearTimeout(timer);
+        resolve(result);
+      };
+      const timer = setTimeout(() => done(false), perAttemptMs);
+      img.onload = () => done(true);
+      img.onerror = () => done(false);
+      img.src = url;
+    });
+    if (ok) return true;
+  }
+  return false;
+}
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
