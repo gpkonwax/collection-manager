@@ -19,6 +19,8 @@ export interface SimpleAsset {
   container: unknown[];
   containerf: unknown[];
   source: 'simpleassets' | 'atomicassets';
+  /** Epoch ms when the asset was last transferred (received). Only populated for AtomicAssets. */
+  transferredAt?: number;
 }
 
 interface RawSAsset {
