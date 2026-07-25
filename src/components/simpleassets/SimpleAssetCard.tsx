@@ -217,11 +217,15 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{asset.category}</span>
-            <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
-              asset.source === 'atomicassets' ? 'bg-primary/15 text-primary' : 'bg-emerald-500/15 text-emerald-400'
-            }`}>
-              {asset.source === 'atomicassets' ? 'AA' : 'SA'}
-            </span>
+            <img
+              src={asset.source === 'atomicassets' ? atomicAssetsLogo.url : simpleAssetsLogo.url}
+              alt={asset.source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}
+              title={asset.source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}
+              className={cn(
+                'h-4 w-4 rounded-full object-contain shrink-0',
+                asset.source === 'atomicassets' ? '' : 'bg-white p-[1px]'
+              )}
+            />
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
