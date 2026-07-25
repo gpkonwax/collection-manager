@@ -5,6 +5,7 @@ import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { getCachedGatewayIndex } from '@/hooks/useIpfsMedia';
 import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { useCardTilt } from '@/hooks/useCardTilt';
+import { Card3DViewer } from '@/components/simpleassets/Card3DViewer';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
@@ -139,10 +140,11 @@ function DrawCanvas({ canvasRegister, active }: {
   );
 }
 
-function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, canvasRegister }: {
+function ImageWithModes({ url, alt, isLandscape, isBack, className, mode, drawColor, canvasRegister }: {
   url: string;
   alt: string;
   isLandscape: boolean;
+  isBack: boolean;
   className?: string;
   mode: ViewMode;
   drawColor: string;
@@ -157,7 +159,6 @@ function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, can
   const resolvedUrl = hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url;
 
   const tiltActive = mode === 'tilt';
-  const { ref: tiltRef, glareRef, onMouseMove: tiltMove, onMouseLeave: tiltLeave } = useCardTilt({ disabled: !tiltActive, landscape: isLandscape });
 
   useEffect(() => {
     if (mode === 'draw') setEverDrawn(true);
@@ -172,12 +173,10 @@ function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, can
         setPos({ x, y });
       }
     }
-    if (tiltActive) tiltMove(e as React.MouseEvent<HTMLDivElement>);
   };
 
   const handleMouseLeave = () => {
     setHover(false);
-    if (tiltActive) tiltLeave();
   };
 
   const handleMouseEnter = () => {
@@ -197,27 +196,26 @@ function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, can
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
-      style={{ cursor, perspective: tiltActive ? '1200px' : undefined }}
+      style={{ cursor }}
     >
-      <div
-        ref={tiltRef}
-        className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center relative"
-        style={{ transformStyle: tiltActive ? 'preserve-3d' : undefined, willChange: tiltActive ? 'transform' : undefined }}
-      >
-        <IpfsMedia
-          url={url}
+      {tiltActive ? (
+        <Card3DViewer
+          url={resolvedUrl}
           alt={alt}
-          className={`w-full h-full ${className || ''}`}
-          context="detail"
-          showSkeleton
+          isLandscape={isLandscape}
+          isBack={isBack}
         />
-        <div
-          ref={glareRef}
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-lg transition-opacity duration-200"
-          style={{ opacity: 0, mixBlendMode: 'overlay' }}
-        />
-      </div>
+      ) : (
+        <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center relative">
+          <IpfsMedia
+            url={url}
+            alt={alt}
+            className={`w-full h-full ${className || ''}`}
+            context="detail"
+            showSkeleton
+          />
+        </div>
+      )}
       {showCanvas && (
         <DrawCanvas
           canvasRegister={canvasRegister}
@@ -322,6 +320,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   url={imgUrl}
                   alt={`${asset.name} - ${label}`}
                   isLandscape={isLandscape}
+                  isBack={isBack}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   mode={mode}
                   drawColor={unifiedColor}
