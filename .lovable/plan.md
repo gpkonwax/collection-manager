@@ -1,32 +1,23 @@
 ## Goal
 
-Rework mint display on cards. Bridge mint (AA only) takes over the green pill styling from the removed AA `idata` mint. Add a reserved top-of-card mint ribbon on **both AA and SA cards** showing `#--` until real mint numbers are plumbed in.
+- **Native AA sets** (everything except `series1`, `series2`, `exotic`): the `template_mint` value that currently populates `bridge_mint` is actually the real on-chain mint number. Use it to fill the top `#` ribbon and hide the "Bridge Mint" pill entirely for these cards.
+- **Bridged sets** (`series1`, `series2`, `exotic`): keep current behavior — the pill still reads `Bridge Mint #…`, and the top ribbon stays as `--` until real SA mints get plumbed.
 
-## Changes
+## Change (single file: `src/components/simpleassets/SimpleAssetCard.tsx`)
 
-### `src/components/simpleassets/SimpleAssetCard.tsx`
+1. Add a small helper near the top of the component:
+   ```ts
+   const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
+   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
+   ```
+2. Update `realMintDisplay` logic so it prefers, in order:
+   - `asset.mintNumber` (future real-mint field, unchanged),
+   - `asset.idata?.bridge_mint` **only when** `isAtomic && !isBridgedAA` (native AA — this value is the true template mint),
+   - otherwise `--`.
+3. Update the pill row condition (line 220) and the inner pill (lines 225–233) so `Bridge Mint #…` only renders when `isAtomic && isBridgedAA && asset.idata?.bridge_mint`. Native AA cards will no longer show the pill; their mint sits in the top ribbon instead.
 
-**Bottom metadata row:**
-- **AA cards:** hide the existing `mintInfo` emerald pill. Render `bridge_mint` pill with the emerald styling (`bg-emerald-500/15 text-emerald-400 font-medium`) that the removed pill used. Keep tooltip.
-- **SA cards:** unchanged (existing green `mintInfo` pill stays).
+## Notes
 
-**New top-of-card mint ribbon (both AA and SA):**
-- Small pill absolutely positioned at the top-right of the artwork area (mirroring the AtomicHub `#259` style in the reference), inside the `Card` but outside the 3D tilt wrapper so text stays sharp.
-- Content: `#{realMint}` when available, otherwise `#--`.
-- Reads from a future `asset.mintNumber` (or similar) field with nullish fallback to `--`. No hook changes now; the slot is a placeholder ready to light up when the real source is wired later.
-- z-index above artwork, below existing corner UI (alert button top-left, stack count top-right, selection checkbox top-left). Position it so it doesn't collide with the stack-count badge — place at top-center, or offset when a stack badge is present.
-
-### Out of scope
-- `SimpleAssetDetailDialog.tsx` — user asked about card grid only.
-- Hooks (`useSimpleAssets`, `useGpkAtomicAssets`) — placeholder shows `--` until a follow-up task wires the real mint numbers.
-
-## Technical notes
-
-- AA detection: `asset.source === 'atomicassets'`.
-- Emerald token reused verbatim: `bg-emerald-500/15 text-emerald-400 font-medium`.
-- Ribbon is a `<div>` inside `Card` (already `relative`), placed outside the `perspective`/tilt wrapper.
-- `memo` comparator: no changes needed now; when real mint field is added, include it in the equality check.
-
-## Open question
-
-Ribbon position — default to **top-center** so it never collides with the existing corner badges (alert, stack count, selection). Say the word if you'd rather have top-right and I'll shift the stack-count badge instead.
+- Bridged schema names confirmed from `src/pages/Index.tsx` `CATEGORY_LABELS` and `src/hooks/useCollectionCompletion.ts`: `series1`, `series2`, `exotic`.
+- `asset.category` on AA assets is set to `schema_name` in `src/hooks/useGpkAtomicAssets.ts`, so it's the correct field to branch on.
+- No changes to hooks, data fetching, or SA cards. SA `mintInfo` pill (green, non-atomic path) is untouched.

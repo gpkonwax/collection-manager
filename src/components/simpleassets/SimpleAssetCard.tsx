@@ -70,10 +70,16 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
   const isAtomic = asset.source === 'atomicassets';
-  // Placeholder for real on-chain mint number; falls back to "--" until wired.
+  // Bridged AA schemas — their `bridge_mint` is the bridging order, not a real mint.
+  const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
+  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
+  // Real on-chain mint: future `mintNumber` field wins; for native AA sets the
+  // `bridge_mint` value is actually the true template mint, so use it there.
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
-  const realMintDisplay = realMint !== undefined && realMint !== null && String(realMint).trim() !== ''
-    ? `#${realMint}`
+  const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
+  const effectiveMint = realMint ?? nativeAAMint;
+  const realMintDisplay = effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
+    ? `#${effectiveMint}`
     : '#--';
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
@@ -217,12 +223,12 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {((mintInfo && !isAtomic) || (isAtomic && asset.idata?.bridge_mint) || hasContained) && (
+        {((mintInfo && !isAtomic) || (isBridgedAA && asset.idata?.bridge_mint) || hasContained) && (
           <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
             {mintInfo && !isAtomic && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>
             )}
-            {isAtomic && asset.idata?.bridge_mint ? (
+            {isBridgedAA && asset.idata?.bridge_mint ? (
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium"
                 title="Original bridge order mint from SimpleAssets → AtomicAssets bridging"
