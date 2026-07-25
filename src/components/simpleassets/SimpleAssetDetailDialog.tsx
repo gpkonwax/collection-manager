@@ -22,6 +22,7 @@ const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
 const DRAWABLE_CATEGORIES = new Set(['five', 'series1', 'series2']);
+const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 const DRAW_COLORS = [
   { name: 'Black', value: '#000000' },
   { name: 'Yellow', value: 'hsl(45, 97%, 54%)' },
@@ -43,6 +44,19 @@ function getMintDisplay(asset: SimpleAsset): string | null {
     }
   }
   return null;
+}
+
+function getRealMintDisplay(asset: SimpleAsset): string {
+  const isAtomic = asset.source === 'atomicassets';
+  const category = String(asset.category || '').toLowerCase();
+  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(category);
+  const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
+  const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
+  const effectiveMint = realMint ?? nativeAAMint;
+  if (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== '') {
+    return `#${effectiveMint}`;
+  }
+  return '#--';
 }
 
 const ZOOM = 4;
