@@ -13,7 +13,7 @@ import { normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { RevealResult } from '@/lib/packReveal';
 
 const EXPECTED_CARDS: Record<string, number> = {
-  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 55,
+  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 35,
   EXOFIVE: 5, EXOMEGA: 25,
 };
 
@@ -65,15 +65,28 @@ function swapGateway(url: string, gatewayIndex: number): string | null {
 
 function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const currentSrc = card.image ? (gwIdx === 0 ? card.image : swapGateway(card.image, gwIdx)) : null;
+
+  // Hang-swap: if the current gateway hasn't fired load or error within 4s,
+  // rotate to the next one so a silently-stalled request doesn't leave a blank
+  // tile mid-reveal.
+  useEffect(() => {
+    if (!currentSrc || loaded) return;
+    const t = setTimeout(() => {
+      if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1);
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [currentSrc, loaded, gwIdx]);
 
   return (
     <div className="relative aspect-[2/3]"
       style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
       <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
         {currentSrc ? (
-          <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center" loading="lazy"
-            onError={() => { if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
+          <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center"
+            onLoad={() => setLoaded(true)}
+            onError={() => { setLoaded(false); if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
         )}
@@ -89,6 +102,44 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
       </div>
     </div>
   );
+}
+
+/**
+ * Preload a single image URL: try the given URL first, then rotate through
+ * every IPFS gateway. Each attempt gets a per-attempt hang timeout (default
+ * 4s) so a silently-stalled gateway doesn't block the whole pack forever.
+ * Resolves with the winning URL, or null if every gateway is unreachable.
+ */
+async function preloadCardImage(originalUrl: string | null, perAttemptMs = 4000): Promise<string | null> {
+  if (!originalUrl) return null;
+  const hash = extractIpfsHash(originalUrl);
+  const candidates: string[] = [originalUrl];
+  if (hash) {
+    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
+      const swapped = swapGateway(originalUrl, i);
+      if (swapped && !candidates.includes(swapped)) candidates.push(swapped);
+    }
+  }
+  for (const url of candidates) {
+    const ok = await new Promise<boolean>((resolve) => {
+      const img = new Image();
+      let settled = false;
+      const done = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        img.onload = null;
+        img.onerror = null;
+        clearTimeout(timer);
+        resolve(result);
+      };
+      const timer = setTimeout(() => done(false), perAttemptMs);
+      img.onload = () => done(true);
+      img.onerror = () => done(false);
+      img.src = url;
+    });
+    if (ok) return url;
+  }
+  return null;
 }
 
 const POLL_INTERVAL = 3000;
@@ -202,7 +253,7 @@ export function PackRevealDialog({
   open, onOpenChange, packSymbol, packLabel, packImage,
   accountName, preOpenUnboxingIds, onComplete, onDemoCollect, demoCards, session,
 }: PackRevealDialogProps) {
-  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
+  const [phase, setPhase] = useState<'waiting' | 'preloading' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
   const [pendingRowIds, setPendingRowIds] = useState<number[]>([]);
   const [unboxingId, setUnboxingId] = useState<number | null>(null);
@@ -211,6 +262,7 @@ export function PackRevealDialog({
   const [collectError, setCollectError] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
+  const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
   const pollStartRef = useRef<number>(0);
   const revealedRowsRef = useRef<PendingNftRow[]>([]);
   const isDemo = !!(demoCards && demoCards.length > 0);
@@ -294,10 +346,27 @@ export function PackRevealDialog({
               rarity: `${r.variant} ${r.quality}`,
             };
           });
-          setNewCards(cards);
+          console.log(`[pack-reveal] targeting ${cards.length}-card unboxing (boxtype=${sorted[0]?.boxtype})`);
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
           revealedRowsRef.current = sorted;
+
+          // Preload every image before revealing anything. Quality-over-speed:
+          // we intentionally wait until every card has been resolved to some
+          // gateway (or exhausted all of them) so the reveal itself never
+          // shows a blank tile.
+          setPreloadProgress({ done: 0, total: cards.length });
+          setPhase('preloading');
+          let doneCount = 0;
+          const resolved = await Promise.all(cards.map(async (c) => {
+            const winner = await preloadCardImage(c.image, 4000);
+            doneCount++;
+            if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
+            return { ...c, image: winner ?? c.image };
+          }));
+          if (cancelled) return;
+          console.log(`[pack-reveal] preload complete — ${resolved.filter(c => c.image).length}/${resolved.length} images ready`);
+          setNewCards(resolved);
           setPhase('revealing');
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
@@ -409,6 +478,28 @@ export function PackRevealDialog({
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {phase === 'preloading' && (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="animate-pack-shake">
+              {packImage ? (
+                <img src={packImage} alt={packLabel} className="w-32 h-auto rounded-lg shadow-lg shadow-primary/30" />
+              ) : (
+                <span className="text-7xl">📦</span>
+              )}
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-lg font-bold text-foreground">Preparing your reveal...</p>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm justify-center">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading card {Math.min(preloadProgress.done + 1, preloadProgress.total)} of {preloadProgress.total}...</span>
+              </div>
+              <p className="text-xs text-muted-foreground/60 max-w-sm text-center">
+                We're pre-loading every card image so the reveal plays without any blank tiles. This can take a moment on larger packs.
+              </p>
+            </div>
           </div>
         )}
 

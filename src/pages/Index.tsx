@@ -30,6 +30,45 @@ import { fetchPendingNfts, fetchPendingNftsDetailed } from '@/components/simplea
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
+import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+
+/**
+ * Preload one image URL through every IPFS gateway with a per-attempt hang
+ * timeout. Used before starting the deal animation so we never begin dealing
+ * with images that haven't decoded yet.
+ */
+async function preloadImageThroughGateways(originalUrl: string | null | undefined, perAttemptMs = 4000): Promise<boolean> {
+  if (!originalUrl) return false;
+  const hash = extractIpfsHash(originalUrl);
+  const candidates: string[] = [originalUrl];
+  if (hash) {
+    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
+      const gw = IPFS_GATEWAYS[i];
+      const swapped = `${gw}${hash}`;
+      if (!candidates.includes(swapped)) candidates.push(swapped);
+    }
+  }
+  for (const url of candidates) {
+    const ok = await new Promise<boolean>((resolve) => {
+      const img = new Image();
+      let settled = false;
+      const done = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        img.onload = null;
+        img.onerror = null;
+        clearTimeout(timer);
+        resolve(result);
+      };
+      const timer = setTimeout(() => done(false), perAttemptMs);
+      img.onload = () => done(true);
+      img.onerror = () => done(false);
+      img.src = url;
+    });
+    if (ok) return true;
+  }
+  return false;
+}
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
@@ -344,6 +383,8 @@ export default function SimpleAssetsPage() {
   const [dealingCards, setDealingCards] = useState<SimpleAsset[]>([]);
   const [dealtIds, setDealtIds] = useState<Set<string>>(new Set());
   const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);
+  const [preparingDeal, setPreparingDeal] = useState<{ matched: number; total: number; stage: 'indexing' | 'preloading' } | null>(null);
+  const preparingDealCancelRef = useRef<{ cancelled: boolean } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
 
   useEffect(() => {
@@ -546,16 +587,34 @@ export default function SimpleAssetsPage() {
       return;
     }
 
-    // Poll for matched delivery up to ~45s.
-    const deadline = Date.now() + 45_000;
-    const delays = [1500, 2000, 3000, 4000, 5000, 6000, 8000, 10000];
+    // Scope the polling refetch by reveal source (SA packs only need SA
+    // refetches — an AA refetch during an SA open is pure render churn) and
+    // guard it so refetches never stack.
+    const source = reveal!.source;
+    const scopedRefetch = source === 'simpleassets' ? refetchSa : refetchAa;
+    let refetchInFlight = false;
+    const guardedRefetch = async () => {
+      if (refetchInFlight) return;
+      refetchInFlight = true;
+      try { await scopedRefetch(); } finally { refetchInFlight = false; }
+    };
+
+    // Progressive backoff, no hard deadline for confirmed opens — we've got
+    // the on-chain tx, so cards WILL land. Wait as long as it takes.
+    const delays = [2000, 2000, 3000, 4000, 5000, 6000, 8000, 8000];
+    const totalMatchers = reveal!.matchers.length;
     let attempt = 0;
     let matched: SimpleAsset[] = [];
-    while (Date.now() < deadline) {
-      // Let React commit the latest refetch into state before reading assetsRef.
+    const cancelToken = { cancelled: false };
+    preparingDealCancelRef.current = cancelToken;
+    setPreparingDeal({ matched: 0, total: totalMatchers, stage: 'indexing' });
+
+    while (!cancelToken.cancelled) {
       await new Promise<void>(r => requestAnimationFrame(() => r()));
       await new Promise(r => setTimeout(r, 50));
       const result = matchRevealedAssets(reveal!.matchers, assetsRef.current, preCollectIdsRef.current);
+      console.debug(`[sa-open] matched=${result.matched.length}/${totalMatchers} unresolved=${result.unresolved.length}`);
+      setPreparingDeal({ matched: result.matched.length, total: totalMatchers, stage: 'indexing' });
       if (result.unresolved.length === 0 && result.matched.length > 0) {
         matched = result.matched;
         break;
@@ -563,10 +622,25 @@ export default function SimpleAssetsPage() {
       const delay = delays[Math.min(attempt, delays.length - 1)];
       attempt++;
       await new Promise(r => setTimeout(r, delay));
-      await Promise.all([refetchSa(), refetchAa()]);
+      if (cancelToken.cancelled) break;
+      await guardedRefetch();
     }
 
-    if (matched.length === reveal!.matchers.length && matched.length > 0) {
+    if (cancelToken.cancelled) {
+      preparingDealCancelRef.current = null;
+      return;
+    }
+
+    if (matched.length === totalMatchers && matched.length > 0) {
+      // Preload every deal-card image before we start the animation. No time
+      // cap — a slow gateway is better than a broken animation.
+      setPreparingDeal({ matched: matched.length, total: totalMatchers, stage: 'preloading' });
+      await Promise.all(matched.map(a => preloadImageThroughGateways(a.image, 4000)));
+      if (cancelToken.cancelled) {
+        preparingDealCancelRef.current = null;
+        return;
+      }
+
       const cat = SCHEMA_TO_CATEGORY[matched[0].category] || matched[0].category || reveal!.expectedCategory || null;
       focusCollectionView(cat);
       setCollectionSyncNotice({ category: cat });
@@ -579,21 +653,26 @@ export default function SimpleAssetsPage() {
         status: 'collected',
         checkedAt: Date.now(),
       });
+      preparingDealCancelRef.current = null;
+      setPreparingDeal(null);
       setDealingCards([...matched].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
-    } else {
-      // Delivery didn't land in the indexer window — do NOT start an animation
-      // with the wrong cards. Surface Collect Unclaimed (if applicable) and let
-      // the user find their new cards on the next refetch.
-      pendingAnimationRef.current = null;
-      recheckUnclaimed();
-      focusCollectionView(reveal!.expectedCategory);
-      setCollectionSyncNotice({ category: reveal!.expectedCategory ?? null });
-      reconstructLatestPackOpen({ focus: false, silent: true });
-      toast.info('Cards delivered on-chain — they will appear in your collection shortly.', { duration: 6000 });
     }
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView, reconstructLatestPackOpen]);
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView]);
+
+  // Manual bail-out from the "Preparing deal" indicator: user chose to skip
+  // the animation and just see thumbnails.
+  const skipPreparingDeal = useCallback(() => {
+    const token = preparingDealCancelRef.current;
+    if (token) token.cancelled = true;
+    preparingDealCancelRef.current = null;
+    pendingAnimationRef.current = null;
+    setPreparingDeal(null);
+    recheckUnclaimed();
+    reconstructLatestPackOpen({ focus: true, silent: true });
+    toast.info('Skipped the deal animation — your new cards will appear as they land in your collection.', { duration: 5000 });
+  }, [recheckUnclaimed, reconstructLatestPackOpen]);
 
   const handleDemoCollect = useCallback((demoAssets: SimpleAsset[]) => {
     if (demoAssets.length === 0) return;
@@ -2763,6 +2842,37 @@ export default function SimpleAssetsPage() {
           onCardDealt={handleCardDealt}
           onComplete={handleDealComplete}
         />
+      )}
+
+      {preparingDeal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-background/85 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-lg shadow-xl p-6 max-w-sm w-[90%] text-center space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+              <h3 className="text-lg font-bold text-foreground">
+                {preparingDeal.stage === 'preloading' ? 'Loading card images...' : 'Waiting for your new cards...'}
+              </h3>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((preparingDeal.matched / Math.max(1, preparingDeal.total)) * 100))}%` }}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {preparingDeal.stage === 'preloading'
+                ? 'Pre-loading every card image so the deal plays smoothly...'
+                : `Confirmed on-chain — waiting for the indexer to publish ${preparingDeal.total} cards (${preparingDeal.matched}/${preparingDeal.total} ready).`}
+            </p>
+            <button
+              type="button"
+              onClick={skipPreparingDeal}
+              className="text-xs text-muted-foreground/70 hover:text-foreground underline underline-offset-2"
+            >
+              Skip animation — show cards as thumbnails
+            </button>
+          </div>
+        </div>
       )}
 
       <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
