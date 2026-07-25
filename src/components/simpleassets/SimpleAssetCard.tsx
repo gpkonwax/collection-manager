@@ -69,6 +69,12 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const mintNumber = getMintNumber(asset);
   const isMintOne = mintNumber === 1;
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
+  const isAtomic = asset.source === 'atomicassets';
+  // Placeholder for real on-chain mint number; falls back to "--" until wired.
+  const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
+  const realMintDisplay = realMint !== undefined && realMint !== null && String(realMint).trim() !== ''
+    ? `#${realMint}`
+    : '#--';
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
