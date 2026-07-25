@@ -307,7 +307,22 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
       <DialogContent className={`${modalMaxWidth} max-h-[90vh] overflow-y-auto overflow-x-hidden`}>
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
-          <DialogDescription>Asset #{asset.id} · by {asset.author} · {asset.category}</DialogDescription>
+          <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>Asset #{asset.id}</span>
+            <span aria-hidden>·</span>
+            <span>by {asset.author}</span>
+            <span aria-hidden>·</span>
+            <span>{asset.category}</span>
+            <span aria-hidden>·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <img
+                src={asset.source === 'atomicassets' ? atomicAssetsLogo.url : simpleAssetsLogo.url}
+                alt=""
+                className={`h-4 w-4 rounded-full object-cover ${asset.source === 'atomicassets' ? '' : 'bg-white p-[1px]'}`}
+              />
+              <span>{asset.source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}</span>
+            </span>
+          </DialogDescription>
         </DialogHeader>
         <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center overflow-hidden ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
           {images.map((imgUrl, i) => {
