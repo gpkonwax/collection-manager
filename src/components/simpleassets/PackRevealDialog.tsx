@@ -481,6 +481,28 @@ export function PackRevealDialog({
           </div>
         )}
 
+        {phase === 'preloading' && (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="animate-pack-shake">
+              {packImage ? (
+                <img src={packImage} alt={packLabel} className="w-32 h-auto rounded-lg shadow-lg shadow-primary/30" />
+              ) : (
+                <span className="text-7xl">📦</span>
+              )}
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-lg font-bold text-foreground">Preparing your reveal...</p>
+              <div className="flex items-center gap-2 text-muted-foreground text-sm justify-center">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading card {Math.min(preloadProgress.done + 1, preloadProgress.total)} of {preloadProgress.total}...</span>
+              </div>
+              <p className="text-xs text-muted-foreground/60 max-w-sm text-center">
+                We're pre-loading every card image so the reveal plays without any blank tiles. This can take a moment on larger packs.
+              </p>
+            </div>
+          </div>
+        )}
+
         {(phase === 'revealing' || phase === 'collect' || phase === 'collecting' || phase === 'done') && (
           <div className="space-y-6 py-4">
             <div className="text-center space-y-1">
