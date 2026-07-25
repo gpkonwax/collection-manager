@@ -1,53 +1,36 @@
-## Fix ALL SimpleAssets pack openings — not just Series 2c
+## Fix Exotic Mega (and every SA pack) getting stuck in "Preparing your reveal…"
 
-You're right — every fix here lives in shared SA code (`PackRevealDialog` + the SA branch of `handlePackOpened`), so it automatically covers every SA pack: Series 1 five/mega (`GPKFIVE`, `GPKMEGA`), Series 2 a/b/c (`GPKTWOA`, `GPKTWOB`, `GPKTWOC`), and Exotic five/mega (`EXOFIVE`, `EXOMEGA`). The 2c report just made the problem visible because 35 simultaneous image requests overwhelm a single gateway more often than 5 do — but Series 1 mega (30 cards) and Exotic mega (25 cards) hit the same wall and use the same code paths.
+### What actually went wrong
 
-Guiding principle from you: **quality over speed**. Never start revealing until every image is loaded; never start the deal animation until it can play cleanly end‑to‑end. Long "preparing…" waits are acceptable.
+The screenshot shows the preload phase frozen on "Loading card 1 of 25…" for an Exotic Mega. The preload loop in `src/components/simpleassets/PackRevealDialog.tsx` fires all 25 image requests in parallel through the same first gateway (Pinata):
 
-## Root causes (all shared across every SA pack)
+```ts
+await Promise.all(cards.map(async (c) => preloadCardImage(c.image, 4000)))
+```
 
-1. **Wrong expected count for Series 2c.** `EXPECTED_CARDS.GPKTWOC = 55` in `PackRevealDialog.tsx` — Series 2c mega is actually **35** cards. Polling never hit the primary boxtype-match branch, so the reveal only fired via the fallback loop, late, after image loads had already been in flight too long.
-2. **Reveal starts before images are loaded (every SA pack).** `RevealCardImage` uses `<img loading="lazy">` and only rotates gateways on a hard `onError`. All N tiles hit the same Pinata directory at once — some hang, no error fires, cards render blank. The 1.6s staggered reveal advances regardless.
-3. **Deal animation never plays; grid "resets" repeatedly; cards land as thumbnails (every SA pack).** `handlePackOpened` in `src/pages/Index.tsx` requires **all** matchers to resolve before calling `setDealingCards`. While polling it fires `Promise.all([refetchSa(), refetchAa()])` per attempt — each refetch replaces the whole `assets` array and re-renders the virtualized grid (the "glitch/reset"). If any matcher is still missing at the 45s deadline it falls through to `focusCollectionView(...)` + `reconstructLatestPackOpen({ silent: true })` — the "Show Received Cards" thumbnail path.
+That triggers three compounding problems:
 
-## Fix plan
+1. **All 25 requests hit Pinata simultaneously.** Browsers cap concurrent HTTP/1.1 connections per origin at ~6, and Pinata rate-limits/holds the rest. Nothing decodes within 4s.
+2. **`new Image()` timeouts don't cancel the underlying request.** When the 4s timer fires we move on logically, but the stalled request stays in the browser's per-origin queue and blocks the retry to the same origin. All 25 cards then try gateway 2 in parallel — same wall.
+3. **Exotic packs are mostly GIFs.** Prism / slime / gum / tiger-stripe / etc. variants resolve to multi-MB animated files (`gpkCardImages.ts` flags them as `.gif`). 4s per attempt is too aggressive even on a healthy gateway.
 
-### A. Correct the pack sizes (`src/components/simpleassets/PackRevealDialog.tsx`)
+Secondary UI issue: the progress text reads `Loading card ${done + 1} of ${total}` which makes an all-parallel stall look like it's frozen on card 1 specifically, and the `preloading` phase has no escape hatch, so a user can't bail out the way they can from `waiting` after 60s.
 
-- `EXPECTED_CARDS.GPKTWOC = 35` (was 55).
-- Leave the other entries unchanged — they aren't in evidence of being wrong; if a future report contradicts them the same map is where to fix it.
-- The `SYMBOL_TO_BOXTYPE.GPKTWOC = 'gpktwo55'` mapping stays — that's the on-chain `boxtype` string, unrelated to the card count.
+### Fix (single file: `src/components/simpleassets/PackRevealDialog.tsx`)
 
-### B. Preload every reveal image before any card is shown — for ALL SA packs (`PackRevealDialog.tsx`)
+1. **Cap preload concurrency at 4.** Replace the flat `Promise.all` with a small worker pool so we never fan more than 4 requests at the same gateway origin. This eliminates the head-of-line stall entirely — the first few cards actually finish, the "done" counter moves, and slots free up as each resolves.
+2. **Bump the per-attempt hang timeout from 4s → 8s** in the preload path, matching the `IMAGE_LOAD_TIMEOUT.max` we already treat as the ceiling elsewhere. Keeps the mid-reveal `RevealCardImage` hang-swap at its current 4s (it swaps between gateways after the browser has already cached the winner, so it can be aggressive).
+3. **Log each card's outcome** — `[pack-reveal] card N → <winning gateway>` on success and `card N → unreachable` on total failure — so the next stuck report is diagnosable from the console.
+4. **Rewrite the progress line** to `"{done} / {total} cards ready"` and add a subline showing which gateway index the pool is currently reaching for. No more misleading "card 1 of 25".
+5. **Add a "Reveal now" escape hatch** that appears after 20s in the `preloading` phase. Clicking it accepts whatever winners have resolved so far, keeps the original URL for cards still in flight, and transitions to `revealing`. `RevealCardImage` already has hang-swap + error rotation, so unresolved cards still self-heal during the staggered reveal.
 
-Applies uniformly to `GPKFIVE`, `GPKMEGA`, `GPKTWOA`, `GPKTWOB`, `GPKTWOC`, `EXOFIVE`, `EXOMEGA`:
+No changes to `Index.tsx`, the deal animation, the atomic path, or the polling. This is purely the SA reveal preload robustness fix — and since `PackRevealDialog` is shared across every SA pack symbol, it covers Series 1 five/mega, Series 2 a/b/c, and Exotic five/mega uniformly.
 
-1. After the poll builds `cards[]` and before `setPhase('revealing')`, enter a new intermediate phase `'preloading'` — keep the shaking pack visible and show a progress line: "Loading card X of N…".
-2. For each card image, race it through every gateway in `IPFS_GATEWAYS` sequentially via `new Image()` + a per-attempt ~4s hang timer. First gateway that decodes wins; store the winning URL back onto the card so `RevealCardImage` starts from a known-good source.
-3. **No overall time cap.** Wait until every image resolves to *some* gateway. If a single card exhausts all gateways it's marked unreachable and rendered with the existing 🃏 fallback rather than blocking the whole reveal.
-4. Only after the preload loop finishes → `setPhase('revealing')`. The existing 1.6s staggered reveal then plays against browser-cached images.
-5. In `RevealCardImage`, drop `loading="lazy"` and add a 4s per-gateway hang swap so a mid-reveal gateway blip still self-heals.
+### Verification
 
-### C. Deal animation always plays cleanly — for ALL SA packs (`src/pages/Index.tsx` + `src/lib/packReveal.ts`)
+- Open an Exotic Mega on the deployed site: console should show `[pack-reveal] targeting 25-card unboxing` immediately followed by a stream of `card N → https://...` lines, the counter should climb steadily past 1, and the reveal should start when all 25 (or the user hits "Reveal now") are ready.
+- Sanity replay: Series 1 mega (30) and Series 2c (35) — same behaviour, no regressions, no changes to demo mode (still short-circuits before the preload branch).
 
-The SA branch of `handlePackOpened` is shared across every SA pack — every change here applies to all of them:
+### Files touched
 
-1. **Wait for the full set before dealing.** Keep the "all matchers resolved" gate — but remove the 45s deadline and the fallback-to-thumbnails path for confirmed opens. Poll for as long as needed with a visible "Preparing deal animation… (X/N cards ready)" indicator over the collection area, backing off 2s → 4s → 8s.
-2. **Stop the render storm during polling.** Replace `Promise.all([refetchSa(), refetchAa()])` inside the loop with a single scoped refetch — `refetchSa()` for `reveal.source === 'simpleassets'` (which is every SA pack), `refetchAa()` for atomic. Wrap it in an `isPollingRefetchInFlight` guard so refetches never stack. This eliminates the "site glitched/reset" behavior on every SA pack, not just 2c.
-3. **Preload all deal-card images before the animation starts.** After matchers resolve, run the same warmup loop from step B against the resolved `SimpleAsset[]` images, then call `setDealingCards(matched)`. This is the "20-second pause is fine as long as it plays right" you described.
-4. **Only surface the manual fallback if the user chooses to bail out.** Add a small "Skip and just show my cards" button to the preparing indicator; clicking it (and only clicking it) runs the current `focusCollectionView` + `reconstructLatestPackOpen` path.
-5. `matchRevealedAssets` in `src/lib/packReveal.ts` already returns `{ matched, unresolved }` — no signature change; the page just uses those counts to drive the progress indicator.
-
-### D. Verification
-
-- Manually open a Series 1 mega (30), a Series 2c mega (35), and an Exotic mega (25); each should show console lines like `[pack-reveal] targeting <N>-card unboxing`, preload progress, then a full-image reveal followed by the deal animation with no grid flashes.
-- Sanity: replay demo mega (uses `PackRevealDialog`, `isDemo` skips polling/preload branches) to confirm no demo-path regressions.
-- No changes to `AtomicPackRevealDialog`, `useSimpleAssets`, or the atomic branch of `handlePackOpened`.
-
-## Files touched
-
-- `src/components/simpleassets/PackRevealDialog.tsx` — GPKTWOC=35; new `preloading` phase + image warmup; `RevealCardImage` hang-swap; drop `loading="lazy"`.
-- `src/pages/Index.tsx` — remove 45s deadline + reconstruct fallback for confirmed SA opens; scope + guard the poll refetch; add deal-image preload; add "preparing" UI with manual-skip button.
-- `src/lib/packReveal.ts` — no change.
-
-No backend, schema, or atomic-path changes.
+- `src/components/simpleassets/PackRevealDialog.tsx` — concurrency-limited preload pool, 8s per-attempt timeout, per-card logs, clearer progress copy, "Reveal now" escape hatch after 20s.
