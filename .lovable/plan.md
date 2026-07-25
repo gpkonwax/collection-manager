@@ -1,45 +1,39 @@
 ## Goal
-Run a one-time audit that proves — file by file — which images live on each mirror (Primary/GitHub Pages, Backup A/Netlify, Backup B/Cloudflare) versus the canonical manifest, and produces a printable report listing any gaps (e.g. the >25 MiB files Cloudflare rejected).
 
-## Source of truth
-`public/gpk-manifest.json` (plus `atomic-manifest.json` if present). It already lists every path, byte size, and sha256 that the mirrors are supposed to serve.
+Make the 3D tilt in the grid card look as sharp and elegant as it does inside the detail dialog — no soft blur on the artwork, and a subtler glare instead of the current bright "light source" spot.
 
-## New script: `scripts/audit-mirrors.mjs`
-A single Node script, no dependencies added.
+## What's actually different today
 
-Inputs (defaults hardcoded, overridable via flags):
-- Primary  = `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`
-- Backup A = `https://gpkonwaxbackup.netlify.app/`
-- Backup B = `https://gpkonwaxbackup.pages.dev/`
-- Manifests = `public/gpk-manifest.json`, `public/atomic-manifest.json` (skipped if missing)
+Both surfaces use the same `useCardTilt` hook, but the wrappers around it differ in two ways that cause the visual gap:
 
-For each mirror × each manifest entry:
-1. `HEAD <mirror>/<path>` with a 15s timeout and small concurrency (8).
-2. Record: reachable? HTTP status, `content-length`, whether size matches manifest `bytes`.
-3. For a `--sample N` subset (default 25 per mirror, deterministic every-Nth), do a full `GET`, sha256 the body, and compare to manifest hash.
-4. Retry once on transient network errors before marking as missing.
+1. **Image rasterization (blur)**
+   - Grid (`IpfsMedia` with `context="card"`) sets on the `<img>`:
+     `transform: translateZ(0); backface-visibility: hidden; image-rendering: auto`.
+     Combined with the parent `rotateX/rotateY`, this force-promotes the image to its own GPU layer that is then re-sampled while tilted → the slight blur the user sees.
+   - Detail (`context="detail"`) does not add those styles, so the image stays sharp under the same rotation.
 
-Also audit the multi-part ZIPs listed in the manifest (`zipParts`) on Primary and Backup A with `HEAD` + size check (Cloudflare intentionally excluded).
+2. **Glare overlay ("light source" harshness)**
+   - Grid glare div in `SimpleAssetCard.tsx` has no `mix-blend-mode` — the white radial gradient from `useCardTilt` paints straight over the art as a bright spot.
+   - Detail glare div uses `mixBlendMode: 'overlay'`, so the same gradient reads as a gentle sheen instead of a hotspot.
 
-## Output
-Writes to `scripts/mirror-output/audit-report/`:
-- `summary.txt` — per-mirror totals: checked / ok / wrong-size / missing / sha-mismatch, plus overall verdict.
-- `missing-<mirror>.txt` — one path per line for every file not present or size-mismatched on that mirror. This is the actionable list (expected non-empty for Cloudflare due to the 25 MiB cap).
-- `sha-mismatch-<mirror>.txt` — any sampled files whose bytes differ from the manifest hash.
-- Console prints the summary at the end.
+Both differences are purely presentational; hook logic and tilt math are already identical.
 
-## How the user runs it
-```
-node scripts/audit-mirrors.mjs
-# or, for a deeper spot-check:
-node scripts/audit-mirrors.mjs --sample 200
-```
-No app changes, no deploys, no rebuilds. Just one command, one report.
+## Changes
 
-## Follow-up (only if audit finds gaps)
-- Cloudflare misses: use the existing `move-big-files.ps1` pattern to list the >25 MiB paths from `missing-cloudflare.txt` so the user knows exactly which files must live on Primary/Netlify only (and, if desired, we update `.assetsignore` accordingly).
-- Primary/Netlify misses: re-upload just the paths from the corresponding `missing-*.txt`.
+Frontend/presentation only.
 
-## Non-goals
-- No changes to runtime app code, UI, or manifests.
-- No automatic re-uploads — the audit only reports.
+1. **`src/components/simpleassets/IpfsMedia.tsx`**
+   - Stop applying the `translateZ(0) / backfaceVisibility: hidden / imageRendering: auto` style block for `context="card"` on still images. Keep the existing animated-GIF branch untouched (that one genuinely needs layer promotion to avoid flicker). Net effect: still card images render with default rasterization, matching detail view.
+
+2. **`src/components/simpleassets/SimpleAssetCard.tsx`**
+   - On the grid glare `<div ref={glareRef}>`, add `mixBlendMode: 'overlay'` (and keep current opacity/transition) so the hook's radial gradient blends softly like it does in the detail dialog.
+   - Leave the tilt wrapper, aspect-square media shell, and text area outside the transform exactly as they are (per the "text outside 3D tilt" rule).
+
+3. No changes to `useCardTilt.ts`, no changes to detail dialog, no changes to animated GIF handling, no changes to text/badge layout.
+
+## Verification
+
+- Hover a still card in the grid: artwork stays crisp during tilt, glare reads as a soft sheen rather than a bright dot.
+- Hover an animated (GIF) card in the grid: still renders without flicker (GIF branch untouched).
+- Open the detail dialog: unchanged.
+- Run tsgo to confirm no type regressions.

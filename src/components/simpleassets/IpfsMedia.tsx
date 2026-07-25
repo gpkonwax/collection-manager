@@ -107,11 +107,9 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
           onError={onError}
           onLoad={onLoad}
           style={
-            context === 'card'
-              ? { transform: 'translateZ(0)', backfaceVisibility: 'hidden', imageRendering: 'auto' as const, ...style }
-              : isAnimated
-                ? { transform: 'translateZ(0)', backfaceVisibility: 'hidden', ...style }
-                : style
+            isAnimated
+              ? { transform: 'translateZ(0)', backfaceVisibility: 'hidden', ...style }
+              : style
           }
         />
       )}

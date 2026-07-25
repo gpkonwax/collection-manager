@@ -199,7 +199,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
               context="card"
             />
           </div>
-          <div ref={glareRef} className="absolute inset-0 pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease' }} />
+          <div ref={glareRef} className="absolute inset-0 pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease', mixBlendMode: 'overlay' }} />
         </div>
       </div>
 
