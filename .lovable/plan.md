@@ -1,43 +1,45 @@
-# Unify ZIP download flow across GitHub and Netlify
+## Goal
+Run a one-time audit that proves — file by file — which images live on each mirror (Primary/GitHub Pages, Backup A/Netlify, Backup B/Cloudflare) versus the canonical manifest, and produces a printable report listing any gaps (e.g. the >25 MiB files Cloudflare rejected).
 
-## The problem
+## Source of truth
+`public/gpk-manifest.json` (plus `atomic-manifest.json` if present). It already lists every path, byte size, and sha256 that the mirrors are supposed to serve.
 
-Right now the "Recommended: keep a copy on your device" card has two very different flows:
+## New script: `scripts/audit-mirrors.mjs`
+A single Node script, no dependencies added.
 
-- **GitHub (primary)** uses the step-by-step launcher: one button per part, tick list, "Start next download" — this works because browsers block multi-file auto-downloads on a single click.
-- **Netlify / Cloudflare (backup alternates)** are just single `<a href>` buttons pointing at `${baseUrl}` (the mirror root). Clicking only starts one download (effectively "part 1" or the index), which is exactly the bug you're seeing.
+Inputs (defaults hardcoded, overridable via flags):
+- Primary  = `https://gpkonwaxbackup.github.io/gpk-backup/mirror/`
+- Backup A = `https://gpkonwaxbackup.netlify.app/`
+- Backup B = `https://gpkonwaxbackup.pages.dev/`
+- Manifests = `public/gpk-manifest.json`, `public/atomic-manifest.json` (skipped if missing)
 
-Backup A on Netlify actually hosts all 3 parts (`gpk-image-mirror-part-001.zip`, `-002.zip`, `-003.zip`) and `getZipDownloadUrls` already returns a `parts[]` array for it — the UI just isn't using it.
+For each mirror × each manifest entry:
+1. `HEAD <mirror>/<path>` with a 15s timeout and small concurrency (8).
+2. Record: reachable? HTTP status, `content-length`, whether size matches manifest `bytes`.
+3. For a `--sample N` subset (default 25 per mirror, deterministic every-Nth), do a full `GET`, sha256 the body, and compare to manifest hash.
+4. Retry once on transient network errors before marking as missing.
 
-## The fix
+Also audit the multi-part ZIPs listed in the manifest (`zipParts`) on Primary and Backup A with `HEAD` + size check (Cloudflare intentionally excluded).
 
-Reuse the exact same launcher UI for every mirror that has multiple parts, and let the user pick which mirror to download from.
+## Output
+Writes to `scripts/mirror-output/audit-report/`:
+- `summary.txt` — per-mirror totals: checked / ok / wrong-size / missing / sha-mismatch, plus overall verdict.
+- `missing-<mirror>.txt` — one path per line for every file not present or size-mismatched on that mirror. This is the actionable list (expected non-empty for Cloudflare due to the 25 MiB cap).
+- `sha-mismatch-<mirror>.txt` — any sampled files whose bytes differ from the manifest hash.
+- Console prints the summary at the end.
 
-### 1. Add a source selector to `RecommendedZipCard`
+## How the user runs it
+```
+node scripts/audit-mirrors.mjs
+# or, for a deeper spot-check:
+node scripts/audit-mirrors.mjs --sample 200
+```
+No app changes, no deploys, no rebuilds. Just one command, one report.
 
-- Build the list of "downloadable sources" from `getZipDownloadUrls(zipInfo)`, keeping only options whose `parts.length >= 1`. Label each with its provider name (`GitHub Release`, `Netlify`, etc.) via the existing `getMirrorProviderName` helper.
-- Add a small segmented toggle (shadcn `Tabs` or a row of small `Button` variants) above the main download button: `[ GitHub ] [ Netlify ]` (and later Cloudflare when it's excluded-list-safe). Default to GitHub (primary).
-- Keep a `selectedSourceKey` piece of state. Reset `startedPartNames` and close/reset the launcher whenever the user switches source, so the tick-list reflects the new mirror.
+## Follow-up (only if audit finds gaps)
+- Cloudflare misses: use the existing `move-big-files.ps1` pattern to list the >25 MiB paths from `missing-cloudflare.txt` so the user knows exactly which files must live on Primary/Netlify only (and, if desired, we update `.assetsignore` accordingly).
+- Primary/Netlify misses: re-upload just the paths from the corresponding `missing-*.txt`.
 
-### 2. Drive the launcher off the selected source, not just primary
-
-- Replace the hard-coded `primaryOption` with `activeOption = options.find(o => o.key === selectedSourceKey) ?? primaryOption`.
-- Rename local vars accordingly (`activeParts`, `activeTotal`, etc.). All existing launcher logic (`nextPart`, `startNextPartDownload`, tick list, "All parts started" message) stays identical.
-- Button copy becomes source-aware: `Download from ${providerName}${sizeLabel}` for single-file, `Download ZIP parts from ${providerName} (~${size})` for multi-part.
-
-### 3. Remove the now-redundant "If GitHub is down, try another source" row
-
-The selector replaces it. Keep the fallback text ("Backup mirrors will appear here once online") only when there is exactly one available source.
-
-Keep the "Open the release page" link at the bottom, but make it link to the currently selected source's release/mirror page when possible (GitHub → release page URL, Netlify → `${baseUrl}`).
-
-### 4. No changes to backend / manifest / `remoteMirror.ts`
-
-`getZipDownloadUrls` already returns properly-signed per-part URLs for GitHub and per-part URLs for Netlify (`${baseUrl}gpk-image-mirror-part-NNN.zip`). This is purely a UI rewire inside `src/components/BackupPanel.tsx`.
-
-## Technical notes
-
-- File touched: `src/components/BackupPanel.tsx` only.
-- No new dependencies. Uses existing `Button`, `cn`, `formatBytes`, and the option shape already returned by `getZipDownloadUrls`.
-- Behavior preserved: one click = one download, tick list, "wait then click again" copy — just now available for both mirrors.
-- The Cloudflare (Backup B) option stays excluded from ZIP downloads (25 MiB per-file limit) via the existing logic in `remoteMirror.ts`; the selector only shows mirrors that actually have parts.
+## Non-goals
+- No changes to runtime app code, UI, or manifests.
+- No automatic re-uploads — the audit only reports.
