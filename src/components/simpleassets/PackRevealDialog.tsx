@@ -5,7 +5,9 @@ import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { buildGpkCardImageUrl, getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
-import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+import { BACKUP_MIRROR_A, BACKUP_MIRROR_B, PRIMARY_MIRROR, PUBLIC_IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+import { resolveLocalMirror } from '@/lib/localMirror';
+import { loadPinnedManifest } from '@/lib/remoteMirror';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
@@ -27,6 +29,7 @@ export interface RevealCard {
   asset_id: string;
   name: string;
   image: string | null;
+  originalImage?: string | null;
   rarity: string;
 }
 
@@ -56,17 +59,24 @@ interface PackRevealDialogProps {
   session?: Session | null;
 }
 
-function swapGateway(url: string, gatewayIndex: number): string | null {
-  const hash = extractIpfsHash(url);
-  if (!hash) return null;
-  const gw = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
-  return `${gw}${hash}`;
-}
-
 function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const currentSrc = card.image ? (gwIdx === 0 ? card.image : swapGateway(card.image, gwIdx)) : null;
+  const [fallbacks, setFallbacks] = useState<string[]>(() => buildRevealImageCandidates(card.originalImage ?? card.image, card.image));
+  const currentSrc = fallbacks[gwIdx] ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    const baseUrl = card.originalImage ?? card.image;
+    setGwIdx(0);
+    setLoaded(false);
+    setFallbacks(buildRevealImageCandidates(baseUrl, card.image));
+    loadPinnedManifest().then((manifest) => {
+      if (cancelled) return;
+      setFallbacks(buildRevealImageCandidates(baseUrl, card.image, manifest));
+    });
+    return () => { cancelled = true; };
+  }, [card.image, card.originalImage]);
 
   // Hang-swap: if the current gateway hasn't fired load or error within 4s,
   // rotate to the next one so a silently-stalled request doesn't leave a blank
@@ -74,10 +84,10 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
   useEffect(() => {
     if (!currentSrc || loaded) return;
     const t = setTimeout(() => {
-      if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1);
-    }, 4000);
+      setGwIdx((g) => (g < fallbacks.length - 1 ? g + 1 : g));
+    }, 3500);
     return () => clearTimeout(t);
-  }, [currentSrc, loaded, gwIdx]);
+  }, [currentSrc, loaded, gwIdx, fallbacks.length]);
 
   return (
     <div className="relative aspect-[2/3]"
@@ -85,8 +95,11 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
       <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
         {currentSrc ? (
           <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center"
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
             onLoad={() => setLoaded(true)}
-            onError={() => { setLoaded(false); if (gwIdx < IPFS_GATEWAYS.length - 1) setGwIdx(g => g + 1); }} />
+            onError={() => { setLoaded(false); setGwIdx((g) => (g < fallbacks.length - 1 ? g + 1 : g)); }} />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
         )}
@@ -104,76 +117,217 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
   );
 }
 
-/**
- * Preload a single image URL: try the given URL first, then rotate through
- * every IPFS gateway. Each attempt gets a per-attempt hang timeout (default
- * 8s — GIF variants in Exotic/Series packs are multi-MB) so a silently
- * stalled gateway doesn't block the whole pack forever.
- * Resolves with the winning URL, or null if every gateway is unreachable.
- */
-async function preloadCardImage(originalUrl: string | null, perAttemptMs = 8000): Promise<string | null> {
-  if (!originalUrl) return null;
-  const hash = extractIpfsHash(originalUrl);
-  const candidates: string[] = [originalUrl];
-  if (hash) {
-    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
-      const swapped = swapGateway(originalUrl, i);
-      if (swapped && !candidates.includes(swapped)) candidates.push(swapped);
-    }
+type PinnedManifestForReveal = Awaited<ReturnType<typeof loadPinnedManifest>>;
+
+type ImageCandidate = {
+  url: string;
+  label: string;
+  tier: 'preferred' | 'local' | 'mirror' | 'gateway';
+};
+
+type PreloadResult = {
+  url: string | null;
+  label: string | null;
+  elapsedMs: number;
+};
+
+const PRELOAD_CARD_CONCURRENCY = 3;
+const LOCAL_PRELOAD_TIMEOUT_MS = 1200;
+const MIRROR_PRELOAD_TIMEOUT_MS = 7000;
+const GATEWAY_PRELOAD_TIMEOUT_MS = 5500;
+
+function addCandidate(list: ImageCandidate[], seen: Set<string>, candidate: ImageCandidate) {
+  if (!candidate.url || seen.has(candidate.url)) return;
+  seen.add(candidate.url);
+  list.push(candidate);
+}
+
+function getManifestPath(hash: string, manifest?: PinnedManifestForReveal): string {
+  return manifest?.files?.[hash]?.path ?? hash;
+}
+
+function buildImageCandidates(originalUrl: string | null | undefined, preferredUrl?: string | null, manifest?: PinnedManifestForReveal): ImageCandidate[] {
+  const candidates: ImageCandidate[] = [];
+  const seen = new Set<string>();
+
+  if (preferredUrl && (preferredUrl !== originalUrl || preferredUrl.startsWith('blob:'))) {
+    addCandidate(candidates, seen, { url: preferredUrl, label: 'resolved winner', tier: 'preferred' });
   }
-  for (const url of candidates) {
-    const ok = await new Promise<boolean>((resolve) => {
-      const img = new Image();
-      let settled = false;
-      const done = (result: boolean) => {
+
+  const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
+  if (!hash) {
+    if (originalUrl) addCandidate(candidates, seen, { url: originalUrl, label: 'original URL', tier: 'gateway' });
+    return candidates;
+  }
+
+  const localUrl = resolveLocalMirror(hash);
+  if (localUrl) addCandidate(candidates, seen, { url: localUrl, label: 'local ZIP mirror', tier: 'local' });
+
+  const mirrorPath = getManifestPath(hash, manifest);
+  const mirrors = [
+    { base: PRIMARY_MIRROR, label: 'primary mirror' },
+    { base: BACKUP_MIRROR_A, label: 'backup mirror A' },
+    { base: BACKUP_MIRROR_B, label: 'backup mirror B' },
+  ];
+  for (const mirror of mirrors) {
+    if (!mirror.base || !/^https:\/\//i.test(mirror.base)) continue;
+    addCandidate(candidates, seen, { url: `${mirror.base}${mirrorPath}`, label: mirror.label, tier: 'mirror' });
+  }
+
+  for (const gateway of PUBLIC_IPFS_GATEWAYS) {
+    addCandidate(candidates, seen, { url: `${gateway}${hash}`, label: new URL(gateway).hostname, tier: 'gateway' });
+  }
+
+  if (originalUrl) addCandidate(candidates, seen, { url: originalUrl, label: 'original URL', tier: 'gateway' });
+  return candidates;
+}
+
+function buildRevealImageCandidates(originalUrl: string | null | undefined, preferredUrl?: string | null, manifest?: PinnedManifestForReveal): string[] {
+  return buildImageCandidates(originalUrl, preferredUrl, manifest).map((candidate) => candidate.url);
+}
+
+function loadImageCandidate(candidate: ImageCandidate, timeoutMs: number, signal: AbortSignal): Promise<ImageCandidate | null> {
+  if (signal.aborted) return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      signal.removeEventListener('abort', onAbort);
+      img.onload = null;
+      img.onerror = null;
+      try {
+        img.removeAttribute('src');
+        img.src = '';
+      } catch {
+        /* noop */
+      }
+    };
+
+    const finish = (result: ImageCandidate | null) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+
+    const onAbort = () => finish(null);
+    signal.addEventListener('abort', onAbort, { once: true });
+    timer = setTimeout(() => finish(null), timeoutMs);
+    img.onload = () => finish(candidate);
+    img.onerror = () => finish(null);
+    img.src = candidate.url;
+  });
+}
+
+async function raceCandidateGroup(candidates: ImageCandidate[], timeoutMs: number, parentSignal: AbortSignal): Promise<ImageCandidate | null> {
+  if (candidates.length === 0 || parentSignal.aborted) return null;
+
+  const controller = new AbortController();
+  const abortLocal = () => controller.abort();
+  parentSignal.addEventListener('abort', abortLocal, { once: true });
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let losses = 0;
+
+    const finish = (winner: ImageCandidate | null) => {
+      if (settled) return;
+      settled = true;
+      parentSignal.removeEventListener('abort', abortLocal);
+      controller.abort();
+      resolve(winner);
+    };
+
+    candidates.forEach((candidate) => {
+      loadImageCandidate(candidate, timeoutMs, controller.signal).then((winner) => {
         if (settled) return;
-        settled = true;
-        img.onload = null;
-        img.onerror = null;
-        clearTimeout(timer);
-        resolve(result);
-      };
-      const timer = setTimeout(() => done(false), perAttemptMs);
-      img.onload = () => done(true);
-      img.onerror = () => done(false);
-      img.src = url;
+        if (winner) {
+          finish(winner);
+          return;
+        }
+        losses += 1;
+        if (losses >= candidates.length) finish(null);
+      });
     });
-    if (ok) return url;
-  }
-  return null;
+  });
 }
 
 /**
- * Concurrency-limited preload pool. Fans out at most `concurrency` requests
- * at once so we never overwhelm a single gateway origin (browsers cap ~6
- * concurrent HTTP/1.1 connections per host, and rate-limited gateways like
- * Pinata stall the rest silently). Callers get progress updates as each
- * card resolves, and can request early termination via `shouldAbort`.
+ * Preload a single image URL with mirror-first priority. We race a small
+ * source group at a time instead of walking every gateway serially, and every
+ * attempt is abort-aware so "Reveal now" can cut over immediately.
+ */
+async function preloadCardImage(
+  originalUrl: string | null,
+  manifest: PinnedManifestForReveal,
+  signal: AbortSignal,
+  onStatus?: (status: string) => void,
+): Promise<PreloadResult> {
+  const startedAt = performance.now();
+  const candidates = buildImageCandidates(originalUrl, null, manifest);
+  const local = candidates.filter((candidate) => candidate.tier === 'local' || candidate.tier === 'preferred');
+  const mirrors = candidates.filter((candidate) => candidate.tier === 'mirror');
+  const gateways = candidates.filter((candidate) => candidate.tier === 'gateway');
+
+  const groups = [
+    { label: 'Checking local backup…', candidates: local, timeout: LOCAL_PRELOAD_TIMEOUT_MS },
+    { label: 'Checking backup mirrors…', candidates: mirrors.slice(0, 3), timeout: MIRROR_PRELOAD_TIMEOUT_MS },
+    { label: 'Falling back to IPFS gateways…', candidates: gateways.slice(0, 3), timeout: GATEWAY_PRELOAD_TIMEOUT_MS },
+    { label: 'Trying remaining IPFS gateways…', candidates: gateways.slice(3), timeout: GATEWAY_PRELOAD_TIMEOUT_MS },
+  ];
+
+  for (const group of groups) {
+    if (signal.aborted) break;
+    if (group.candidates.length === 0) continue;
+    onStatus?.(group.label);
+    const winner = await raceCandidateGroup(group.candidates, group.timeout, signal);
+    if (winner) {
+      return { url: winner.url, label: winner.label, elapsedMs: performance.now() - startedAt };
+    }
+  }
+
+  return { url: null, label: null, elapsedMs: performance.now() - startedAt };
+}
+
+/**
+ * Concurrency-limited preload pool. Fans out only a few cards at once while
+ * each card performs a tiny mirror/gateway race. The returned `done` promise
+ * resolves when the pool naturally finishes or when its AbortController is
+ * aborted by the instant reveal fallback.
  */
 async function preloadWithPool<T>(
   items: T[],
   getUrl: (item: T) => string | null,
-  onCardDone: (index: number, item: T, winner: string | null) => void,
-  opts: { concurrency?: number; perAttemptMs?: number; shouldAbort?: () => boolean } = {},
-): Promise<Array<string | null>> {
-  const { concurrency = 4, perAttemptMs = 8000, shouldAbort } = opts;
-  const results: Array<string | null> = new Array(items.length).fill(null);
+  onCardDone: (index: number, item: T, result: PreloadResult) => void,
+  opts: {
+    concurrency?: number;
+    manifest: PinnedManifestForReveal;
+    signal: AbortSignal;
+    onStatus?: (status: string) => void;
+  },
+): Promise<PreloadResult[]> {
+  const { concurrency = PRELOAD_CARD_CONCURRENCY, manifest, signal, onStatus } = opts;
+  const resultDetails: PreloadResult[] = new Array(items.length).fill(null).map(() => ({ url: null, label: null, elapsedMs: 0 }));
   let cursor = 0;
 
   async function worker() {
     while (true) {
-      if (shouldAbort?.()) return;
+      if (signal.aborted) return;
       const i = cursor++;
       if (i >= items.length) return;
       const item = items[i];
-      const winner = await preloadCardImage(getUrl(item), perAttemptMs);
-      results[i] = winner;
-      onCardDone(i, item, winner);
+      const result = await preloadCardImage(getUrl(item), manifest, signal, onStatus);
+      resultDetails[i] = result;
+      if (!signal.aborted) onCardDone(i, item, result);
     }
   }
 
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
-  return results;
+  return resultDetails;
 }
 
 
@@ -298,8 +452,17 @@ export function PackRevealDialog({
   const [isShaking, setIsShaking] = useState(false);
   const [showEscape, setShowEscape] = useState(false);
   const [preloadProgress, setPreloadProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+  const [preloadStatus, setPreloadStatus] = useState('Checking backup mirrors…');
   const [showPreloadEscape, setShowPreloadEscape] = useState(false);
   const preloadSkipRef = useRef(false);
+  const preloadRunRef = useRef<{
+    controller: AbortController;
+    cards: RevealCard[];
+    winners: Array<string | null>;
+    finalized: boolean;
+  } | null>(null);
+  const pollRunRef = useRef(0);
+  const phaseRef = useRef(phase);
 
   const pollStartRef = useRef<number>(0);
   const revealedRowsRef = useRef<PendingNftRow[]>([]);
@@ -311,19 +474,47 @@ export function PackRevealDialog({
   usePackRevealAudio({ open, phase, isShaking, revealedCount });
 
   useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
     if (open) {
       setPhase('waiting'); setNewCards([]); setPendingRowIds([]);
       setUnboxingId(null); setRevealedCount(0); setWaitMessage('');
       setCollectError(null); setShowEscape(false); setShowPreloadEscape(false);
+      setPreloadStatus('Checking backup mirrors…');
       preloadSkipRef.current = false; pollStartRef.current = Date.now();
+      preloadRunRef.current?.controller.abort();
+      preloadRunRef.current = null;
 
       setIsShaking(true);
       const shakeTimer = setTimeout(() => setIsShaking(false), 3500);
       return () => clearTimeout(shakeTimer);
     } else {
       setIsShaking(false);
+      preloadRunRef.current?.controller.abort();
+      preloadRunRef.current = null;
     }
   }, [open]);
+
+  const finishPreload = useCallback((reason: 'complete' | 'skip') => {
+    const run = preloadRunRef.current;
+    if (!run || run.finalized) return;
+    run.finalized = true;
+    preloadSkipRef.current = reason === 'skip';
+    run.controller.abort();
+    const resolved = run.cards.map((card, i) => ({
+      ...card,
+      originalImage: card.originalImage ?? card.image,
+      image: run.winners[i] ?? card.image,
+    }));
+    const readyCount = run.winners.filter(Boolean).length;
+    console.log(`[pack-reveal] preload ${reason} — ${readyCount}/${run.cards.length} images ready`);
+    setPreloadProgress({ done: readyCount, total: run.cards.length });
+    setShowPreloadEscape(false);
+    setNewCards(resolved);
+    setPhase('revealing');
+  }, []);
 
   // Escape hatch: show close button after 60s of waiting
   useEffect(() => {
@@ -351,15 +542,16 @@ export function PackRevealDialog({
   // Real polling
   useEffect(() => {
     if (!open || !accountName || (demoCards && demoCards.length > 0)) return;
-    if (phase !== 'waiting') return;
 
     let cancelled = false;
+    const runId = ++pollRunRef.current;
     let interval: ReturnType<typeof setInterval> | undefined;
 
     const poll = async () => {
+      if (cancelled || runId !== pollRunRef.current || phaseRef.current !== 'waiting') return;
       try {
         const rows = await fetchPendingNfts(accountName);
-        if (cancelled) return;
+        if (cancelled || runId !== pollRunRef.current) return;
         const newRows = rows.filter((r) => r.done === 0 && !preOpenUnboxingIds.has(r.unboxingid));
         const grouped = new Map<number, PendingNftRow[]>();
         for (const r of newRows) {
@@ -392,6 +584,7 @@ export function PackRevealDialog({
               asset_id: String(r.id),
               name: `Card #${displayCardId}${r.quality}`,
               image: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
+              originalImage: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
               rarity: `${r.variant} ${r.quality}`,
             };
           });
@@ -405,30 +598,36 @@ export function PackRevealDialog({
           // gateway (or exhausted all of them) so the reveal itself never
           // shows a blank tile.
           setPreloadProgress({ done: 0, total: cards.length });
+          setPreloadStatus('Checking backup mirrors…');
           setPhase('preloading');
           preloadSkipRef.current = false;
+          const controller = new AbortController();
+          preloadRunRef.current = { controller, cards, winners: new Array(cards.length).fill(null), finalized: false };
           let doneCount = 0;
-          const winners = await preloadWithPool(
+          const manifest = await loadPinnedManifest();
+          await preloadWithPool(
             cards,
             (c) => c.image,
-            (i, c, winner) => {
+            (i, c, result) => {
               doneCount++;
+              const activeRun = preloadRunRef.current;
+              if (activeRun && !activeRun.finalized) activeRun.winners[i] = result.url;
               if (!cancelled) setPreloadProgress({ done: doneCount, total: cards.length });
-              if (winner) {
-                console.log(`[pack-reveal] card ${i + 1}/${cards.length} → ${winner}`);
+              if (result.url) {
+                console.log(`[pack-reveal] card ${i + 1}/${cards.length} → ${result.label ?? 'winner'} (${Math.round(result.elapsedMs)}ms) ${result.url}`);
               } else {
                 console.warn(`[pack-reveal] card ${i + 1}/${cards.length} → unreachable (${c.image})`);
               }
             },
-            { concurrency: 4, perAttemptMs: 8000, shouldAbort: () => cancelled || preloadSkipRef.current },
+            {
+              concurrency: PRELOAD_CARD_CONCURRENCY,
+              manifest,
+              signal: controller.signal,
+              onStatus: (status) => { if (!controller.signal.aborted && !cancelled) setPreloadStatus(status); },
+            },
           );
-          if (cancelled) return;
-          const resolved = cards.map((c, i) => ({ ...c, image: winners[i] ?? c.image }));
-          const readyCount = winners.filter(Boolean).length;
-          console.log(`[pack-reveal] preload complete — ${readyCount}/${cards.length} images ready${preloadSkipRef.current ? ' (user skipped)' : ''}`);
-
-          setNewCards(resolved);
-          setPhase('revealing');
+          if (cancelled || runId !== pollRunRef.current) return;
+          finishPreload('complete');
         }
       } catch (e) { console.error('[pack-reveal] poll error', e); }
     };
@@ -439,8 +638,13 @@ export function PackRevealDialog({
       interval = setInterval(poll, POLL_INTERVAL);
     }, 4000);
 
-    return () => { cancelled = true; clearTimeout(startDelay); clearInterval(interval); };
-  }, [open, phase, accountName, preOpenUnboxingIds, expectedCount, boxtype, demoCards]);
+    return () => {
+      cancelled = true;
+      pollRunRef.current += 1;
+      clearTimeout(startDelay);
+      clearInterval(interval);
+    };
+  }, [open, accountName, preOpenUnboxingIds, expectedCount, boxtype, demoCards, finishPreload]);
 
   // Staggered reveal
   useEffect(() => {
@@ -558,14 +762,14 @@ export function PackRevealDialog({
                 <span>{preloadProgress.done} / {preloadProgress.total} cards ready</span>
               </div>
               <p className="text-xs text-muted-foreground/60 max-w-sm text-center">
-                We're pre-loading every card image so the reveal plays without any blank tiles. Larger packs and GIF variants can take a moment while we rotate through IPFS gateways.
+                {preloadStatus}
               </p>
               {showPreloadEscape && (
                 <div className="flex flex-col items-center gap-2 pt-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => { preloadSkipRef.current = true; }}
+                    onClick={() => finishPreload('skip')}
                   >
                     Reveal now
                   </Button>
