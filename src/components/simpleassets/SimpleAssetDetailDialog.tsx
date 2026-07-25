@@ -5,6 +5,7 @@ import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { getCachedGatewayIndex } from '@/hooks/useIpfsMedia';
 import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { useCardTilt } from '@/hooks/useCardTilt';
+import { Card3DViewer } from '@/components/simpleassets/Card3DViewer';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
