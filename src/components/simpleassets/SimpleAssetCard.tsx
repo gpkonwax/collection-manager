@@ -9,6 +9,8 @@ import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
 import type { BinderTemplate } from '@/hooks/useBinderTemplates';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import atomicAssetsLogo from '@/assets/atomicassets-logo.png.asset.json';
+import simpleAssetsLogo from '@/assets/simpleassets-logo.png.asset.json';
 
 interface SimpleAssetCardProps {
   asset: SimpleAsset;
