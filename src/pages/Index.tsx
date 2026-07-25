@@ -2444,10 +2444,15 @@ export default function SimpleAssetsPage() {
               </Select>
               {viewMode === 'classic' && (
                 <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
-                  <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Sort" /></SelectTrigger>
+                  <SelectTrigger
+                    className="w-full sm:w-[180px] border-cheese/50 text-cheese"
+                    title="Recently received: AtomicAssets use real transfer time. SimpleAssets fall back to asset ID (mint order) — no on-chain receipt time exists for SA."
+                  >
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="natural">Natural (Card ID)</SelectItem>
-                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="newest">Recently received</SelectItem>
                     <SelectItem value="name">Name (A–Z)</SelectItem>
                     <SelectItem value="variant">Variant Rarity</SelectItem>
                   </SelectContent>
