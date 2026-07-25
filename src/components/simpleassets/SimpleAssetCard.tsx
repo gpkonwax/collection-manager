@@ -153,12 +153,14 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           x{stackCount}
         </div>
       )}
-      {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) */}
+      {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
       <div
-        className="absolute top-1.5 left-1/2 -translate-x-1/2 z-10 text-[10px] font-bold px-1.5 py-0.5 rounded bg-background/80 backdrop-blur-sm border border-border/60 text-cheese shadow-sm pointer-events-none"
+        className="w-full flex justify-center py-1 bg-background/60 border-b border-border/40"
         title="Mint number (placeholder — real mint will populate when available)"
       >
-        {realMintDisplay}
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-cheese">
+          {realMintDisplay}
+        </span>
       </div>
       {effectiveSelectionMode && (
         <div className="absolute top-2 left-2 z-10">
