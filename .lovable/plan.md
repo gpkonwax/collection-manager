@@ -1,54 +1,53 @@
 ## Goal
+Add a second "Bright" skin alongside the existing Dark Cheese theme, inspired by geepeekay.com (hot pink, yellow, electric blue on light background). Same structure, same grid, same pulsing orbs — only colors change. Card frames/borders stay the same neutral color so cards themselves read identically.
 
-Simulate a real mega pack reveal against the live mirror-first pipeline — no wallet, no on-chain unbox — and measure whether every image resolves, from which tier (local / primary mirror / backup A / backup B / gateway), and how fast.
+## Approach
+Everything runs through the existing HSL design tokens in `src/index.css`. Because components already use semantic tokens (`bg-background`, `text-foreground`, `bg-primary`, `hsl(var(--cheese))`, etc.), adding a new skin is almost entirely a CSS-variable swap — no component rewrites.
 
-## What the test does
+## Steps
 
-Drive a headless Chromium (Playwright) against the running dev server and exercise the exact same code paths a real reveal uses — `buildRevealCandidates` + `preloadRevealImage` from `src/lib/revealImageSources.ts` — for a synthetic pack of the correct size.
+### 1. Theme mechanism
+- Add a `.bright` class variant in `src/index.css` (peer to the existing `.dark` block). Both `.dark` and `.bright` will override the `:root` defaults.
+- Create `src/hooks/useTheme.ts` — small hook that reads/writes `localStorage['gpk-theme']` (`'dark' | 'bright'`, default `'dark'`) and toggles the class on `document.documentElement`.
+- Update `src/App.tsx` — replace the hardcoded `classList.add('dark')` with the hook so the correct class is applied on load.
 
-No production code changes. The test lives under `scripts/` (Node) and does its work in two layers:
+### 2. Bright palette (geepeekay.com-inspired)
+Define these tokens in the new `.bright` block. All values HSL to match the existing system:
 
-1. **Node layer (fast, always runs)**
-   - Load the pinned manifest via the same `loadPinnedManifest()` the app uses.
-   - Pick representative card sets:
-     - GPKMEGA (Series 1, boxtype `thirty`): 30 random cards, mixed variants (base + a couple of GIF variants like `prism`, `slime`).
-     - GPKTWOC (Series 2, boxtype `gpktwo55`): 55 random cards including the +42 ID offset.
-     - EXOMEGA (Exotic, boxtype `exotic25`): 25 random cards.
-   - For each card, build the IPFS URL exactly like `buildGpkCardImageUrl` does, then run `buildRevealCandidates(url, null, manifest)` to get the ordered candidate list.
-   - Fire parallel `HEAD` requests to every mirror candidate for every card and record: which mirror answered first, latency, HTTP status, `content-length`.
-   - Emit a table per pack: `cardId | variant | winner tier | winner host | ms | mirrors OK (3/3) | manifest hit`.
+| Token | Value | Purpose |
+|---|---|---|
+| `--background` | `50 100% 60%` | GPK yellow page background |
+| `--foreground` | `0 0% 8%` | Near-black body text |
+| `--primary` | `330 100% 55%` | Bubblegum pink (buttons, accents) |
+| `--primary-foreground` | `0 0% 100%` | White on pink |
+| `--accent` | `210 100% 55%` | Electric blue (links, highlights) |
+| `--cheese` | `50 100% 55%` | Keep yellow role, tuned for light bg |
+| `--cheese-light` / `--cheese-glow` | pink/blue tints | Glow orbs use pink+blue instead of amber |
+| `--card` | *(unchanged from dark)* | **Card surface stays dark** so card frames look identical |
+| `--card-foreground` | `45 30% 92%` | Light text inside cards (unchanged) |
+| `--border`, `--muted`, `--secondary` | tuned light-mode neutrals | |
+| `--brown`, `--cream` | remapped to pink/yellow tones | Used by decorations |
 
-2. **Browser layer (real image decode, one pack)**
-   - Spin up Playwright against `http://localhost:8080`, inject a synthetic reveal by calling `preloadRevealImage` from a small dev-only page route OR by evaluating the module directly in-page (dynamic `import()` of `/src/lib/revealImageSources.ts` via Vite).
-   - Run the full pack through `preloadRevealImage` in parallel with the same abort/timeout logic the dialog uses.
-   - Capture `{ url, label, elapsedMs }` per card + total wall time.
-   - Screenshot nothing — this is a data test, not a visual one.
+Card container (`--card`) intentionally keeps the dark value so each card's surrounding box remains dark — per your requirement.
 
-## Deliverable
+### 3. Background decorations
+`src/components/BackgroundDecorations.tsx` already uses `bg-primary/15`, `bg-accent/10`, `hsl(var(--brown)/0.2)`. Because tokens change, the pulsing orbs will automatically become pink + blue + yellow in bright mode. No component change needed — but I'll verify opacity levels look right on a yellow background and nudge only if orbs disappear.
 
-A single script `scripts/test-reveal-pipeline.mjs` runnable as:
+### 4. Theme toggle UI
+Add a small sun/moon toggle button to the header in `src/pages/Index.tsx`, next to the existing controls (Info, Offline backup, etc.). Uses `lucide-react` `Sun` / `Moon` icons.
 
-```
-node scripts/test-reveal-pipeline.mjs --pack GPKMEGA
-node scripts/test-reveal-pipeline.mjs --pack GPKTWOC --browser
-node scripts/test-reveal-pipeline.mjs --all
-```
-
-Output sections:
-- **Manifest coverage**: how many of the pack's hashes are in `pinned-manifest.json`.
-- **Per-mirror health**: for each of Netlify / GitHub / Cloudflare, count of 200s vs failures across all hashes.
-- **Winner distribution**: how many cards resolved from each tier, and the p50/p95 latency.
-- **Missing files**: any card where all mirrors failed (these are the ones a real reveal would fall through to IPFS for).
-- **Browser wall time** (when `--browser` is passed): total ms for the full pack parallel preload — the number that matters for user-perceived reveal readiness.
-
-## What we learn
-
-- Whether Netlify / GitHub / Cloudflare actually have every mega-pack card (surfacing the same gaps `audit-mirrors.mjs` finds, but scoped to a real pack shape).
-- Whether the mirror-first ordering wins in practice, or whether we're still falling through to IPFS for some variants (e.g. GIFs excluded from Cloudflare by size).
-- The real end-to-end preload time for a 30/55/25-card pack — the number that determines whether "Reveal now" ever needs to be pressed.
+### 5. Verify components
+Quick audit of any component that hardcodes colors instead of using tokens. From memory the codebase is disciplined about this, but I'll scan for `bg-black`, `text-white`, `bg-[#...]`, `text-[#...]` and route any strays through tokens so bright mode doesn't leak dark artifacts.
 
 ## Out of scope
+- No layout, grid, spacing, animation, or component structure changes.
+- Card artwork frames unchanged (dark `--card`).
+- Pack reveal / deal animation visuals unchanged (they render over their own backdrop).
+- No new fonts — geepeekay uses a custom drippy GPK logo; we're only borrowing the color palette, not typography.
 
-- No on-chain transactions, no `gpk.topps::unbox`, no wallet.
-- No changes to `PackRevealDialog.tsx`, `Index.tsx`, or the mirror-first library — this only reads them.
-- No visual/screenshot testing — `audit-mirrors.mjs` already covers byte-level checks; this test is about reveal-path behavior end-to-end.
+## Files touched
+- `src/index.css` — add `.bright` variable block
+- `src/App.tsx` — apply theme via hook instead of hardcoded `.dark`
+- `src/hooks/useTheme.ts` — new
+- `src/pages/Index.tsx` — add toggle button in header
+- (Possibly) small token fixes wherever a hardcoded color is found during the audit
