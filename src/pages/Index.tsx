@@ -2293,6 +2293,20 @@ export default function SimpleAssetsPage() {
         error={tradesError}
         onRefresh={refreshTrades}
         onMarkAllRead={markTradesRead}
+        onOfferAction={handleOfferAction}
+        busyOfferId={tradeBusyOfferId}
+        busyAction={tradeBusyAction}
+      />
+
+      <TradeComposerDialog
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
+        me={accountName}
+        counterparty={composerCounterparty}
+        session={session}
+        initialTheirAssetIds={composerInitialTheirIds}
+        counterOfferId={composerCounterOfferId}
+        onSuccess={() => { void refreshTrades(); }}
       />
 
 
