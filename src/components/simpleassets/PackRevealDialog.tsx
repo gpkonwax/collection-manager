@@ -5,9 +5,17 @@ import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { buildGpkCardImageUrl, getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
-import { BACKUP_MIRROR_A, BACKUP_MIRROR_B, PRIMARY_MIRROR, PUBLIC_IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
-import { resolveLocalMirror } from '@/lib/localMirror';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
+import {
+  buildRevealCandidates,
+  buildRevealCandidateUrls,
+  raceCandidateGroup,
+  preloadRevealImage,
+  MIRROR_PRELOAD_TIMEOUT_MS,
+  type ImageCandidate,
+  type PinnedManifestLike,
+  type PreloadResult,
+} from '@/lib/revealImageSources';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
