@@ -208,6 +208,29 @@
   .text-cheese {
     color: hsl(var(--cheese));
   }
+
+  /* Bright-mode blue overrides: no effect in dark mode, switches selected elements to accent blue in bright mode */
+  .bright .theme-bright-text {
+    color: hsl(var(--accent));
+  }
+  .bright .theme-bright-text-muted {
+    color: hsl(var(--accent) / 0.7);
+  }
+  .bright .theme-bright-text-subtle {
+    color: hsl(var(--accent) / 0.5);
+  }
+  .bright .theme-bright-border {
+    border-color: hsl(var(--accent) / 0.5);
+  }
+  .bright .theme-bright-placeholder::placeholder {
+    color: hsl(var(--accent) / 0.5);
+  }
+  .bright .theme-bright-hover:hover {
+    background-color: hsl(var(--accent) / 0.1);
+  }
+  .bright .theme-bright-hover-text:hover {
+    color: hsl(var(--accent) / 0.8);
+  }
 }
 
 /* Ensure WharfKit/Anchor wallet modals appear above all other UI */
