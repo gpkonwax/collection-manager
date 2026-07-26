@@ -102,8 +102,34 @@ function normalizeOffer(o: RawOffer): AtomicOffer {
 }
 
 /**
+ * Verify that every asset in `assetIds` is currently owned by `owner`.
+ * Uses a single /assets query filtered by owner + ids.
+ */
+async function verifyOwnership(owner: string, assetIds: string[]): Promise<boolean> {
+  if (!owner || assetIds.length === 0) return true;
+  const unique = Array.from(new Set(assetIds));
+  const params = new URLSearchParams({
+    ids: unique.join(','),
+    owner,
+    limit: String(Math.max(unique.length, 100)),
+  });
+  const path = `/atomicassets/v1/assets?${params.toString()}`;
+  try {
+    const resp = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
+    const json = await resp.json();
+    if (!json?.success || !Array.isArray(json.data)) return false;
+    const foundIds = new Set(json.data.map((a: { asset_id: string }) => a.asset_id));
+    return unique.every((id) => foundIds.has(id));
+  } catch {
+    // If we can't verify, treat as invalid to match AtomicHub's stricter behavior.
+    return false;
+  }
+}
+
+/**
  * Fetch pending offers (state=0) where `account` is either sender or recipient.
- * Returns most-recently-created first.
+ * Filters out "invalid" offers (assets no longer owned by sender/recipient),
+ * matching AtomicHub's active-offer view. Returns most-recent first.
  */
 export async function fetchPendingOffers(account: string): Promise<AtomicOffer[]> {
   if (!account) return [];
@@ -118,6 +144,7 @@ export async function fetchPendingOffers(account: string): Promise<AtomicOffer[]
       page: String(page),
       order: 'desc',
       sort: 'created',
+      hide_contract_offers: 'true',
     });
     const path = `/atomicassets/v1/offers?${params.toString()}`;
     const resp = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 15000);
@@ -127,5 +154,21 @@ export async function fetchPendingOffers(account: string): Promise<AtomicOffer[]
     hasMore = json.data.length === 100;
     page++;
   }
-  return all.map(normalizeOffer);
+
+  const normalized = all.map(normalizeOffer);
+
+  // Validate every offer's asset ownership in parallel; drop stale ones.
+  const checks = await Promise.all(
+    normalized.map(async (o) => {
+      const senderIds = o.sender_assets.map((a) => a.asset_id);
+      const recipientIds = o.recipient_assets.map((a) => a.asset_id);
+      const [senderOk, recipientOk] = await Promise.all([
+        verifyOwnership(o.sender_name, senderIds),
+        verifyOwnership(o.recipient_name, recipientIds),
+      ]);
+      return senderOk && recipientOk ? o : null;
+    }),
+  );
+
+  return checks.filter((o): o is AtomicOffer => o !== null);
 }
