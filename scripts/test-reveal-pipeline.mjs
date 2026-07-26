@@ -347,7 +347,13 @@ async function runBrowserTest(packKey, manifest) {
   console.log(`\n=== Browser-layer test: ${packKey} (${cfg.count} cards) ===`);
   console.log('Launching Chromium against http://localhost:8080 ...');
 
-  const browser = await chromium.launch({ headless: true });
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+  } catch (err) {
+    console.warn(`Bundled Chromium failed (${err.message}); falling back to /bin/chromium`);
+    browser = await chromium.launch({ headless: true, executablePath: '/bin/chromium' });
+  }
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
 
