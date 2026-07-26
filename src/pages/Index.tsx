@@ -261,7 +261,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
     <div className="rounded-xl border border-border bg-card p-6 space-y-3 hover:border-cheese/40 transition-colors">
       <div className="h-12 w-12 rounded-lg bg-cheese/10 flex items-center justify-center">{icon}</div>
       <h3 className="text-lg font-semibold text-cheese">{title}</h3>
-      <p className="text-sm text-foreground leading-relaxed">{description}</p>
+      <p className="text-sm text-foreground leading-relaxed theme-bright-text">{description}</p>
     </div>
   );
 }
@@ -2350,7 +2350,8 @@ export default function SimpleAssetsPage() {
                 Free to use, open source, built by <span className="text-cheese font-semibold theme-bright-text">$CHEESE</span> for the WAX and GPK communities.
               </p>
               <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 px-4 py-3 text-sm text-foreground">
-                <span className="font-semibold text-cheese theme-bright-text">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.
+                <span className="font-semibold text-cheese theme-bright-text">🔒 No new smart contracts.</span>
+                <span className="theme-bright-text"> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.</span>
               </div>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
                 <Wallet className="h-5 w-5 mr-2" />
@@ -2391,7 +2392,7 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div className="text-center md:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Openings</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-foreground text-sm">
+                  <ul className="list-disc pl-5 space-y-1 text-foreground text-sm theme-bright-text">
                     <li><strong>Supported now:</strong> Series 1, Series 2, Tiger King (Exotic), all Food Fight packs and Crash Gordon</li>
                     <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                     <li>Card-by-card reveal animation.</li>
@@ -2412,7 +2413,7 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
-                   <p className="text-foreground text-sm">
+                   <p className="text-foreground text-sm theme-bright-text">
                      Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder auto-populates your collected pieces onto a free-form canvas where you can drag, rotate, and arrange them. Scramble them, line them up, and save your progress as JSON.
                    </p>
                 </div>
@@ -2425,8 +2426,8 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Draw & Write on Cards</h3>
-                  <p className="text-foreground text-sm">
-                     Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family members with the <span className="text-cheese font-semibold">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold">Late Late Late Show</span>. Except now after taking a screenshot just press the erase button or close the modal and your cards are as good as new!
+                   <p className="text-foreground text-sm theme-bright-text">
+                     Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family members with the <span className="text-cheese font-semibold theme-bright-text">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold theme-bright-text">Late Late Late Show</span>. Except now after taking a screenshot just press the erase button or close the modal and your cards are as good as new!
                    </p>
                 </div>
               </div>
