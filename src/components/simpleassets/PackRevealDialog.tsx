@@ -70,23 +70,49 @@ interface PackRevealDialogProps {
 function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [fallbacks, setFallbacks] = useState<string[]>(() => buildRevealImageCandidates(card.originalImage ?? card.image, card.image));
+  const [fallbacks, setFallbacks] = useState<string[]>(() => buildRevealCandidateUrls(card.originalImage ?? card.image, card.image));
   const currentSrc = fallbacks[gwIdx] ?? null;
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     const baseUrl = card.originalImage ?? card.image;
     setGwIdx(0);
     setLoaded(false);
-    setFallbacks(buildRevealImageCandidates(baseUrl, card.image));
+    setFallbacks(buildRevealCandidateUrls(baseUrl, card.image));
     loadPinnedManifest().then((manifest) => {
       if (cancelled) return;
-      setFallbacks(buildRevealImageCandidates(baseUrl, card.image, manifest));
+      // Re-derive candidates now that we know which hashes the mirrors cover.
+      const withManifest = buildRevealCandidates(baseUrl, card.image, manifest);
+      setFallbacks(withManifest.map((c) => c.url));
+
+      // Race our mirrors in parallel — whichever host answers first becomes
+      // the tile's source. This is the critical fix: don't wait 3.5s for the
+      // first candidate to hang before trying the next mirror.
+      const mirrorGroup = withManifest.filter((c) => c.tier === 'mirror' || c.tier === 'local' || c.tier === 'preferred');
+      if (mirrorGroup.length > 0) {
+        raceCandidateGroup(mirrorGroup, MIRROR_PRELOAD_TIMEOUT_MS, controller.signal).then((winner) => {
+          if (cancelled || !winner) return;
+          setFallbacks((prev) => {
+            const winnerIdx = prev.indexOf(winner.url);
+            if (winnerIdx >= 0) {
+              setGwIdx(winnerIdx);
+              return prev;
+            }
+            // Winner wasn't in the list somehow — put it first.
+            setGwIdx(0);
+            return [winner.url, ...prev.filter((u) => u !== winner.url)];
+          });
+        });
+      }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [card.image, card.originalImage]);
 
-  // Hang-swap: if the current gateway hasn't fired load or error within 4s,
+  // Hang-swap: if the current candidate hasn't fired load or error within 3.5s,
   // rotate to the next one so a silently-stalled request doesn't leave a blank
   // tile mid-reveal.
   useEffect(() => {
@@ -124,6 +150,7 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
     </div>
   );
 }
+
 
 type PinnedManifestForReveal = Awaited<ReturnType<typeof loadPinnedManifest>>;
 
