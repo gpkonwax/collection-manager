@@ -408,7 +408,7 @@ async function runBrowserTest(packKey, manifest) {
 
       // Browsers limit concurrent connections per host (typically 6 for HTTP/1.1).
       // Race all mirrors per card, but cap parallel cards to avoid queueing.
-      const CONCURRENCY = 6;
+      const CONCURRENCY = 1;
       const results = [];
       let next = 0;
       async function worker() {
