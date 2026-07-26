@@ -164,6 +164,18 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           x{stackCount}
         </div>
       )}
+      {showTradeButton && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onTradeClick?.(asset); }}
+          className="absolute bottom-2 right-2 z-20 h-7 px-2 rounded-full flex items-center gap-1 bg-cheese text-cheese-foreground border border-cheese/70 text-[10px] font-bold shadow-md hover:brightness-110 theme-bright-fill theme-bright-text"
+          title="Propose a trade for this card"
+          aria-label="Trade"
+        >
+          <ArrowLeftRight className="h-3 w-3" />
+          Trade
+        </button>
+      )}
       {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
       <div
         className="w-full flex justify-center py-1 mt-2"
@@ -278,6 +290,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.stackCount === next.stackCount &&
     prev.isReadOnly === next.isReadOnly &&
     prev.priceAlertTemplate?.templateId === next.priceAlertTemplate?.templateId &&
+    prev.onTradeClick === next.onTradeClick &&
     prev.onDragStart === next.onDragStart &&
     prev.onDragOver === next.onDragOver &&
     prev.onDrop === next.onDrop &&
