@@ -89,6 +89,7 @@ import { ViewWalletControl } from '@/components/ViewWalletControl';
 import { ViewingBanner } from '@/components/ViewingBanner';
 import logoSimpleAssets from '@/assets/logo-simpleassets.png';
 import logoAtomicAssets from '@/assets/logo-atomicassets.png';
+import { useTheme } from '@/hooks/useTheme';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
