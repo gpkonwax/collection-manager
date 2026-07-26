@@ -2319,10 +2319,10 @@ export default function SimpleAssetsPage() {
 
         {(isConnected || isViewing) && (
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-cheese">Unofficial GPK.Topps Collection Manager</h1>
-            <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
+            <h1 className="text-3xl font-bold text-cheese theme-bright-text">Unofficial GPK.Topps Collection Manager</h1>
+            <p className="text-cheese/70 mt-1 theme-bright-text-muted">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
-              <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
+              <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80 theme-bright-text-muted">
                 <span>Optional: Bridge your</span>
                 <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto rounded" />
                 <span>to</span>
@@ -2330,7 +2330,7 @@ export default function SimpleAssetsPage() {
                 <a
                   href="https://atomichub.io/bridge"
                   onClick={(e) => { e.preventDefault(); footerRequestNav('https://atomichub.io/bridge'); }}
-                  className="text-cheese underline hover:text-cheese/80"
+                  className="text-cheese underline hover:text-cheese/80 theme-bright-text theme-bright-hover-text"
                 >
                   here
                 </a>
