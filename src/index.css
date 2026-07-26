@@ -109,7 +109,7 @@
 
   /* Bright Bubblegum Theme - dark background + pink/yellow/blue accents, yellow card surfaces */
   .bright {
-    --background: 30 20% 8%;
+    --background: 25 40% 15%;
     --foreground: 45 30% 92%;
 
     /* Yellow card surface — cards pop against the dark backdrop */
