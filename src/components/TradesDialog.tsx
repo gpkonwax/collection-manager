@@ -239,7 +239,7 @@ export function TradesDialog({
             <ScrollArea className="h-[55vh] pr-3">
               {incomingSorted.length === 0 ? (
                 <EmptyState
-                  label={isLoading ? 'Loading offers\u2026' : 'No pending incoming offers.'}
+                  label={isLoading ? 'Loading offers\u2026' : 'No pending received offers.'}
                   icon={<Inbox className="h-8 w-8 opacity-60" />}
                 />
               ) : (
