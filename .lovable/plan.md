@@ -1,53 +1,48 @@
 ## Goal
-Add a second "Bright" skin alongside the existing Dark Cheese theme, inspired by geepeekay.com (hot pink, yellow, electric blue on light background). Same structure, same grid, same pulsing orbs — only colors change. Card frames/borders stay the same neutral color so cards themselves read identically.
+Reshape the "Bright" skin: keep the dark background from Dark mode, but keep the pink/yellow/blue accent palette. Card containers become yellow so cards pop against the dark backdrop.
 
 ## Approach
-Everything runs through the existing HSL design tokens in `src/index.css`. Because components already use semantic tokens (`bg-background`, `text-foreground`, `bg-primary`, `hsl(var(--cheese))`, etc.), adding a new skin is almost entirely a CSS-variable swap — no component rewrites.
+Everything is already token-driven, so this is another CSS-variable swap in the `.bright` block of `src/index.css`. No component rewrites; the existing `theme-bright-*` utilities keep working.
 
-## Steps
+## Token changes (`.bright` in `src/index.css`)
 
-### 1. Theme mechanism
-- Add a `.bright` class variant in `src/index.css` (peer to the existing `.dark` block). Both `.dark` and `.bright` will override the `:root` defaults.
-- Create `src/hooks/useTheme.ts` — small hook that reads/writes `localStorage['gpk-theme']` (`'dark' | 'bright'`, default `'dark'`) and toggles the class on `document.documentElement`.
-- Update `src/App.tsx` — replace the hardcoded `classList.add('dark')` with the hook so the correct class is applied on load.
-
-### 2. Bright palette (geepeekay.com-inspired)
-Define these tokens in the new `.bright` block. All values HSL to match the existing system:
-
-| Token | Value | Purpose |
+| Token | New value | Notes |
 |---|---|---|
-| `--background` | `50 100% 60%` | GPK yellow page background |
-| `--foreground` | `0 0% 8%` | Near-black body text |
-| `--primary` | `330 100% 55%` | Bubblegum pink (buttons, accents) |
-| `--primary-foreground` | `0 0% 100%` | White on pink |
-| `--accent` | `210 100% 55%` | Electric blue (links, highlights) |
-| `--cheese` | `50 100% 55%` | Keep yellow role, tuned for light bg |
-| `--cheese-light` / `--cheese-glow` | pink/blue tints | Glow orbs use pink+blue instead of amber |
-| `--card` | *(unchanged from dark)* | **Card surface stays dark** so card frames look identical |
-| `--card-foreground` | `45 30% 92%` | Light text inside cards (unchanged) |
-| `--border`, `--muted`, `--secondary` | tuned light-mode neutrals | |
-| `--brown`, `--cream` | remapped to pink/yellow tones | Used by decorations |
+| `--background` | `30 20% 8%` | Same as Dark mode |
+| `--foreground` | `45 30% 92%` | Light text on dark bg |
+| `--card` | `50 100% 55%` | **Yellow card surface** |
+| `--card-foreground` | `0 0% 8%` | Near-black text inside yellow cards for readability |
+| `--popover` / `--popover-foreground` | dark surface + light text | Match dark mode so dropdowns stay legible |
+| `--primary` | `330 100% 55%` | Pink (unchanged) |
+| `--accent` | `210 100% 55%` | Blue (unchanged) |
+| `--cheese` family | pink (unchanged) | Headers stay pink |
+| `--muted` / `--secondary` | dark neutrals | Match dark mode so filter chips/inputs blend |
+| `--border` | pink tint (`330 100% 55% / darker`) or dark | Pick whichever keeps card outlines visible on both dark bg and yellow cards |
+| `--input` | dark surface | Search/select fields sit on dark bg |
+| `--cream` (grid lines) | pink, kept from current | |
+| `--brown` (secondary orb) | pink, kept from current | |
+| `--glass` / `--glass-border` | dark surface + pink border | |
+| Sidebar tokens | dark surface variants | |
 
-Card container (`--card`) intentionally keeps the dark value so each card's surrounding box remains dark — per your requirement.
+## Component text color audit
+Because `--card` flips from dark to yellow, any text currently rendered inside cards needs to be re-checked:
 
-### 3. Background decorations
-`src/components/BackgroundDecorations.tsx` already uses `bg-primary/15`, `bg-accent/10`, `hsl(var(--brown)/0.2)`. Because tokens change, the pulsing orbs will automatically become pink + blue + yellow in bright mode. No component change needed — but I'll verify opacity levels look right on a yellow background and nudge only if orbs disappear.
+- Pack cards (`GpkPackCard`, `AtomicPackCard`) currently use `theme-bright-text` (blue) for label/symbol/amount. On yellow that blue is fine — keep.
+- Card grid tiles (`SimpleAssetCard`) render metadata *outside* the media shell; verify the surrounding tile now being yellow doesn't clash with existing text tokens. Adjust only if a stray `text-foreground`/`text-muted-foreground` becomes unreadable on yellow — in that case add a `theme-bright-on-yellow` utility that forces near-black text in bright mode.
+- Landing-page FeatureCards / info boxes: same check. If any use `bg-card` they'll turn yellow; confirm their inner text (currently blue via `theme-bright-text`) is still readable on yellow. Blue on yellow reads well, so likely no change.
+- Dropdown menus / popovers use `--popover` — kept dark so they remain legible.
 
-### 4. Theme toggle UI
-Add a small sun/moon toggle button to the header in `src/pages/Index.tsx`, next to the existing controls (Info, Offline backup, etc.). Uses `lucide-react` `Sun` / `Moon` icons.
+I'll do this audit during implementation and only add overrides where readability actually breaks.
 
-### 5. Verify components
-Quick audit of any component that hardcodes colors instead of using tokens. From memory the codebase is disciplined about this, but I'll scan for `bg-black`, `text-white`, `bg-[#...]`, `text-[#...]` and route any strays through tokens so bright mode doesn't leak dark artifacts.
+## Background decorations
+`BackgroundDecorations.tsx` already uses `bg-primary` and `hsl(var(--brown))` — pink orbs on dark bg will look great, no change needed. Grid line opacity (`0.015`) may need a small bump since it's back on dark; will nudge only if invisible.
 
 ## Out of scope
-- No layout, grid, spacing, animation, or component structure changes.
-- Card artwork frames unchanged (dark `--card`).
-- Pack reveal / deal animation visuals unchanged (they render over their own backdrop).
-- No new fonts — geepeekay uses a custom drippy GPK logo; we're only borrowing the color palette, not typography.
+- No layout, spacing, animation, or component structure changes.
+- Dark mode untouched.
+- Toggle button, `useTheme` hook, and `.bright` mechanism all stay as-is.
 
 ## Files touched
-- `src/index.css` — add `.bright` variable block
-- `src/App.tsx` — apply theme via hook instead of hardcoded `.dark`
-- `src/hooks/useTheme.ts` — new
-- `src/pages/Index.tsx` — add toggle button in header
-- (Possibly) small token fixes wherever a hardcoded color is found during the audit
+- `src/index.css` — rewrite the `.bright` variable block
+- Possibly one small utility class added for text-on-yellow if the audit finds a readability issue
+- `src/components/BackgroundDecorations.tsx` — only if grid opacity needs a nudge
