@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus, Github, Sun, Moon } from 'lucide-react';
+import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus, Github, Sun, Moon, ArrowLeftRight } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,6 +70,8 @@ import { BannerAd } from '@/components/BannerAd';
 import { BackupPanel } from '@/components/BackupPanel';
 import { BackupNudgeBanner } from '@/components/BackupNudgeBanner';
 import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
+import { TradesDialog } from '@/components/TradesDialog';
+import { useAtomicOffers } from '@/hooks/useAtomicOffers';
 import { OfflineBundleBanner } from '@/components/OfflineBundleBanner';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -341,7 +343,19 @@ export default function SimpleAssetsPage() {
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [showTradesDialog, setShowTradesDialog] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  // Poll AtomicAssets offers for the active (non-viewed) account only.
+  const tradesAccount = !isViewing ? accountName : null;
+  const {
+    incoming: tradesIncoming,
+    outgoing: tradesOutgoing,
+    incomingUnreadCount: tradesUnread,
+    isLoading: tradesLoading,
+    error: tradesError,
+    refresh: refreshTrades,
+    markAllRead: markTradesRead,
+  } = useAtomicOffers(tradesAccount);
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
   const toggleSelection = useCallback((id: string) => {
