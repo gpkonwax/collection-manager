@@ -2031,7 +2031,7 @@ export default function SimpleAssetsPage() {
   };
 
   return (
-    <div className="min-h-screen relative app-background-gradient">
+    <div className="min-h-screen relative">
       <BackgroundDecorations />
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
         <div className="container flex h-12 items-center justify-between">
