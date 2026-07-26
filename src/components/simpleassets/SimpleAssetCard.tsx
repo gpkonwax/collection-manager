@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
-import { Bell, BellRing } from 'lucide-react';
+import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
@@ -27,6 +27,8 @@ interface SimpleAssetCardProps {
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
   priceAlertTemplate?: BinderTemplate;
   isReadOnly?: boolean;
+  /** When set, a "Trade" button is shown (only used while viewing another wallet with AA assets). */
+  onTradeClick?: (asset: SimpleAsset) => void;
 }
 
 function getMintInfo(asset: SimpleAsset): string | null {
@@ -59,7 +61,7 @@ function getMintNumber(asset: SimpleAsset): number | null {
   return null;
 }
 
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
@@ -89,6 +91,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const hasAlert = Boolean(alert);
   const isAlertTriggered = Boolean(alert?.triggered);
   const showAlertButton = Boolean(priceAlertTemplate) && !effectiveSelectionMode && !isReadOnly;
+  const showTradeButton = Boolean(onTradeClick) && isReadOnly && isAtomic && !effectiveSelectionMode;
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => { setIsDragging(true); onDragStart?.(e); };
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(true); onDragOver?.(e); };
