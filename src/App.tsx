@@ -12,7 +12,12 @@ const queryClient = new QueryClient();
 
 const App = () => {
   if (typeof document !== 'undefined') {
-    document.documentElement.classList.add('dark');
+    const root = document.documentElement;
+    if (!root.classList.contains('dark') && !root.classList.contains('bright')) {
+      let stored: string | null = null;
+      try { stored = window.localStorage.getItem('gpk-theme'); } catch { /* ignore */ }
+      root.classList.add(stored === 'bright' ? 'bright' : 'dark');
+    }
   }
 
   // Offline bundle opens from file:// where BrowserRouter refreshes 404. Use

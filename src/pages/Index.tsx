@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from 'react';
-import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus, Github } from 'lucide-react';
+import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, Filter, Layers, Globe, Sparkles, Users, Save, ZoomIn, Puzzle, Eye, Info, Box, Plus, Github, Sun, Moon } from 'lucide-react';
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -89,6 +89,7 @@ import { ViewWalletControl } from '@/components/ViewWalletControl';
 import { ViewingBanner } from '@/components/ViewingBanner';
 import logoSimpleAssets from '@/assets/logo-simpleassets.png';
 import logoAtomicAssets from '@/assets/logo-atomicassets.png';
+import { useTheme } from '@/hooks/useTheme';
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
@@ -340,6 +341,7 @@ export default function SimpleAssetsPage() {
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
   const toggleSelection = useCallback((id: string) => {
@@ -2068,6 +2070,16 @@ export default function SimpleAssetsPage() {
           {/* Right: Image source status + Info button + view wallet (logged in only) + wallet controls */}
           <div className="flex items-center gap-2 ml-auto">
             <ImageSourceIndicator />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 hover:bg-cheese/10"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Switch to Bright skin' : 'Switch to Dark skin'}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4 text-cheese" /> : <Moon className="h-4 w-4 text-cheese" />}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
             <Button
               variant="ghost"
               size="sm"

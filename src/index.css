@@ -106,6 +106,64 @@
     --sidebar-border: 30 15% 22%;
     --sidebar-ring: 42 90% 50%;
   }
+
+  /* Bright Bubblegum Theme - inspired by geepeekay.com (pink + yellow + blue) */
+  .bright {
+    --background: 50 100% 60%;
+    --foreground: 0 0% 8%;
+
+    /* Card surface intentionally stays dark so card frames read identically to dark mode */
+    --card: 30 15% 12%;
+    --card-foreground: 45 30% 92%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+
+    --primary: 330 100% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 50 100% 92%;
+    --secondary-foreground: 0 0% 8%;
+
+    --muted: 50 60% 88%;
+    --muted-foreground: 0 0% 20%;
+
+    --accent: 210 100% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 8%;
+    --input: 50 100% 92%;
+    --ring: 330 100% 55%;
+
+    --cheese: 50 100% 50%;
+    --cheese-light: 330 100% 65%;
+    --cheese-dark: 45 100% 45%;
+    --cheese-glow: 210 100% 60%;
+    --cheese-foreground: 0 0% 8%;
+
+    --cream: 0 0% 8%;
+    --cream-dark: 0 0% 20%;
+    --brown: 330 100% 55%;
+    --brown-light: 210 100% 55%;
+    --glass: 50 100% 88%;
+    --glass-border: 0 0% 8%;
+
+    --shadow-cheese: 0 0 40px hsl(330 100% 55% / 0.35);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.25);
+    --shadow-glow: 0 0 60px hsl(210 100% 55% / 0.2);
+
+    --sidebar-background: 50 100% 92%;
+    --sidebar-foreground: 0 0% 8%;
+    --sidebar-primary: 330 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 100% 90%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 0 0% 8%;
+    --sidebar-ring: 330 100% 55%;
+  }
 }
 
 @layer base {
