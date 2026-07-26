@@ -1,56 +1,54 @@
+## Goal
 
-## Why this is worth doing
+Simulate a real mega pack reveal against the live mirror-first pipeline — no wallet, no on-chain unbox — and measure whether every image resolves, from which tier (local / primary mirror / backup A / backup B / gateway), and how fast.
 
-Good instinct. Today the reveal *does* include our mirrors in its candidate list, but it treats them as just another option in a mixed pile with public IPFS gateways — and it hands the "preferred" slot to whatever URL the app already resolved (which is usually a public gateway like `ipfs.io` or `cloudflare-ipfs.com`). That means reveals keep bottlenecking on IPFS even though we have a byte-verified copy of every card sitting on Netlify, GitHub Pages, and (for smaller files) Cloudflare.
+## What the test does
 
-We control the mirrors. They're fast, CORS-open, hash-verified, and complete for every series we've snapshotted (Series 1, Series 2, Exotic, plus the atomic mirror). They should be the reveal path, not a fallback.
+Drive a headless Chromium (Playwright) against the running dev server and exercise the exact same code paths a real reveal uses — `buildRevealCandidates` + `preloadRevealImage` from `src/lib/revealImageSources.ts` — for a synthetic pack of the correct size.
 
-## What changes (conceptually)
+No production code changes. The test lives under `scripts/` (Node) and does its work in two layers:
 
-Reveals switch to a **mirror-first, IPFS-as-last-resort** model:
+1. **Node layer (fast, always runs)**
+   - Load the pinned manifest via the same `loadPinnedManifest()` the app uses.
+   - Pick representative card sets:
+     - GPKMEGA (Series 1, boxtype `thirty`): 30 random cards, mixed variants (base + a couple of GIF variants like `prism`, `slime`).
+     - GPKTWOC (Series 2, boxtype `gpktwo55`): 55 random cards including the +42 ID offset.
+     - EXOMEGA (Exotic, boxtype `exotic25`): 25 random cards.
+   - For each card, build the IPFS URL exactly like `buildGpkCardImageUrl` does, then run `buildRevealCandidates(url, null, manifest)` to get the ordered candidate list.
+   - Fire parallel `HEAD` requests to every mirror candidate for every card and record: which mirror answered first, latency, HTTP status, `content-length`.
+   - Emit a table per pack: `cardId | variant | winner tier | winner host | ms | mirrors OK (3/3) | manifest hit`.
 
-1. Local ZIP (instant, offline)
-2. Primary mirror (Netlify) — raced in parallel with Backup A (GitHub) — first to answer wins
-3. Backup B (Cloudflare) — only if the file exists there (some large files were excluded from Cloudflare's 25 MB limit)
-4. Public IPFS gateways — only if all mirrors fail or the file isn't in the manifest at all (e.g. a brand-new card added after the last snapshot)
+2. **Browser layer (real image decode, one pack)**
+   - Spin up Playwright against `http://localhost:8080`, inject a synthetic reveal by calling `preloadRevealImage` from a small dev-only page route OR by evaluating the module directly in-page (dynamic `import()` of `/src/lib/revealImageSources.ts` via Vite).
+   - Run the full pack through `preloadRevealImage` in parallel with the same abort/timeout logic the dialog uses.
+   - Capture `{ url, label, elapsedMs }` per card + total wall time.
+   - Screenshot nothing — this is a data test, not a visual one.
 
-The "preferred URL" slot (whatever `useIpfsMedia` resolved earlier) is **ignored during reveals** when it points at a public gateway, because that's exactly the slow path we're trying to escape. We keep it only when it's a `blob:` URL (local mirror) or one of our own mirror hosts.
+## Deliverable
 
-## Where it applies
+A single script `scripts/test-reveal-pipeline.mjs` runnable as:
 
-- `PackRevealDialog.tsx` — flip-card reveal tiles + the background preloader race
-- `Index.tsx` — the deal-animation image warmup (`warmDealImagesWithoutBlocking`)
-- `handleCollectUnclaimed` recovery path — same behavior
+```
+node scripts/test-reveal-pipeline.mjs --pack GPKMEGA
+node scripts/test-reveal-pipeline.mjs --pack GPKTWOC --browser
+node scripts/test-reveal-pipeline.mjs --all
+```
 
-Grid view, detail view, and everything else keep using `useIpfsMedia` unchanged — those already work well and rotate gateways per-tile without blocking anything.
+Output sections:
+- **Manifest coverage**: how many of the pack's hashes are in `pinned-manifest.json`.
+- **Per-mirror health**: for each of Netlify / GitHub / Cloudflare, count of 200s vs failures across all hashes.
+- **Winner distribution**: how many cards resolved from each tier, and the p50/p95 latency.
+- **Missing files**: any card where all mirrors failed (these are the ones a real reveal would fall through to IPFS for).
+- **Browser wall time** (when `--browser` is passed): total ms for the full pack parallel preload — the number that matters for user-perceived reveal readiness.
 
-## Behavior guarantees
+## What we learn
 
-- If a card's hash is in the pinned manifest → the reveal only ever hits our mirrors. Public IPFS is never touched.
-- If a card's hash is *not* in the manifest (new cards minted after last snapshot) → falls through to IPFS gateways with the same racing logic we have now.
-- "Reveal now" and the non-blocking reveal flow stay exactly as they are — mirror-first just makes the background warmup finish faster, so the button rarely needs to be pressed.
-- No change to the mirror files, manifests, or build scripts.
-
-## Technical details
-
-**`PackRevealDialog.tsx`**
-- Rewrite `buildImageCandidates` ordering:
-  1. `preferred` URL only if it's `blob:` or starts with one of our mirror bases
-  2. `local` (blob: from ZIP)
-  3. `mirror` tier: emit as a single **parallel race group** rather than sequential entries (Netlify + GitHub together)
-  4. `mirror` Cloudflare (separate — smaller catalog, tried after)
-  5. `gateway` tier: only added when `manifest.files[hash]` is absent
-- `RevealCardImage` currently walks `fallbacks[]` one at a time with a 3.5s hang-swap. Change it so the mirror group races in parallel (using existing `raceCandidateGroup`) and the winning URL becomes the tile's `src`. Sequential walking is kept only for the post-mirror fallback list.
-- Background preloader uses the same ordering, so preloads finish in ~1 round-trip for manifest-covered cards.
-
-**`Index.tsx`**
-- `warmDealImagesWithoutBlocking` / `preloadImageThroughGateways` reuse the same mirror-first candidate builder from `PackRevealDialog` (extract it to a small shared helper — likely `src/lib/revealImageSources.ts` — so both files share one source of truth).
-
-**Manifest awareness**
-- `loadPinnedManifest()` is already called at reveal start. We use `manifest.files[hash]` presence as the switch: present → mirrors only; absent → allow gateway fallback.
+- Whether Netlify / GitHub / Cloudflare actually have every mega-pack card (surfacing the same gaps `audit-mirrors.mjs` finds, but scoped to a real pack shape).
+- Whether the mirror-first ordering wins in practice, or whether we're still falling through to IPFS for some variants (e.g. GIFs excluded from Cloudflare by size).
+- The real end-to-end preload time for a 30/55/25-card pack — the number that determines whether "Reveal now" ever needs to be pressed.
 
 ## Out of scope
 
-- Adding new mirrors or re-snapshotting anything
-- Grid/detail image loading (unchanged)
-- Any change to demo-mode reveals (they already use blob URLs / bundled assets)
+- No on-chain transactions, no `gpk.topps::unbox`, no wallet.
+- No changes to `PackRevealDialog.tsx`, `Index.tsx`, or the mirror-first library — this only reads them.
+- No visual/screenshot testing — `audit-mirrors.mjs` already covers byte-level checks; this test is about reveal-path behavior end-to-end.
