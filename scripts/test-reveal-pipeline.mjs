@@ -208,9 +208,11 @@ function generatePackCards(packKey) {
   const cards = [];
   for (let i = 0; i < cfg.count; i++) {
     const variant = cfg.variants[Math.floor(Math.random() * cfg.variants.length)];
-    const cardid = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+    const side = cfg.sides[Math.floor(Math.random() * cfg.sides.length)];
+    const num = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+    const cardid = `${num}${side}`;
     const url = buildGpkCardImageUrl(cfg.boxtype, variant, cardid);
-    cards.push({ packKey, index: i, cardid, variant, boxtype: cfg.boxtype, url });
+    cards.push({ packKey, index: i, num, side, cardid, variant, boxtype: cfg.boxtype, url });
   }
   return cards;
 }
