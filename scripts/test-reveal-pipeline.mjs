@@ -201,14 +201,13 @@ async function raceHeadGroup(candidates, timeoutMs) {
   });
 }
 
-function generatePackCards(packKey, manifest) {
+function listManifestCardsForPack(packKey, manifest) {
   const cfg = PACK_CONFIG[packKey];
   if (!cfg) throw new Error(`Unknown pack ${packKey}`);
 
-  // Sample from the manifest so the test exercises real, mirrored cards.
   const hash = SERIES_HASH[cfg.boxtype];
   const prefix = `${hash}/`;
-  const available = Object.keys(manifest?.files || {})
+  return Object.keys(manifest?.files || {})
     .filter((key) => {
       if (!key.startsWith(prefix)) return false;
       const rest = key.slice(prefix.length);
@@ -221,6 +220,11 @@ function generatePackCards(packKey, manifest) {
       const cardid = file.replace(/\.[^.]+$/, '');
       return { packKey, cardid, variant, boxtype: cfg.boxtype, url: buildGpkCardImageUrl(cfg.boxtype, variant, cardid) };
     });
+}
+
+function generatePackCards(packKey, manifest) {
+  const cfg = PACK_CONFIG[packKey];
+  const available = listManifestCardsForPack(packKey, manifest);
 
   if (available.length < cfg.count) {
     console.warn(`[test] ${packKey}: manifest only has ${available.length} matching cards, need ${cfg.count}`);
