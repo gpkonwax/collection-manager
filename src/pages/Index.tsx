@@ -31,43 +31,27 @@ import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
+import { preloadRevealImage } from '@/lib/revealImageSources';
+import { loadPinnedManifest } from '@/lib/remoteMirror';
 
 /**
- * Preload one image URL through every IPFS gateway with a per-attempt hang
- * timeout. Used before starting the deal animation so we never begin dealing
- * with images that haven't decoded yet.
+ * Preload one image URL mirror-first: local ZIP → configured mirrors (raced
+ * in parallel) → public IPFS gateways only when the hash isn't in the pinned
+ * manifest. Used before starting the deal animation so images are already in
+ * the browser cache when the animation begins.
  */
 async function preloadImageThroughGateways(originalUrl: string | null | undefined, perAttemptMs = 4000): Promise<boolean> {
   if (!originalUrl) return false;
-  const hash = extractIpfsHash(originalUrl);
-  const candidates: string[] = [originalUrl];
-  if (hash) {
-    for (let i = 0; i < IPFS_GATEWAYS.length; i++) {
-      const gw = IPFS_GATEWAYS[i];
-      const swapped = `${gw}${hash}`;
-      if (!candidates.includes(swapped)) candidates.push(swapped);
-    }
+  const manifest = await loadPinnedManifest().catch(() => undefined);
+  const controller = new AbortController();
+  // Cap the whole run so a stuck race can't hold the deal animation forever.
+  const timer = setTimeout(() => controller.abort(), perAttemptMs * 4);
+  try {
+    const result = await preloadRevealImage(originalUrl, manifest, controller.signal);
+    return !!result.url;
+  } finally {
+    clearTimeout(timer);
   }
-  for (const url of candidates) {
-    const ok = await new Promise<boolean>((resolve) => {
-      const img = new Image();
-      let settled = false;
-      const done = (result: boolean) => {
-        if (settled) return;
-        settled = true;
-        img.onload = null;
-        img.onerror = null;
-        clearTimeout(timer);
-        resolve(result);
-      };
-      const timer = setTimeout(() => done(false), perAttemptMs);
-      img.onload = () => done(true);
-      img.onerror = () => done(false);
-      img.src = url;
-    });
-    if (ok) return true;
-  }
-  return false;
 }
 
 async function warmDealImagesWithoutBlocking(cards: SimpleAsset[], maxWaitMs = 6000): Promise<void> {
