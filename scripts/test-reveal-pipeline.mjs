@@ -346,6 +346,7 @@ async function runNodeTest(packKey, manifest) {
 async function runBrowserTest(packKey, manifest) {
   const { chromium } = await import('playwright');
   const cfg = PACK_CONFIG[packKey];
+  // Sample real manifest paths so the browser test exercises URLs that exist.
   const cards = generatePackCards(packKey, manifest);
 
   console.log(`\n=== Browser-layer test: ${packKey} (${cfg.count} cards) ===`);
@@ -364,41 +365,8 @@ async function runBrowserTest(packKey, manifest) {
   try {
     await page.goto('http://localhost:8080', { waitUntil: 'networkidle' });
 
-    const results = await page.evaluate(async (packKey) => {
+    const results = await page.evaluate(async ({ cards }) => {
       const revealMod = await import('/src/lib/revealImageSources.ts');
-      const gpkMod = await import('/src/lib/gpkCardImages.ts');
-
-      const SERIES_HASH = {
-        five: 'QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p',
-        thirty: 'QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p',
-        gpktwoeight: 'QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ',
-        gpktwo25: 'QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ',
-        gpktwo55: 'QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ',
-        exotic5: 'QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25',
-        exotic25: 'QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25',
-      };
-      const GIF_VARIANTS = new Set([
-        'prism', 'sketch', 'slime', 'raw', 'gum', 'vhs', 'collector', 'tiger stripe', 'tiger claw', 'originalart', 'relic',
-      ]);
-      const PACKS = {
-        GPKMEGA: { boxtype: 'thirty', count: 30, idRange: [1, 180], sides: ['a', 'b'], variants: ['base', 'prism', 'sketch', 'collector', 'golden'] },
-        GPKTWOC: { boxtype: 'gpktwo55', count: 55, idRange: [1, 180], sides: ['a', 'b'], variants: ['base', 'raw', 'slime', 'gum', 'vhs', 'sketch', 'returning', 'error', 'originalart', 'relic', 'promo', 'collector', 'golden'] },
-        EXOMEGA: { boxtype: 'exotic25', count: 25, idRange: [1, 100], sides: ['a', 'b'], variants: ['base', 'prism', 'tiger stripe', 'tiger claw', 'golden', 'collector'] },
-      };
-
-      const cfg = PACKS[packKey];
-      const [minId, maxId] = cfg.idRange;
-      const cards = [];
-      for (let i = 0; i < cfg.count; i++) {
-        const variant = cfg.variants[Math.floor(Math.random() * cfg.variants.length)];
-        const side = cfg.sides[Math.floor(Math.random() * cfg.sides.length)];
-        const num = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
-        const cardid = `${num}${side}`;
-        const hash = SERIES_HASH[cfg.boxtype];
-        const ext = GIF_VARIANTS.has(variant) ? 'gif' : 'jpg';
-        const url = `https://gateway.pinata.cloud/ipfs/${hash}/${variant}/${cardid}.${ext}`;
-        cards.push({ index: i, num, side, cardid, variant, url });
-      }
 
       // Load manifest inside browser so we pass the same object shape the app uses.
       const manifestRes = await fetch('/gpk-manifest.json', { cache: 'no-store' });
@@ -432,7 +400,7 @@ async function runBrowserTest(packKey, manifest) {
       clearTimeout(maxTimer);
       const totalMs = performance.now() - started;
       return { totalMs, results };
-    }, packKey);
+    }, { cards });
 
     const winners = results.results.filter((r) => r.winnerUrl);
     const byLabel = {};
