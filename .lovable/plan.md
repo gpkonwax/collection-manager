@@ -1,23 +1,23 @@
-## Goal
-Eliminate the dark vertical bars that appear on either side of portrait card artwork in the grid, which currently tilt along with the card on hover.
+## Problem
 
-## Root cause
-In `src/components/simpleassets/SimpleAssetCard.tsx`, the artwork container is a fixed `aspect-square` box painted with `bg-muted/30`. GPK card art is portrait and rendered with `object-contain`, so the muted fill shows through as two opaque vertical bars flanking the image. Because that box is inside the tilt transform, the bars rotate with the card and read as shadow strips on hover.
+AtomicMarket sale listings show up in the "Sent" trades tab. They shouldn't — the Trades section is meant for P2P asset-for-asset trades only, not marketplace listings.
 
-## Change
-Single-file, presentation-only edit:
+## Root cause (verified)
 
-- `src/components/simpleassets/SimpleAssetCard.tsx`
-  - On the `aspect-square` artwork wrapper inside the tilt element, remove the `bg-muted/30` class so the wrapper is transparent.
-  - Portrait images then sit directly against the card body (`bg-card`), giving a uniform surface with no visible left/right bars.
+AtomicMarket implements sales by creating an atomicassets offer from the seller to the `atomicmarket` contract as escrow. These offers have `is_recipient_contract=true`. Our fetcher in `src/lib/atomicOffers.ts` already passes `hide_contract_offers=true`, but that server-side param is clearly not filtering these on the API endpoints we're hitting (the user is seeing them in-app). We're also not defensively filtering client-side.
 
-## Preserved behavior
-- Square grid cell / layout sizing unchanged (still `aspect-square`).
-- 3D tilt, glare overlay, and hover ring unchanged.
-- `object-contain` retained — no image cropping.
-- Animated-GIF paint-containment styles retained.
-- Landscape artwork (e.g. Series 1 backs) unaffected since it already fills the width.
-- Detail dialog untouched.
+Additionally, marketplace offers are typically one-sided (assets only in `sender_assets`, nothing in `recipient_assets`), which is another distinguishing signal — a real P2P trade has assets on both sides (or at minimum, is not going to/from a contract).
 
-## Verification
-- Visually confirm in the preview that portrait cards no longer show the two darker vertical strips on hover, and that landscape cards look identical to before.
+## Fix
+
+Update `fetchPendingOffers` in `src/lib/atomicOffers.ts` to filter out marketplace/contract offers client-side after normalization, so it doesn't matter whether the API honors `hide_contract_offers`:
+
+1. Drop any offer where `is_sender_contract` or `is_recipient_contract` is `true` (that's atomicmarket, atomicpacksx, etc.).
+2. Also drop any offer where both sides are empty (defensive; shouldn't happen but cheap check).
+3. Keep the existing ownership-validation step so stale offers still get pruned.
+
+No UI changes needed — the tabs already labeled "Received" / "Sent" will only show true P2P offers once the filter is in place.
+
+## Files touched
+
+- `src/lib/atomicOffers.ts` — add client-side contract-offer filter in `fetchPendingOffers`.
