@@ -206,7 +206,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
       {/* Flat text area — no 3D transforms */}
       <CardContent className="p-3 space-y-1">
         <div className="flex items-center gap-1.5">
-          <p className="text-sm font-semibold text-foreground truncate">{asset.name}</p>
+          <p className="text-sm font-semibold text-foreground theme-bright-text truncate">{asset.name}</p>
           {asset.cardid && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cheese/20 text-cheese shrink-0">
               {asset.cardid}{asset.side || ''}{asset.quality ? ` ${asset.quality}` : ''}
