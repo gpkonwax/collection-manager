@@ -1,30 +1,56 @@
-I checked the current reveal code. The real pack flow now has an all-or-nothing `preloading` phase before it ever enters the same visible reveal phase that demo mode uses. On your screenshot, the app already knows there are 25 cards, but the image preloader has reported `0 / 25`, so the UI is trapped before reveal. The current `Reveal now` handler also depends on the active preload run object, so if that run is missing, finalized, or wedged, the button can no-op instead of forcing the reveal.
 
-Plan:
+## Why this is worth doing
 
-1. **Remove the blocking preload gate from real pack reveals**
-   - Once the pending `pendingnft.a` rows are found and the 25/30/35 card list is built, transition into the normal reveal grid immediately, the same way demo mode does.
-   - Keep image loading/fallbacks inside each card tile so images can still use mirrors/gateways, but do not block the entire pack opening on image preload completion.
+Good instinct. Today the reveal *does* include our mirrors in its candidate list, but it treats them as just another option in a mixed pile with public IPFS gateways — and it hands the "preferred" slot to whatever URL the app already resolved (which is usually a public gateway like `ipfs.io` or `cloudflare-ipfs.com`). That means reveals keep bottlenecking on IPFS even though we have a byte-verified copy of every card sitting on Netlify, GitHub Pages, and (for smaller files) Cloudflare.
 
-2. **Make `Reveal now` unconditional**
-   - Store the built reveal card list separately from the preload run.
-   - Change the button to force `phase = 'revealing'` from that stored card list even if the preload controller/ref is gone or broken.
-   - Make the button available immediately during preparation, not only after a long timeout.
+We control the mirrors. They're fast, CORS-open, hash-verified, and complete for every series we've snapshotted (Series 1, Series 2, Exotic, plus the atomic mirror). They should be the reveal path, not a fallback.
 
-3. **Keep a short best-effort warmup, not an infinite wait**
-   - If we keep any preload step at all, cap it tightly and race mirrors/gateways in the background.
-   - The warmup may improve image readiness, but it must never be required for reveal to start.
+## What changes (conceptually)
 
-4. **Fix post-collect deal preparation the same way**
-   - The collection/deal animation currently also waits on image preloads with no real escape if images hang.
-   - Change that to best-effort only: wait briefly for images to warm, then deal every confirmed card anyway.
-   - This prevents “cards are collected but animation never starts” or partial/no animation caused by image preloading.
+Reveals switch to a **mirror-first, IPFS-as-last-resort** model:
 
-5. **Preserve the working demo behavior as the reference**
-   - Demo and real SA pack openings should share the same visible reveal mechanics: card backs appear, then cards flip one-by-one.
-   - The only difference should be where the card list comes from: demo fixture cards vs. real `pendingnft.a` rows.
+1. Local ZIP (instant, offline)
+2. Primary mirror (Netlify) — raced in parallel with Backup A (GitHub) — first to answer wins
+3. Backup B (Cloudflare) — only if the file exists there (some large files were excluded from Cloudflare's 25 MB limit)
+4. Public IPFS gateways — only if all mirrors fail or the file isn't in the manifest at all (e.g. a brand-new card added after the last snapshot)
 
-6. **Verify the exact failure path**
-   - Test that clicking `Reveal now` immediately leaves the preparation screen.
-   - Test that a reveal with unreachable image URLs still flips all card slots instead of staying at `0 / N`.
-   - Test that collecting after reveal still triggers the collection deal animation and does not wait forever on image preload.
+The "preferred URL" slot (whatever `useIpfsMedia` resolved earlier) is **ignored during reveals** when it points at a public gateway, because that's exactly the slow path we're trying to escape. We keep it only when it's a `blob:` URL (local mirror) or one of our own mirror hosts.
+
+## Where it applies
+
+- `PackRevealDialog.tsx` — flip-card reveal tiles + the background preloader race
+- `Index.tsx` — the deal-animation image warmup (`warmDealImagesWithoutBlocking`)
+- `handleCollectUnclaimed` recovery path — same behavior
+
+Grid view, detail view, and everything else keep using `useIpfsMedia` unchanged — those already work well and rotate gateways per-tile without blocking anything.
+
+## Behavior guarantees
+
+- If a card's hash is in the pinned manifest → the reveal only ever hits our mirrors. Public IPFS is never touched.
+- If a card's hash is *not* in the manifest (new cards minted after last snapshot) → falls through to IPFS gateways with the same racing logic we have now.
+- "Reveal now" and the non-blocking reveal flow stay exactly as they are — mirror-first just makes the background warmup finish faster, so the button rarely needs to be pressed.
+- No change to the mirror files, manifests, or build scripts.
+
+## Technical details
+
+**`PackRevealDialog.tsx`**
+- Rewrite `buildImageCandidates` ordering:
+  1. `preferred` URL only if it's `blob:` or starts with one of our mirror bases
+  2. `local` (blob: from ZIP)
+  3. `mirror` tier: emit as a single **parallel race group** rather than sequential entries (Netlify + GitHub together)
+  4. `mirror` Cloudflare (separate — smaller catalog, tried after)
+  5. `gateway` tier: only added when `manifest.files[hash]` is absent
+- `RevealCardImage` currently walks `fallbacks[]` one at a time with a 3.5s hang-swap. Change it so the mirror group races in parallel (using existing `raceCandidateGroup`) and the winning URL becomes the tile's `src`. Sequential walking is kept only for the post-mirror fallback list.
+- Background preloader uses the same ordering, so preloads finish in ~1 round-trip for manifest-covered cards.
+
+**`Index.tsx`**
+- `warmDealImagesWithoutBlocking` / `preloadImageThroughGateways` reuse the same mirror-first candidate builder from `PackRevealDialog` (extract it to a small shared helper — likely `src/lib/revealImageSources.ts` — so both files share one source of truth).
+
+**Manifest awareness**
+- `loadPinnedManifest()` is already called at reveal start. We use `manifest.files[hash]` presence as the switch: present → mirrors only; absent → allow gateway fallback.
+
+## Out of scope
+
+- Adding new mirrors or re-snapshotting anything
+- Grid/detail image loading (unchanged)
+- Any change to demo-mode reveals (they already use blob URLs / bundled assets)
