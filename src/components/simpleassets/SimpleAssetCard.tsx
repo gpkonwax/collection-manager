@@ -189,7 +189,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
         >
           <div
-            className="aspect-square bg-muted/30 flex items-center justify-center overflow-hidden pointer-events-none"
+            className="aspect-square flex items-center justify-center overflow-hidden pointer-events-none"
             style={isAnimatedGif ? { contain: 'paint', transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : undefined}
           >
             <IpfsMedia
