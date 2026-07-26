@@ -369,6 +369,61 @@ export default function SimpleAssetsPage() {
   } = useAtomicOffers(tradesAccount);
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
+  // Open the Trade Composer from a card in another wallet.
+  const handleTradeFromCard = useCallback((asset: SimpleAsset) => {
+    if (!accountName) {
+      toast({ title: 'Sign in required', description: 'Connect a wallet to propose a trade.', variant: 'destructive' });
+      return;
+    }
+    if (!viewedAccount || viewedAccount === accountName) return;
+    setComposerCounterparty(viewedAccount);
+    setComposerInitialTheirIds([asset.id]);
+    setComposerCounterOfferId(null);
+    setComposerOpen(true);
+  }, [accountName, viewedAccount, toast]);
+
+  // Accept / decline / cancel / counter for AtomicAssets offers.
+  const handleOfferAction = useCallback(async (
+    action: 'accept' | 'decline' | 'cancel' | 'counter',
+    offer: AtomicOffer,
+  ) => {
+    if (!accountName || !session) return;
+    if (action === 'counter') {
+      // Prefill composer: sender's assets go on "They give" (they were being offered),
+      // and initially clear "You give" so the recipient can rebuild their side.
+      setComposerCounterparty(offer.sender_name);
+      setComposerInitialTheirIds(offer.sender_assets.map((a) => a.asset_id));
+      setComposerCounterOfferId(offer.offer_id);
+      setComposerOpen(true);
+      return;
+    }
+    setTradeBusyOfferId(offer.offer_id);
+    setTradeBusyAction(action);
+    try {
+      const actions =
+        action === 'accept'  ? [buildAcceptOfferAction(accountName, offer.offer_id)]
+      : action === 'decline' ? [buildDeclineOfferAction(accountName, offer.offer_id)]
+      :                        [buildCancelOfferAction(accountName, offer.offer_id)];
+
+      const titles = {
+        accept:  'Offer accepted',
+        decline: 'Offer declined',
+        cancel:  'Offer cancelled',
+      } as const;
+
+      const res = await executeTransaction(actions, {
+        successTitle: titles[action],
+        successDescription: `Offer #${offer.offer_id}`,
+        errorTitle: `${action.charAt(0).toUpperCase() + action.slice(1)} failed`,
+      });
+      if (res.success) await refreshTrades();
+    } finally {
+      setTradeBusyOfferId(null);
+      setTradeBusyAction(null);
+    }
+  }, [accountName, session, executeTransaction, refreshTrades, toast]);
+
+
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
