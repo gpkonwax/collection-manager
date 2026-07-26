@@ -117,9 +117,9 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
       <Card className="bg-card border-border hover:border-primary/40 transition-colors">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           {series2Img ? <img src={series2Img} alt={pack.label} className="w-3/4 h-auto rounded mx-auto" /> : <span className="text-3xl">📦</span>}
-          <p className="font-bold text-foreground text-sm">{pack.label}</p>
-          <p className="text-xs text-muted-foreground">{pack.symbol}</p>
-          <p className="text-lg font-mono text-primary">{pack.amount}</p>
+          <p className="font-bold text-foreground text-sm theme-bright-text">{pack.label}</p>
+          <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.symbol}</p>
+          <p className="text-lg font-mono text-primary theme-bright-text">{pack.amount}</p>
           {isReadOnly ? (
             <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
               View Only

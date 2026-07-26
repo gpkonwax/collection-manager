@@ -86,9 +86,9 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
       <Card className="bg-card border-border hover:border-primary/40 transition-colors">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           <img src={pack.image} alt={pack.name} className="w-3/4 h-auto rounded mx-auto" />
-          <p className="font-bold text-foreground text-sm">{pack.name}</p>
-          <p className="text-xs text-muted-foreground">{pack.cardsPerPack} cards per pack</p>
-          <p className="text-lg font-mono text-primary">{pack.count}</p>
+          <p className="font-bold text-foreground text-sm theme-bright-text">{pack.name}</p>
+          <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.cardsPerPack} cards per pack</p>
+          <p className="text-lg font-mono text-primary theme-bright-text">{pack.count}</p>
           {isReadOnly ? (
             <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
               View Only

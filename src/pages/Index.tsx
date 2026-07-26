@@ -2319,10 +2319,10 @@ export default function SimpleAssetsPage() {
 
         {(isConnected || isViewing) && (
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-cheese">Unofficial GPK.Topps Collection Manager</h1>
-            <p className="text-cheese/70 mt-1">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
+            <h1 className="text-3xl font-bold text-cheese theme-bright-text">Unofficial GPK.Topps Collection Manager</h1>
+            <p className="text-cheese/70 mt-1 theme-bright-text-muted">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
-              <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80">
+              <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80 theme-bright-text-muted">
                 <span>Optional: Bridge your</span>
                 <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto rounded" />
                 <span>to</span>
@@ -2330,7 +2330,7 @@ export default function SimpleAssetsPage() {
                 <a
                   href="https://atomichub.io/bridge"
                   onClick={(e) => { e.preventDefault(); footerRequestNav('https://atomichub.io/bridge'); }}
-                  className="text-cheese underline hover:text-cheese/80"
+                  className="text-cheese underline hover:text-cheese/80 theme-bright-text theme-bright-hover-text"
                 >
                   here
                 </a>
@@ -2343,14 +2343,14 @@ export default function SimpleAssetsPage() {
         {!isConnected && !isViewing ? (
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
-              <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient leading-[1.25] pb-2 max-w-3xl">
+              <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient theme-bright-gradient leading-[1.25] pb-2 max-w-3xl">
                 The Unofficial GPK Collection Manager
               </h2>
-              <p className="text-lg text-foreground max-w-2xl">
-                Free to use, open source, built by <span className="text-cheese font-semibold">$CHEESE</span> for the WAX and GPK communities.
+              <p className="text-lg text-foreground max-w-2xl theme-bright-text-muted">
+                Free to use, open source, built by <span className="text-cheese font-semibold theme-bright-text">$CHEESE</span> for the WAX and GPK communities.
               </p>
               <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 px-4 py-3 text-sm text-foreground">
-                <span className="font-semibold text-cheese">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.
+                <span className="font-semibold text-cheese theme-bright-text">🔒 No new smart contracts.</span> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.
               </div>
               <Button onClick={login} size="lg" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground text-lg px-8 py-6 cheese-glow">
                 <Wallet className="h-5 w-5 mr-2" />
@@ -2575,7 +2575,7 @@ export default function SimpleAssetsPage() {
                       footerRequestNav('https://atomichub.io/market?blockchain=wax-mainnet&collection_name=gpk.topps&order=asc&primary_chain=wax-mainnet&schema_name=packs&sort=price&symbol=WAX');
                     }
                   }}
-                  className="text-sm text-cheese hover:text-cheese/80 underline underline-offset-2"
+                  className="text-sm text-cheese hover:text-cheese/80 underline underline-offset-2 theme-bright-text theme-bright-hover-text"
                 >
                   {categoryFilter === 'exotic' || categoryFilter === 'series1' || categoryFilter === 'series2' ? 'Buy Packs on Alcor' : 'Buy Packs on AtomicHub'}
                 </button>
@@ -2584,11 +2584,11 @@ export default function SimpleAssetsPage() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cheese" />
-                <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-cheese/50 text-cheese placeholder:text-cheese/50" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cheese theme-bright-text" />
+                <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-cheese/50 text-cheese placeholder:text-cheese/50 theme-bright-border theme-bright-text theme-bright-placeholder" />
               </div>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese theme-bright-border theme-bright-text"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="simpleassets">Simple Assets</SelectItem>
@@ -2598,7 +2598,7 @@ export default function SimpleAssetsPage() {
               {viewMode === 'classic' && (
                 <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
                   <SelectTrigger
-                    className="w-full sm:w-[180px] border-cheese/50 text-cheese"
+                    className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text"
                     title="Recently received: AtomicAssets use real transfer time. SimpleAssets fall back to asset ID (mint order) — no on-chain receipt time exists for SA."
                   >
                     <SelectValue placeholder="Sort" />
@@ -2612,7 +2612,7 @@ export default function SimpleAssetsPage() {
                 </Select>
               )}
               <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2' && v !== 'exotic' && v !== 'foodfightb') setVariantFilter(['all']); }}>
-                <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent className="max-h-none overflow-visible">
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
@@ -2628,7 +2628,7 @@ export default function SimpleAssetsPage() {
                   refetchPacks();
                   refetchAtomicPacks();
                 }}
-                className="text-cheese hover:text-cheese/80"
+                className="text-cheese hover:text-cheese/80 theme-bright-text theme-bright-hover-text"
                 title="Refresh category"
               >
                 <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading || packsLoading || atomicPacksLoading) ? 'animate-spin' : ''}`} />
@@ -2657,7 +2657,7 @@ export default function SimpleAssetsPage() {
                 return (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10">
+                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text theme-bright-hover">
                         {label}
                         <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
                       </Button>
