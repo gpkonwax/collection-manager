@@ -367,11 +367,13 @@ async function runBrowserTest(packKey) {
       const cards = [];
       for (let i = 0; i < cfg.count; i++) {
         const variant = cfg.variants[Math.floor(Math.random() * cfg.variants.length)];
-        const cardid = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+        const side = cfg.sides[Math.floor(Math.random() * cfg.sides.length)];
+        const num = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+        const cardid = `${num}${side}`;
         const hash = SERIES_HASH[cfg.boxtype];
         const ext = GIF_VARIANTS.has(variant) ? 'gif' : 'jpg';
         const url = `https://gateway.pinata.cloud/ipfs/${hash}/${variant}/${cardid}.${ext}`;
-        cards.push({ index: i, cardid, variant, url });
+        cards.push({ index: i, num, side, cardid, variant, url });
       }
 
       // Load manifest inside browser so we pass the same object shape the app uses.
