@@ -406,19 +406,25 @@ async function runBrowserTest(packKey, manifest) {
       // end-to-end time without artificial timeouts hiding failures.
       const maxTimer = setTimeout(() => controller.abort(), 30000);
 
-      const results = await Promise.all(
-        cards.map(async (card) => {
-          const perStarted = performance.now();
+      // Browsers limit concurrent connections per host (typically 6 for HTTP/1.1).
+      // Race all mirrors per card, but cap parallel cards to avoid queueing.
+      const CONCURRENCY = 6;
+      const results = [];
+      let next = 0;
+      async function worker() {
+        while (next < cards.length && !controller.signal.aborted) {
+          const idx = next++;
+          const card = cards[idx];
           const result = await revealMod.preloadRevealImage(card.url, manifest, controller.signal);
-          return {
+          results[idx] = {
             ...card,
             winnerUrl: result.url,
             winnerLabel: result.label,
             elapsedMs: result.elapsedMs,
-            perStarted,
           };
-        }),
-      );
+        }
+      }
+      await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
       clearTimeout(maxTimer);
       const totalMs = performance.now() - started;
       return { totalMs, results };
