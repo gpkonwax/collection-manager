@@ -340,6 +340,7 @@ export default function SimpleAssetsPage() {
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
   const toggleSelection = useCallback((id: string) => {
