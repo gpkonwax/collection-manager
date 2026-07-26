@@ -1563,6 +1563,7 @@ export default function SimpleAssetsPage() {
           onSelect={toggleSelection}
           priceAlertTemplate={template}
           isReadOnly={isViewing}
+          onTradeClick={handleTradeFromCard}
         />
       );
     }
@@ -1866,6 +1867,7 @@ export default function SimpleAssetsPage() {
                   selected={selectedIds.has(asset.id)}
                   onSelect={toggleSelection}
                   isReadOnly={isViewing}
+                  onTradeClick={handleTradeFromCard}
                 />
               );
             })}
@@ -2080,6 +2082,7 @@ export default function SimpleAssetsPage() {
                 onDrop={handleDrop(idx)}
                 onDragEnd={handleDragEnd}
                 isReadOnly={isViewing}
+                onTradeClick={handleTradeFromCard}
               />
             );
           })}
