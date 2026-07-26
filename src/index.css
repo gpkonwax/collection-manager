@@ -247,12 +247,13 @@
   }
   /* Fill any non-solid button inside the header with yellow in bright mode.
      Excludes solid pink buttons (bg-cheese) and elements portalled outside the header. */
-  .bright .theme-bright-header button:not([class*="bg-cheese"]) {
+  .bright .theme-bright-header button:not([class~="bg-cheese"]) {
     background-color: hsl(var(--card));
   }
-  .bright .theme-bright-header button:not([class*="bg-cheese"]):hover {
+  .bright .theme-bright-header button:not([class~="bg-cheese"]):hover {
     background-color: hsl(var(--card) / 0.85);
   }
+
 
 }
 
