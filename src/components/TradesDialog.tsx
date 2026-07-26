@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeftRight, ExternalLink, Loader2, RefreshCw, Send, Inbox } from 'lucide-react';
+import { ArrowLeftRight, Check, ExternalLink, Loader2, RefreshCw, Reply, Send, Inbox, X } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -11,6 +11,8 @@ import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
 import { cn } from '@/lib/utils';
 
+type OfferAction = 'accept' | 'decline' | 'cancel' | 'counter';
+
 interface TradesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,6 +23,11 @@ interface TradesDialogProps {
   error: string | null;
   onRefresh: () => Promise<void> | void;
   onMarkAllRead: () => void;
+  /** Optional Phase-2 action handler. Return true if handled. */
+  onOfferAction?: (action: OfferAction, offer: AtomicOffer) => Promise<void> | void;
+  /** Offer id currently being processed (spinner state). */
+  busyOfferId?: string | null;
+  busyAction?: OfferAction | null;
 }
 
 function AssetThumb({ asset }: { asset: OfferAsset }) {
