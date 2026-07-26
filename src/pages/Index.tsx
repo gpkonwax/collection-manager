@@ -71,7 +71,13 @@ import { BackupPanel } from '@/components/BackupPanel';
 import { BackupNudgeBanner } from '@/components/BackupNudgeBanner';
 import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
 import { TradesDialog } from '@/components/TradesDialog';
+import { TradeComposerDialog } from '@/components/TradeComposerDialog';
 import { useAtomicOffers } from '@/hooks/useAtomicOffers';
+import { useWaxTransaction } from '@/hooks/useWaxTransaction';
+import {
+  buildAcceptOfferAction, buildDeclineOfferAction, buildCancelOfferAction,
+} from '@/lib/atomicTradeActions';
+import type { AtomicOffer } from '@/lib/atomicOffers';
 import { OfflineBundleBanner } from '@/components/OfflineBundleBanner';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
