@@ -5,9 +5,17 @@ import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { buildGpkCardImageUrl, getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
-import { BACKUP_MIRROR_A, BACKUP_MIRROR_B, PRIMARY_MIRROR, PUBLIC_IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
-import { resolveLocalMirror } from '@/lib/localMirror';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
+import {
+  buildRevealCandidates,
+  buildRevealCandidateUrls,
+  raceCandidateGroup,
+  preloadRevealImage,
+  MIRROR_PRELOAD_TIMEOUT_MS,
+  type ImageCandidate,
+  type PinnedManifestLike,
+  type PreloadResult,
+} from '@/lib/revealImageSources';
 import { Session } from '@wharfkit/session';
 import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
@@ -62,23 +70,49 @@ interface PackRevealDialogProps {
 function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [fallbacks, setFallbacks] = useState<string[]>(() => buildRevealImageCandidates(card.originalImage ?? card.image, card.image));
+  const [fallbacks, setFallbacks] = useState<string[]>(() => buildRevealCandidateUrls(card.originalImage ?? card.image, card.image));
   const currentSrc = fallbacks[gwIdx] ?? null;
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     const baseUrl = card.originalImage ?? card.image;
     setGwIdx(0);
     setLoaded(false);
-    setFallbacks(buildRevealImageCandidates(baseUrl, card.image));
+    setFallbacks(buildRevealCandidateUrls(baseUrl, card.image));
     loadPinnedManifest().then((manifest) => {
       if (cancelled) return;
-      setFallbacks(buildRevealImageCandidates(baseUrl, card.image, manifest));
+      // Re-derive candidates now that we know which hashes the mirrors cover.
+      const withManifest = buildRevealCandidates(baseUrl, card.image, manifest);
+      setFallbacks(withManifest.map((c) => c.url));
+
+      // Race our mirrors in parallel — whichever host answers first becomes
+      // the tile's source. This is the critical fix: don't wait 3.5s for the
+      // first candidate to hang before trying the next mirror.
+      const mirrorGroup = withManifest.filter((c) => c.tier === 'mirror' || c.tier === 'local' || c.tier === 'preferred');
+      if (mirrorGroup.length > 0) {
+        raceCandidateGroup(mirrorGroup, MIRROR_PRELOAD_TIMEOUT_MS, controller.signal).then((winner) => {
+          if (cancelled || !winner) return;
+          setFallbacks((prev) => {
+            const winnerIdx = prev.indexOf(winner.url);
+            if (winnerIdx >= 0) {
+              setGwIdx(winnerIdx);
+              return prev;
+            }
+            // Winner wasn't in the list somehow — put it first.
+            setGwIdx(0);
+            return [winner.url, ...prev.filter((u) => u !== winner.url)];
+          });
+        });
+      }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [card.image, card.originalImage]);
 
-  // Hang-swap: if the current gateway hasn't fired load or error within 4s,
+  // Hang-swap: if the current candidate hasn't fired load or error within 3.5s,
   // rotate to the next one so a silently-stalled request doesn't leave a blank
   // tile mid-reveal.
   useEffect(() => {
@@ -117,187 +151,15 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
   );
 }
 
-type PinnedManifestForReveal = Awaited<ReturnType<typeof loadPinnedManifest>>;
 
-type ImageCandidate = {
-  url: string;
-  label: string;
-  tier: 'preferred' | 'local' | 'mirror' | 'gateway';
-};
-
-type PreloadResult = {
-  url: string | null;
-  label: string | null;
-  elapsedMs: number;
-};
+type PinnedManifestForReveal = PinnedManifestLike;
 
 const PRELOAD_CARD_CONCURRENCY = 3;
-const LOCAL_PRELOAD_TIMEOUT_MS = 1200;
-const MIRROR_PRELOAD_TIMEOUT_MS = 7000;
-const GATEWAY_PRELOAD_TIMEOUT_MS = 5500;
-
-function addCandidate(list: ImageCandidate[], seen: Set<string>, candidate: ImageCandidate) {
-  if (!candidate.url || seen.has(candidate.url)) return;
-  seen.add(candidate.url);
-  list.push(candidate);
-}
-
-function getManifestPath(hash: string, manifest?: PinnedManifestForReveal): string {
-  return manifest?.files?.[hash]?.path ?? hash;
-}
-
-function buildImageCandidates(originalUrl: string | null | undefined, preferredUrl?: string | null, manifest?: PinnedManifestForReveal): ImageCandidate[] {
-  const candidates: ImageCandidate[] = [];
-  const seen = new Set<string>();
-
-  if (preferredUrl && (preferredUrl !== originalUrl || preferredUrl.startsWith('blob:'))) {
-    addCandidate(candidates, seen, { url: preferredUrl, label: 'resolved winner', tier: 'preferred' });
-  }
-
-  const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
-  if (!hash) {
-    if (originalUrl) addCandidate(candidates, seen, { url: originalUrl, label: 'original URL', tier: 'gateway' });
-    return candidates;
-  }
-
-  const localUrl = resolveLocalMirror(hash);
-  if (localUrl) addCandidate(candidates, seen, { url: localUrl, label: 'local ZIP mirror', tier: 'local' });
-
-  const mirrorPath = getManifestPath(hash, manifest);
-  const mirrors = [
-    { base: PRIMARY_MIRROR, label: 'primary mirror' },
-    { base: BACKUP_MIRROR_A, label: 'backup mirror A' },
-    { base: BACKUP_MIRROR_B, label: 'backup mirror B' },
-  ];
-  for (const mirror of mirrors) {
-    if (!mirror.base || !/^https:\/\//i.test(mirror.base)) continue;
-    addCandidate(candidates, seen, { url: `${mirror.base}${mirrorPath}`, label: mirror.label, tier: 'mirror' });
-  }
-
-  for (const gateway of PUBLIC_IPFS_GATEWAYS) {
-    addCandidate(candidates, seen, { url: `${gateway}${hash}`, label: new URL(gateway).hostname, tier: 'gateway' });
-  }
-
-  if (originalUrl) addCandidate(candidates, seen, { url: originalUrl, label: 'original URL', tier: 'gateway' });
-  return candidates;
-}
-
-function buildRevealImageCandidates(originalUrl: string | null | undefined, preferredUrl?: string | null, manifest?: PinnedManifestForReveal): string[] {
-  return buildImageCandidates(originalUrl, preferredUrl, manifest).map((candidate) => candidate.url);
-}
-
-function loadImageCandidate(candidate: ImageCandidate, timeoutMs: number, signal: AbortSignal): Promise<ImageCandidate | null> {
-  if (signal.aborted) return Promise.resolve(null);
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    let settled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      if (timer) clearTimeout(timer);
-      signal.removeEventListener('abort', onAbort);
-      img.onload = null;
-      img.onerror = null;
-      try {
-        img.removeAttribute('src');
-        img.src = '';
-      } catch {
-        /* noop */
-      }
-    };
-
-    const finish = (result: ImageCandidate | null) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(result);
-    };
-
-    const onAbort = () => finish(null);
-    signal.addEventListener('abort', onAbort, { once: true });
-    timer = setTimeout(() => finish(null), timeoutMs);
-    img.onload = () => finish(candidate);
-    img.onerror = () => finish(null);
-    img.src = candidate.url;
-  });
-}
-
-async function raceCandidateGroup(candidates: ImageCandidate[], timeoutMs: number, parentSignal: AbortSignal): Promise<ImageCandidate | null> {
-  if (candidates.length === 0 || parentSignal.aborted) return null;
-
-  const controller = new AbortController();
-  const abortLocal = () => controller.abort();
-  parentSignal.addEventListener('abort', abortLocal, { once: true });
-
-  return new Promise((resolve) => {
-    let settled = false;
-    let losses = 0;
-
-    const finish = (winner: ImageCandidate | null) => {
-      if (settled) return;
-      settled = true;
-      parentSignal.removeEventListener('abort', abortLocal);
-      controller.abort();
-      resolve(winner);
-    };
-
-    candidates.forEach((candidate) => {
-      loadImageCandidate(candidate, timeoutMs, controller.signal).then((winner) => {
-        if (settled) return;
-        if (winner) {
-          finish(winner);
-          return;
-        }
-        losses += 1;
-        if (losses >= candidates.length) finish(null);
-      });
-    });
-  });
-}
-
-/**
- * Preload a single image URL with mirror-first priority. We race a small
- * source group at a time instead of walking every gateway serially, and every
- * attempt is abort-aware so "Reveal now" can cut over immediately.
- */
-async function preloadCardImage(
-  originalUrl: string | null,
-  manifest: PinnedManifestForReveal,
-  signal: AbortSignal,
-  onStatus?: (status: string) => void,
-): Promise<PreloadResult> {
-  const startedAt = performance.now();
-  const candidates = buildImageCandidates(originalUrl, null, manifest);
-  const local = candidates.filter((candidate) => candidate.tier === 'local' || candidate.tier === 'preferred');
-  const mirrors = candidates.filter((candidate) => candidate.tier === 'mirror');
-  const gateways = candidates.filter((candidate) => candidate.tier === 'gateway');
-
-  const groups = [
-    { label: 'Checking local backup…', candidates: local, timeout: LOCAL_PRELOAD_TIMEOUT_MS },
-    { label: 'Checking backup mirrors…', candidates: mirrors.slice(0, 3), timeout: MIRROR_PRELOAD_TIMEOUT_MS },
-    { label: 'Falling back to IPFS gateways…', candidates: gateways.slice(0, 3), timeout: GATEWAY_PRELOAD_TIMEOUT_MS },
-    { label: 'Trying remaining IPFS gateways…', candidates: gateways.slice(3), timeout: GATEWAY_PRELOAD_TIMEOUT_MS },
-  ];
-
-  for (const group of groups) {
-    if (signal.aborted) break;
-    if (group.candidates.length === 0) continue;
-    onStatus?.(group.label);
-    const winner = await raceCandidateGroup(group.candidates, group.timeout, signal);
-    if (winner) {
-      return { url: winner.url, label: winner.label, elapsedMs: performance.now() - startedAt };
-    }
-  }
-
-  return { url: null, label: null, elapsedMs: performance.now() - startedAt };
-}
 
 /**
  * Concurrency-limited preload pool. Fans out only a few cards at once while
- * each card performs a tiny mirror/gateway race. The returned `done` promise
- * resolves when the pool naturally finishes or when its AbortController is
- * aborted by the instant reveal fallback.
+ * each card performs a mirror-first race via `preloadRevealImage`. The pool
+ * returns when it naturally finishes or when its AbortController is aborted.
  */
 async function preloadWithPool<T>(
   items: T[],
@@ -320,7 +182,7 @@ async function preloadWithPool<T>(
       const i = cursor++;
       if (i >= items.length) return;
       const item = items[i];
-      const result = await preloadCardImage(getUrl(item), manifest, signal, onStatus);
+      const result = await preloadRevealImage(getUrl(item), manifest, signal, onStatus);
       resultDetails[i] = result;
       if (!signal.aborted) onCardDone(i, item, result);
     }
@@ -329,6 +191,8 @@ async function preloadWithPool<T>(
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
   return resultDetails;
 }
+
+
 
 
 const POLL_INTERVAL = 3000;
