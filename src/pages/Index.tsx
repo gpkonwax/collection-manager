@@ -73,7 +73,6 @@ import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
 import { TradesDialog } from '@/components/TradesDialog';
 import { TradeComposerDialog } from '@/components/TradeComposerDialog';
 import { useAtomicOffers } from '@/hooks/useAtomicOffers';
-import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import {
   buildAcceptOfferAction, buildDeclineOfferAction, buildCancelOfferAction,
 } from '@/lib/atomicTradeActions';
