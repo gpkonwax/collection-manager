@@ -2033,8 +2033,9 @@ export default function SimpleAssetsPage() {
   return (
     <div className="min-h-screen relative">
       <BackgroundDecorations />
-      <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50">
+      <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50 theme-bright-header">
         <div className="container flex h-12 items-center justify-between">
+
 
           {/* Left: offline backup trigger + recovery buttons */}
           <div className="flex items-center gap-2">
@@ -2586,10 +2587,10 @@ export default function SimpleAssetsPage() {
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cheese theme-bright-text" />
-                <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-cheese/50 text-cheese placeholder:text-cheese/50 theme-bright-border theme-bright-text theme-bright-placeholder" />
+                <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-cheese/50 text-cheese placeholder:text-cheese/50 theme-bright-border theme-bright-text theme-bright-placeholder theme-bright-fill" />
               </div>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese theme-bright-border theme-bright-text"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="simpleassets">Simple Assets</SelectItem>
@@ -2599,7 +2600,8 @@ export default function SimpleAssetsPage() {
               {viewMode === 'classic' && (
                 <Select value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
                   <SelectTrigger
-                    className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text"
+                    className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"
+
                     title="Recently received: AtomicAssets use real transfer time. SimpleAssets fall back to asset ID (mint order) — no on-chain receipt time exists for SA."
                   >
                     <SelectValue placeholder="Sort" />
@@ -2613,7 +2615,7 @@ export default function SimpleAssetsPage() {
                 </Select>
               )}
               <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2' && v !== 'exotic' && v !== 'foodfightb') setVariantFilter(['all']); }}>
-                <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent className="max-h-none overflow-visible">
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
@@ -2658,7 +2660,7 @@ export default function SimpleAssetsPage() {
                 return (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text theme-bright-hover">
+                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text theme-bright-hover theme-bright-fill">
                         {label}
                         <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
                       </Button>
