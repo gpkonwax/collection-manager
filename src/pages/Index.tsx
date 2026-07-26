@@ -315,7 +315,7 @@ export default function SimpleAssetsPage() {
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(effectiveAccount);
   const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(effectiveAccount);
 
-  const { executeRawTransaction } = useWaxTransaction(session);
+  const { executeRawTransaction, executeTransaction } = useWaxTransaction(session);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
@@ -349,6 +349,12 @@ export default function SimpleAssetsPage() {
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showTradesDialog, setShowTradesDialog] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
+  const [composerCounterOfferId, setComposerCounterOfferId] = useState<string | null>(null);
+  const [composerCounterparty, setComposerCounterparty] = useState<string | null>(null);
+  const [tradeBusyOfferId, setTradeBusyOfferId] = useState<string | null>(null);
+  const [tradeBusyAction, setTradeBusyAction] = useState<'accept' | 'decline' | 'cancel' | 'counter' | null>(null);
   const { theme, toggleTheme } = useTheme();
   // Poll AtomicAssets offers for the active (non-viewed) account only.
   const tradesAccount = !isViewing ? accountName : null;
