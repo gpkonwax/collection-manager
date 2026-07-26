@@ -54,9 +54,9 @@ const GIF_VARIANTS = new Set([
 
 // User-corrected pack sizes (app's EXPECTED_CARDS currently has GPKTWOC=35).
 const PACK_CONFIG = {
-  GPKMEGA:  { boxtype: 'thirty',    count: 30, category: 'series1', idRange: [1, 180], variants: ['base', 'prism', 'sketch', 'collector', 'golden'] },
-  GPKTWOC:  { boxtype: 'gpktwo55',  count: 55, category: 'series2', idRange: [1, 180], variants: ['base', 'raw', 'slime', 'gum', 'vhs', 'sketch', 'returning', 'error', 'originalart', 'relic', 'promo', 'collector', 'golden'] },
-  EXOMEGA:  { boxtype: 'exotic25',  count: 25, category: 'exotic',  idRange: [1, 100], variants: ['base', 'prism', 'tiger stripe', 'tiger claw', 'golden', 'collector'] },
+  GPKMEGA:  { boxtype: 'thirty',    count: 30, category: 'series1', idRange: [1, 180], sides: ['a', 'b'], variants: ['base', 'prism', 'sketch', 'collector', 'golden'] },
+  GPKTWOC:  { boxtype: 'gpktwo55',  count: 55, category: 'series2', idRange: [1, 180], sides: ['a', 'b'], variants: ['base', 'raw', 'slime', 'gum', 'vhs', 'sketch', 'returning', 'error', 'originalart', 'relic', 'promo', 'collector', 'golden'] },
+  EXOMEGA:  { boxtype: 'exotic25',  count: 25, category: 'exotic',  idRange: [1, 100], sides: ['a', 'b'], variants: ['base', 'prism', 'tiger stripe', 'tiger claw', 'golden', 'collector'] },
 };
 
 const MANIFEST_PATH = path.join(ROOT, 'public', 'gpk-manifest.json');
