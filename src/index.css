@@ -109,7 +109,7 @@
 
   /* Bright Bubblegum Theme - inspired by geepeekay.com (pink + yellow + blue) */
   .bright {
-    --background: 50 100% 60%;
+    --background: 50 55% 90%;
     --foreground: 0 0% 8%;
 
     /* Card surface intentionally stays dark so card frames read identically to dark mode */
@@ -166,6 +166,30 @@
     --sidebar-accent-foreground: 0 0% 8%;
     --sidebar-border: 0 0% 8%;
     --sidebar-ring: 330 100% 55%;
+  }
+}
+
+@layer utilities {
+  /* Subtle radial gradient for bright mode; dark mode falls back to the solid --background color */
+  .app-background-gradient {
+    background-color: hsl(var(--background));
+  }
+  .bright .app-background-gradient {
+    background: radial-gradient(ellipse at 50% 0%, hsl(50 60% 94%) 0%, hsl(50 55% 90%) 55%, hsl(45 50% 84%) 100%);
+  }
+
+  /* Decorative layer opacity tokens: stronger in bright mode so grid/orbs register against the lighter background */
+  .decorations-layer {
+    --grid-opacity: 0.015;
+    --orb-1-opacity: 0.15;
+    --orb-2-opacity: 0.10;
+    --orb-3-opacity: 0.20;
+  }
+  .bright .decorations-layer {
+    --grid-opacity: 0.05;
+    --orb-1-opacity: 0.25;
+    --orb-2-opacity: 0.20;
+    --orb-3-opacity: 0.25;
   }
 }
 
