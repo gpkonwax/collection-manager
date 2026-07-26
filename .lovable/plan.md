@@ -1,53 +1,38 @@
 ## Goal
-Add a second "Bright" skin alongside the existing Dark Cheese theme, inspired by geepeekay.com (hot pink, yellow, electric blue on light background). Same structure, same grid, same pulsing orbs — only colors change. Card frames/borders stay the same neutral color so cards themselves read identically.
+Make the bright-mode background less saturated and less flat, so it no longer overwhelms the cards and text.
 
-## Approach
-Everything runs through the existing HSL design tokens in `src/index.css`. Because components already use semantic tokens (`bg-background`, `text-foreground`, `bg-primary`, `hsl(var(--cheese))`, etc.), adding a new skin is almost entirely a CSS-variable swap — no component rewrites.
+## Current state
+- Bright theme is defined in `src/index.css` under `.bright`.
+- `--background` is currently `50 100% 60%` — a fully saturated, flat yellow that fills the viewport.
+- `BackgroundDecorations.tsx` adds faint grid lines and blurred orbs, but they are too subtle to break up the solid yellow field.
 
-## Steps
+## Proposed changes
 
-### 1. Theme mechanism
-- Add a `.bright` class variant in `src/index.css` (peer to the existing `.dark` block). Both `.dark` and `.bright` will override the `:root` defaults.
-- Create `src/hooks/useTheme.ts` — small hook that reads/writes `localStorage['gpk-theme']` (`'dark' | 'bright'`, default `'dark'`) and toggles the class on `document.documentElement`.
-- Update `src/App.tsx` — replace the hardcoded `classList.add('dark')` with the hook so the correct class is applied on load.
+### 1. Desaturate and lighten the base yellow
+Update `--background` in the `.bright` block from `50 100% 60%` to something like `50 70% 88%` — a soft cream-yellow that still reads as the bright skin but is much easier on the eyes.
 
-### 2. Bright palette (geepeekay.com-inspired)
-Define these tokens in the new `.bright` block. All values HSL to match the existing system:
+### 2. Add a subtle radial gradient overlay
+Instead of a single flat background color, introduce a very soft radial gradient that is slightly lighter in the center and gently darker toward the edges. This removes the "same all the way" look while keeping the yellow identity.
 
-| Token | Value | Purpose |
-|---|---|---|
-| `--background` | `50 100% 60%` | GPK yellow page background |
-| `--foreground` | `0 0% 8%` | Near-black body text |
-| `--primary` | `330 100% 55%` | Bubblegum pink (buttons, accents) |
-| `--primary-foreground` | `0 0% 100%` | White on pink |
-| `--accent` | `210 100% 55%` | Electric blue (links, highlights) |
-| `--cheese` | `50 100% 55%` | Keep yellow role, tuned for light bg |
-| `--cheese-light` / `--cheese-glow` | pink/blue tints | Glow orbs use pink+blue instead of amber |
-| `--card` | *(unchanged from dark)* | **Card surface stays dark** so card frames look identical |
-| `--card-foreground` | `45 30% 92%` | Light text inside cards (unchanged) |
-| `--border`, `--muted`, `--secondary` | tuned light-mode neutrals | |
-| `--brown`, `--cream` | remapped to pink/yellow tones | Used by decorations |
+Implementation approach:
+- Add a new CSS variable `--background-gradient` in `.bright`.
+- Apply it via a `bg-background-gradient` class on the main app wrapper, or use a `::before` pseudo-element on `body` so it sits behind `BackgroundDecorations`.
+- Keep `--background` as the fallback solid color for components that need it.
 
-Card container (`--card`) intentionally keeps the dark value so each card's surrounding box remains dark — per your requirement.
+### 3. Strengthen the decorative layer so it registers against the lighter background
+With a paler background, the existing pink grid and orbs can be slightly more visible without becoming garish:
+- Raise grid opacity from `opacity-[0.015]` to `opacity-[0.04]` in bright mode only.
+- Slightly increase orb opacity in bright mode (e.g. from `/15` and `/10` to `/25` and `/20`).
 
-### 3. Background decorations
-`src/components/BackgroundDecorations.tsx` already uses `bg-primary/15`, `bg-accent/10`, `hsl(var(--brown)/0.2)`. Because tokens change, the pulsing orbs will automatically become pink + blue + yellow in bright mode. No component change needed — but I'll verify opacity levels look right on a yellow background and nudge only if orbs disappear.
+### 4. Optional: very subtle paper/noise texture
+Add a tiny `background-image` noise SVG or CSS gradient dither on a fixed overlay at ~3% opacity. This gives the yellow a tactile, printed feel like vintage trading-card packaging. This is optional and can be skipped if the gradient alone is enough.
 
-### 4. Theme toggle UI
-Add a small sun/moon toggle button to the header in `src/pages/Index.tsx`, next to the existing controls (Info, Offline backup, etc.). Uses `lucide-react` `Sun` / `Moon` icons.
+## Files to touch
+- `src/index.css` — new `.bright` background tokens and gradient utility.
+- `src/App.tsx` or `src/pages/Index.tsx` — apply the gradient class to the top-level wrapper.
+- `src/components/BackgroundDecorations.tsx` — bright-mode opacity tweaks for grid/orbs.
 
-### 5. Verify components
-Quick audit of any component that hardcodes colors instead of using tokens. From memory the codebase is disciplined about this, but I'll scan for `bg-black`, `text-white`, `bg-[#...]`, `text-[#...]` and route any strays through tokens so bright mode doesn't leak dark artifacts.
-
-## Out of scope
-- No layout, grid, spacing, animation, or component structure changes.
-- Card artwork frames unchanged (dark `--card`).
-- Pack reveal / deal animation visuals unchanged (they render over their own backdrop).
-- No new fonts — geepeekay uses a custom drippy GPK logo; we're only borrowing the color palette, not typography.
-
-## Files touched
-- `src/index.css` — add `.bright` variable block
-- `src/App.tsx` — apply theme via hook instead of hardcoded `.dark`
-- `src/hooks/useTheme.ts` — new
-- `src/pages/Index.tsx` — add toggle button in header
-- (Possibly) small token fixes wherever a hardcoded color is found during the audit
+## Verification
+- Toggle to bright mode and confirm the landing page background is a soft cream-yellow with gentle depth, not a flat saturated yellow.
+- Confirm dark mode is unchanged.
+- Confirm cards and text remain readable and the pink/blue accents still pop.
