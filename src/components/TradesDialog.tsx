@@ -225,12 +225,12 @@ export function TradesDialog({
           <TabsList className="grid grid-cols-2">
             <TabsTrigger value="incoming" className="gap-2">
               <Inbox className="h-4 w-4" />
-              Incoming
+              Received
               <Badge variant="secondary" className="ml-1">{incomingSorted.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="outgoing" className="gap-2">
               <Send className="h-4 w-4" />
-              Outgoing
+              Sent
               <Badge variant="secondary" className="ml-1">{outgoingSorted.length}</Badge>
             </TabsTrigger>
           </TabsList>
