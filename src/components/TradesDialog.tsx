@@ -86,15 +86,38 @@ function OfferCard({
   offer,
   direction,
   isNew,
+  onAction,
+  busyAction,
 }: {
   offer: AtomicOffer;
   direction: 'incoming' | 'outgoing';
   isNew: boolean;
+  onAction?: (action: OfferAction, offer: AtomicOffer) => Promise<void> | void;
+  busyAction?: OfferAction | null;
 }) {
   const theyGive = direction === 'incoming' ? offer.sender_assets : offer.recipient_assets;
   const youGive  = direction === 'incoming' ? offer.recipient_assets : offer.sender_assets;
   const counterparty = direction === 'incoming' ? offer.sender_name : offer.recipient_name;
   const created = offer.created_at_time ? new Date(offer.created_at_time) : null;
+  const isBusy = Boolean(busyAction);
+
+  const btn = (a: OfferAction, label: string, icon: React.ReactNode, variant: 'default' | 'outline' | 'destructive' = 'outline') => (
+    <Button
+      key={a}
+      size="sm"
+      variant={variant}
+      disabled={isBusy || !onAction}
+      onClick={() => onAction?.(a, offer)}
+      className={cn(
+        'h-8 text-xs',
+        variant === 'outline' && 'border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text',
+        variant === 'default' && 'bg-cheese hover:bg-cheese/90 text-cheese-foreground',
+      )}
+    >
+      {busyAction === a ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : icon}
+      {label}
+    </Button>
+  );
 
   return (
     <div
@@ -146,9 +169,16 @@ function OfferCard({
         <AssetRow label={direction === 'incoming' ? 'You give' : 'They send back'} assets={youGive} />
       </div>
 
-      <div className="text-[11px] text-muted-foreground theme-bright-text-muted">
-        Read-only preview. Accept, decline, cancel and counter-offer land in Phase&nbsp;2.
-        For now, use AtomicHub above to act on this offer.
+      <div className="flex flex-wrap gap-2 pt-1">
+        {direction === 'incoming' ? (
+          <>
+            {btn('accept',  'Accept',        <Check className="h-3.5 w-3.5 mr-1" />, 'default')}
+            {btn('counter', 'Counter-offer', <Reply className="h-3.5 w-3.5 mr-1" />, 'outline')}
+            {btn('decline', 'Decline',       <X className="h-3.5 w-3.5 mr-1" />,     'destructive')}
+          </>
+        ) : (
+          btn('cancel', 'Cancel offer', <X className="h-3.5 w-3.5 mr-1" />, 'destructive')
+        )}
       </div>
     </div>
   );
@@ -167,6 +197,7 @@ export function TradesDialog({
   open, onOpenChange, account,
   incoming, outgoing, isLoading, error,
   onRefresh, onMarkAllRead,
+  onOfferAction, busyOfferId, busyAction,
 }: TradesDialogProps) {
   const [tab, setTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [lastSeenAtOpen, setLastSeenAtOpen] = useState<number>(0);
