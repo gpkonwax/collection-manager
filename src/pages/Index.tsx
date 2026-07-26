@@ -71,7 +71,12 @@ import { BackupPanel } from '@/components/BackupPanel';
 import { BackupNudgeBanner } from '@/components/BackupNudgeBanner';
 import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
 import { TradesDialog } from '@/components/TradesDialog';
+import { TradeComposerDialog } from '@/components/TradeComposerDialog';
 import { useAtomicOffers } from '@/hooks/useAtomicOffers';
+import {
+  buildAcceptOfferAction, buildDeclineOfferAction, buildCancelOfferAction,
+} from '@/lib/atomicTradeActions';
+import type { AtomicOffer } from '@/lib/atomicOffers';
 import { OfflineBundleBanner } from '@/components/OfflineBundleBanner';
 import { BinderStackDialog } from '@/components/simpleassets/BinderStackDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -310,7 +315,7 @@ export default function SimpleAssetsPage() {
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(effectiveAccount);
   const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(effectiveAccount);
 
-  const { executeRawTransaction } = useWaxTransaction(session);
+  const { executeRawTransaction, executeTransaction } = useWaxTransaction(session);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
@@ -344,6 +349,12 @@ export default function SimpleAssetsPage() {
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showTradesDialog, setShowTradesDialog] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
+  const [composerCounterOfferId, setComposerCounterOfferId] = useState<string | null>(null);
+  const [composerCounterparty, setComposerCounterparty] = useState<string | null>(null);
+  const [tradeBusyOfferId, setTradeBusyOfferId] = useState<string | null>(null);
+  const [tradeBusyAction, setTradeBusyAction] = useState<'accept' | 'decline' | 'cancel' | 'counter' | null>(null);
   const { theme, toggleTheme } = useTheme();
   // Poll AtomicAssets offers for the active (non-viewed) account only.
   const tradesAccount = !isViewing ? accountName : null;
@@ -357,6 +368,61 @@ export default function SimpleAssetsPage() {
     markAllRead: markTradesRead,
   } = useAtomicOffers(tradesAccount);
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
+
+  // Open the Trade Composer from a card in another wallet.
+  const handleTradeFromCard = useCallback((asset: SimpleAsset) => {
+    if (!accountName) {
+      toast.error('Connect a wallet to propose a trade.');
+      return;
+    }
+    if (!viewedAccount || viewedAccount === accountName) return;
+    setComposerCounterparty(viewedAccount);
+    setComposerInitialTheirIds([asset.id]);
+    setComposerCounterOfferId(null);
+    setComposerOpen(true);
+  }, [accountName, viewedAccount]);
+
+  // Accept / decline / cancel / counter for AtomicAssets offers.
+  const handleOfferAction = useCallback(async (
+    action: 'accept' | 'decline' | 'cancel' | 'counter',
+    offer: AtomicOffer,
+  ) => {
+    if (!accountName || !session) return;
+    if (action === 'counter') {
+      // Prefill composer: sender's assets go on "They give" (they were being offered),
+      // and initially clear "You give" so the recipient can rebuild their side.
+      setComposerCounterparty(offer.sender_name);
+      setComposerInitialTheirIds(offer.sender_assets.map((a) => a.asset_id));
+      setComposerCounterOfferId(offer.offer_id);
+      setComposerOpen(true);
+      return;
+    }
+    setTradeBusyOfferId(offer.offer_id);
+    setTradeBusyAction(action);
+    try {
+      const actions =
+        action === 'accept'  ? [buildAcceptOfferAction(accountName, offer.offer_id)]
+      : action === 'decline' ? [buildDeclineOfferAction(accountName, offer.offer_id)]
+      :                        [buildCancelOfferAction(accountName, offer.offer_id)];
+
+      const titles = {
+        accept:  'Offer accepted',
+        decline: 'Offer declined',
+        cancel:  'Offer cancelled',
+      } as const;
+
+      const res = await executeTransaction(actions, {
+        successTitle: titles[action],
+        successDescription: `Offer #${offer.offer_id}`,
+        errorTitle: `${action.charAt(0).toUpperCase() + action.slice(1)} failed`,
+      });
+      if (res.success) await refreshTrades();
+    } finally {
+      setTradeBusyOfferId(null);
+      setTradeBusyAction(null);
+    }
+  }, [accountName, session, executeTransaction, refreshTrades]);
+
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -1497,6 +1563,7 @@ export default function SimpleAssetsPage() {
           onSelect={toggleSelection}
           priceAlertTemplate={template}
           isReadOnly={isViewing}
+          onTradeClick={handleTradeFromCard}
         />
       );
     }
@@ -1800,6 +1867,7 @@ export default function SimpleAssetsPage() {
                   selected={selectedIds.has(asset.id)}
                   onSelect={toggleSelection}
                   isReadOnly={isViewing}
+                  onTradeClick={handleTradeFromCard}
                 />
               );
             })}
@@ -2014,6 +2082,7 @@ export default function SimpleAssetsPage() {
                 onDrop={handleDrop(idx)}
                 onDragEnd={handleDragEnd}
                 isReadOnly={isViewing}
+                onTradeClick={handleTradeFromCard}
               />
             );
           })}
@@ -2224,6 +2293,20 @@ export default function SimpleAssetsPage() {
         error={tradesError}
         onRefresh={refreshTrades}
         onMarkAllRead={markTradesRead}
+        onOfferAction={handleOfferAction}
+        busyOfferId={tradeBusyOfferId}
+        busyAction={tradeBusyAction}
+      />
+
+      <TradeComposerDialog
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
+        me={accountName}
+        counterparty={composerCounterparty}
+        session={session}
+        initialTheirAssetIds={composerInitialTheirIds}
+        counterOfferId={composerCounterOfferId}
+        onSuccess={() => { void refreshTrades(); }}
       />
 
 

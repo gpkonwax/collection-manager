@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
-import { Bell, BellRing } from 'lucide-react';
+import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
@@ -27,6 +27,8 @@ interface SimpleAssetCardProps {
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
   priceAlertTemplate?: BinderTemplate;
   isReadOnly?: boolean;
+  /** When set, a "Trade" button is shown (only used while viewing another wallet with AA assets). */
+  onTradeClick?: (asset: SimpleAsset) => void;
 }
 
 function getMintInfo(asset: SimpleAsset): string | null {
@@ -59,7 +61,7 @@ function getMintNumber(asset: SimpleAsset): number | null {
   return null;
 }
 
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
@@ -89,6 +91,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const hasAlert = Boolean(alert);
   const isAlertTriggered = Boolean(alert?.triggered);
   const showAlertButton = Boolean(priceAlertTemplate) && !effectiveSelectionMode && !isReadOnly;
+  const showTradeButton = Boolean(onTradeClick) && isReadOnly && isAtomic && !effectiveSelectionMode;
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => { setIsDragging(true); onDragStart?.(e); };
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(true); onDragOver?.(e); };
@@ -160,6 +163,18 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         <div className="absolute top-2 right-2 z-20 bg-cheese text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
           x{stackCount}
         </div>
+      )}
+      {showTradeButton && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onTradeClick?.(asset); }}
+          className="absolute bottom-2 right-2 z-20 h-7 px-2 rounded-full flex items-center gap-1 bg-cheese text-cheese-foreground border border-cheese/70 text-[10px] font-bold shadow-md hover:brightness-110 theme-bright-fill theme-bright-text"
+          title="Propose a trade for this card"
+          aria-label="Trade"
+        >
+          <ArrowLeftRight className="h-3 w-3" />
+          Trade
+        </button>
       )}
       {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
       <div
@@ -275,6 +290,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.stackCount === next.stackCount &&
     prev.isReadOnly === next.isReadOnly &&
     prev.priceAlertTemplate?.templateId === next.priceAlertTemplate?.templateId &&
+    prev.onTradeClick === next.onTradeClick &&
     prev.onDragStart === next.onDragStart &&
     prev.onDragOver === next.onDragOver &&
     prev.onDrop === next.onDrop &&
