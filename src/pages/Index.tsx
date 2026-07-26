@@ -2590,7 +2590,7 @@ export default function SimpleAssetsPage() {
                 <Input placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-cheese/50 text-cheese placeholder:text-cheese/50 theme-bright-border theme-bright-text theme-bright-placeholder theme-bright-fill" />
               </div>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese theme-bright-border theme-bright-text"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="simpleassets">Simple Assets</SelectItem>
