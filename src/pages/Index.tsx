@@ -372,7 +372,7 @@ export default function SimpleAssetsPage() {
   // Open the Trade Composer from a card in another wallet.
   const handleTradeFromCard = useCallback((asset: SimpleAsset) => {
     if (!accountName) {
-      toast({ title: 'Sign in required', description: 'Connect a wallet to propose a trade.', variant: 'destructive' });
+      toast.error('Connect a wallet to propose a trade.');
       return;
     }
     if (!viewedAccount || viewedAccount === accountName) return;
@@ -380,7 +380,7 @@ export default function SimpleAssetsPage() {
     setComposerInitialTheirIds([asset.id]);
     setComposerCounterOfferId(null);
     setComposerOpen(true);
-  }, [accountName, viewedAccount, toast]);
+  }, [accountName, viewedAccount]);
 
   // Accept / decline / cancel / counter for AtomicAssets offers.
   const handleOfferAction = useCallback(async (
@@ -421,7 +421,7 @@ export default function SimpleAssetsPage() {
       setTradeBusyOfferId(null);
       setTradeBusyAction(null);
     }
-  }, [accountName, session, executeTransaction, refreshTrades, toast]);
+  }, [accountName, session, executeTransaction, refreshTrades]);
 
 
   const toggleSelection = useCallback((id: string) => {
