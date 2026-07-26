@@ -253,7 +253,7 @@ async function pool(items, concurrency, worker) {
 }
 
 async function runNodeTest(packKey, manifest) {
-  const cards = generatePackCards(packKey);
+  const cards = generatePackCards(packKey, manifest);
   const cfg = PACK_CONFIG[packKey];
 
   console.log(`\n=== Node-layer test: ${packKey} (${cfg.count} cards, ${cfg.category}) ===`);
@@ -339,10 +339,10 @@ async function runNodeTest(packKey, manifest) {
   return { packKey, rows, manifestHits, total: cfg.count };
 }
 
-async function runBrowserTest(packKey) {
+async function runBrowserTest(packKey, manifest) {
   const { chromium } = await import('playwright');
   const cfg = PACK_CONFIG[packKey];
-  const cards = generatePackCards(packKey);
+  const cards = generatePackCards(packKey, manifest);
 
   console.log(`\n=== Browser-layer test: ${packKey} (${cfg.count} cards) ===`);
   console.log('Launching Chromium against http://localhost:8080 ...');
