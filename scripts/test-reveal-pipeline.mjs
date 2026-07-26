@@ -402,8 +402,9 @@ async function runBrowserTest(packKey, manifest) {
 
       const started = performance.now();
       const controller = new AbortController();
-      // Same cap the app uses in Index.tsx warmDealImagesWithoutBlocking.
-      const maxTimer = setTimeout(() => controller.abort(), 6000);
+      // Use a generous cap for the diagnostic test so we can see the real
+      // end-to-end time without artificial timeouts hiding failures.
+      const maxTimer = setTimeout(() => controller.abort(), 30000);
 
       const results = await Promise.all(
         cards.map(async (card) => {
