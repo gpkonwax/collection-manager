@@ -472,7 +472,7 @@ async function main() {
 
   if (opts.browser) {
     for (const packKey of packs) {
-      await runBrowserTest(packKey);
+      await runBrowserTest(packKey, manifest);
     }
   }
 
