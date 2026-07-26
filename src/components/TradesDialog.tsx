@@ -225,12 +225,12 @@ export function TradesDialog({
           <TabsList className="grid grid-cols-2">
             <TabsTrigger value="incoming" className="gap-2">
               <Inbox className="h-4 w-4" />
-              Incoming
+              Received
               <Badge variant="secondary" className="ml-1">{incomingSorted.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="outgoing" className="gap-2">
               <Send className="h-4 w-4" />
-              Outgoing
+              Sent
               <Badge variant="secondary" className="ml-1">{outgoingSorted.length}</Badge>
             </TabsTrigger>
           </TabsList>
@@ -239,7 +239,7 @@ export function TradesDialog({
             <ScrollArea className="h-[55vh] pr-3">
               {incomingSorted.length === 0 ? (
                 <EmptyState
-                  label={isLoading ? 'Loading offers\u2026' : 'No pending incoming offers.'}
+                  label={isLoading ? 'Loading offers\u2026' : 'No pending received offers.'}
                   icon={<Inbox className="h-8 w-8 opacity-60" />}
                 />
               ) : (
@@ -261,7 +261,7 @@ export function TradesDialog({
             <ScrollArea className="h-[55vh] pr-3">
               {outgoingSorted.length === 0 ? (
                 <EmptyState
-                  label={isLoading ? 'Loading offers\u2026' : 'No pending outgoing offers.'}
+                  label={isLoading ? 'Loading offers\u2026' : 'No pending sent offers.'}
                   icon={<Send className="h-8 w-8 opacity-60" />}
                 />
               ) : (
