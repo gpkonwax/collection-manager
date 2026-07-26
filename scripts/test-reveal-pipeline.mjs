@@ -433,7 +433,7 @@ async function runBrowserTest(packKey, manifest) {
     const latencies = winners.map((r) => r.elapsedMs);
 
     console.log(`Browser preload complete: ${winners.length}/${cfg.count} images resolved`);
-    console.log(`Total wall time (6s cap): ${results.totalMs.toFixed(0)}ms`);
+    console.log(`Total wall time: ${results.totalMs.toFixed(0)}ms`);
     console.log(`Winner labels:`, byLabel);
     console.log(`Latency p50: ${percentile(latencies, 0.5)?.toFixed(0) ?? '—'}ms | p95: ${percentile(latencies, 0.95)?.toFixed(0) ?? '—'}ms`);
 
