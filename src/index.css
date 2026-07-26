@@ -110,20 +110,20 @@
   /* Bright Bubblegum Theme - dark background + pink/yellow/blue accents, yellow card surfaces */
   .bright {
     --background: 25 40% 15%;
-    --foreground: 45 30% 92%;
+    --foreground: 0 0% 100%;
 
     /* Yellow card surface — cards pop against the dark backdrop */
     --card: 50 100% 55%;
     --card-foreground: 0 0% 8%;
 
     --popover: 30 15% 12%;
-    --popover-foreground: 45 30% 92%;
+    --popover-foreground: 0 0% 100%;
 
     --primary: 330 100% 55%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 30 15% 18%;
-    --secondary-foreground: 45 30% 92%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 30 12% 20%;
     --muted-foreground: 35 15% 55%;
@@ -159,11 +159,11 @@
     --shadow-glow: 0 0 60px hsl(210 100% 55% / 0.2);
 
     --sidebar-background: 30 15% 12%;
-    --sidebar-foreground: 45 30% 92%;
+    --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 330 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 30 15% 18%;
-    --sidebar-accent-foreground: 45 30% 92%;
+    --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 330 100% 55%;
     --sidebar-ring: 330 100% 55%;
   }
