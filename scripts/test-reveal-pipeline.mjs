@@ -201,20 +201,34 @@ async function raceHeadGroup(candidates, timeoutMs) {
   });
 }
 
-function generatePackCards(packKey) {
+function generatePackCards(packKey, manifest) {
   const cfg = PACK_CONFIG[packKey];
   if (!cfg) throw new Error(`Unknown pack ${packKey}`);
-  const [minId, maxId] = cfg.idRange;
-  const cards = [];
-  for (let i = 0; i < cfg.count; i++) {
-    const variant = cfg.variants[Math.floor(Math.random() * cfg.variants.length)];
-    const side = cfg.sides[Math.floor(Math.random() * cfg.sides.length)];
-    const num = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
-    const cardid = `${num}${side}`;
-    const url = buildGpkCardImageUrl(cfg.boxtype, variant, cardid);
-    cards.push({ packKey, index: i, num, side, cardid, variant, boxtype: cfg.boxtype, url });
+
+  // Sample from the manifest so the test exercises real, mirrored cards.
+  const hash = SERIES_HASH[cfg.boxtype];
+  const prefix = `${hash}/`;
+  const available = Object.keys(manifest?.files || {})
+    .filter((key) => {
+      if (!key.startsWith(prefix)) return false;
+      const rest = key.slice(prefix.length);
+      const [variant] = rest.split('/');
+      return cfg.variants.includes(variant);
+    })
+    .map((key) => {
+      const rest = key.slice(prefix.length);
+      const [variant, file] = rest.split('/');
+      const cardid = file.replace(/\.[^.]+$/, '');
+      return { packKey, cardid, variant, boxtype: cfg.boxtype, url: buildGpkCardImageUrl(cfg.boxtype, variant, cardid) };
+    });
+
+  if (available.length < cfg.count) {
+    console.warn(`[test] ${packKey}: manifest only has ${available.length} matching cards, need ${cfg.count}`);
   }
-  return cards;
+
+  // Shuffle and pick the requested count.
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, cfg.count).map((c, i) => ({ ...c, index: i }));
 }
 
 function percentile(values, p) {
