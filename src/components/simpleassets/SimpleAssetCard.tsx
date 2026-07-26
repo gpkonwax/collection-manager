@@ -163,7 +163,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
       )}
       {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
       <div
-        className="w-full flex justify-center py-1 mt-1 bg-muted/30"
+        className="w-full flex justify-center py-1 mt-2 bg-muted/30"
         title="Mint number (placeholder — real mint will populate when available)"
       >
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
