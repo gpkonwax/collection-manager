@@ -2660,7 +2660,7 @@ export default function SimpleAssetsPage() {
                 return (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text theme-bright-hover">
+                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text theme-bright-hover theme-bright-fill">
                         {label}
                         <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
                       </Button>
