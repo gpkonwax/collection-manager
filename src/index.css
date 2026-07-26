@@ -238,6 +238,22 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+  /* Yellow fill (uses --card token) for selected header/search controls in bright mode */
+  .bright .theme-bright-fill {
+    background-color: hsl(var(--card));
+  }
+  .bright .theme-bright-fill:hover {
+    background-color: hsl(var(--card) / 0.85);
+  }
+  /* Fill any non-solid button inside the header with yellow in bright mode.
+     Excludes solid pink buttons (bg-cheese) and elements portalled outside the header. */
+  .bright .theme-bright-header button:not([class*="bg-cheese"]) {
+    background-color: hsl(var(--card));
+  }
+  .bright .theme-bright-header button:not([class*="bg-cheese"]):hover {
+    background-color: hsl(var(--card) / 0.85);
+  }
+
 }
 
 /* Ensure WharfKit/Anchor wallet modals appear above all other UI */
