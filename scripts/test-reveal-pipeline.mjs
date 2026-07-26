@@ -357,9 +357,9 @@ async function runBrowserTest(packKey) {
         'prism', 'sketch', 'slime', 'raw', 'gum', 'vhs', 'collector', 'tiger stripe', 'tiger claw', 'originalart', 'relic',
       ]);
       const PACKS = {
-        GPKMEGA: { boxtype: 'thirty', count: 30, idRange: [1, 180], variants: ['base', 'prism', 'sketch', 'collector', 'golden'] },
-        GPKTWOC: { boxtype: 'gpktwo55', count: 55, idRange: [1, 180], variants: ['base', 'raw', 'slime', 'gum', 'vhs', 'sketch', 'returning', 'error', 'originalart', 'relic', 'promo', 'collector', 'golden'] },
-        EXOMEGA: { boxtype: 'exotic25', count: 25, idRange: [1, 100], variants: ['base', 'prism', 'tiger stripe', 'tiger claw', 'golden', 'collector'] },
+        GPKMEGA: { boxtype: 'thirty', count: 30, idRange: [1, 180], sides: ['a', 'b'], variants: ['base', 'prism', 'sketch', 'collector', 'golden'] },
+        GPKTWOC: { boxtype: 'gpktwo55', count: 55, idRange: [1, 180], sides: ['a', 'b'], variants: ['base', 'raw', 'slime', 'gum', 'vhs', 'sketch', 'returning', 'error', 'originalart', 'relic', 'promo', 'collector', 'golden'] },
+        EXOMEGA: { boxtype: 'exotic25', count: 25, idRange: [1, 100], sides: ['a', 'b'], variants: ['base', 'prism', 'tiger stripe', 'tiger claw', 'golden', 'collector'] },
       };
 
       const cfg = PACKS[packKey];
