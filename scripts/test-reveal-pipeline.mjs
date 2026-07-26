@@ -406,9 +406,9 @@ async function runBrowserTest(packKey, manifest) {
       // end-to-end time without artificial timeouts hiding failures.
       const maxTimer = setTimeout(() => controller.abort(), 30000);
 
-      // Browsers limit concurrent connections per host (typically 6 for HTTP/1.1).
-      // Race all mirrors per card, but cap parallel cards to avoid queueing.
-      const CONCURRENCY = 1;
+      // Use the real preloadRevealImage pipeline the app uses. We cap parallel
+      // cards to avoid browser per-host connection saturation (HTTP/1.1 limit ~6).
+      const CONCURRENCY = 4;
       const results = [];
       let next = 0;
       async function worker() {
