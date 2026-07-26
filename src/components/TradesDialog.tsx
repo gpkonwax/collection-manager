@@ -237,7 +237,7 @@ export function TradesDialog({
             <span className="text-cheese theme-bright-text font-medium">
               {account || '\u2014'}
             </span>
-            . Read-only in Phase&nbsp;1.
+            . Accept, decline, cancel or counter directly here.
           </DialogDescription>
         </DialogHeader>
 
@@ -288,6 +288,8 @@ export function TradesDialog({
                       offer={o}
                       direction="incoming"
                       isNew={o.created_at_time > lastSeenAtOpen}
+                      onAction={onOfferAction}
+                      busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
                     />
                   ))}
                 </div>
@@ -310,6 +312,8 @@ export function TradesDialog({
                       offer={o}
                       direction="outgoing"
                       isNew={false}
+                      onAction={onOfferAction}
+                      busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
                     />
                   ))}
                 </div>
