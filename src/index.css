@@ -138,16 +138,18 @@
     --input: 50 100% 92%;
     --ring: 330 100% 55%;
 
-    --cheese: 50 100% 50%;
-    --cheese-light: 330 100% 65%;
-    --cheese-dark: 45 100% 45%;
-    --cheese-glow: 210 100% 60%;
-    --cheese-foreground: 0 0% 8%;
+    /* --cheese remapped to pink so text-cheese / text-cheese-gradient render pink headers/subheaders */
+    --cheese: 330 100% 55%;
+    --cheese-light: 330 100% 70%;
+    --cheese-dark: 330 100% 45%;
+    --cheese-glow: 330 100% 65%;
+    --cheese-foreground: 0 0% 100%;
 
-    --cream: 0 0% 8%;
-    --cream-dark: 0 0% 20%;
+    /* Grid lines (uses --cream) and secondary orb (uses --brown) both pink */
+    --cream: 330 100% 55%;
+    --cream-dark: 330 100% 45%;
     --brown: 330 100% 55%;
-    --brown-light: 210 100% 55%;
+    --brown-light: 330 100% 65%;
     --glass: 50 100% 88%;
     --glass-border: 0 0% 8%;
 
