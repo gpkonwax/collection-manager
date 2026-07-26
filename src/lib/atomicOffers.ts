@@ -155,11 +155,17 @@ export async function fetchPendingOffers(account: string): Promise<AtomicOffer[]
     page++;
   }
 
-  const normalized = all.map(normalizeOffer);
+  // Drop marketplace / contract offers (e.g. atomicmarket sale listings use an
+  // atomicassets offer to the atomicmarket contract as escrow). The Trades tab
+  // is for true P2P asset-for-asset offers only.
+  const p2pOnly = all
+    .map(normalizeOffer)
+    .filter((o) => !o.is_sender_contract && !o.is_recipient_contract)
+    .filter((o) => o.sender_assets.length > 0 || o.recipient_assets.length > 0);
 
   // Validate every offer's asset ownership in parallel; drop stale ones.
   const checks = await Promise.all(
-    normalized.map(async (o) => {
+    p2pOnly.map(async (o) => {
       const senderIds = o.sender_assets.map((a) => a.asset_id);
       const recipientIds = o.recipient_assets.map((a) => a.asset_id);
       const [senderOk, recipientOk] = await Promise.all([
