@@ -257,7 +257,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
               {loading ? (
                 <span className="flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Scanning… SA {progress.saScanned.toLocaleString()} · AA {progress.aaScanned.toLocaleString()}
+                  Scanning gpk.topps… {progress.saScanned.toLocaleString()} accounts
                 </span>
               ) : scanError ? (
                 <span className="text-destructive">Scan failed: {scanError}</span>
