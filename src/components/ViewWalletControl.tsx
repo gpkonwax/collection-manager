@@ -257,7 +257,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
               {loading ? (
                 <span className="flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Scanning… SA {progress.saScanned.toLocaleString()} · AA {progress.aaScanned.toLocaleString()}
+                  Scanning gpk.topps… {progress.saScanned.toLocaleString()} accounts
                 </span>
               ) : scanError ? (
                 <span className="text-destructive">Scan failed: {scanError}</span>
@@ -295,7 +295,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                       requestAnimationFrame(() => inputRef.current?.focus());
                     }}
                     className="w-full grid grid-cols-[36px_1fr_64px] items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10 text-left"
-                    title={`SA ${h.sa} · AA ${h.aa}`}
+                    title={`${h.sa} gpk.topps NFTs`}
                   >
                     <span className="text-muted-foreground tabular-nums">#{rank}</span>
                     <span className="text-foreground truncate">{h.account}</span>
