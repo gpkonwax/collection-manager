@@ -116,22 +116,12 @@ export async function fetchTopGpkHolders(opts: {
   const progress = { saScanned: 0, aaScanned: 0 };
   const emit = () => onProgress?.({ ...progress });
 
-  const [saMap, aaMap] = await Promise.all([
-    scanGpkTopps(signal, (n) => { progress.saScanned = n; emit(); }),
-    scanBridgedAa(signal, (n) => { progress.aaScanned = n; emit(); }),
-  ]);
+  // Only scan SimpleAssets on gpk.topps — the list is explicitly gpk.topps holders,
+  // not bridged AtomicAssets (cheesenftwax) holders.
+  const saMap = await scanGpkTopps(signal, (n) => { progress.saScanned = n; emit(); });
 
-  const merged = new Map<string, Holder>();
-  for (const [account, sa] of saMap) {
-    merged.set(account, { account, sa, aa: 0, total: sa });
-  }
-  for (const [account, aa] of aaMap) {
-    const h = merged.get(account);
-    if (h) { h.aa = aa; h.total = h.sa + aa; }
-    else merged.set(account, { account, sa: 0, aa, total: aa });
-  }
-
-  const ranked = Array.from(merged.values())
+  const ranked: Holder[] = Array.from(saMap.entries())
+    .map(([account, sa]) => ({ account, sa, aa: 0, total: sa }))
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
 
