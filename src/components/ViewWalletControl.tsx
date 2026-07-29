@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { WAX_CHAIN } from '@/lib/waxConfig';
-import { fetchTopGpkHolders, getCachedHolders, type Holder } from '@/lib/gpkHolders';
+import { fetchTopGpkHolders, getCachedHolders, clearCachedHolders, type Holder } from '@/lib/gpkHolders';
 
 interface ViewWalletControlProps {
   currentAccount: string | null;
@@ -53,11 +53,11 @@ async function accountExists(name: string): Promise<boolean> {
   return true;
 }
 
-function formatAge(ms: number): string {
-  const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.round(s / 60);
-  return `${m}m ago`;
+function formatSnapshotDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
 }
 
 export function ViewWalletControl({ currentAccount, viewedAccount, onView, onClear }: ViewWalletControlProps) {
@@ -67,11 +67,11 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const [checking, setChecking] = useState(false);
 
   const [showList, setShowList] = useState(false);
-  const [holders, setHolders] = useState<Holder[] | null>(() => getCachedHolders()?.holders ?? null);
-  const [cachedAt, setCachedAt] = useState<number | null>(() => getCachedHolders()?.at ?? null);
+  const initialCache = getCachedHolders();
+  const [holders, setHolders] = useState<Holder[] | null>(initialCache?.holders ?? null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(initialCache?.generatedAt ?? null);
   const [loading, setLoading] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<{ saScanned: number; aaScanned: number }>({ saScanned: 0, aaScanned: 0 });
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -104,23 +104,19 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     if (e.key === 'Enter') { e.preventDefault(); submit(); }
   }, [submit]);
 
-  const runScan = useCallback(async () => {
+  const loadHolders = useCallback(async () => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setLoading(true);
-    setScanError(null);
-    setProgress({ saScanned: 0, aaScanned: 0 });
+    setLoadError(null);
     try {
-      const result = await fetchTopGpkHolders({
-        signal: ctrl.signal,
-        onProgress: setProgress,
-      });
-      setHolders(result);
-      setCachedAt(Date.now());
+      const { holders: h, generatedAt: g } = await fetchTopGpkHolders({ signal: ctrl.signal });
+      setHolders(h);
+      setGeneratedAt(g);
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
-        setScanError((e as Error).message || 'Scan failed');
+        setLoadError((e as Error).message || 'Failed to load holders');
       }
     } finally {
       if (abortRef.current === ctrl) abortRef.current = null;
@@ -128,12 +124,19 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     }
   }, []);
 
-  // Auto-scan on first expand if no cache
-  useEffect(() => {
-    if (showList && !holders && !loading) runScan();
-  }, [showList, holders, loading, runScan]);
+  const refresh = useCallback(() => {
+    clearCachedHolders();
+    setHolders(null);
+    setGeneratedAt(null);
+    loadHolders();
+  }, [loadHolders]);
 
-  // Abort in-flight on unmount / popover close
+  // Auto-load on first expand if no cache
+  useEffect(() => {
+    if (showList && !holders && !loading) loadHolders();
+  }, [showList, holders, loading, loadHolders]);
+
+  // Abort in-flight on popover close
   useEffect(() => {
     if (!open && abortRef.current) {
       abortRef.current.abort();
@@ -148,6 +151,8 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     if (!f) return holders;
     return holders.filter((h) => h.account.includes(f));
   }, [holders, filter]);
+
+  const snapshotLabel = formatSnapshotDate(generatedAt);
 
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); setShowList(false); } }}>
@@ -230,41 +235,30 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 onChange={(e) => setFilter(e.target.value)}
                 className="h-7 text-xs border-cheese/40"
               />
-              {loading ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs"
-                  onClick={() => { abortRef.current?.abort(); }}
-                  title="Cancel scan"
-                >
-                  Cancel
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs text-cheese hover:bg-cheese/10"
-                  onClick={runScan}
-                  title="Refresh list"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-cheese hover:bg-cheese/10"
+                onClick={refresh}
+                disabled={loading}
+                title="Re-fetch manifest from mirrors"
+              >
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
 
             <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
               {loading ? (
                 <span className="flex items-center gap-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Scanning gpk.topps… {progress.saScanned.toLocaleString()} accounts
+                  Loading holders…
                 </span>
-              ) : scanError ? (
-                <span className="text-destructive">Scan failed: {scanError}</span>
+              ) : loadError ? (
+                <span className="text-destructive">{loadError}</span>
               ) : holders ? (
                 <>
                   <span>Top {holders.length.toLocaleString()} holders</span>
-                  {cachedAt && <span>updated {formatAge(Date.now() - cachedAt)}</span>}
+                  {snapshotLabel && <span>snapshot {snapshotLabel}</span>}
                 </>
               ) : (
                 <span>Waiting…</span>
@@ -272,10 +266,12 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
             </div>
 
             <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
-              <div className="grid grid-cols-[36px_1fr_64px] text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
+              <div className="grid grid-cols-[28px_1fr_44px_44px_52px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
                 <span>#</span>
                 <span>Account</span>
-                <span className="text-right">GPK</span>
+                <span className="text-right">SA</span>
+                <span className="text-right">AA</span>
+                <span className="text-right">Total</span>
               </div>
               {holders && filtered.length === 0 && !loading && (
                 <div className="px-2 py-3 text-xs text-muted-foreground text-center">
@@ -294,12 +290,18 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                       setError(null);
                       requestAnimationFrame(() => inputRef.current?.focus());
                     }}
-                    className="w-full grid grid-cols-[36px_1fr_64px] items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10 text-left"
-                    title={`${h.sa} gpk.topps NFTs`}
+                    className="w-full grid grid-cols-[28px_1fr_44px_44px_52px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10 text-left"
+                    title={`${h.sa.toLocaleString()} SA · ${h.aa.toLocaleString()} AA`}
                   >
                     <span className="text-muted-foreground tabular-nums">#{rank}</span>
                     <span className="text-foreground truncate">{h.account}</span>
-                    <span className="text-cheese font-medium text-right tabular-nums">
+                    <span className="text-muted-foreground text-right tabular-nums">
+                      {h.sa.toLocaleString()}
+                    </span>
+                    <span className="text-muted-foreground text-right tabular-nums">
+                      {h.aa.toLocaleString()}
+                    </span>
+                    <span className="text-cheese font-semibold text-right tabular-nums">
                       {h.total.toLocaleString()}
                     </span>
                   </button>
