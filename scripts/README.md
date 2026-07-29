@@ -72,3 +72,29 @@ Copy this into `bewbzz/gpkonwaxbackup/README.md`:
 > `node scripts/verify-remote-mirror.mjs https://host/base/ --manifest ./mirror/manifest.json`.
 >
 > This mirror never updates — the underlying collection is frozen.
+
+## GPK holders manifest (View Wallet → Show List)
+
+The **View Wallet → Show List** feature reads a static JSON listing every WAX
+account that holds gpk.topps NFTs, split by contract:
+
+- `sa` — SimpleAssets rows where `author == 'gpk.topps'`
+- `aa` — AtomicAssets collection `gpk.topps`
+
+The manifest is **manually regenerated** — there's no cron. Rerun the script
+whenever you want a fresh snapshot (same cadence as the image mirror).
+
+```bash
+node scripts/build-holders-manifest.mjs
+```
+
+Output: `./mirror-output/manifests/gpk-topps-holders.json`
+
+Publish it by copying `mirror-output/manifests/` up to the same three mirror
+hosts as the images (GitHub Pages / Netlify / Cloudflare Pages). The client
+races all configured mirrors for `manifests/gpk-topps-holders.json` and uses
+whichever responds first.
+
+Runtime is dominated by the per-scope SimpleAssets pass — expect 15–45
+minutes depending on RPC latency. The script is idempotent; kill and re-run
+any time.
