@@ -1,58 +1,70 @@
-# View Wallet — Top GPK Holders list
+# Fix "View Wallet — Show List" empty results
 
-Add a collapsible "Show List" section beneath the account input in the View Wallet popover. It displays a scrolling, ranked list of every WAX account holding 1+ GPK assets (SimpleAssets `gpk.topps` + AtomicAssets bridged `cheesenftwax` GPK schemas), largest → smallest. Clicking a row fills the input; the user still presses **View** to load.
+## Root cause
 
-## UX
+The current scan calls `get_table_by_scope` with `code: 'gpk.topps'`. That table doesn't exist — `gpk.topps` is the SimpleAssets **author**, not the row scope owner. SA rows live under `code: 'simpleassets'`, one scope per holder, and there is no on-chain or third-party holder-by-author index for SimpleAssets. A brute-force scope walk is too large for the browser.
 
-- Popover gets a new row under the input: `Show List ▾` (toggles to `Hide List ▴`).
-- Expanded panel (max ~360px tall, virtualized scroll):
-  - Header row: `Rank · Account · GPK held`
-  - Rows: `#1  someuser.wam   1,284`
-  - Search box at top filters by account substring.
-  - Status line: `Scanning… 3,214 accounts` / `Top 500 · updated 12s ago`.
-- First open triggers the live scan (with a cancel button). Result is cached in-memory for the session so re-opening is instant. A small `Refresh` link re-runs it.
-- Clicking a row: sets the input value, closes the list, focuses the input. User presses **View** as today.
-- Bright/Dark themes: reuse existing `border-cheese/*`, `text-cheese`, `bg-card` tokens — no hardcoded colors.
+## Approach
 
-## Data source & scan strategy
+Precompute the holders list off-chain (Node script, same pattern as `build-atomic-mirror.mjs`) and publish it as a static JSON on the existing mirrors. The client just fetches that JSON — no live scan.
 
-Scope confirmed: **both** contracts, unioned per account.
+Regeneration is **manual** — you run it whenever you want a refresh, same cadence as the image mirror. No cron, no automation.
 
-1. **SimpleAssets holders (`gpk.topps`)**
-   - Endpoint: `POST /v1/chain/get_table_by_scope` on contract `gpk.topps`, table `sassets`.
-   - Each row = one holder scope + row count (`count` field ≈ number of SA NFTs that account holds under gpk.topps).
-   - Paginate with `lower_bound`/`limit=1000` via `WAX_RPC_ENDPOINTS` fallback until `more` is empty. Expected size: a few thousand scopes.
+The list combines **two sources shown as separate columns**, both scoped strictly to GPK/Topps:
+- **SA** — gpk.topps SimpleAssets (`code: simpleassets`, filtered by `author == 'gpk.topps'`)
+- **AA** — AtomicAssets collection `gpk.topps` (all schemas — the same collection `build-atomic-mirror.mjs` already enumerates)
 
-2. **AtomicAssets holders (bridged GPK)**
-   - Use AtomicAssets API accounts endpoint with `fetchWithFallback(ATOMIC_API.baseUrls, …)`:
-     `GET /atomicassets/v1/accounts?collection_name=cheesenftwax&schema_name=series1&schema_name=series2&schema_name=exotic&schema_name=…&limit=1000&page=N`
-   - Reuse the schema list already present in `BRIDGED_SCHEMAS` / atomic mirror config (series1, series2, exotic, and any others we currently mirror) so it stays a superset of GPK-on-WAX AA.
-   - Response gives `{ account, assets }`. Paginate until short page.
+No `cheesenftwax` involvement.
 
-3. **Merge**: sum SA count + AA count per account into a `Map<string, {sa, aa, total}>`. Sort desc by total. Slice **top 500**.
+## Changes
 
-## Files
+### 1. New script `scripts/build-holders-manifest.mjs`
 
-- **New** `src/lib/gpkHolders.ts`
-  - `scanGpkTopps(signal): Promise<Map<string, number>>` — paginated `get_table_by_scope` scan via `waxRpcCall`.
-  - `scanBridgedAa(signal): Promise<Map<string, number>>` — paginated accounts endpoint via `fetchWithFallback`.
-  - `fetchTopGpkHolders({ signal, onProgress }): Promise<Holder[]>` — runs both in parallel, merges, sorts, slices 500. Emits progress `{ saScanned, aaScanned }`.
-  - Session cache: `let cached: Holder[] | null` + `cachedAt`; `getCachedHolders()`.
+- **SA pass**: paginate `get_table_by_scope` on `simpleassets.sassets` (1000/page, follow `more`). For each scope, `get_table_rows` and count rows where `author === 'gpk.topps'`. Concurrency-limited (8 parallel) with RPC fallback across `WAX_RPC_ENDPOINTS`. Skip scopes whose gpk.topps row count is 0.
+- **AA pass**: page through `/atomicassets/v1/accounts?collection_name=gpk.topps&limit=1000` on `ATOMIC_API.baseUrls` with fallback. Returns `{account, assets}` directly.
+- **Merge** into a map keyed by account: `{ account, sa, aa, total }`.
+- Writes `mirror/manifests/gpk-topps-holders.json`:
+  ```json
+  {
+    "generatedAt": "2026-07-29T…Z",
+    "totals": { "accounts": 12345, "sa": 456789, "aa": 12345 },
+    "holders": [
+      { "account": "abc.wam", "sa": 1234, "aa": 56, "total": 1290 },
+      …
+    ]
+  }
+  ```
+- Sorted by `total desc`. Committed to the primary mirror repo and served from Netlify / Cloudflare / GitHub Pages just like existing manifests.
 
-- **Edit** `src/components/ViewWalletControl.tsx`
-  - Add `showList` state, `holders`, `loading`, `error`, `progress`, `filter`.
-  - New JSX under the input: toggle button + collapsible panel with search input and a virtualized list (reuse `@tanstack/react-virtual` already in the project) inside a `max-h-[360px] overflow-auto` container.
-  - On first expand (or Refresh): call `fetchTopGpkHolders` with an `AbortController`; on unmount/close abort.
-  - Row `onClick`: `setValue(account)`, collapse list, focus input.
-  - Preserve existing single-account validate/submit path unchanged.
+### 2. `src/lib/gpkHolders.ts` — replace live scan
 
-## Technical notes
+- Drop `scanGpkTopps` (broken `code: 'gpk.topps'` call) and `scanBridgedAa` (wrong `cheesenftwax` collection).
+- New `fetchTopGpkHolders` races the `remoteMirror` URLs (Netlify → Cloudflare → GitHub Pages) for `manifests/gpk-topps-holders.json`; local ZIP mirror consulted first if loaded.
+- Expose `Holder = { account, sa, aa, total }` and `generatedAt` on the response.
+- Cache the parsed result in-memory for the session (existing `cached` var stays).
 
-- All network calls go through existing fallback helpers (`waxRpcCall`, `fetchWithFallback`) so RPC/atomic endpoint outages don't kill the scan.
-- Scan is cancellable and progress-reported so users see it's alive (previous perf memory: WAX table scans can take 30–90s).
-- Only session cache — no IndexedDB (per the earlier decision to avoid persistent storage growth).
-- No changes to holders themselves being "viewable"; the row just prefills the existing validated flow, so all existing account-exists checks still run on **View**.
+### 3. `src/components/ViewWalletControl.tsx` — UI update
+
+- Replace the "Scanning gpk.topps… N accounts" progress line with a simple "Loading holders…" spinner.
+- Show manifest's `generatedAt` timestamp: "snapshot from 2026-07-28".
+- Grid columns become `[#, Account, SA, AA, Total]` — three tabular-num numeric columns, right-aligned, with `Total` bolded in cheese/yellow.
+- Header row updated to match. Row `title` becomes `"{sa} SA · {aa} AA"` for hover context.
+- Sort stays `total desc`; filter, refresh (re-fetches manifest, no rescan), and click-to-fill unchanged.
+
+### 4. `scripts/README.md`
+
+Short section covering how to regenerate `gpk-topps-holders.json` and re-publish. Note explicitly that this is manual and re-runs whenever you want a fresh snapshot.
 
 ## Out of scope
 
-- No server-side snapshot, no background refresh across sessions, no leaderboard page outside the popover.
+- No cron / GitHub Actions automation.
+- No live client-side rescan option — refresh just re-fetches the manifest.
+- No `cheesenftwax` or any non-GPK collection.
+- No historical trend data — each manifest overwrites the previous one.
+
+## Technical notes
+
+- Manifest size: ~15–25k combined accounts × ~50 bytes ≈ well under 1 MB, gzipped ~150 KB.
+- Script runtime: 15–45 min, dominated by SA per-scope reads. Idempotent — re-runs from scratch, no partial-state file.
+- Client change is a net simplification: no long-running RPC loop or AbortController for the scan; AbortController stays only for the fetch race.
+- The narrower list layout (3 numeric columns) still fits in the 320px popover — columns `[28px, 1fr, 44px, 44px, 52px]`.
