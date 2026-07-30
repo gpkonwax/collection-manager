@@ -110,15 +110,21 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    attemptedRef.current = true;
     setLoading(true);
     setLoadError(null);
+    setNotPublished(false);
     try {
       const { holders: h, generatedAt: g } = await fetchTopGpkHolders({ signal: ctrl.signal });
       setHolders(h);
       setGeneratedAt(g);
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        setLoadError((e as Error).message || 'Failed to load holders');
+      const err = e as Error & { reason?: 'not-published' | 'network' };
+      if (err.name === 'AbortError') return;
+      if (err.reason === 'not-published') {
+        setNotPublished(true);
+      } else {
+        setLoadError(err.message || 'Failed to load holders');
       }
     } finally {
       if (abortRef.current === ctrl) abortRef.current = null;
@@ -130,12 +136,13 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     clearCachedHolders();
     setHolders(null);
     setGeneratedAt(null);
+    attemptedRef.current = false;
     loadHolders();
   }, [loadHolders]);
 
-  // Auto-load on first expand if no cache
+  // Auto-load on first expand if no cache — one attempt only, never a retry loop
   useEffect(() => {
-    if (showList && !holders && !loading) loadHolders();
+    if (showList && !holders && !loading && !attemptedRef.current) loadHolders();
   }, [showList, holders, loading, loadHolders]);
 
   // Abort in-flight on popover close
