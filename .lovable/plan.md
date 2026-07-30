@@ -1,70 +1,86 @@
-# Fix "View Wallet — Show List" empty results
+## What the error actually means
 
-## Root cause
+Nothing is broken. `Cannot find module ...\scripts\build-holders-manifest.mjs` is Node saying "there is no file at that path."
 
-The current scan calls `get_table_by_scope` with `code: 'gpk.topps'`. That table doesn't exist — `gpk.topps` is the SimpleAssets **author**, not the row scope owner. SA rows live under `code: 'simpleassets'`, one scope per holder, and there is no on-chain or third-party holder-by-author index for SimpleAssets. A brute-force scope walk is too large for the browser.
+The file exists in your project here on Lovable. The folder on your Desktop (`gpk-app-latest1`) is a **copy you downloaded earlier**, before I wrote that script. Copies don't update themselves. So the script is simply not on your computer yet.
 
-## Approach
+Two ways to fix it. Pick one.
 
-Precompute the holders list off-chain (Node script, same pattern as `build-atomic-mirror.mjs`) and publish it as a static JSON on the existing mirrors. The client just fetches that JSON — no live scan.
+---
 
-Regeneration is **manual** — you run it whenever you want a refresh, same cadence as the image mirror. No cron, no automation.
+## Option A — Just create the one file by hand (fastest, ~2 minutes)
 
-The list combines **two sources shown as separate columns**, both scoped strictly to GPK/Topps:
-- **SA** — gpk.topps SimpleAssets (`code: simpleassets`, filtered by `author == 'gpk.topps'`)
-- **AA** — AtomicAssets collection `gpk.topps` (all schemas — the same collection `build-atomic-mirror.mjs` already enumerates)
+You only need this single file to run the scan. You do not need the rest of the project updated.
 
-No `cheesenftwax` involvement.
+1. Open the folder `C:\Users\User\Desktop\gpk-app-latest1\scripts` in File Explorer.
+2. Create a new empty text file there named exactly:
+   ```text
+   build-holders-manifest.mjs
+   ```
+   Careful: Windows likes to secretly add `.txt` on the end. Turn on **View → File name extensions** in Explorer first so you can see the real name. It must end in `.mjs`, not `.mjs.txt`.
+3. Open that file in Notepad, and paste in the script contents. I'll paste the full text into the chat for you to copy once you approve this plan.
+4. Save, close Notepad.
+5. Back in PowerShell, run the same command again:
+   ```bash
+   node scripts/build-holders-manifest.mjs
+   ```
 
-## Changes
+It should now start printing `[SA] enumerating simpleassets.sassets scopes…`.
 
-### 1. New script `scripts/build-holders-manifest.mjs`
+---
 
-- **SA pass**: paginate `get_table_by_scope` on `simpleassets.sassets` (1000/page, follow `more`). For each scope, `get_table_rows` and count rows where `author === 'gpk.topps'`. Concurrency-limited (8 parallel) with RPC fallback across `WAX_RPC_ENDPOINTS`. Skip scopes whose gpk.topps row count is 0.
-- **AA pass**: page through `/atomicassets/v1/accounts?collection_name=gpk.topps&limit=1000` on `ATOMIC_API.baseUrls` with fallback. Returns `{account, assets}` directly.
-- **Merge** into a map keyed by account: `{ account, sa, aa, total }`.
-- Writes `mirror/manifests/gpk-topps-holders.json`:
-  ```json
-  {
-    "generatedAt": "2026-07-29T…Z",
-    "totals": { "accounts": 12345, "sa": 456789, "aa": 12345 },
-    "holders": [
-      { "account": "abc.wam", "sa": 1234, "aa": 56, "total": 1290 },
-      …
-    ]
-  }
-  ```
-- Sorted by `total desc`. Committed to the primary mirror repo and served from Netlify / Cloudflare / GitHub Pages just like existing manifests.
+## Option B — Refresh your whole local copy (better long-term)
 
-### 2. `src/lib/gpkHolders.ts` — replace live scan
+Your Desktop copy is now several changes behind the live project, not just this one file. If you'd rather bring everything current:
 
-- Drop `scanGpkTopps` (broken `code: 'gpk.topps'` call) and `scanBridgedAa` (wrong `cheesenftwax` collection).
-- New `fetchTopGpkHolders` races the `remoteMirror` URLs (Netlify → Cloudflare → GitHub Pages) for `manifests/gpk-topps-holders.json`; local ZIP mirror consulted first if loaded.
-- Expose `Holder = { account, sa, aa, total }` and `generatedAt` on the response.
-- Cache the parsed result in-memory for the session (existing `cached` var stays).
+1. In Lovable, use the GitHub / export route you used to get `gpk-app-latest1` in the first place.
+2. Download the fresh copy to a **new** folder, e.g. `gpk-app-latest2` — do not overwrite the old one, so you still have a fallback if anything goes sideways.
+3. Open PowerShell in that new folder and run:
+   ```bash
+   npm install
+   node scripts/build-holders-manifest.mjs
+   ```
+   The `npm install` step is only needed once per fresh copy; the script itself relies only on things built into Node.
 
-### 3. `src/components/ViewWalletControl.tsx` — UI update
+Slower, but you stop hitting "file not found" errors for every new script I add.
 
-- Replace the "Scanning gpk.topps… N accounts" progress line with a simple "Loading holders…" spinner.
-- Show manifest's `generatedAt` timestamp: "snapshot from 2026-07-28".
-- Grid columns become `[#, Account, SA, AA, Total]` — three tabular-num numeric columns, right-aligned, with `Total` bolded in cheese/yellow.
-- Header row updated to match. Row `title` becomes `"{sa} SA · {aa} AA"` for hover context.
-- Sort stays `total desc`; filter, refresh (re-fetches manifest, no rescan), and click-to-fill unchanged.
+---
 
-### 4. `scripts/README.md`
+## Then: check you're in the right place
 
-Short section covering how to regenerate `gpk-topps-holders.json` and re-publish. Note explicitly that this is manual and re-runs whenever you want a fresh snapshot.
+Before running, confirm PowerShell is pointed at the project root. Run:
 
-## Out of scope
+```bash
+dir scripts
+```
 
-- No cron / GitHub Actions automation.
-- No live client-side rescan option — refresh just re-fetches the manifest.
-- No `cheesenftwax` or any non-GPK collection.
-- No historical trend data — each manifest overwrites the previous one.
+You should see a list including `build-holders-manifest.mjs`. If you see "cannot find path", you're in the wrong folder — `cd` into the project first.
 
-## Technical notes
+---
 
-- Manifest size: ~15–25k combined accounts × ~50 bytes ≈ well under 1 MB, gzipped ~150 KB.
-- Script runtime: 15–45 min, dominated by SA per-scope reads. Idempotent — re-runs from scratch, no partial-state file.
-- Client change is a net simplification: no long-running RPC loop or AbortController for the scan; AbortController stays only for the fetch race.
-- The narrower list layout (3 numeric columns) still fits in the 320px popover — columns `[28px, 1fr, 44px, 44px, 52px]`.
+## After it runs
+
+Unchanged from the previous plan:
+
+- Wait 15–45 minutes for it to finish.
+- It writes `mirror-output\manifests\gpk-topps-holders.json`.
+- Upload that `manifests` folder to your mirrors so the file lands at:
+  - `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json`
+  - `https://gpkonwaxbackup.pages.dev/manifests/gpk-topps-holders.json`
+  - `https://bewbzz.github.io/gpkonwaxbackup/mirror/manifests/gpk-topps-holders.json`
+- Only one of the three needs to work — the app races them.
+
+---
+
+## App-side changes I'll make in parallel
+
+Same as before, so a missing file reads as calm rather than broken:
+
+- **`src/lib/gpkHolders.ts`** — tell apart "all mirrors returned 404, file not published" from "couldn't reach the network", and stop the repeated request bursts by allowing one attempt per mirror.
+- **`src/components/ViewWalletControl.tsx`** — for the not-published case show a plain grey line, "Holders snapshot not published yet," with a short note that it's a manually generated file; hide the empty table. Red styling stays reserved for real connection failures. Uses existing colour tokens, so it looks right in both dark and bright skins.
+
+---
+
+## Recommendation
+
+Take **Option A** if you want the holders list working today. Take **Option B** this week regardless, so your offline copy is genuinely current — that copy is your disaster backup, and right now it's stale.

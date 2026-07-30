@@ -72,8 +72,10 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const [generatedAt, setGeneratedAt] = useState<string | null>(initialCache?.generatedAt ?? null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [notPublished, setNotPublished] = useState(false);
   const [filter, setFilter] = useState('');
   const abortRef = useRef<AbortController | null>(null);
+  const attemptedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const submit = useCallback(async () => {
@@ -108,15 +110,21 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    attemptedRef.current = true;
     setLoading(true);
     setLoadError(null);
+    setNotPublished(false);
     try {
       const { holders: h, generatedAt: g } = await fetchTopGpkHolders({ signal: ctrl.signal });
       setHolders(h);
       setGeneratedAt(g);
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        setLoadError((e as Error).message || 'Failed to load holders');
+      const err = e as Error & { reason?: 'not-published' | 'network' };
+      if (err.name === 'AbortError') return;
+      if (err.reason === 'not-published') {
+        setNotPublished(true);
+      } else {
+        setLoadError(err.message || 'Failed to load holders');
       }
     } finally {
       if (abortRef.current === ctrl) abortRef.current = null;
@@ -128,12 +136,13 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     clearCachedHolders();
     setHolders(null);
     setGeneratedAt(null);
+    attemptedRef.current = false;
     loadHolders();
   }, [loadHolders]);
 
-  // Auto-load on first expand if no cache
+  // Auto-load on first expand if no cache — one attempt only, never a retry loop
   useEffect(() => {
-    if (showList && !holders && !loading) loadHolders();
+    if (showList && !holders && !loading && !attemptedRef.current) loadHolders();
   }, [showList, holders, loading, loadHolders]);
 
   // Abort in-flight on popover close
@@ -247,24 +256,35 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
               </Button>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-              {loading ? (
-                <span className="flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Loading holders…
-                </span>
-              ) : loadError ? (
-                <span className="text-destructive">{loadError}</span>
-              ) : holders ? (
-                <>
-                  <span>Top {holders.length.toLocaleString()} holders</span>
-                  {snapshotLabel && <span>snapshot {snapshotLabel}</span>}
-                </>
-              ) : (
-                <span>Waiting…</span>
-              )}
-            </div>
+            {notPublished ? (
+              <div className="px-1 space-y-0.5">
+                <p className="text-[11px] text-muted-foreground">Holders snapshot not published yet.</p>
+                <p className="text-[10px] text-muted-foreground/80">
+                  This list comes from a manually generated snapshot file. It appears here once it's
+                  published to the mirrors.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                {loading ? (
+                  <span className="flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading holders…
+                  </span>
+                ) : loadError ? (
+                  <span className="text-destructive">{loadError}</span>
+                ) : holders ? (
+                  <>
+                    <span>Top {holders.length.toLocaleString()} holders</span>
+                    {snapshotLabel && <span>snapshot {snapshotLabel}</span>}
+                  </>
+                ) : (
+                  <span>Waiting…</span>
+                )}
+              </div>
+            )}
 
+            {!notPublished && (
             <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
               <div className="grid grid-cols-[28px_1fr_44px_44px_52px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
                 <span>#</span>
@@ -308,6 +328,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
