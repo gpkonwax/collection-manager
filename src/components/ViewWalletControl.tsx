@@ -256,24 +256,35 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
               </Button>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
-              {loading ? (
-                <span className="flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Loading holders…
-                </span>
-              ) : loadError ? (
-                <span className="text-destructive">{loadError}</span>
-              ) : holders ? (
-                <>
-                  <span>Top {holders.length.toLocaleString()} holders</span>
-                  {snapshotLabel && <span>snapshot {snapshotLabel}</span>}
-                </>
-              ) : (
-                <span>Waiting…</span>
-              )}
-            </div>
+            {notPublished ? (
+              <div className="px-1 space-y-0.5">
+                <p className="text-[11px] text-muted-foreground">Holders snapshot not published yet.</p>
+                <p className="text-[10px] text-muted-foreground/80">
+                  This list comes from a manually generated snapshot file. It appears here once it's
+                  published to the mirrors.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                {loading ? (
+                  <span className="flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading holders…
+                  </span>
+                ) : loadError ? (
+                  <span className="text-destructive">{loadError}</span>
+                ) : holders ? (
+                  <>
+                    <span>Top {holders.length.toLocaleString()} holders</span>
+                    {snapshotLabel && <span>snapshot {snapshotLabel}</span>}
+                  </>
+                ) : (
+                  <span>Waiting…</span>
+                )}
+              </div>
+            )}
 
+            {!notPublished && (
             <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
               <div className="grid grid-cols-[28px_1fr_44px_44px_52px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
                 <span>#</span>
