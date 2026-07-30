@@ -72,8 +72,10 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const [generatedAt, setGeneratedAt] = useState<string | null>(initialCache?.generatedAt ?? null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [notPublished, setNotPublished] = useState(false);
   const [filter, setFilter] = useState('');
   const abortRef = useRef<AbortController | null>(null);
+  const attemptedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const submit = useCallback(async () => {
