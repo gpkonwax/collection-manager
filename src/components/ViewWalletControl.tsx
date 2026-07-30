@@ -328,6 +328,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
