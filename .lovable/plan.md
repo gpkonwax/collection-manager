@@ -15,12 +15,14 @@ The app can't see the file yet because it lives only on your computer. It has to
 ## Step 1 — Netlify (Backup A) — easiest, do this one first
 
 1. Open a terminal in `C:\Users\User\Desktop\gpk-app-latest2\mirror-output`.
-2. Run:
+2. Link this folder to your existing site. Run:
    ```bash
-   netlify deploy --prod --dir .
+   netlify deploy --prod --site gpkonwaxbackup --dir .
    ```
-   Same command and same site you used when you first published the images. It re-uploads the folder including the new `manifests` subfolder.
-3. Check it in a browser:
+   The `--site gpkonwaxbackup` flag tells Netlify which site to use, so it skips the link prompt.
+   - If that name doesn't work, run `netlify sites:list` to see the exact site name or site ID, then use `--site <ID>` instead.
+3. Wait for the deploy to finish. It re-uploads the folder including the new `manifests` subfolder.
+4. Check it in a browser:
    `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json`
    You should see a wall of JSON text, not a 404 page.
 
