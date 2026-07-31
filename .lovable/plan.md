@@ -1,86 +1,93 @@
-# Publish the holders snapshot to your mirrors
+# Fix the Netlify mirror — the drag-and-drop wiped it
 
-The scan worked. You now have one file on your Desktop:
+## What actually happened
+
+Dragging the `manifests` folder onto Netlify did two unintended things:
+
+1. **It flattened the path.** Netlify treats the dropped folder as the *site root*, so the file landed at
+   `https://gpkonwaxbackup.netlify.app/gpk-topps-holders.json` (confirmed live, 1.3 MB, HTTP 200)
+   instead of `/manifests/gpk-topps-holders.json`, which is where the app looks.
+2. **It replaced the whole site.** A manual deploy is a full snapshot, not an add-on. Everything that was there before is gone:
+   - `/manifests/pinned.json` → 404
+   - `/_headers` (the CORS file) → 404
+   - all mirrored images → 404
+
+So Netlify is currently a one-file site. Backup A is offline as an image mirror until this is redeployed. My earlier advice to drag the `manifests` folder was wrong — sorry about that.
+
+---
+
+## The fix: redeploy the full mirror folder in one go
+
+The rule is simple: **whatever you drop must be the complete site**, with `manifests` as a subfolder inside it.
+
+### Step 1 — Assemble the complete folder locally
+
+You need one folder that contains everything Netlify should serve:
 
 ```text
-C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests\gpk-topps-holders.json
+mirror-output\
+  _headers                 <- the CORS file
+  manifests\
+    gpk-topps-holders.json <- the new snapshot
+    pinned.json            <- existing manifest(s)
+  ipfs\ (or however the images are laid out)
 ```
 
-14,255 accounts, 499,880 SimpleAssets and 436,424 AtomicAssets. Nothing else needs regenerating.
+Check `C:\Users\User\Desktop\gpk-app-latest2\mirror-output` and confirm:
+- `manifests\gpk-topps-holders.json` is there (it is — that's what the script wrote)
+- the `_headers` file is at the top level
+- the image folders are present
 
-The app can't see the file yet because it lives only on your computer. It has to sit at the path `manifests/gpk-topps-holders.json` on your mirror hosts. The app races all three and uses whichever answers first, so **getting one host working is enough** — do the rest for redundancy.
+If `_headers` is missing, create a plain text file named exactly `_headers` (no extension) at the top level containing:
 
----
+```text
+/*
+  Access-Control-Allow-Origin: *
+```
 
-## Step 1 — Netlify (Backup A) — easiest, do this one first
+If the images are *not* in this folder locally, tell me before deploying — we need to find the folder you originally uploaded, otherwise the redeploy will still be missing them.
 
-### Option A — Web UI drag-and-drop (fastest, no prompts)
+### Step 2 — Deploy the whole folder
 
-1. Go to `https://app.netlify.com/sites/gpkonwaxbackup/deploys`.
-2. Drag the `manifests` folder from `C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests` onto the "Deploy manually by dragging and dropping your site folder" area.
-3. Wait for the deploy to finish.
-4. Check:
-   `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json`
-   You should see a wall of JSON text, not a 404 page.
+Drag the **`mirror-output` folder itself** (not its contents, not a subfolder) onto
+`https://app.netlify.com/sites/gpkonwaxbackup/deploys`.
 
-### Option B — CLI with the exact site ID
+Netlify only re-uploads files whose contents changed, so this is fast even for a large folder.
 
-If you prefer the command line:
+### Step 3 — Verify
 
-1. Find your site ID:
-   ```bash
-   netlify sites:list
-   ```
-   Look for `gpkonwaxbackup` and copy its `Site ID` (looks like `abc123de-...`).
-2. Run:
-   ```bash
-   netlify deploy --prod --site <SITE_ID> --dir .
-   ```
-   Replace `<SITE_ID>` with the real ID.
-3. If Netlify asks about a build command, press **Ctrl+C** to cancel and use Option A instead — the web UI is simpler for a one-file addition.
+Open each of these in the browser:
 
-## Step 2 — GitHub Pages (Primary)
+- `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json` — should show JSON
+- `https://gpkonwaxbackup.netlify.app/manifests/pinned.json` — should show JSON
+- one image URL you know exists — should show the picture
 
-The file is ~1–2 MB of text, well under every GitHub limit, so a plain push works.
+If all three load, Backup A is healthy again.
 
-1. Open your backup repo folder (`gpk-backup-repo`, the one holding `mirror/`).
-2. Create a folder `mirror\manifests\` and copy `gpk-topps-holders.json` into it.
-3. In a terminal in that folder:
-   ```bash
-   git add mirror/manifests/gpk-topps-holders.json
-   git commit -m "Add gpk.topps holders snapshot"
-   git push
-   ```
-4. Wait ~1 minute, then check:
-   `https://bewbzz.github.io/gpkonwaxbackup/mirror/manifests/gpk-topps-holders.json`
+### Step 4 — Confirm in the app
 
-## Step 3 — Cloudflare Pages (Backup B)
-
-Cloudflare rejects individual files over 25 MB, but this JSON is far smaller, so it uploads fine.
-
-1. Copy `gpk-topps-holders.json` into your Cloudflare upload folder under `manifests\`.
-2. Deploy with the same Wrangler command you used before, e.g.:
-   ```bash
-   npx wrangler pages deploy . --project-name gpkonwaxbackup
-   ```
-3. Check:
-   `https://gpkonwaxbackup.pages.dev/manifests/gpk-topps-holders.json`
+Hard-refresh the Collection Manager (Ctrl+F5), open **View Wallet → Show List**. You should get the ranked holders table with a snapshot date.
 
 ---
 
-## Step 4 — Confirm in the app
+## Remaining mirrors (after Netlify is healthy)
 
-1. Hard-refresh the Collection Manager (Ctrl+F5).
-2. Open **View Wallet → Show List**.
-3. You should see a ranked table: rank, account, SA count, AA count, total, with a snapshot date line above it.
-4. Click any account name — it fills the input box, then press **View**.
+**GitHub Pages (Primary)** — copy `gpk-topps-holders.json` into `mirror\manifests\` in the backup repo, then:
 
-If it still says "Holders snapshot not published yet", the file isn't reachable at the exact path on any mirror. Paste the browser console output and I'll pinpoint which host is wrong.
+```bash
+git add mirror/manifests/gpk-topps-holders.json
+git commit -m "Add gpk.topps holders snapshot"
+git push
+```
+
+**Cloudflare Pages (Backup B)** — place the file at `manifests\gpk-topps-holders.json` in your upload folder and redeploy with Wrangler. Wrangler uploads incrementally and does not wipe the site the way a manual drag does.
+
+Both of these are additive — they won't destroy anything.
 
 ---
 
 ## Notes
 
-- **CORS**: Netlify already has the `_headers` file allowing cross-origin reads, so it will work. If GitHub Pages or Cloudflare respond with a CORS error rather than a 404, tell me — Netlify alone is enough to make the feature work in the meantime.
-- **Refreshing later**: this snapshot is a point-in-time picture. Re-run `node scripts/build-holders-manifest.mjs` and repeat the upload whenever you want it current. There's no automatic schedule, by design.
-- **No app code changes needed** for this step — the client-side handling was finished in the previous round.
+- **No app code changes are needed.** The client already races all three mirrors and shows a calm "not published yet" note when the file is missing. This is entirely a hosting/upload fix.
+- **Only one mirror needs the file** for the feature to work. The other two are redundancy.
+- **Rule of thumb for Netlify manual deploys:** never drag a subfolder. Always drag the complete site root.
