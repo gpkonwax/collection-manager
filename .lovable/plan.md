@@ -14,19 +14,30 @@ The app can't see the file yet because it lives only on your computer. It has to
 
 ## Step 1 — Netlify (Backup A) — easiest, do this one first
 
-1. Open a terminal in `C:\Users\User\Desktop\gpk-app-latest2\mirror-output`.
-2. Link this folder to your existing site. Run:
-   ```bash
-   netlify deploy --prod --site gpkonwaxbackup --dir .
-   ```
-   The `--site gpkonwaxbackup` flag tells Netlify which site to use, so it skips the link prompt.
-   - If that name doesn't work, run `netlify sites:list` to see the exact site name or site ID, then use `--site <ID>` instead.
-3. Wait for the deploy to finish. It re-uploads the folder including the new `manifests` subfolder.
-4. Check it in a browser:
+### Option A — Web UI drag-and-drop (fastest, no prompts)
+
+1. Go to `https://app.netlify.com/sites/gpkonwaxbackup/deploys`.
+2. Drag the `manifests` folder from `C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests` onto the "Deploy manually by dragging and dropping your site folder" area.
+3. Wait for the deploy to finish.
+4. Check:
    `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json`
    You should see a wall of JSON text, not a 404 page.
 
-If the full re-deploy feels heavy, you can instead drag just the `manifests` folder into the Netlify web UI's deploy area — but the CLI route above is safer because it keeps the existing files intact.
+### Option B — CLI with the exact site ID
+
+If you prefer the command line:
+
+1. Find your site ID:
+   ```bash
+   netlify sites:list
+   ```
+   Look for `gpkonwaxbackup` and copy its `Site ID` (looks like `abc123de-...`).
+2. Run:
+   ```bash
+   netlify deploy --prod --site <SITE_ID> --dir .
+   ```
+   Replace `<SITE_ID>` with the real ID.
+3. If Netlify asks about a build command, press **Ctrl+C** to cancel and use Option A instead — the web UI is simpler for a one-file addition.
 
 ## Step 2 — GitHub Pages (Primary)
 
