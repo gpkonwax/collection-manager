@@ -1,78 +1,108 @@
-# Fix the Netlify mirror — the drag-and-drop wiped it
+# Fix the Netlify mirror after the wrong folder was uploaded
 
-## What actually happened
+## What went wrong
 
-Dragging the `manifests` folder onto Netlify did two unintended things:
+Netlify is currently showing a 404 for the holders list because the wrong folder was dragged in.
 
-1. **It flattened the path.** Netlify treats the dropped folder as the *site root*, so the file landed at
-   `https://gpkonwaxbackup.netlify.app/gpk-topps-holders.json` (confirmed live, 1.3 MB, HTTP 200)
-   instead of `/manifests/gpk-topps-holders.json`, which is where the app looks.
-2. **It replaced the whole site.** A manual deploy is a full snapshot, not an add-on. Everything that was there before is gone:
-   - `/manifests/pinned.json` → 404
-   - `/_headers` (the CORS file) → 404
-   - all mirrored images → 404
+When you drag a folder into Netlify, it treats that folder as the entire website. You dragged the `manifests` folder, so Netlify replaced the whole site with just the contents of that folder. The file ended up at:
 
-So Netlify is currently a one-file site. Backup A is offline as an image mirror until this is redeployed. My earlier advice to drag the `manifests` folder was wrong — sorry about that.
+```text
+https://gpkonwaxbackup.netlify.app/gpk-topps-holders.json
+```
+
+But the app looks for it at:
+
+```text
+https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json
+```
+
+This also deleted the images and the `_headers` file that were already on Netlify. We need to put everything back by uploading the full `mirror-output` folder.
 
 ---
 
-## The fix: redeploy the full mirror folder in one go
+## What you need to do
 
-The rule is simple: **whatever you drop must be the complete site**, with `manifests` as a subfolder inside it.
+### Step 1 — Find the correct folder on your computer
 
-### Step 1 — Assemble the complete folder locally
-
-You need one folder that contains everything Netlify should serve:
+Open File Explorer and go to this path:
 
 ```text
-mirror-output\
-  _headers                 <- the CORS file
-  manifests\
-    gpk-topps-holders.json <- the new snapshot
-    pinned.json            <- existing manifest(s)
-  ipfs\ (or however the images are laid out)
+C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 ```
 
-Check `C:\Users\User\Desktop\gpk-app-latest2\mirror-output` and confirm:
-- `manifests\gpk-topps-holders.json` is there (it is — that's what the script wrote)
-- the `_headers` file is at the top level
-- the image folders are present
+You should see something like this inside it:
 
-If `_headers` is missing, create a plain text file named exactly `_headers` (no extension) at the top level containing:
+```text
+mirror-output
+  _headers
+  manifests
+    gpk-topps-holders.json
+    pinned.json
+  ipfs
+    ...lots of image files and subfolders
+```
+
+If you do not see an `ipfs` folder or image files, the images are somewhere else on your computer. Stop here and tell me, because uploading without them will leave the mirror broken.
+
+If the `_headers` file is missing, create it now:
+
+1. Right-click inside the `mirror-output` folder.
+2. Choose New → Text Document.
+3. Name it exactly `_headers` (including the underscore, no `.txt` on the end). If Windows warns about changing the extension, click Yes.
+4. Open it in Notepad and paste this exactly:
 
 ```text
 /*
   Access-Control-Allow-Origin: *
 ```
 
-If the images are *not* in this folder locally, tell me before deploying — we need to find the folder you originally uploaded, otherwise the redeploy will still be missing them.
+5. Save and close.
 
-### Step 2 — Deploy the whole folder
+### Step 2 — Upload the whole folder to Netlify
 
-Drag the **`mirror-output` folder itself** (not its contents, not a subfolder) onto
-`https://app.netlify.com/sites/gpkonwaxbackup/deploys`.
+1. Go to `https://app.netlify.com/sites/gpkonwaxbackup/deploys` in your browser.
+2. You will see an area that says "Drag and drop your site folder here" or similar.
+3. In File Explorer, click once on the `mirror-output` folder to select it.
+4. Drag the **folder itself**, not the files inside it, onto the Netlify drop zone.
+5. Wait for the upload to finish. Netlify will show a progress bar and then a "Published" message.
 
-Netlify only re-uploads files whose contents changed, so this is fast even for a large folder.
+Important: do not open the `mirror-output` folder and select the files inside. Select the whole `mirror-output` folder.
 
-### Step 3 — Verify
+### Step 3 — Check that it worked
 
-Open each of these in the browser:
+Open these three links in your browser. Each one should load successfully, not show a 404 page.
 
-- `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json` — should show JSON
-- `https://gpkonwaxbackup.netlify.app/manifests/pinned.json` — should show JSON
-- one image URL you know exists — should show the picture
+1. `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json`
+   - Should show a big block of JSON text.
 
-If all three load, Backup A is healthy again.
+2. `https://gpkonwaxbackup.netlify.app/manifests/pinned.json`
+   - Should also show JSON text.
 
-### Step 4 — Confirm in the app
+3. One image URL, for example:
+   `https://gpkonwaxbackup.netlify.app/ipfs/Qm.../something.png`
+   - Replace this with a real image path from the manifest. It should show the actual card image.
 
-Hard-refresh the Collection Manager (Ctrl+F5), open **View Wallet → Show List**. You should get the ranked holders table with a snapshot date.
+If all three load, Netlify is fixed.
+
+### Step 4 — Test it inside the Collection Manager
+
+1. Open the Collection Manager in your browser.
+2. Press Ctrl+F5 to hard-refresh the page.
+3. Click the **View Wallet** button in the header.
+4. Click **Show List**.
+5. You should now see a ranked list of GPK holders with columns for Account, SA, AA, and Total.
 
 ---
 
-## Remaining mirrors (after Netlify is healthy)
+## After Netlify is fixed, do the same for the other mirrors
 
-**GitHub Pages (Primary)** — copy `gpk-topps-holders.json` into `mirror\manifests\` in the backup repo, then:
+### GitHub Pages (Primary mirror)
+
+1. Open your `gpkonwaxbackup` GitHub repository folder on your computer.
+2. Copy the file `gpk-topps-holders.json` from:
+   `C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests\gpk-topps-holders.json`
+3. Paste it into the repository at `mirror\manifests\`.
+4. Open Git Bash or Command Prompt in that repository folder and run:
 
 ```bash
 git add mirror/manifests/gpk-topps-holders.json
@@ -80,14 +110,16 @@ git commit -m "Add gpk.topps holders snapshot"
 git push
 ```
 
-**Cloudflare Pages (Backup B)** — place the file at `manifests\gpk-topps-holders.json` in your upload folder and redeploy with Wrangler. Wrangler uploads incrementally and does not wipe the site the way a manual drag does.
+### Cloudflare Pages (Backup B)
 
-Both of these are additive — they won't destroy anything.
+1. Take the same `gpk-topps-holders.json` file.
+2. Put it inside a folder called `manifests`.
+3. Use Wrangler to upload that folder to Cloudflare, the same way you uploaded images before.
+
+You do not need to upload the images again to Cloudflare unless you are also updating them. Just add the new manifest file.
 
 ---
 
-## Notes
+## Remember this for next time
 
-- **No app code changes are needed.** The client already races all three mirrors and shows a calm "not published yet" note when the file is missing. This is entirely a hosting/upload fix.
-- **Only one mirror needs the file** for the feature to work. The other two are redundancy.
-- **Rule of thumb for Netlify manual deploys:** never drag a subfolder. Always drag the complete site root.
+Netlify manual deploys always replace the entire site. Never drag a subfolder like `manifests` or `ipfs`. Always drag the complete site root folder, which is `mirror-output`.
