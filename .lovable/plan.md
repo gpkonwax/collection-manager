@@ -1,74 +1,153 @@
-# Stop — the ZIP you just built is incomplete
+# Rebuild the downloadable ZIPs from the full backup folder
 
-Do not upload it anywhere yet.
+The ZIP you built earlier came from `gpk-app-latest2-new`, which only holds a partial tree (1045 files, 1.65 GB, no `atomic` folder). The full backup lives in **`C:\Users\User\Desktop\gpk-app-latest2`**. All the work below happens in that folder.
 
-## What the output is telling us
+Nothing published is broken right now. The live mirrors and the ZIPs currently on the GitHub Release are untouched. Do not upload the 1-part ZIP you just made — delete it when convenient.
 
-Your rebuild produced **one** part at **1.65 GB with 1045 files**. The ZIPs currently on the GitHub Release are **three parts totalling roughly 4.2 GB**. That difference is not a rounding error — the folder you zipped from is missing most of the backup.
+## Part 1 — Confirm the full folder really is complete
 
-Two things in the output confirm it:
+Open Command Prompt and run these two commands, one at a time.
 
-- `Done. files=1030 missing=879` — 879 entries the SimpleAssets config expects were never downloaded into this folder.
-- Only 1045 files were zipped. The Atomic GPK series (Crash Gordon and the rest, roughly 2,600 images under `mirror-output\atomic\`) are not in this folder at all — if they were, they would have been swept into the ZIP automatically.
-
-So `gpk-app-latest2-new\scripts\mirror-output` is a partial tree. Your complete tree is most likely the older project folder, `gpk-app-latest1`.
-
-Also note: that run rewrote `public\gpk-manifest.json` locally to say "1 ZIP part". Do not push or deploy that file — it would tell every user there is only one part to download.
-
-## Where you should do this work
-
-You can run the mirror build from **any** project folder on your PC — it does not have to be a git clone. The mirror scripts only care about the `scripts\mirror-output` folder next to them.
-
-Right now you have at least two project folders on the desktop:
-
-- `gpk-app-latest1` — probably the one with the full 4.2 GB backup.
-- `gpk-app-latest2-new` — the one you just ran, which is incomplete.
-
-The app code in Lovable is synced to GitHub, but the **mirror data** is not in the repo (it is too large). So the GitHub clone is for the app code only. For the backup ZIPs, use whichever local folder has the complete `scripts\mirror-output`.
-
-## Part 1 — Find out which folder actually holds the full backup
-
-Open Command Prompt and run these commands. Each one prints how many image files that folder holds.
+Count the images:
 
 ```
-dir /s /b C:\Users\User\Desktop\gpk-app-latest2-new\scripts\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2-new\scripts\mirror-output\*.gif | find /c /v ""
+dir /s /b C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\*.gif | find /c /v ""
 ```
 
-```
-dir /s /b C:\Users\User\Desktop\gpk-app-latest1\scripts\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest1\scripts\mirror-output\*.gif | find /c /v ""
-```
-
-And check whether each one has the atomic folder:
+Check the atomic folder exists:
 
 ```
-dir C:\Users\User\Desktop\gpk-app-latest2-new\scripts\mirror-output\atomic
-dir C:\Users\User\Desktop\gpk-app-latest1\scripts\mirror-output\atomic
+dir C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\atomic
 ```
 
-Paste the four results back to me. The folder with roughly 3,600+ images **and** an `atomic` folder is the real backup.
+You are expecting a large number (roughly 3,600+) and a directory listing rather than "File Not Found". If either looks wrong, stop and tell me before going further.
 
-## Part 2 — What happens next (depends on Part 1)
+## Part 2 — Put the updated scripts into that folder
 
-**If `gpk-app-latest1` is the complete one** (most likely): we work from there instead. You copy the two refreshed Series 2 files into it, top it up, and zip from there:
+The Series 2 fix lives in two files that must be the new versions. Copy them from the newer folder over the old ones:
 
-1. Copy the new `scripts\mirror-config.json` and `scripts\build-image-mirror.mjs` from `gpk-app-latest2-new` into `gpk-app-latest1\scripts` (overwrite).
-2. From `gpk-app-latest1`, run `node scripts/build-image-mirror.mjs --retry-all-missing` to pull down the Series 2 side-c / raw / returning images into that complete tree.
-3. Copy the freshly downloaded Series 2 images from `gpk-app-latest2-new\scripts\mirror-output` in as well if the retry misses any.
-4. Only then run `node scripts/build-image-mirror.mjs --zip-only --split-zip` from `gpk-app-latest1`.
-5. Sanity check before uploading: the run must report **3 or more parts** and a total near 4.2 GB. One part means the tree is still incomplete — stop and tell me.
+```
+copy /Y C:\Users\User\Desktop\gpk-app-latest2-new\scripts\mirror-config.json C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
+copy /Y C:\Users\User\Desktop\gpk-app-latest2-new\scripts\build-image-mirror.mjs C:\Users\User\Desktop\gpk-app-latest2\scripts\build-image-mirror.mjs
+```
 
-**If neither folder is complete:** we rebuild the full backup in one place by running `build-image-mirror.mjs` and then `build-atomic-mirror.mjs` into the same `mirror-output`, which takes several hours of downloading. I would only do this as a last resort.
+Confirm the config is the new one — this should print matching lines rather than nothing:
 
-## Part 3 — After a correct ZIP build (do not start this yet)
+```
+findstr /C:"returning" /C:"sharedBack" C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
+```
 
-1. Replace the ZIP assets on the GitHub Release with the new parts.
-2. Deploy the updated `mirror-output` (with its new `manifests\manifest.json`) to Netlify and Cloudflare, keeping ZIPs out of Cloudflare.
-3. Push the updated `manifests\manifest.json` to the `bewbzz/gpkonwaxbackup` repo.
-4. Run `node scripts/audit-mirrors.mjs` and confirm all three say COMPLETE.
-5. Give me the final part count and sizes so I can update the hardcoded fallback values in `scripts/sync-pinned-manifest.mjs` to match.
+## Part 3 — Download the missing Series 2 images into the full tree
+
+Move into the full folder:
+
+```
+cd C:\Users\User\Desktop\gpk-app-latest2
+```
+
+Then run the top-up. This clears the old "skip these" list and re-attempts every entry, downloading only what is not already on disk:
+
+```
+node scripts/build-image-mirror.mjs --retry-all-missing
+```
+
+This one does hit the network, so give it time. When it ends it prints a `Done. files=... missing=...` line. A small `missing` count is normal (some card variants genuinely do not exist); a huge one means something went wrong — send me the line if you are unsure.
+
+If some entries fail with timeouts, run this once to retry them slowly:
+
+```
+node scripts/build-image-mirror.mjs --retry-errors
+```
+
+## Part 4 — Build the ZIP parts
+
+Delete any stale parts in this folder first (a "Could Not Find" message here is fine):
+
+```
+del scripts\mirror-output\gpk-image-mirror-part-*.zip
+```
+
+Then build:
+
+```
+node scripts/build-image-mirror.mjs --zip-only --split-zip
+```
+
+**Sanity check before you upload anything:** the output must report **3 or more parts** totalling roughly 4.2 GB or more. If it says 1 part / 1.65 GB again, the tree is not the full one — stop and tell me.
+
+Write down the part names and sizes it prints; I need them at the end.
+
+## Part 5 — Create the `_headers` file if it is missing
+
+Look in `C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output` for a file named exactly `_headers` (no `.txt`). Without it the mirror reports as unreachable. If it is missing:
+
+```
+cd C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output
+notepad _headers
+```
+
+Say Yes to creating it, paste this in, save, close:
+
+```
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: *
+```
+
+## Part 6 — Upload the new ZIPs to the GitHub Release
+
+1. Go to `https://github.com/bewbzz/gpkonwaxbackup/releases`.
+2. Open the latest release, click **Edit** (pencil icon).
+3. Remove the old `gpk-image-mirror-part-*.zip` assets with the small x next to each.
+4. Drag the new parts from `C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output` into the assets box.
+5. Wait for every upload to reach 100%, then click **Update release**.
+
+Never `git push` the ZIPs — they are far too big for the repo.
+
+## Part 7 — Push the refreshed manifest and images to the three mirrors
+
+The build rewrote `mirror-output\manifests\manifest.json` with the new part list, sizes and hashes. Every mirror needs it, otherwise the app will still ask for the old parts.
+
+**Netlify (Backup A)** — from `C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output`:
+
+```
+netlify deploy --prod --site gpkonwaxbackup --dir . --build-ignore
+```
+
+**Cloudflare (Backup B)** — ZIPs must be out of the way first because Pages rejects files over 25 MB:
+
+```
+cd C:\Users\User\Desktop\gpk-app-latest2\scripts
+mkdir zip-holding
+move mirror-output\gpk-image-mirror-part-001.zip zip-holding
+move mirror-output\gpk-image-mirror-part-002.zip zip-holding
+move mirror-output\gpk-image-mirror-part-003.zip zip-holding
+```
+
+Run your usual Wrangler deploy, then move them back:
+
+```
+move zip-holding\gpk-image-mirror-part-*.zip mirror-output
+```
+
+**GitHub Pages (Primary)** — copy the updated `manifests\manifest.json` (and any new Series 2 image folders) into your `gpkonwaxbackup` repo clone under `mirror\`, then commit and push.
+
+## Part 8 — Verify
+
+```
+cd C:\Users\User\Desktop\gpk-app-latest2
+node scripts/audit-mirrors.mjs
+```
+
+You want `COMPLETE` on Primary, Backup A and Backup B.
+
+Then open the app, go to **Offline backup**, and check the total download size matches the new combined part size. Download one part and load it in to confirm it ingests cleanly.
+
+Finally, send me the part count and byte sizes the build printed so I can update the hardcoded fallback values in `scripts/sync-pinned-manifest.mjs` to match.
 
 ## Technical notes
 
-- `--zip-only` packs whatever is physically on disk under `mirror-output`, including `atomic/`. The small output proves the atomic tree is absent from `gpk-app-latest2-new`.
-- `missing=879` is persisted in that folder's `manifests/manifest.json` from earlier partial runs; `--retry-all-missing` clears that skip list and re-attempts every entry.
-- Nothing published is broken right now — the live mirrors and the current Release ZIPs are untouched. The only local damage is the rewritten `public/gpk-manifest.json`, which will be regenerated correctly on the next good build.
+- `--zip-only` packs everything physically present under `mirror-output`, including `atomic/`, so one rebuild covers both the SimpleAssets and AtomicAssets backups.
+- `--retry-all-missing` clears the persisted `missing[]` skip list in `manifests/manifest.json` and re-attempts every configured entry; already-downloaded files are left alone.
+- The earlier run in `gpk-app-latest2-new` rewrote that folder's `public/gpk-manifest.json` to claim a single ZIP part. Do not deploy that copy; the good build in `gpk-app-latest2` regenerates it correctly.
