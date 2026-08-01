@@ -62,19 +62,46 @@ async function fetchWithGateways(ipfsPath, gateways, timeoutMs) {
 
 function* enumerate(config) {
   for (const series of config.series) {
-    const [lo, hi] = series.cardIdRange;
-    for (let id = lo; id <= hi; id += 1) {
-      for (const side of series.sides) {
-        for (const v of series.variants) {
+    for (const v of series.variants) {
+      // Per-variant overrides: some variants have their own id range (e.g. the
+      // Series 2 "returning" subset 1..13), their own side list (base has an
+      // extra "c" side), or no side suffix at all (raw uses `raw/65.jpg`).
+      const [lo, hi] = v.cardIdRange ?? series.cardIdRange;
+      const sides = v.sides ?? series.sides;
+      for (let id = lo; id <= hi; id += 1) {
+        for (const side of sides) {
+          const file = `${id}${side}.${v.ext}`;
           yield {
-            ipfsPath: `${series.hash}/${v.name}/${id}${side}.${v.ext}`,
-            relPath:  path.posix.join(series.hash, v.name, `${id}${side}.${v.ext}`),
+            ipfsPath: `${series.hash}/${v.name}/${file}`,
+            relPath:  path.posix.join(series.hash, v.name, file),
             kind: 'front',
             series: series.id,
           };
+          // Variants with a per-card/side back image (e.g. originalart/42aback.jpg).
+          if (v.backPattern === 'perCardSide') {
+            const backFile = `${id}${side}back.jpg`;
+            yield {
+              ipfsPath: `${series.hash}/${v.name}/${backFile}`,
+              relPath:  path.posix.join(series.hash, v.name, backFile),
+              kind: 'back',
+              series: series.id,
+            };
+          }
         }
       }
-      if (series.includeBacks) {
+      // Variants that share one generic back image (raw, returning).
+      if (v.sharedBack) {
+        yield {
+          ipfsPath: `${series.hash}/${v.name}/back.jpg`,
+          relPath:  path.posix.join(series.hash, v.name, 'back.jpg'),
+          kind: 'back',
+          series: series.id,
+        };
+      }
+    }
+    if (series.includeBacks) {
+      const [lo, hi] = series.cardIdRange;
+      for (let id = lo; id <= hi; id += 1) {
         yield {
           ipfsPath: `${series.hash}/back/${id}.jpg`,
           relPath:  path.posix.join(series.hash, 'back', `${id}.jpg`),
@@ -85,6 +112,7 @@ function* enumerate(config) {
     }
   }
 }
+
 
 async function loadExistingManifest(outDir) {
   const p = path.join(outDir, 'manifest.json');

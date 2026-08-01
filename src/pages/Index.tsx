@@ -29,7 +29,7 @@ import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts, fetchPendingNftsDetailed } from '@/components/simpleassets/PackRevealDialog';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
-import { getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
+import { getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardImages';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { preloadRevealImage } from '@/lib/revealImageSources';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
@@ -212,9 +212,11 @@ function matchPendingRowsToMintedAssets(rows: PendingNftAuditRow[], assets: Simp
 
   for (const row of sortedRows) {
     const category = getGpkCategoryForBoxtype(row.boxtype);
-    const cardid = normalizePendingGpkCardId(row.boxtype, row.cardid);
-    const side = String(row.quality ?? '').toLowerCase();
+    const resolved = resolvePendingGpkCard(row.boxtype, row.cardid, String(row.quality ?? ''), String(row.variant ?? ''));
+    const cardid = resolved.cardid;
+    const side = resolved.side;
     const variant = normalizeGpkVariant(String(row.variant ?? ''));
+
     const hit = assets
       .filter((asset) =>
         !used.has(asset.id) &&

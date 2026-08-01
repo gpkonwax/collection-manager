@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
-import { buildGpkCardImageUrl, getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
+import { EXPECTED_CARDS, getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardImages';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
 import {
   buildRevealCandidates,
@@ -22,10 +22,6 @@ import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { RevealResult } from '@/lib/packReveal';
 
-const EXPECTED_CARDS: Record<string, number> = {
-  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 35,
-  EXOFIVE: 5, EXOMEGA: 25,
-};
 
 const SYMBOL_TO_BOXTYPE: Record<string, string> = {
   GPKFIVE: 'five', GPKMEGA: 'thirty',
@@ -70,7 +66,9 @@ interface PackRevealDialogProps {
 function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
   const [fallbacks, setFallbacks] = useState<string[]>(() => buildRevealCandidateUrls(card.originalImage ?? card.image, card.image));
+
   const currentSrc = fallbacks[gwIdx] ?? null;
 
   useEffect(() => {
@@ -79,7 +77,9 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
     const baseUrl = card.originalImage ?? card.image;
     setGwIdx(0);
     setLoaded(false);
+    setExhausted(false);
     setFallbacks(buildRevealCandidateUrls(baseUrl, card.image));
+
     loadPinnedManifest().then((manifest) => {
       if (cancelled) return;
       // Re-derive candidates now that we know which hashes the mirrors cover.
@@ -127,16 +127,28 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
     <div className="relative aspect-[2/3]"
       style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
       <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
-        {currentSrc ? (
+        {currentSrc && !exhausted ? (
           <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center"
             loading="eager"
             decoding="async"
             fetchPriority="high"
             onLoad={() => setLoaded(true)}
-            onError={() => { setLoaded(false); setGwIdx((g) => (g < fallbacks.length - 1 ? g + 1 : g)); }} />
+            onError={() => {
+              setLoaded(false);
+              setGwIdx((g) => {
+                if (g < fallbacks.length - 1) return g + 1;
+                setExhausted(true);
+                return g;
+              });
+            }} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-muted p-1 text-center">
+            <span className="text-2xl">🃏</span>
+            <span className="text-[10px] leading-tight text-muted-foreground break-words">{card.name}</span>
+            {exhausted && <span className="text-[9px] text-muted-foreground/70">image offline</span>}
+          </div>
         )}
+
       </div>
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 flex items-center justify-center shadow-md border border-zinc-700/50 rounded-sm"
         style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
@@ -460,15 +472,16 @@ export function PackRevealDialog({
           clearInterval(interval);
           const sorted = targetRows.sort((a, b) => a.draw - b.draw);
           const cards: RevealCard[] = sorted.map((r) => {
-            const displayCardId = normalizePendingGpkCardId(r.boxtype, r.cardid);
+            const resolved = resolvePendingGpkCard(r.boxtype, r.cardid, r.quality, r.variant);
             return {
               asset_id: String(r.id),
-              name: `Card #${displayCardId}${r.quality}`,
-              image: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
-              originalImage: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
+              name: `Card #${resolved.cardid}${resolved.side}`,
+              image: resolved.image,
+              originalImage: resolved.image,
               rarity: `${r.variant} ${r.quality}`,
             };
           });
+
           console.log(`[pack-reveal] targeting ${cards.length}-card unboxing (boxtype=${sorted[0]?.boxtype})`);
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
@@ -566,14 +579,18 @@ export function PackRevealDialog({
       const reveal: RevealResult = {
         source: 'simpleassets',
         expectedCategory: getGpkCategoryForBoxtype(revealedRowsRef.current[0]?.boxtype ?? ''),
-        matchers: revealedRowsRef.current.map((r) => ({
-          kind: 'sa' as const,
-          cardid: normalizePendingGpkCardId(r.boxtype, r.cardid),
-          side: String(r.quality ?? '').toLowerCase(),
-          variant: normalizeGpkVariant(String(r.variant ?? '')),
-          category: getGpkCategoryForBoxtype(r.boxtype),
-        })),
+        matchers: revealedRowsRef.current.map((r) => {
+          const resolved = resolvePendingGpkCard(r.boxtype, r.cardid, r.quality, r.variant);
+          return {
+            kind: 'sa' as const,
+            cardid: resolved.cardid,
+            side: resolved.side,
+            variant: normalizeGpkVariant(String(r.variant ?? '')),
+            category: getGpkCategoryForBoxtype(r.boxtype),
+          };
+        }),
       };
+
       setPhase('done'); onComplete(txId, reveal);
       // Auto-close after brief confirmation
       setTimeout(() => onOpenChange(false), 1500);
