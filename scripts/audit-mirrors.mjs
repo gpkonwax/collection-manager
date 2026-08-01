@@ -21,11 +21,15 @@ const MIRRORS = [
     baseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/mirror/',
     // In the backup repo, atomic/ sits at the repo root, next to mirror/.
     atomicBaseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/',
+    // The split ZIP parts are too large for Pages — they are served from the
+    // GitHub Release assets instead.
+    zipBaseUrl: 'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/',
     checkZips: true,
   },
-  { key: 'netlify',    label: 'Backup A (Netlify)',    baseUrl: 'https://gpkonwaxbackup.netlify.app/', checkZips: true  },
+  { key: 'netlify',    label: 'Backup A (Netlify)',    baseUrl: 'https://gpkonwaxbackup.netlify.app/', checkZips: false },
   { key: 'cloudflare', label: 'Backup B (Cloudflare)', baseUrl: 'https://gpkonwaxbackup.pages.dev/',   checkZips: false },
 ];
+
 
 /**
  * Resolve the URL for a manifest entry on a given mirror. Manifest entries may
