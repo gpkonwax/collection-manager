@@ -1,36 +1,53 @@
-# Backup A (Netlify) — verified healthy, no fix needed
+# Fix: Netlify mirror reports "failed"
 
-## What the 404 actually was
+## Cause (confirmed)
 
-The image links I gave you earlier used a filename that does not exist in the snapshot (`1lg.jpg`). The real files are named `1a.jpg`, `1.jpg`, etc. Nothing is missing from Netlify.
+The files are on Netlify and load fine in a browser tab, but the app reads them with `fetch` and hash-verifies the bytes. That requires a CORS header, and Netlify is currently sending none.
 
-Verified live right now:
+Checked live:
 
-- `https://gpkonwaxbackup.netlify.app/manifests/manifest.json` — 200
-- `https://gpkonwaxbackup.netlify.app/manifests/gpk-topps-holders.json` — 200
-- `https://gpkonwaxbackup.netlify.app/atomic/QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/base/1a.jpg` — 200
-- `https://gpkonwaxbackup.netlify.app/QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/base/1a.jpg` — 200
+- `https://gpkonwaxbackup.netlify.app/manifests/manifest.json` — 200, **no `access-control-allow-origin` header**
+- `https://gpkonwaxbackup.pages.dev/...` — sends `access-control-allow-origin: *` (Cloudflare is fine)
 
-Both the `atomic/`-prefixed path (what the manifest records) and the bare CID path resolve, so the app's mirror lookups will hit correctly either way.
+Opening the URL directly in a tab works because tabs don't enforce CORS; the app does. So the health check fails even though the data is there. Your `_headers` file did not take effect on the last deploy.
 
-## Working image links you can open in a browser
+## What you need to do (local, ~2 minutes)
+
+1. Open `C:\Users\User\Desktop\gpk-app-latest2\mirror-output\_headers` in Notepad.
+   Make sure the file is named exactly `_headers` (no `.txt` — turn on "File name extensions" in Explorer's View tab to check), sits at the **top level** of `mirror-output`, and contains exactly:
 
 ```text
-https://gpkonwaxbackup.netlify.app/atomic/QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/base/1a.jpg
-https://gpkonwaxbackup.netlify.app/atomic/QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/1.jpg
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: *
 ```
 
-## Next step (optional, run locally)
+Indentation matters: the header lines must start with two spaces, and `/*` must be flush left.
 
-To confirm every single file in the manifests exists byte-for-byte on all three mirrors:
+2. Redeploy the whole folder (not just `manifests`):
 
 ```powershell
-cd C:\Users\User\Desktop\gpk-app-latest2
-node scripts/audit-mirrors.mjs
+cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+netlify deploy --prod --dir .
 ```
 
-It HEAD-checks each manifest entry against Primary (GitHub), Backup A (Netlify) and Backup B (Cloudflare) and prints any file that is missing or the wrong size. Cloudflare is expected to report the oversized images that could not be uploaded there.
+If it asks about a build command, pick nothing / cancel out of it — this folder is static files only. If it prompts to link, link to the existing `gpkonwaxbackup` project.
+
+3. Verify the header is now live:
+
+```powershell
+curl.exe -I https://gpkonwaxbackup.netlify.app/manifests/manifest.json
+```
+
+You should see a line `access-control-allow-origin: *` in the output.
+
+4. Hard-refresh the Collection Manager (Ctrl+F5) and open Offline backup. Backup A should flip from failed to OK.
+
+## Note on the primary (GitHub Pages) mirror
+
+`https://gpkonwaxbackup.github.io/gpk-backup/mirror/manifests/manifest.json` currently returns 404, so the primary mirror has no manifest published yet either. That's a separate upload job — worth doing after Netlify is green.
 
 ## Code changes
 
-None required. The mirror is correctly laid out and the app is already wired to it.
+None. This is purely a hosting-header/deploy issue on your side; the app logic is already correct.
