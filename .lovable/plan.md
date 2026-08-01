@@ -41,11 +41,9 @@ The repo clone wins by over 1,200 files, and it is also the exact tree that alre
 C:\Users\User\Desktop\gpkonwaxbackup-repo
 ```
 
-One thing to settle before zipping: that folder has both a `mirror` subfolder *and* the three CID folders at its root, so I need to know whether those are two copies of the same images or two different halves. Run these four, one line at a time:
+One thing to settle before zipping: that folder has both a `mirror` subfolder *and* the three CID folders at its root, so I need to know whether those are two copies of the same images or two different halves.
 
-```
-cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
-```
+You are already sitting in the right folder (`C:\Users\User\Desktop\gpkonwaxbackup-repo>`), so **skip any `cd`** — your last attempt pasted the `cd` and the next command onto one line, which is why it failed. Copy these **one at a time**, pressing Enter after each:
 
 ```
 dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
