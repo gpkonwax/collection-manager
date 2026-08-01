@@ -1,126 +1,127 @@
-# Finish the backup from the confirmed 2542 JPG/GIF count
+# Merge the manifests, then build the final ZIPs
 
-The atomic top-up has already been completed and the JPG/GIF count remained **2542**. Do not run the download again.
+Confirmed from the manifest in `C:\Users\User\Desktop\gpk-zip-src`:
 
-The AtomicAssets builder can save images as **JPG, GIF, PNG, or WebP**. The previous count only included JPG and GIF, so it does not prove that 35 images are missing.
+- `files`: **1545**
+- `atomicImageCount`: **1547**
+- `missing`: **0**
+- `pending`: **0**
 
-## Step 1 — Count every supported image type
+That manifest describes **AtomicAssets only**. It contains no entries for the 1030 SimpleAssets images that are also sitting in the staging folder. Building the ZIPs against it now would ship an archive whose manifest covers barely half its contents, and the offline loader and every mirror audit would treat the SimpleAssets images as unknown files.
 
-Run from Desktop:
+`missing: 0` and `pending: 0` also mean nothing failed. Nothing needs to be re-downloaded.
+
+## Step 1 — Locate the SimpleAssets manifest
+
+The SimpleAssets manifest was produced by an earlier `build-image-mirror.mjs` run and lives outside the staging folder. Run each line separately:
 
 ```bat
 cd /d C:\Users\User\Desktop
 ```
 
 ```bat
-dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif gpk-zip-src\*.png gpk-zip-src\*.webp | find /c /v ""
+dir /s /b gpkonwaxbackup-repo\manifest.json
 ```
-
-Then count only AtomicAssets images:
 
 ```bat
-dir /s /b gpk-zip-src\atomic\*.jpg gpk-zip-src\atomic\*.gif gpk-zip-src\atomic\*.png gpk-zip-src\atomic\*.webp | find /c /v ""
+dir /s /b gpk-app-latest2\manifest.json
 ```
 
-Send me both numbers before continuing.
+Send me every path printed. The correct one has roughly 1030 entries and its keys look like `QmSRti.../base/1a.jpg` rather than bare CIDs.
 
-Expected results:
-
-- **2577 total** and **1547 atomic**: the backup is complete; the apparent 35-file gap was PNG/WebP images.
-- **2542 total** and **1512 atomic**: the 35 are genuinely absent or marked unavailable; inspect the manifest in Step 2.
-- Any other result: stop and send both numbers so we can account for the exact difference.
-
-## Step 2 — Inspect the manifest produced by the completed atomic run
-
-First confirm where the manifest exists:
+Check the count of a candidate by changing into its folder first:
 
 ```bat
-dir /s /b C:\Users\User\Desktop\gpk-zip-src\manifest.json C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifest.json
+cd /d <folder containing that manifest.json>
 ```
-
-If `gpk-zip-src\manifest.json` is listed, first change into that folder:
-
-```bat
-cd /d C:\Users\User\Desktop\gpk-zip-src
-```
-
-Then run these **one at a time**, pressing Enter after each line:
 
 ```bat
 node -p "Object.keys(require('./manifest.json').files||{}).length"
 ```
 
+## Step 2 — Count staged images by type
+
+Still needed to reconcile 1545 manifest entries against the 1512 atomic JPG/GIF counted earlier; the difference is expected to be PNG or WebP files.
+
 ```bat
-node -p "require('./manifest.json').atomicImageCount"
+cd /d C:\Users\User\Desktop
 ```
 
 ```bat
-node -p "(require('./manifest.json').missing||[]).length"
+dir /s /b gpk-zip-src\atomic\*.jpg gpk-zip-src\atomic\*.gif gpk-zip-src\atomic\*.png gpk-zip-src\atomic\*.webp | find /c /v ""
 ```
 
 ```bat
-node -p "Object.keys(require('./manifest.json').errorCounts||{}).length"
+dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif gpk-zip-src\*.png gpk-zip-src\*.webp | find /c /v ""
 ```
 
-Send me the four numbers in that order: **files, atomicImageCount, missing, pending**.
+Expected: atomic count **1545**, total count **2575**. Send both numbers.
 
-Interpretation:
+## Step 3 — I add a manifest merge script
 
-- `atomicImageCount: 1547`, `files: 1547`, and `missing: 0` confirms all AtomicAssets images are represented.
-- `missing: 35` confirms the script explicitly classified those 35 CIDs as unavailable after trying every configured gateway. In that case, **2542 is acceptable** and no further retry is needed.
-- A nonzero `pending` count means the run did not finish cleanly; stop and send the totals.
+Once Step 1 identifies the SimpleAssets manifest, I will add `scripts/merge-manifests.mjs` to this project. It will:
 
-## Step 3 — Verify the correct folder
+- read two manifest files and produce a single combined `manifest.json`
+- keep SimpleAssets keys as relative paths and AtomicAssets keys as CID lookup keys with their `path` field intact
+- fail loudly if a key exists in both inputs with different SHA-256 values
+- recompute `fileCount`, `missingCount`, and preserve `atomicSchemas` / `atomicImageCount`
+- write the merged result to the staging folder as `manifest.json`, saving the previous file as `manifest.atomic.json`
 
-The earlier verifier failed only because no folder argument was supplied, so it defaulted to `gpk-app-latest2\mirror-output`.
+You will then copy the script over the same way as before and run it with the two source paths.
 
-If `gpk-zip-src\manifest.json` exists, verify the staging folder directly:
+## Step 4 — Verify the merged staging folder
 
 ```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
+```
+
+```bat
 node scripts/verify-mirror.mjs C:\Users\User\Desktop\gpk-zip-src
 ```
 
-The result must have no `MISSING` or `CORRUPT` entries. `EXTRA` entries can indicate that the manifest contains only the AtomicAssets portion while the staging folder also contains SimpleAssets; do not build ZIPs until the manifest coverage is confirmed.
-
-## Step 4 — Confirm manifest coverage before building
-
-Compare the staged image count from Step 1 with the manifest `files` count from Step 2.
-
-- If they match, proceed.
-- If the manifest has **1547** entries but the folder has **2577** images, it covers AtomicAssets only. Stop and send the numbers; the SimpleAssets and AtomicAssets manifests must be merged before ZIP creation.
-- If 35 images were explicitly unavailable, the final manifest should list those under `missing` and contain the remaining available files.
+Required result: no `MISSING` and no `CORRUPT`. `EXTRA` must be zero or only non-image files. Do not continue until this passes.
 
 ## Step 5 — Build the split ZIPs
 
-Only after Steps 1–4 confirm the staging images and manifest agree, ensure `scripts\mirror-config.json` contains:
+Confirm `scripts\mirror-config.json` has:
 
 ```json
 "outDir": "C:\\Users\\User\\Desktop\\gpk-zip-src"
 ```
 
-Then run:
+Then:
 
 ```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
+```
+
+```bat
 node scripts/build-image-mirror.mjs --zip-only --split-zip
 ```
 
-Record the number of ZIP parts, each byte size, each SHA-256, and the reported total file count.
+Send me the part count, each part's byte size and SHA-256, and the total file count it reports. The total must match the Step 2 image count plus the manifest file.
 
 ## Step 6 — Publish and audit
 
-1. Replace the old GitHub Release ZIP parts with the newly generated parts.
-2. Copy the canonical `manifest.json` and any newly recovered images to the GitHub Pages, Netlify, and Cloudflare mirror trees.
-3. Keep ZIP files out of the Cloudflare Pages deployment because of its 25 MB per-file limit.
-4. Run:
+1. Upload the new parts to the GitHub Release, deleting the old parts.
+2. Copy the merged `manifest.json` and any newly present images to the GitHub Pages, Netlify, and Cloudflare mirror trees.
+3. Keep ZIP files out of Cloudflare Pages because of its 25 MB per-file limit.
+4. Run the audit:
 
 ```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
+```
+
+```bat
 node scripts/audit-mirrors.mjs
 ```
 
 All three mirrors must report `COMPLETE`.
 
-5. Open **Offline backup** in the app, confirm the combined download size matches the new ZIP parts, and test importing one part.
-6. Send me the final part names and byte sizes so the app's hardcoded ZIP fallback metadata can be updated.
+5. Open **Offline backup** in the app, confirm the listed download size matches the new parts, and import one part as a test.
+
+## Technical notes
+
+- `build-image-mirror.mjs --zip-only` reads whatever is on disk under `outDir` and zips all of it, so the ZIP contents are correct today. Only the manifest is incomplete, which is why the merge must happen before zipping.
+- `verify-mirror.mjs` resolves a manifest entry's `path` field when present, which is how AtomicAssets CID keys map onto `atomic/<cid>.<ext>` files. The merge must preserve that field exactly.
+- The 2-entry gap between `atomicImageCount` 1547 and `files` 1545 comes from two discovered image references resolving to CIDs already saved under another key, so no image data is absent.
