@@ -16,27 +16,38 @@ Nothing failed in the download runs (`missing: 0`, `pending: 0`), so no image ne
 
 ## Step 1 — Measure the composition of the staging manifest
 
+If a `>` prompt is showing, you are inside the Node REPL because the previous long command wrapped. Leave it first:
+
+```bat
+.exit
+```
+
+These replacements are short enough that Command Prompt cannot split them.
+
 ```bat
 cd /d C:\Users\User\Desktop\gpk-zip-src
 ```
 
-Run each line separately:
+Count AtomicAssets entries:
 
 ```bat
-node -p "Object.values(require('./manifest.json').files).filter(v=>v.path&&v.path.indexOf('atomic/')===0).length"
+findstr /c:"\"atomic/" manifest.json | find /c /v ""
 ```
+
+Count total entries:
 
 ```bat
-node -p "Object.values(require('./manifest.json').files).filter(v=>!v.path||v.path.indexOf('atomic/')!==0).length"
+findstr /c:"sha256" manifest.json | find /c /v ""
 ```
 
-Send both numbers: **atomic entries** and **non-atomic entries**.
+Send both numbers: **atomic entries** and **total entries**.
 
 Interpretation:
 
-- Around **1545 atomic / 0 non-atomic**: the staging manifest is AtomicAssets only and the 1030 SimpleAssets entries must be merged in (Step 3).
-- Around **515 atomic / 1030 non-atomic**: the manifest is already combined and correct. Skip Step 3 and go straight to Step 4. In that case the earlier "1547 atomic images" figure refers to discovered references, not stored files, and we reconcile it against the on-disk counts in Step 2.
+- **1545 atomic / 1545 total**: the staging manifest is AtomicAssets only, so the 1030 SimpleAssets entries must be merged in (Step 3).
+- **515 atomic / 1545 total**: the manifest is already combined and correct. Skip Step 3 and go to Step 4. The earlier figure of 1547 atomic images then refers to discovered references rather than stored files.
 - Anything else: send the numbers and stop.
+
 
 ## Step 2 — Count staged images by type
 
