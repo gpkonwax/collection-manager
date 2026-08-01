@@ -160,16 +160,19 @@ cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/build-image-mirror.mjs --zip-only --split-zip
 ```
 
-**Sanity check before uploading anything:** the output must report **3 or more parts** totalling roughly 4.2 GB or more, with a file count near 3,600. If it reports ~1,000 files or a single 1.65 GB part, the `outDir` edit in Part 2 did not take — stop and tell me.
+**Sanity check before uploading anything:** the file count in the output must match the staging-folder count from Part 3 (2542, or higher after Part 3b). If it reports ~1,000 files, or a single small part, the `outDir` edit in Part 3 did not take — stop and tell me. Expect roughly 3 GB or more spread across multiple parts.
 
 Write down the part names and byte sizes it prints; I need them at the end.
 
 ## Part 5 — Make sure the `_headers` file exists
 
-Look in `C:\Users\User\Desktop\gpk-app-latest2\mirror-output` for a file named exactly `_headers`, with no `.txt`. Without it the mirror reports as unreachable in the app. If it is missing:
+This one belongs to the deployed mirror folders, not the ZIP staging folder. Check `C:\Users\User\Desktop\gpkonwaxbackup-repo` for a file named exactly `_headers`, with no `.txt`. Without it the mirror reports as unreachable in the app. If it is missing:
 
 ```
-cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
+```
+
+```
 notepad _headers
 ```
 
@@ -193,7 +196,8 @@ ren _headers.txt _headers
 1. Go to `https://github.com/bewbzz/gpkonwaxbackup/releases`.
 2. Open the latest release and click **Edit** (the pencil icon).
 3. Remove the old `gpk-image-mirror-part-*.zip` assets using the small x next to each.
-4. Drag the new parts from `C:\Users\User\Desktop\gpk-app-latest2\mirror-output` into the assets box.
+4. Drag the new parts from `C:\Users\User\Desktop\gpk-zip-src` into the assets box.
+5. Wait for every upload to reach 100%, then click **Update release**.
 5. Wait for every upload to reach 100%, then click **Update release**.
 
 Never `git push` the ZIPs — they are far too large for a repo.
