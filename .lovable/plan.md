@@ -56,10 +56,8 @@ Inputs:
 
 You copy the script over the same way as the previous scripts and run it. Expected merged total: **2575** entries.
 
+## Step 3 — Verify the merged staging folder
 
-
-
-## Step 4 — Verify the merged staging folder
 
 ```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
