@@ -38,22 +38,13 @@ Your counts from `gpkonwaxbackup-repo`:
 
 1512 + 1030 = 2542, so the remaining 1030 are the three CID folders sitting at the repo root — a second copy of what is already inside `mirror\`. That is fine for the website, but it means we must **not** point the ZIP builder at the repo root: it zips every file it finds, so it would pack `.git`, `.wrangler`, and 1,030 duplicate images.
 
-The SimpleAssets side (1030) is complete. The open question is atomic: 1512 files, and I want to confirm against the live template list rather than a remembered figure — Part 2 does that with a dry run before anything downloads.
+The SimpleAssets side (1030) is complete.
 
-## Part 2 — Check whether the atomic set is actually short
+## Part 2 — Result: the atomic set is nearly complete
 
-```
-cd /d C:\Users\User\Desktop\gpk-app-latest2
-```
+The dry run reports **1547 unique images** across 12 schemas (series1 299, series2 737, exotic 171, crashgordon 31, bernventures 51, mittens 43, gamestonk 47, foodfightb 113, originalart 45, promo 2, bonus 2, packs 6).
 
-```
-node scripts/build-atomic-mirror.mjs --dry-run
-```
-
-This downloads nothing. It queries the AtomicAssets API and prints how many templates and unique images exist per schema, then a total. Send me that total.
-
-- If it is close to **1512**, the atomic set is already complete and we skip straight to staging.
-- If it is meaningfully higher, Part 3b fills the gap.
+You have **1512** on disk, so the gap is only **35 images** — not the ~1,100 I had feared. The earlier "~2,600" figure was wrong; 1547 is the real target. Part 3b is a short run, and the full backup is 1030 + 1547 = **2577 files**, not 3,600.
 
 ## Part 3 — Point the scripts at a clean staging folder
 
