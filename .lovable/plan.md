@@ -69,7 +69,7 @@ node scripts/verify-mirror.mjs C:\Users\User\Desktop\gpk-zip-src
 
 Required result: no `MISSING` and no `CORRUPT`. `EXTRA` must be zero or only non-image files. Do not continue until this passes.
 
-## Step 5 — Build the split ZIPs
+## Step 4 — Build the split ZIPs
 
 Confirm `scripts\mirror-config.json` has:
 
@@ -87,9 +87,10 @@ cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/build-image-mirror.mjs --zip-only --split-zip
 ```
 
-Send me the part count, each part's byte size and SHA-256, and the total file count it reports. The total must match the Step 2 image count plus the manifest file.
+Send me the part count, each part's byte size and SHA-256, and the total file count it reports. The total must equal the Step 1 image count plus the manifest file.
 
-## Step 6 — Publish and audit
+## Step 5 — Publish and audit
+
 
 1. Upload the new parts to the GitHub Release, deleting the old parts.
 2. Copy the merged `manifest.json` and any newly present images to the GitHub Pages, Netlify, and Cloudflare mirror trees.
