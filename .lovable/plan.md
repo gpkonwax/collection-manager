@@ -280,12 +280,12 @@ cd C:\Users\User\Desktop\gpk-app-latest2-new\scripts
 
 ```
 mkdir zip-holding
-move mirror-output\*.zip zip-holding
-move mirror-output\*.zip.0* zip-holding
-move mirror-output\*.z0* zip-holding
+move mirror-output\gpk-image-mirror.zip zip-holding
+move mirror-output\gpk-image-mirror.zip.* zip-holding
 ```
 
-Some of those lines may say "The system cannot find the file specified" — that is fine, it just means you had no files of that kind.
+The second or third line may say "A duplicate file name exists" or "The system cannot find the file specified" — that is normal and means those particular files were already moved or did not exist. Just continue to the next step.
+
 
 **6.3** Confirm nothing oversized is left. Type:
 
