@@ -4,21 +4,28 @@ The ZIP you built earlier came from `gpk-app-latest2-new`, which only holds a pa
 
 Nothing published is broken right now. The live mirrors and the ZIPs currently on the GitHub Release are untouched. Do not upload the 1-part ZIP you just made — delete it when convenient.
 
-## Part 1 — Confirm the full folder really is complete
+## Part 1 — Locate the mirror-output folder, then confirm it is complete
 
-Open Command Prompt and run these two commands, one at a time.
+In `gpk-app-latest2` the mirror folder is probably **not** inside `scripts` — earlier you were deploying from `C:\Users\User\Desktop\gpk-app-latest2\mirror-output`, i.e. at the top level of the project. Find it for certain:
+
+```
+dir /s /b /ad C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+```
+
+Note the path it prints. In the commands below, wherever I write `<MIRROR>`, substitute that exact path.
 
 Count the images:
 
 ```
-dir /s /b C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\*.gif | find /c /v ""
+dir /s /b <MIRROR>\*.jpg <MIRROR>\*.gif | find /c /v ""
 ```
 
 Check the atomic folder exists:
 
 ```
-dir C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\atomic
+dir <MIRROR>\atomic
 ```
+
 
 You are expecting a large number (roughly 3,600+) and a directory listing rather than "File Not Found". If either looks wrong, stop and tell me before going further.
 
