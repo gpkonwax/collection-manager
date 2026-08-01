@@ -28,53 +28,50 @@ del C:\Users\User\build-image-mirror.mjs
 
 If it says it cannot find them, that is fine — nothing to clean.
 
-## Part 1 — Find the fullest copy, then count it
+## Part 1 — Result: the repo clone is the fullest copy
 
-The last command still failed because the long path wrapped in your window and the front half was lost. Fix: always `cd` into the folder first, then use a short command with no paths in it.
+Your counts:
 
-**Folder A — the copy we were using.** Run these two lines, one at a time:
+- `gpk-app-latest2\mirror-output` — **2344** files (1512 atomic + ~830 SimpleAssets)
+- `gpkonwaxbackup-repo` — **3572** files
 
-```
-cd /d C:\Users\User\Desktop\gpk-app-latest2\mirror-output
-```
-
-```
-dir /s /b *.jpg *.gif | find /c /v ""
-```
-
-You already got **2344** here. While you are in this folder, also run these two:
+The repo clone wins by over 1,200 files, and it is also the exact tree that already feeds the live Primary mirror, so it is the source we build the ZIPs from. From here on this is the **build folder**:
 
 ```
-dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
+C:\Users\User\Desktop\gpkonwaxbackup-repo
 ```
 
-```
-dir /b /ad
-```
-
-**Folder B — the GitHub repo clone you just mentioned.** Same pattern:
+One thing to settle before zipping: that folder has both a `mirror` subfolder *and* the three CID folders at its root, so I need to know whether those are two copies of the same images or two different halves. Run these four, one line at a time:
 
 ```
 cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
 ```
 
 ```
-dir /s /b *.jpg *.gif | find /c /v ""
+dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
 ```
 
 ```
-dir /b /ad
+dir /s /b mirror\*.jpg mirror\*.gif | find /c /v ""
 ```
 
-Send me all six numbers/listings. Every command above is short enough that it cannot wrap.
+```
+dir /b /ad mirror
+```
 
-What I am looking for: the atomic count (a full AtomicAssets snapshot is roughly 2,600 files on its own) and the SimpleAssets CID folders (about 1,030 files across Series 1, Series 2 and Exotic). Total 2344 suggests the atomic side is the one that is short, but the folder listing will confirm it.
+Send me those three results. They tell me which folder the ZIP should be built from — if `mirror` contains its own copy of the CID folders, we zip `mirror` plus `atomic`; if it is a thin wrapper, we zip the root.
 
-One caveat on Folder B: it feeds the Primary mirror, so if it is complete it is the better source — but it will not contain the ZIP parts, since those live in GitHub Releases rather than in the repo itself.
+Also check whether the download manifest travelled with the clone:
 
-Whichever folder has the higher count becomes the **build folder**. Substitute its path anywhere the parts below say `gpk-app-latest2`. Part 3 refills SimpleAssets gaps; Part 3b refills the atomic ones.
+```
+dir /s /b manifest*.json
+```
 
-## Part 2 — Put the updated scripts in place and point them at the right folder
+If nothing comes back, the ZIP builder cannot use its file list and we will regenerate it in Part 2.
+
+## Part 2 — Point the scripts at the build folder
+
+The scripts live in your app project; the images live in the repo clone. Rather than moving 3,572 files, we point the config at the clone.
 
 ```
 cd /d C:\Users\User\Desktop\gpk-app-latest2\scripts
@@ -90,43 +87,37 @@ copy /Y ..\..\gpk-app-latest2-new\scripts\build-image-mirror.mjs .
 
 Each should say `1 file(s) copied.`
 
-Check the config is the new version — this should print two matching lines rather than nothing:
+Confirm the config is the new Series 2 version — this should print matching lines rather than nothing:
 
 ```
 findstr /C:"returning" /C:"sharedBack" mirror-config.json
 ```
 
-**Now the critical bit.** Open the config:
+Now open it:
 
 ```
 notepad mirror-config.json
 ```
 
-Near the top there is a line:
+Change the `outDir` line near the top from `"./mirror-output"` to the absolute path of the build folder (or the subfolder Part 1 identifies), using double backslashes because it is JSON:
 
 ```
-  "outDir": "./mirror-output",
+  "outDir": "C:\\Users\\User\\Desktop\\gpkonwaxbackup-repo",
 ```
 
-That path is relative to the `scripts` folder, so as written it points at `gpk-app-latest2\scripts\mirror-output` — the wrong place. Change it to:
+Save and close. I will confirm the exact value once I see your Part 1 results — if `mirror` holds the CID folders, this becomes `...\\gpkonwaxbackup-repo\\mirror` and we handle `atomic` separately.
+
+## Part 3 — Top up anything still missing
 
 ```
-  "outDir": "../mirror-output",
+cd /d C:\Users\User\Desktop\gpk-app-latest2
 ```
 
-Save and close. If you skip this, the script will create a new empty folder and download everything again from scratch.
-
-
-## Part 3 — Download the missing Series 2 images into the full tree
-
 ```
-cd C:\Users\User\Desktop\gpk-app-latest2
 node scripts/build-image-mirror.mjs --retry-all-missing
 ```
 
-This clears the old "skip these" list and re-attempts every configured entry. Files already on disk are left alone, so only the new Series 2 side-c / raw / returning / shared-back images get fetched. It hits the network, so give it time.
-
-When it finishes it prints a line like `Done. files=... missing=...`. A small `missing` count is normal — some card variants genuinely do not exist. A large one means something went wrong; send me the line if unsure.
+This clears the old "skip these" list and re-attempts every configured entry. Files already on disk are left alone, so only genuinely absent images get fetched — with 3,572 already present this should be a short run. It prints `Done. files=... missing=...` at the end; send me that line.
 
 If entries fail with timeouts, run this once to retry them slowly:
 
@@ -136,23 +127,21 @@ node scripts/build-image-mirror.mjs --retry-errors
 
 ## Part 3b — Top up the AtomicAssets series
 
-The atomic images (Crash Gordon and the other AtomicAssets sets) come from a different script. Run it from the same folder so it writes into the same `mirror-output\atomic`:
-
-```
-cd /d C:\Users\User\Desktop\gpk-app-latest2
-```
+Only needed if Part 1 shows the atomic count below ~2,600:
 
 ```
 node scripts/build-atomic-mirror.mjs
 ```
 
-It skips anything already on disk and only fetches what is missing, so it is safe to re-run. When it finishes, re-count:
+It skips what is already on disk. Afterwards re-count from the build folder:
 
 ```
-dir /s /b mirror-output\*.jpg mirror-output\*.gif | find /c /v ""
+cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
 ```
 
-Send me the new number. If it has climbed close to 3,600 we are good to zip.
+```
+dir /s /b *.jpg *.gif | find /c /v ""
+```
 
 
 ## Part 4 — Build the ZIP parts
