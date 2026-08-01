@@ -77,7 +77,9 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
     const baseUrl = card.originalImage ?? card.image;
     setGwIdx(0);
     setLoaded(false);
+    setExhausted(false);
     setFallbacks(buildRevealCandidateUrls(baseUrl, card.image));
+
     loadPinnedManifest().then((manifest) => {
       if (cancelled) return;
       // Re-derive candidates now that we know which hashes the mirrors cover.
