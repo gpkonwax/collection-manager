@@ -4,21 +4,28 @@ The ZIP you built earlier came from `gpk-app-latest2-new`, which only holds a pa
 
 Nothing published is broken right now. The live mirrors and the ZIPs currently on the GitHub Release are untouched. Do not upload the 1-part ZIP you just made — delete it when convenient.
 
-## Part 1 — Confirm the full folder really is complete
+## Part 1 — Locate the mirror-output folder, then confirm it is complete
 
-Open Command Prompt and run these two commands, one at a time.
+In `gpk-app-latest2` the mirror folder is probably **not** inside `scripts` — earlier you were deploying from `C:\Users\User\Desktop\gpk-app-latest2\mirror-output`, i.e. at the top level of the project. Find it for certain:
+
+```
+dir /s /b /ad C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+```
+
+Note the path it prints. In the commands below, wherever I write `<MIRROR>`, substitute that exact path.
 
 Count the images:
 
 ```
-dir /s /b C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\*.gif | find /c /v ""
+dir /s /b <MIRROR>\*.jpg <MIRROR>\*.gif | find /c /v ""
 ```
 
 Check the atomic folder exists:
 
 ```
-dir C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-output\atomic
+dir <MIRROR>\atomic
 ```
+
 
 You are expecting a large number (roughly 3,600+) and a directory listing rather than "File Not Found". If either looks wrong, stop and tell me before going further.
 
@@ -36,6 +43,27 @@ Confirm the config is the new one — this should print matching lines rather th
 ```
 findstr /C:"returning" /C:"sharedBack" C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
 ```
+
+**Important — point the config at your existing mirror folder.** The new config contains a line near the top that reads:
+
+```
+"outDir": "./mirror-output",
+```
+
+That path is relative to the `scripts` folder, so it means `gpk-app-latest2\scripts\mirror-output`. If Part 1 showed your real folder is at the project top level (`gpk-app-latest2\mirror-output`), open the config in Notepad:
+
+```
+notepad C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
+```
+
+and change that line to:
+
+```
+"outDir": "../mirror-output",
+```
+
+Save and close. Get this wrong and the script will start a brand new empty folder instead of topping up your real one.
+
 
 ## Part 3 — Download the missing Series 2 images into the full tree
 
@@ -61,11 +89,12 @@ node scripts/build-image-mirror.mjs --retry-errors
 
 ## Part 4 — Build the ZIP parts
 
-Delete any stale parts in this folder first (a "Could Not Find" message here is fine):
+Delete any stale parts in the mirror folder first (a "Could Not Find" message here is fine). Use your `<MIRROR>` path:
 
 ```
-del scripts\mirror-output\gpk-image-mirror-part-*.zip
+del <MIRROR>\gpk-image-mirror-part-*.zip
 ```
+
 
 Then build:
 
