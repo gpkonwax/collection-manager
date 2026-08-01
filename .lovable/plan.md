@@ -15,9 +15,20 @@ So `gpk-app-latest2-new\scripts\mirror-output` is a partial tree. Your complete 
 
 Also note: that run rewrote `public\gpk-manifest.json` locally to say "1 ZIP part". Do not push or deploy that file — it would tell every user there is only one part to download.
 
+## Where you should do this work
+
+You can run the mirror build from **any** project folder on your PC — it does not have to be a git clone. The mirror scripts only care about the `scripts\mirror-output` folder next to them.
+
+Right now you have at least two project folders on the desktop:
+
+- `gpk-app-latest1` — probably the one with the full 4.2 GB backup.
+- `gpk-app-latest2-new` — the one you just ran, which is incomplete.
+
+The app code in Lovable is synced to GitHub, but the **mirror data** is not in the repo (it is too large). So the GitHub clone is for the app code only. For the backup ZIPs, use whichever local folder has the complete `scripts\mirror-output`.
+
 ## Part 1 — Find out which folder actually holds the full backup
 
-Open Command Prompt and run these three lines, one at a time. Each one prints how many image files that folder holds.
+Open Command Prompt and run these commands. Each one prints how many image files that folder holds.
 
 ```
 dir /s /b C:\Users\User\Desktop\gpk-app-latest2-new\scripts\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2-new\scripts\mirror-output\*.gif | find /c /v ""
