@@ -192,27 +192,73 @@ The file should now be sitting directly inside `mirror-output` and should be cal
 
 Netlify is the mirror the app tries first, so this one matters most.
 
-**5.1** Go to <https://app.netlify.com> in your browser and sign in.
+You can use the web browser drag-and-drop method, or the Command Prompt method if the browser keeps crashing. The Command Prompt method is usually more reliable for large folders.
 
-**5.2** Click on your site named **gpkonwaxbackup**.
+### Option A — Command Prompt (recommended if browser upload fails)
 
-**5.3** Click the **Deploys** tab at the top.
+**5A.1** Install the Netlify command-line tool. In Command Prompt, type this and press Enter:
 
-**5.4** Scroll down until you see the drag-and-drop box (it says something like "Drag and drop your site output folder here").
+```
+npm install -g netlify-cli
+```
 
-**5.5** Open File Explorer next to it, go to the project folder you are using, and drag the folder named **`mirror-output`** into that box.
+Wait for it to finish. You only need to do this once on your PC.
 
-**Very important:** drag the folder called `mirror-output` itself — not any folder that lives inside it. Last time dragging an inside folder wiped the whole site, because Netlify replaces everything with whatever you drop.
+**5A.2** Log in to Netlify through the command line. Type this and press Enter:
 
-**5.6** Wait for the page to say **Published**. Large uploads can take several minutes.
+```
+netlify login
+```
 
-**5.7** Test it. Paste each of these three links into your browser. Each one should show a picture, not a "Page not found" message:
+A browser window opens. Click **Authorize**. Then come back to Command Prompt.
+
+**5A.3** Move into the `mirror-output` folder inside your project folder. Replace `gpk-app-latest2` with whichever folder you are using:
+
+```
+cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+```
+
+**5A.4** Upload the folder to your Netlify site. Type this exactly and press Enter:
+
+```
+netlify deploy --prod --site gpkonwaxbackup --dir . --build-ignore
+```
+
+The `--build-ignore` part is important — it tells Netlify not to try to auto-detect a framework build, which is what caused the wrong menu before.
+
+**5A.5** Wait. You will see a progress bar. When it finishes it prints a line like:
+
+```
+Website URL: https://gpkonwaxbackup.netlify.app
+```
+
+**5A.6** Test it. Paste each of these three links into your browser. Each one should show a picture, not a "Page not found" message:
 
 - `https://gpkonwaxbackup.netlify.app/QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/base/58c.jpg`
 - `https://gpkonwaxbackup.netlify.app/QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/raw/65.jpg`
 - `https://gpkonwaxbackup.netlify.app/QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/returning/6b.gif`
 
 If all three show pictures, the main job is done. Parts 6 and 7 are the two backup copies.
+
+### Option B — Web browser drag-and-drop
+
+If you prefer the browser method, follow these steps instead of 5A.
+
+**5B.1** Go to <https://app.netlify.com> in your browser and sign in.
+
+**5B.2** Click on your site named **gpkonwaxbackup**.
+
+**5B.3** Click the **Deploys** tab at the top.
+
+**5B.4** Scroll down until you see the drag-and-drop box (it says something like "Drag and drop your site output folder here").
+
+**5B.5** Open File Explorer next to it, go to the project folder you are using, and drag the folder named **`mirror-output`** into that box.
+
+**Very important:** drag the folder called `mirror-output` itself — not any folder that lives inside it. Last time dragging an inside folder wiped the whole site, because Netlify replaces everything with whatever you drop.
+
+**5B.6** Wait for the page to say **Published**. Large uploads can take several minutes.
+
+**5B.7** Test it using the same three links shown in step 5A.6.
 
 ---
 
