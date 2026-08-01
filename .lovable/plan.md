@@ -70,36 +70,6 @@ The SimpleAssets input will be `C:\Users\User\Desktop\gpkonwaxbackup-repo\manife
 
 
 
-## Step 2 — Count staged images by type
-
-Still needed to reconcile 1545 manifest entries against the 1512 atomic JPG/GIF counted earlier; the difference is expected to be PNG or WebP files.
-
-```bat
-cd /d C:\Users\User\Desktop
-```
-
-```bat
-dir /s /b gpk-zip-src\atomic\*.jpg gpk-zip-src\atomic\*.gif gpk-zip-src\atomic\*.png gpk-zip-src\atomic\*.webp | find /c /v ""
-```
-
-```bat
-dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif gpk-zip-src\*.png gpk-zip-src\*.webp | find /c /v ""
-```
-
-Expected: atomic count **1545**, total count **2575**. Send both numbers.
-
-## Step 3 — I add a manifest merge script
-
-Once Step 1 identifies the SimpleAssets manifest, I will add `scripts/merge-manifests.mjs` to this project. It will:
-
-- read two manifest files and produce a single combined `manifest.json`
-- keep SimpleAssets keys as relative paths and AtomicAssets keys as CID lookup keys with their `path` field intact
-- fail loudly if a key exists in both inputs with different SHA-256 values
-- recompute `fileCount`, `missingCount`, and preserve `atomicSchemas` / `atomicImageCount`
-- write the merged result to the staging folder as `manifest.json`, saving the previous file as `manifest.atomic.json`
-
-You will then copy the script over the same way as before and run it with the two source paths.
-
 ## Step 4 — Verify the merged staging folder
 
 ```bat
