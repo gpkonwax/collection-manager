@@ -1,0 +1,17 @@
+Mirror audit — 2026-08-01T12:47:56.889Z
+Manifest entries: 832
+
+## Primary (GitHub Pages)
+  base:         https://bewbzz.github.io/gpkonwaxbackup/mirror/
+  checked:      832
+  ok:           832
+  missing:      0
+  wrong size:   0
+  sha mismatch: 0
+  zip parts:
+    - gpk-image-mirror-part-001.zip: FAIL status=404 expected=1.76 GiB actual=5.1 KiB
+    - gpk-image-mirror-part-002.zip: FAIL status=404 expected=1.76 GiB actual=5.1 KiB
+    - gpk-image-mirror-part-003.zip: FAIL status=404 expected=464.9 MiB actual=5.1 KiB
+  verdict:      COMPLETE
+
+Detailed lists written to scripts/mirror-output/audit-report/
