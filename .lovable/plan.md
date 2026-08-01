@@ -1,173 +1,107 @@
-# Finish the ZIP rebuild from the current staging folder
+# Finish the backup from the confirmed 2542 JPG/GIF count
 
-You are here:
+The atomic top-up has already been completed and the JPG/GIF count remained **2542**. Do not run the download again.
 
-- Staging folder `C:\Users\User\Desktop\gpk-zip-src` exists and holds **2542** image files.
-- That is **1030** SimpleAssets + **1512** AtomicAssets.
-- The dry run says the AtomicAssets target is **1547** unique images, so **35 images are still missing**.
-- `verify-mirror.mjs` currently fails because no `manifest.json` exists yet in `mirror-output`.
+The AtomicAssets builder can save images as **JPG, GIF, PNG, or WebP**. The previous count only included JPG and GIF, so it does not prove that 35 images are missing.
 
-## Step 1 — Fetch the 35 missing atomic images
+## Step 1 — Count every supported image type
 
-The atomic script skips anything already on disk, so this only pulls the stragglers.
+Run from Desktop:
 
-```
-cd /d C:\Users\User\Desktop\gpk-app-latest2
-```
-
-```
-node scripts/build-atomic-mirror.mjs
-```
-
-When it finishes, copy the result into the staging folder:
-
-```
+```bat
 cd /d C:\Users\User\Desktop
 ```
 
-```
-robocopy gpk-app-latest2\mirror-output\atomic gpk-zip-src\atomic /E
-```
-
-Re-count:
-
-```
-dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif | find /c /v ""
+```bat
+dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif gpk-zip-src\*.png gpk-zip-src\*.webp | find /c /v ""
 ```
 
-Target is **2577**. Send me the number. A few short is fine if the script reported those specific images as unavailable on every gateway.
+Then count only AtomicAssets images:
 
-## Step 2 — Build the split ZIPs and generate the manifest
-
-Clear stale parts first. "Could Not Find" is fine:
-
-```
-del C:\Users\User\Desktop\gpk-zip-src\gpk-image-mirror-part-*.zip
+```bat
+dir /s /b gpk-zip-src\atomic\*.jpg gpk-zip-src\atomic\*.gif gpk-zip-src\atomic\*.png gpk-zip-src\atomic\*.webp | find /c /v ""
 ```
 
-Make sure the ZIP builder points at the staging folder. Open the config:
+Send me both numbers before continuing.
 
-```
-cd /d C:\Users\User\Desktop\gpk-app-latest2\scripts
-notepad mirror-config.json
+Expected results:
+
+- **2577 total** and **1547 atomic**: the backup is complete; the apparent 35-file gap was PNG/WebP images.
+- **2542 total** and **1512 atomic**: the 35 are genuinely absent or marked unavailable; inspect the manifest in Step 2.
+- Any other result: stop and send both numbers so we can account for the exact difference.
+
+## Step 2 — Inspect the manifest produced by the completed atomic run
+
+First confirm where the manifest exists:
+
+```bat
+dir /s /b C:\Users\User\Desktop\gpk-zip-src\manifest.json C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifest.json
 ```
 
-The `outDir` line must be:
+If `gpk-zip-src\manifest.json` is listed, print its totals:
 
-```
-  "outDir": "C:\\Users\\User\\Desktop\\gpk-zip-src",
+```bat
+cd /d C:\Users\User\Desktop\gpk-app-latest2
+node -e "const m=require('C:/Users/User/Desktop/gpk-zip-src/manifest.json'); console.log({files:Object.keys(m.files||{}).length,atomicImageCount:m.atomicImageCount,missing:(m.missing||[]).length,pending:Object.keys(m.errorCounts||{}).length})"
 ```
 
-Save and close, then build:
+Interpretation:
 
+- `atomicImageCount: 1547`, `files: 1547`, and `missing: 0` confirms all AtomicAssets images are represented.
+- `missing: 35` confirms the script explicitly classified those 35 CIDs as unavailable after trying every configured gateway. In that case, **2542 is acceptable** and no further retry is needed.
+- A nonzero `pending` count means the run did not finish cleanly; stop and send the totals.
+
+## Step 3 — Verify the correct folder
+
+The earlier verifier failed only because no folder argument was supplied, so it defaulted to `gpk-app-latest2\mirror-output`.
+
+If `gpk-zip-src\manifest.json` exists, verify the staging folder directly:
+
+```bat
+cd /d C:\Users\User\Desktop\gpk-app-latest2
+node scripts/verify-mirror.mjs C:\Users\User\Desktop\gpk-zip-src
 ```
+
+The result must have no `MISSING` or `CORRUPT` entries. `EXTRA` entries can indicate that the manifest contains only the AtomicAssets portion while the staging folder also contains SimpleAssets; do not build ZIPs until the manifest coverage is confirmed.
+
+## Step 4 — Confirm manifest coverage before building
+
+Compare the staged image count from Step 1 with the manifest `files` count from Step 2.
+
+- If they match, proceed.
+- If the manifest has **1547** entries but the folder has **2577** images, it covers AtomicAssets only. Stop and send the numbers; the SimpleAssets and AtomicAssets manifests must be merged before ZIP creation.
+- If 35 images were explicitly unavailable, the final manifest should list those under `missing` and contain the remaining available files.
+
+## Step 5 — Build the split ZIPs
+
+Only after Steps 1–4 confirm the staging images and manifest agree, ensure `scripts\mirror-config.json` contains:
+
+```json
+"outDir": "C:\\Users\\User\\Desktop\\gpk-zip-src"
+```
+
+Then run:
+
+```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/build-image-mirror.mjs --zip-only --split-zip
 ```
 
-Watch the output. It must report a file count close to **2577** and produce multiple parts. If it reports ~1000 files or one tiny part, the `outDir` edit did not take — stop and tell me.
+Record the number of ZIP parts, each byte size, each SHA-256, and the reported total file count.
 
-Write down the part names and byte sizes.
+## Step 6 — Publish and audit
 
-The build also creates `C:\Users\User\Desktop\gpk-zip-src\manifests\manifest.json`. Keep that path in mind — it is needed for verification and mirror deployment.
+1. Replace the old GitHub Release ZIP parts with the newly generated parts.
+2. Copy the canonical `manifest.json` and any newly recovered images to the GitHub Pages, Netlify, and Cloudflare mirror trees.
+3. Keep ZIP files out of the Cloudflare Pages deployment because of its 25 MB per-file limit.
+4. Run:
 
-## Step 3 — Verify the staged mirror
-
-`verify-mirror.mjs` expects the manifest at `mirror-output\manifest.json`. Because you are using the staging folder, copy the generated manifest into place first:
-
-```
+```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
-mkdir mirror-output
-xcopy /Y /I gpk-zip-src\manifests\manifest.json mirror-output\manifest.json
-```
-
-Then run the verifier:
-
-```
-node scripts/verify-mirror.mjs
-```
-
-It should report the same file count as the ZIP builder. If it lists missing files, those are the 35 stragglers — send me the list only if the count is more than ~40.
-
-## Step 4 — Confirm the `_headers` file exists
-
-Check `C:\Users\User\Desktop\gpkonwaxbackup-repo` for a file named exactly `_headers` (no `.txt`). If it is missing:
-
-```
-cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
-notepad _headers
-```
-
-Paste:
-
-```
-/*
-  Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
-  Access-Control-Allow-Headers: *
-```
-
-Save. If Notepad appends `.txt`, rename it:
-
-```
-ren _headers.txt _headers
-```
-
-## Step 5 — Upload the new ZIPs to the GitHub Release
-
-1. Go to `https://github.com/bewbzz/gpkonwaxbackup/releases`.
-2. Open the latest release and click **Edit**.
-3. Delete the old `gpk-image-mirror-part-*.zip` assets.
-4. Drag the new parts from `C:\Users\User\Desktop\gpk-zip-src` into the assets box.
-5. Wait for every upload to reach 100%, then click **Update release**.
-
-Never `git push` the ZIPs.
-
-## Step 6 — Push the refreshed manifest and images to the mirrors
-
-The build rewrote `gpk-zip-src\manifests\manifest.json` with the new part list, sizes and hashes.
-
-**Netlify (Backup A)** — deploy from the mirror folder:
-
-```
-cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
-netlify deploy --prod --site gpkonwaxbackup --dir . --build-ignore
-```
-
-If Netlify still fails, deploy from `gpk-zip-src` instead:
-
-```
-cd C:\Users\User\Desktop\gpk-zip-src
-netlify deploy --prod --site gpkonwaxbackup --dir . --build-ignore
-```
-
-**Cloudflare (Backup B)** — Pages rejects files over 25 MB, so move the ZIPs out first:
-
-```
-cd /d C:\Users\User\Desktop\gpk-zip-src
-mkdir zip-holding
-move gpk-image-mirror-part-001.zip zip-holding
-move gpk-image-mirror-part-002.zip zip-holding
-move gpk-image-mirror-part-003.zip zip-holding
-```
-
-Run your usual Wrangler deploy from the remaining folder, then move them back:
-
-```
-move zip-holding\gpk-image-mirror-part-*.zip .
-```
-
-**GitHub Pages (Primary)** — copy the updated `manifests\manifest.json` and any newly downloaded image folders into your `gpkonwaxbackup` repo clone under `mirror\`, then commit and push.
-
-## Step 7 — Verify
-
-```
-cd C:\Users\User\Desktop\gpk-app-latest2
 node scripts/audit-mirrors.mjs
 ```
 
-You want `COMPLETE` on Primary, Backup A and Backup B.
+All three mirrors must report `COMPLETE`.
 
-Then open the app, go to **Offline backup**, and confirm the total download size matches the new combined part size. Download one part and load it to confirm it ingests cleanly.
-
-Finally, send me the part count and byte sizes the build printed so I can update the hardcoded fallback values in `scripts/sync-pinned-manifest.mjs`.
+5. Open **Offline backup** in the app, confirm the combined download size matches the new ZIP parts, and test importing one part.
+6. Send me the final part names and byte sizes so the app's hardcoded ZIP fallback metadata can be updated.
