@@ -15,29 +15,21 @@ Manifest survey:
 
 Nothing failed during downloads (`missing: 0`, `pending: 0`), so no image needs re-fetching.
 
-## Step 1 — Count staged images by type
+## Step 1 — Count staged images (done)
 
-Run each line separately:
+Counts came back exactly as expected:
 
-```bat
-cd /d C:\Users\User\Desktop
-```
+- `gpk-zip-src\atomic` images: **1545** — matches the AtomicAssets manifest one-for-one
+- `gpk-zip-src` total images: **2575** — 1545 AtomicAssets plus 1030 SimpleAssets
 
-```bat
-dir /s /b gpk-zip-src\atomic\*.jpg gpk-zip-src\atomic\*.gif gpk-zip-src\atomic\*.png gpk-zip-src\atomic\*.webp | find /c /v ""
-```
+The staging folder holds the complete image set. The earlier 2542 figure was low only because it did not count WebP and PNG files. Nothing is left to download.
 
-```bat
-dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif gpk-zip-src\*.png gpk-zip-src\*.webp | find /c /v ""
-```
-
-Send both numbers. Expected: **1545 atomic** and **2575 total** (1545 atomic plus 1030 SimpleAssets). The earlier 2542 figure omitted WebP files, which the manifest confirms exist.
-
-Also delete the stale ZIP parts so they are not re-zipped into the new archive:
+One cleanup before zipping — delete the stale ZIP parts so they are not swallowed into the new archive:
 
 ```bat
 del /q C:\Users\User\Desktop\gpk-zip-src\gpk-image-mirror-part-*.zip
 ```
+
 
 ## Step 2 — Merge the two manifests
 
