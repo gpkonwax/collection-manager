@@ -70,6 +70,8 @@ Confirm the staging folder holds 2542 files:
 dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif | find /c /v ""
 ```
 
+**Done — this reported 2542, exactly as expected.** Run the robocopy lines from `C:\Users\User\Desktop`, not from inside a project folder, or the path doubles and robocopy errors with "cannot find the path specified".
+
 Then put the updated scripts in place:
 
 ```
