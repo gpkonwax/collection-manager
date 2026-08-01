@@ -38,12 +38,31 @@ First confirm where the manifest exists:
 dir /s /b C:\Users\User\Desktop\gpk-zip-src\manifest.json C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifest.json
 ```
 
-If `gpk-zip-src\manifest.json` is listed, print its totals:
+If `gpk-zip-src\manifest.json` is listed, first change into that folder:
 
 ```bat
-cd /d C:\Users\User\Desktop\gpk-app-latest2
-node -e "const m=require('C:/Users/User/Desktop/gpk-zip-src/manifest.json'); console.log({files:Object.keys(m.files||{}).length,atomicImageCount:m.atomicImageCount,missing:(m.missing||[]).length,pending:Object.keys(m.errorCounts||{}).length})"
+cd /d C:\Users\User\Desktop\gpk-zip-src
 ```
+
+Then run these **one at a time**, pressing Enter after each line:
+
+```bat
+node -p "Object.keys(require('./manifest.json').files||{}).length"
+```
+
+```bat
+node -p "require('./manifest.json').atomicImageCount"
+```
+
+```bat
+node -p "(require('./manifest.json').missing||[]).length"
+```
+
+```bat
+node -p "Object.keys(require('./manifest.json').errorCounts||{}).length"
+```
+
+Send me the four numbers in that order: **files, atomicImageCount, missing, pending**.
 
 Interpretation:
 
