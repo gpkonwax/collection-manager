@@ -263,6 +263,8 @@ async function main() {
     const m = rep.mirror;
     lines.push(`## ${m.label}`);
     lines.push(`  base:         ${m.baseUrl}`);
+    if (m.atomicBaseUrl) lines.push(`  atomic base:  ${m.atomicBaseUrl}`);
+    if (m.zipBaseUrl)    lines.push(`  zip base:     ${m.zipBaseUrl}`);
     lines.push(`  checked:      ${rep.total}`);
     lines.push(`  ok:           ${rep.ok}`);
     lines.push(`  missing:      ${rep.missing.length}`);
@@ -274,10 +276,12 @@ async function main() {
         lines.push(`    - ${z.name}: ${z.ok ? 'OK' : 'FAIL'} status=${z.status ?? '-'} expected=${fmtBytes(z.expected)} actual=${fmtBytes(z.actual)}${z.error ? ` err=${z.error}` : ''}`);
       }
     }
-    const verdict = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0
+    const zipFail = rep.zipReport.filter((z) => !z.ok).length;
+    const verdict = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0 && zipFail === 0
       ? 'COMPLETE'
-      : `GAPS (missing=${rep.missing.length}, wrongSize=${rep.wrongSize.length}, shaMismatch=${rep.shaMismatch.length})`;
+      : `GAPS (missing=${rep.missing.length}, wrongSize=${rep.wrongSize.length}, shaMismatch=${rep.shaMismatch.length}, zipFail=${zipFail})`;
     lines.push(`  verdict:      ${verdict}`);
+
     lines.push('');
   }
   lines.push(`Detailed lists written to ${OUT_DIR}/`);
