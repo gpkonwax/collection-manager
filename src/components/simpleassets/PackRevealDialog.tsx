@@ -563,14 +563,18 @@ export function PackRevealDialog({
       const reveal: RevealResult = {
         source: 'simpleassets',
         expectedCategory: getGpkCategoryForBoxtype(revealedRowsRef.current[0]?.boxtype ?? ''),
-        matchers: revealedRowsRef.current.map((r) => ({
-          kind: 'sa' as const,
-          cardid: normalizePendingGpkCardId(r.boxtype, r.cardid),
-          side: String(r.quality ?? '').toLowerCase(),
-          variant: normalizeGpkVariant(String(r.variant ?? '')),
-          category: getGpkCategoryForBoxtype(r.boxtype),
-        })),
+        matchers: revealedRowsRef.current.map((r) => {
+          const resolved = resolvePendingGpkCard(r.boxtype, r.cardid, r.quality, r.variant);
+          return {
+            kind: 'sa' as const,
+            cardid: resolved.cardid,
+            side: resolved.side,
+            variant: normalizeGpkVariant(String(r.variant ?? '')),
+            category: getGpkCategoryForBoxtype(r.boxtype),
+          };
+        }),
       };
+
       setPhase('done'); onComplete(txId, reveal);
       // Auto-close after brief confirmation
       setTimeout(() => onOpenChange(false), 1500);
