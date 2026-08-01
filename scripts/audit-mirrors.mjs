@@ -186,7 +186,8 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
     const sample = pickSample(okEntries, opts.sample);
     console.log(`  sha256 sampling ${sample.length} files…`);
     await pool(sample, Math.min(opts.concurrency, 4), async ([rel, meta]) => {
-      const url = mirror.baseUrl + rel;
+      const url = urlFor(mirror, rel, meta);
+
       const r = await shaCheck(url, meta.sha256);
       if (!r.ok && r.reason !== 'http') shaMismatch.push({ rel, sha: r.sha });
       else if (!r.ok) shaMismatch.push({ rel, status: r.status });
