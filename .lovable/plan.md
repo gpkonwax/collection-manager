@@ -11,33 +11,59 @@ That manifest describes **AtomicAssets only**. It contains no entries for the 10
 
 `missing: 0` and `pending: 0` also mean nothing failed. Nothing needs to be re-downloaded.
 
-## Step 1 — Locate the SimpleAssets manifest
 
-The SimpleAssets manifest was produced by an earlier `build-image-mirror.mjs` run and lives outside the staging folder. Run each line separately:
+## Step 1 — Identify which candidate manifest holds SimpleAssets
 
-```bat
-cd /d C:\Users\User\Desktop
+Three manifests exist:
+
+```text
+C:\Users\User\Desktop\gpkonwaxbackup-repo\manifest.json
+C:\Users\User\Desktop\gpkonwaxbackup-repo\mirror\manifest.json
+C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests\manifest.json
 ```
 
-```bat
-dir /s /b gpkonwaxbackup-repo\manifest.json
-```
+Check each one. Run the two lines per folder, separately:
 
 ```bat
-dir /s /b gpk-app-latest2\manifest.json
-```
-
-Send me every path printed. The correct one has roughly 1030 entries and its keys look like `QmSRti.../base/1a.jpg` rather than bare CIDs.
-
-Check the count of a candidate by changing into its folder first:
-
-```bat
-cd /d <folder containing that manifest.json>
+cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
 ```
 
 ```bat
 node -p "Object.keys(require('./manifest.json').files||{}).length"
 ```
+
+```bat
+node -p "Object.keys(require('./manifest.json').files||{})[0]"
+```
+
+```bat
+cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo\mirror
+```
+
+```bat
+node -p "Object.keys(require('./manifest.json').files||{}).length"
+```
+
+```bat
+node -p "Object.keys(require('./manifest.json').files||{})[0]"
+```
+
+```bat
+cd /d C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests
+```
+
+```bat
+node -p "Object.keys(require('./manifest.json').files||{}).length"
+```
+
+```bat
+node -p "Object.keys(require('./manifest.json').files||{})[0]"
+```
+
+Send me all six results. The SimpleAssets manifest is the one whose sample key looks like a folder path such as `QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/base/1a.jpg`, and whose count is around 1030. A bare CID sample key means that file is an AtomicAssets manifest instead.
+
+If more than one candidate qualifies, we use the one with the highest entry count.
+
 
 ## Step 2 — Count staged images by type
 
