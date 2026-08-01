@@ -28,17 +28,39 @@ del C:\Users\User\build-image-mirror.mjs
 
 If it says it cannot find them, that is fine — nothing to clean.
 
-## Part 1 — Count what you have
+## Part 1 — Find the fullest copy, then count it
+
+You have more than one candidate folder, so before rebuilding anything we pick the one with the most images. Run each of these three, one line at a time, and send me the three numbers.
+
+The copy we were using (already counted at **2344**):
 
 ```
-cd /d C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+dir /s /b C:\Users\User\Desktop\gpk-app-latest2\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2\mirror-output\*.gif | find /c /v ""
 ```
 
+The GitHub repo clone you just mentioned:
+
 ```
-dir /s /b *.jpg *.gif | find /c /v ""
+dir /s /b C:\Users\User\Desktop\gpkonwaxbackup-repo\*.jpg C:\Users\User\Desktop\gpkonwaxbackup-repo\*.gif | find /c /v ""
 ```
 
-You reported **2344**. That is a real tree, but lower than the ~3,600 a complete backup should hold, so we need to see which half is short before rebuilding anything. Run these two and send me both numbers:
+And its folder layout, so I can see whether images sit under `mirror\` and `atomic\` as the live site expects:
+
+```
+dir /s /b /ad C:\Users\User\Desktop\gpkonwaxbackup-repo
+```
+
+If any of those lines wrap in your window, widen it as described in Part 0 first — a wrapped command runs as two broken ones.
+
+A note on what the repo clone can and cannot be: GitHub rejects files over 100 MB and the repo is what feeds the Primary mirror, so if the clone is complete it is the best source. But it also will not contain the ZIP parts, since those live in Releases rather than the repo.
+
+Whichever folder has the highest count becomes the one we build from. I will call it the **build folder** in the parts below — substitute its path anywhere the plan says `gpk-app-latest2`.
+
+Once we pick it, split the count so I can see which half is short:
+
+```
+dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
+```
 
 ```
 dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
