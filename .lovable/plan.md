@@ -11,9 +11,6 @@ That manifest describes **AtomicAssets only**. It contains no entries for the 10
 
 `missing: 0` and `pending: 0` also mean nothing failed. Nothing needs to be re-downloaded.
 
-## Step 1 — Locate the SimpleAssets manifest
-
-The SimpleAssets manifest was produced by an earlier `build-image-mirror.mjs` run and lives outside the staging folder. Run each line separately:
 
 ## Step 1 — Identify which candidate manifest holds SimpleAssets
 
