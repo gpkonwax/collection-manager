@@ -38,7 +38,19 @@ cd /d C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 dir /s /b *.jpg *.gif | find /c /v ""
 ```
 
-Expect a large number, roughly 3,600 or more. Tell me the number before moving on if it looks small.
+You reported **2344**. That is a real tree, but lower than the ~3,600 a complete backup should hold, so we need to see which half is short before rebuilding anything. Run these two and send me both numbers:
+
+```
+dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
+```
+
+```
+dir /b /ad
+```
+
+The first is the AtomicAssets count (Crash Gordon and friends) — a full atomic snapshot is roughly 2,600 files on its own. The second lists the top-level CID folders so I can confirm which SimpleAssets series are present.
+
+Rough reading while you wait: SimpleAssets (Series 1, Series 2, Exotic) accounts for about 1,030 files, so 2344 total means the atomic side is likely incomplete rather than the SA side. Part 3 refills the SimpleAssets gaps; Part 3b below refills the atomic ones.
 
 ## Part 2 — Put the updated scripts in place and point them at the right folder
 
@@ -99,6 +111,27 @@ If entries fail with timeouts, run this once to retry them slowly:
 ```
 node scripts/build-image-mirror.mjs --retry-errors
 ```
+
+## Part 3b — Top up the AtomicAssets series
+
+The atomic images (Crash Gordon and the other AtomicAssets sets) come from a different script. Run it from the same folder so it writes into the same `mirror-output\atomic`:
+
+```
+cd /d C:\Users\User\Desktop\gpk-app-latest2
+```
+
+```
+node scripts/build-atomic-mirror.mjs
+```
+
+It skips anything already on disk and only fetches what is missing, so it is safe to re-run. When it finishes, re-count:
+
+```
+dir /s /b mirror-output\*.jpg mirror-output\*.gif | find /c /v ""
+```
+
+Send me the new number. If it has climbed close to 3,600 we are good to zip.
+
 
 ## Part 4 — Build the ZIP parts
 
