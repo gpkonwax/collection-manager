@@ -1,68 +1,73 @@
 # Merge the manifests, then build the final ZIPs
+# Confirm manifest composition, then build the final ZIPs
 
-Confirmed from the manifest in `C:\Users\User\Desktop\gpk-zip-src`:
+Manifest survey results:
 
-- `files`: **1545**
-- `atomicImageCount`: **1547**
-- `missing`: **0**
-- `pending`: **0**
+| Manifest | Entries | First key | Reading |
+| --- | --- | --- | --- |
+| `gpk-zip-src\manifest.json` | 1545 | (not sampled) | staging manifest, composition unknown |
+| `gpkonwaxbackup-repo\manifest.json` | 1030 | `QmSRti.../base/2a.jpg` | SimpleAssets only |
+| `gpkonwaxbackup-repo\mirror\manifest.json` | 832 | `QmSRti.../prism/1a.gif` | older partial SimpleAssets set, ignore |
+| `gpk-app-latest2\mirror-output\manifests\manifest.json` | 1545 | `QmSRti.../back/1.jpg` | starts with a SimpleAssets key |
 
-That manifest describes **AtomicAssets only**. It contains no entries for the 1030 SimpleAssets images that are also sitting in the staging folder. Building the ZIPs against it now would ship an archive whose manifest covers barely half its contents, and the offline loader and every mirror audit would treat the SimpleAssets images as unknown files.
+The last row matters: a 1545-entry manifest whose first key is a SimpleAssets path means 1545 is **not** necessarily an AtomicAssets-only count. The staging manifest may already be a combined SimpleAssets + AtomicAssets manifest, in which case no merge is needed at all.
 
-`missing: 0` and `pending: 0` also mean nothing failed. Nothing needs to be re-downloaded.
+Nothing failed in the download runs (`missing: 0`, `pending: 0`), so no image needs re-fetching regardless.
 
-
-## Step 1 — Identify which candidate manifest holds SimpleAssets
-
-Three manifests exist:
-
-```text
-C:\Users\User\Desktop\gpkonwaxbackup-repo\manifest.json
-C:\Users\User\Desktop\gpkonwaxbackup-repo\mirror\manifest.json
-C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests\manifest.json
-```
-
-Check each one. Run the two lines per folder, separately:
+## Step 1 — Measure the composition of the staging manifest
 
 ```bat
-cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
+cd /d C:\Users\User\Desktop\gpk-zip-src
+```
+
+Run each line separately:
+
+```bat
+node -p "Object.values(require('./manifest.json').files).filter(v=>v.path&&v.path.indexOf('atomic/')===0).length"
 ```
 
 ```bat
-node -p "Object.keys(require('./manifest.json').files||{}).length"
+node -p "Object.values(require('./manifest.json').files).filter(v=>!v.path||v.path.indexOf('atomic/')!==0).length"
+```
+
+Send both numbers: **atomic entries** and **non-atomic entries**.
+
+Interpretation:
+
+- Around **1545 atomic / 0 non-atomic**: the staging manifest is AtomicAssets only and the 1030 SimpleAssets entries must be merged in (Step 3).
+- Around **515 atomic / 1030 non-atomic**: the manifest is already combined and correct. Skip Step 3 and go straight to Step 4. In that case the earlier "1547 atomic images" figure refers to discovered references, not stored files, and we reconcile it against the on-disk counts in Step 2.
+- Anything else: send the numbers and stop.
+
+## Step 2 — Count staged images by type
+
+Run each line separately:
+
+```bat
+cd /d C:\Users\User\Desktop
 ```
 
 ```bat
-node -p "Object.keys(require('./manifest.json').files||{})[0]"
+dir /s /b gpk-zip-src\atomic\*.jpg gpk-zip-src\atomic\*.gif gpk-zip-src\atomic\*.png gpk-zip-src\atomic\*.webp | find /c /v ""
 ```
 
 ```bat
-cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo\mirror
+dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif gpk-zip-src\*.png gpk-zip-src\*.webp | find /c /v ""
 ```
 
-```bat
-node -p "Object.keys(require('./manifest.json').files||{}).length"
-```
+Send both numbers. The total on-disk image count must equal the staging manifest's entry count once Step 1 and Step 3 are settled; any gap is what we chase next.
 
-```bat
-node -p "Object.keys(require('./manifest.json').files||{})[0]"
-```
+## Step 3 — Merge, only if Step 1 shows the manifest is AtomicAssets-only
 
-```bat
-cd /d C:\Users\User\Desktop\gpk-app-latest2\mirror-output\manifests
-```
+I will add `scripts/merge-manifests.mjs` to this project. It will:
 
-```bat
-node -p "Object.keys(require('./manifest.json').files||{}).length"
-```
+- read two manifest files and write a single combined `manifest.json`
+- keep SimpleAssets keys as relative paths and AtomicAssets keys as CID lookup keys with their `path` field intact
+- fail loudly if a key appears in both inputs with different SHA-256 values
+- recompute `fileCount` and `missingCount`, and preserve `atomicSchemas` and `atomicImageCount`
+- back up the existing staging manifest as `manifest.atomic.json` before overwriting
 
-```bat
-node -p "Object.keys(require('./manifest.json').files||{})[0]"
-```
+The SimpleAssets input will be `C:\Users\User\Desktop\gpkonwaxbackup-repo\manifest.json` (1030 entries). The 832-entry manifest under `mirror\` is a stale subset and will not be used.
 
-Send me all six results. The SimpleAssets manifest is the one whose sample key looks like a folder path such as `QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/base/1a.jpg`, and whose count is around 1030. A bare CID sample key means that file is an AtomicAssets manifest instead.
-
-If more than one candidate qualifies, we use the one with the highest entry count.
 
 
 ## Step 2 — Count staged images by type
