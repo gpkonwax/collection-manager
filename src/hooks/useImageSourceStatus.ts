@@ -102,20 +102,40 @@ async function checkIpfs(): Promise<boolean> {
   });
 }
 
+/**
+ * Mirrors differ in layout: GitHub Pages and Cloudflare keep `manifest.json`
+ * at the root, Netlify keeps it under `manifests/`. Every mirror does hold the
+ * canary image at the bare-CID path, so try that first and fall back to both
+ * manifest locations before declaring the mirror unreachable.
+ */
+function mirrorCandidates(base: string): string[] {
+  return [
+    `${base}${CANARY_CID}`,
+    `${base}manifest.json`,
+    `${base}manifests/manifest.json`,
+  ];
+}
+
+async function probeAny(base: string): Promise<boolean> {
+  if (!base) return false;
+  for (const url of mirrorCandidates(base)) {
+    if (await probe(url)) return true;
+  }
+  return false;
+}
+
 async function checkPrimary(): Promise<boolean> {
-  if (!PRIMARY_MIRROR) return false;
-  return probe(`${PRIMARY_MIRROR}manifest.json`);
+  return probeAny(PRIMARY_MIRROR);
 }
 
 async function checkBackupA(): Promise<boolean> {
-  if (!BACKUP_MIRROR_A) return false;
-  return probe(`${BACKUP_MIRROR_A}manifest.json`);
+  return probeAny(BACKUP_MIRROR_A);
 }
 
 async function checkBackupB(): Promise<boolean> {
-  if (!BACKUP_MIRROR_B) return false;
-  return probe(`${BACKUP_MIRROR_B}manifest.json`);
+  return probeAny(BACKUP_MIRROR_B);
 }
+
 
 function checkLocal(): boolean {
   return getLocalMirrorStatus().fileCount > 0;
