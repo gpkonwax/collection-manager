@@ -149,7 +149,7 @@ cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/build-image-mirror.mjs --zip-only --split-zip
 ```
 
-**Sanity check before uploading anything:** the file count in the output must match the staging-folder count from Part 3 (2542, or higher after Part 3b). If it reports ~1,000 files, or a single small part, the `outDir` edit in Part 3 did not take — stop and tell me. Expect roughly 3 GB or more spread across multiple parts.
+**Sanity check before uploading anything:** the file count in the output must match the staging-folder count from Part 3b (about 2577). If it reports ~1,000 files, the `outDir` edit in Part 3 did not take — stop and tell me.
 
 Write down the part names and byte sizes it prints; I need them at the end.
 
