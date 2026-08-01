@@ -106,9 +106,7 @@ Save and close.
 
 The `mirror\` prefix inside the ZIP is expected — the offline loader strips it automatically, and it reads atomic files from `atomic\`, so this layout is exactly what the app wants.
 
-## Part 3b — Top up the AtomicAssets series
-
-Only if the Part 2 dry run showed a number well above 1512:
+## Part 3b — Fetch the 35 missing atomic images
 
 ```
 cd /d C:\Users\User\Desktop\gpk-app-latest2
@@ -118,7 +116,7 @@ cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/build-atomic-mirror.mjs
 ```
 
-It skips anything already on disk. Note it writes into its own configured output folder, so once it finishes we copy the new files across:
+It skips everything already on disk, so this should only pull the ~35 stragglers and finish quickly. It writes into its own output folder, so copy the result across:
 
 ```
 cd /d C:\Users\User\Desktop
@@ -134,7 +132,7 @@ Then re-count:
 dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif | find /c /v ""
 ```
 
-Send me the number before we zip.
+Target is **2577** (1030 SimpleAssets + 1547 atomic). A handful short is acceptable if the script reported those specific images as unavailable on every gateway — send me the number and I will confirm.
 
 ## Part 4 — Build the ZIP parts
 
