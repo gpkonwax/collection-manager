@@ -26,13 +26,18 @@ del scripts\zip-holding\gpk-image-mirror-part-*.zip
 
 If either line says **"Could Not Find ..."**, that is completely fine and expected — it just means there were no old ZIPs sitting in that folder (they were moved out during the Cloudflare upload, or they live in your other project folder). Nothing is broken. Carry on to the next step.
 
-If you want to be sure no stray old parts are left anywhere on the desktop, run this and check the results:
+Your scan found old ZIP parts, but all of them are in **other** folders:
 
 ```
-dir /s /b C:\Users\User\Desktop\gpk-image-mirror-part-*.zip
+C:\Users\User\Desktop\downloads\...(1).zip            <- old downloads
+C:\Users\User\Desktop\gpk-app-latest1\scripts\mirror-zips\...   <- old project
+C:\Users\User\Desktop\gpk-gitlab-mirror\public\...    <- old GitLab attempt
 ```
 
-Delete anything it lists before continuing.
+None of these are inside `gpk-app-latest2-new`, so none of them will interfere with the rebuild. You do not have to delete them. They are stale copies from before the Series 2 refresh though, so if you ever hand one to someone it will be an out-of-date backup. Safest option: delete the two in `Desktop\downloads` now, and leave the other two folders alone until the new ZIPs are live, then delete those too.
+
+Bottom line: nothing is blocking you. Move on to the rebuild.
+
 
 
 Now rebuild. This only re-zips what is already on disk — it does not re-download any images:
