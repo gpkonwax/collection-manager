@@ -149,17 +149,17 @@ dir /s /b *.jpg *.gif | find /c /v ""
 Clear out any stale parts first. "Could Not Find" here is fine:
 
 ```
-del C:\Users\User\Desktop\gpk-app-latest2\mirror-output\gpk-image-mirror-part-*.zip
+del C:\Users\User\Desktop\gpkonwaxbackup-repo\gpk-image-mirror-part-*.zip
 ```
 
 Then build:
 
 ```
-cd C:\Users\User\Desktop\gpk-app-latest2
+cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/build-image-mirror.mjs --zip-only --split-zip
 ```
 
-**Sanity check before uploading anything:** the output must report **3 or more parts** totalling roughly 4.2 GB or more. If it says 1 part / 1.65 GB, the `outDir` edit in Part 2 did not take — stop and tell me.
+**Sanity check before uploading anything:** the output must report **3 or more parts** totalling roughly 4.2 GB or more, with a file count near 3,600. If it reports ~1,000 files or a single 1.65 GB part, the `outDir` edit in Part 2 did not take — stop and tell me.
 
 Write down the part names and byte sizes it prints; I need them at the end.
 
