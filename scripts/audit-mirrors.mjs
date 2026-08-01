@@ -15,10 +15,35 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const MIRRORS = [
-  { key: 'primary',    label: 'Primary (GitHub Pages)', baseUrl: 'https://gpkonwaxbackup.github.io/gpk-backup/mirror/', checkZips: true  },
-  { key: 'netlify',    label: 'Backup A (Netlify)',     baseUrl: 'https://gpkonwaxbackup.netlify.app/',                 checkZips: true  },
-  { key: 'cloudflare', label: 'Backup B (Cloudflare)',  baseUrl: 'https://gpkonwaxbackup.pages.dev/',                   checkZips: false },
+  {
+    key: 'primary',
+    label: 'Primary (GitHub Pages)',
+    baseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/mirror/',
+    // In the backup repo, atomic/ sits at the repo root, next to mirror/.
+    atomicBaseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/',
+    // The split ZIP parts are too large for Pages — they are served from the
+    // GitHub Release assets instead.
+    zipBaseUrl: 'https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/',
+    checkZips: true,
+  },
+  { key: 'netlify',    label: 'Backup A (Netlify)',    baseUrl: 'https://gpkonwaxbackup.netlify.app/', checkZips: false },
+  { key: 'cloudflare', label: 'Backup B (Cloudflare)', baseUrl: 'https://gpkonwaxbackup.pages.dev/',   checkZips: false },
 ];
+
+
+/**
+ * Resolve the URL for a manifest entry on a given mirror. Manifest entries may
+ * carry an explicit stored `path` (atomic assets live under atomic/ and may
+ * have an extension appended); otherwise the manifest key is the path.
+ */
+function urlFor(mirror, rel, meta) {
+  const storedPath = meta?.path ?? rel;
+  const base = storedPath.startsWith('atomic/')
+    ? (mirror.atomicBaseUrl ?? mirror.baseUrl)
+    : mirror.baseUrl;
+  return base + storedPath;
+}
+
 
 const MANIFEST_PATHS = [
   'public/gpk-manifest.json',
@@ -137,7 +162,8 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
   const ok = [];
 
   await pool(entries, opts.concurrency, async ([rel, meta]) => {
-    const url = mirror.baseUrl + rel;
+    const url = urlFor(mirror, rel, meta);
+
     let r = await headCheck(url);
     if (!r.ok && !r.status) {
       // one retry on transient network error
@@ -164,7 +190,8 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
     const sample = pickSample(okEntries, opts.sample);
     console.log(`  sha256 sampling ${sample.length} files…`);
     await pool(sample, Math.min(opts.concurrency, 4), async ([rel, meta]) => {
-      const url = mirror.baseUrl + rel;
+      const url = urlFor(mirror, rel, meta);
+
       const r = await shaCheck(url, meta.sha256);
       if (!r.ok && r.reason !== 'http') shaMismatch.push({ rel, sha: r.sha });
       else if (!r.ok) shaMismatch.push({ rel, status: r.status });
@@ -176,7 +203,7 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
   if (mirror.checkZips && zipParts.length) {
     console.log(`  zip parts: ${zipParts.length}`);
     for (const part of zipParts) {
-      const url = mirror.baseUrl + part.fileName;
+      const url = (mirror.zipBaseUrl ?? mirror.baseUrl) + part.fileName;
       const r = await headCheck(url);
       const sizeOk = r.ok && (r.bytes == null || r.bytes === part.bytes);
       zipReport.push({ name: part.fileName, expected: part.bytes, actual: r.bytes, ok: sizeOk, status: r.status, error: r.error });
@@ -236,6 +263,8 @@ async function main() {
     const m = rep.mirror;
     lines.push(`## ${m.label}`);
     lines.push(`  base:         ${m.baseUrl}`);
+    if (m.atomicBaseUrl) lines.push(`  atomic base:  ${m.atomicBaseUrl}`);
+    if (m.zipBaseUrl)    lines.push(`  zip base:     ${m.zipBaseUrl}`);
     lines.push(`  checked:      ${rep.total}`);
     lines.push(`  ok:           ${rep.ok}`);
     lines.push(`  missing:      ${rep.missing.length}`);
@@ -247,10 +276,12 @@ async function main() {
         lines.push(`    - ${z.name}: ${z.ok ? 'OK' : 'FAIL'} status=${z.status ?? '-'} expected=${fmtBytes(z.expected)} actual=${fmtBytes(z.actual)}${z.error ? ` err=${z.error}` : ''}`);
       }
     }
-    const verdict = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0
+    const zipFail = rep.zipReport.filter((z) => !z.ok).length;
+    const verdict = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0 && zipFail === 0
       ? 'COMPLETE'
-      : `GAPS (missing=${rep.missing.length}, wrongSize=${rep.wrongSize.length}, shaMismatch=${rep.shaMismatch.length})`;
+      : `GAPS (missing=${rep.missing.length}, wrongSize=${rep.wrongSize.length}, shaMismatch=${rep.shaMismatch.length}, zipFail=${zipFail})`;
     lines.push(`  verdict:      ${verdict}`);
+
     lines.push('');
   }
   lines.push(`Detailed lists written to ${OUT_DIR}/`);
