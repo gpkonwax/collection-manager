@@ -5,6 +5,7 @@ You are here:
 - Staging folder `C:\Users\User\Desktop\gpk-zip-src` exists and holds **2542** image files.
 - That is **1030** SimpleAssets + **1512** AtomicAssets.
 - The dry run says the AtomicAssets target is **1547** unique images, so **35 images are still missing**.
+- `verify-mirror.mjs` currently fails because no `manifest.json` exists yet in `mirror-output`.
 
 ## Step 1 — Fetch the 35 missing atomic images
 
@@ -36,7 +37,7 @@ dir /s /b gpk-zip-src\*.jpg gpk-zip-src\*.gif | find /c /v ""
 
 Target is **2577**. Send me the number. A few short is fine if the script reported those specific images as unavailable on every gateway.
 
-## Step 2 — Build the split ZIPs
+## Step 2 — Build the split ZIPs and generate the manifest
 
 Clear stale parts first. "Could Not Find" is fine:
 
@@ -68,7 +69,27 @@ Watch the output. It must report a file count close to **2577** and produce mult
 
 Write down the part names and byte sizes.
 
-## Step 3 — Confirm the `_headers` file exists
+The build also creates `C:\Users\User\Desktop\gpk-zip-src\manifests\manifest.json`. Keep that path in mind — it is needed for verification and mirror deployment.
+
+## Step 3 — Verify the staged mirror
+
+`verify-mirror.mjs` expects the manifest at `mirror-output\manifest.json`. Because you are using the staging folder, copy the generated manifest into place first:
+
+```
+cd /d C:\Users\User\Desktop\gpk-app-latest2
+mkdir mirror-output
+xcopy /Y /I gpk-zip-src\manifests\manifest.json mirror-output\manifest.json
+```
+
+Then run the verifier:
+
+```
+node scripts/verify-mirror.mjs
+```
+
+It should report the same file count as the ZIP builder. If it lists missing files, those are the 35 stragglers — send me the list only if the count is more than ~40.
+
+## Step 4 — Confirm the `_headers` file exists
 
 Check `C:\Users\User\Desktop\gpkonwaxbackup-repo` for a file named exactly `_headers` (no `.txt`). If it is missing:
 
@@ -92,7 +113,7 @@ Save. If Notepad appends `.txt`, rename it:
 ren _headers.txt _headers
 ```
 
-## Step 4 — Upload the new ZIPs to the GitHub Release
+## Step 5 — Upload the new ZIPs to the GitHub Release
 
 1. Go to `https://github.com/bewbzz/gpkonwaxbackup/releases`.
 2. Open the latest release and click **Edit**.
@@ -102,9 +123,9 @@ ren _headers.txt _headers
 
 Never `git push` the ZIPs.
 
-## Step 5 — Push the refreshed manifest and images to the mirrors
+## Step 6 — Push the refreshed manifest and images to the mirrors
 
-The build rewrote `gpk-app-latest2\mirror-output\manifests\manifest.json` with the new part list, sizes and hashes.
+The build rewrote `gpk-zip-src\manifests\manifest.json` with the new part list, sizes and hashes.
 
 **Netlify (Backup A)** — deploy from the mirror folder:
 
@@ -113,25 +134,32 @@ cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 netlify deploy --prod --site gpkonwaxbackup --dir . --build-ignore
 ```
 
+If Netlify still fails, deploy from `gpk-zip-src` instead:
+
+```
+cd C:\Users\User\Desktop\gpk-zip-src
+netlify deploy --prod --site gpkonwaxbackup --dir . --build-ignore
+```
+
 **Cloudflare (Backup B)** — Pages rejects files over 25 MB, so move the ZIPs out first:
 
 ```
-cd /d C:\Users\User\Desktop\gpk-app-latest2
+cd /d C:\Users\User\Desktop\gpk-zip-src
 mkdir zip-holding
-move mirror-output\gpk-image-mirror-part-001.zip zip-holding
-move mirror-output\gpk-image-mirror-part-002.zip zip-holding
-move mirror-output\gpk-image-mirror-part-003.zip zip-holding
+move gpk-image-mirror-part-001.zip zip-holding
+move gpk-image-mirror-part-002.zip zip-holding
+move gpk-image-mirror-part-003.zip zip-holding
 ```
 
-Run your usual Wrangler deploy, then move them back:
+Run your usual Wrangler deploy from the remaining folder, then move them back:
 
 ```
-move zip-holding\gpk-image-mirror-part-*.zip mirror-output
+move zip-holding\gpk-image-mirror-part-*.zip .
 ```
 
-**GitHub Pages (Primary)** — copy the updated `manifests\manifest.json` and any newly downloaded Series 2 image folders into your `gpkonwaxbackup` repo clone under `mirror\`, then commit and push.
+**GitHub Pages (Primary)** — copy the updated `manifests\manifest.json` and any newly downloaded image folders into your `gpkonwaxbackup` repo clone under `mirror\`, then commit and push.
 
-## Step 6 — Verify
+## Step 7 — Verify
 
 ```
 cd C:\Users\User\Desktop\gpk-app-latest2
