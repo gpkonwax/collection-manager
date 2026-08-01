@@ -1,53 +1,81 @@
-# Fix: Netlify mirror reports "failed"
+# Rename `_headers.txt` to `_headers` in Command Prompt
 
-## Cause (confirmed)
+## Why this matters
 
-The files are on Netlify and load fine in a browser tab, but the app reads them with `fetch` and hash-verifies the bytes. That requires a CORS header, and Netlify is currently sending none.
+Netlify only reads a file literally named `_headers` (no `.txt` on the end). Your screenshot shows `_headers.txt`, so the CORS rules inside it are being ignored.
 
-Checked live:
+## What you will do
 
-- `https://gpkonwaxbackup.netlify.app/manifests/manifest.json` — 200, **no `access-control-allow-origin` header**
-- `https://gpkonwaxbackup.pages.dev/...` — sends `access-control-allow-origin: *` (Cloudflare is fine)
+1. Open Command Prompt in the `mirror-output` folder.
+2. Run one command to rename the file.
+3. Check that the `.txt` is gone.
+4. Re-deploy the whole folder to Netlify.
 
-Opening the URL directly in a tab works because tabs don't enforce CORS; the app does. So the health check fails even though the data is there. Your `_headers` file did not take effect on the last deploy.
+## Step-by-step (explained)
 
-## What you need to do (local, ~2 minutes)
+### 1. Open Command Prompt in the right folder
 
-1. Open `C:\Users\User\Desktop\gpk-app-latest2\mirror-output\_headers` in Notepad.
-   Make sure the file is named exactly `_headers` (no `.txt` — turn on "File name extensions" in Explorer's View tab to check), sits at the **top level** of `mirror-output`, and contains exactly:
+Press the Windows key, type `cmd`, and press Enter.
 
-```text
-/*
-  Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
-  Access-Control-Allow-Headers: *
+In the black window that appears, type this and press Enter:
+
+```cmd
+cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 ```
 
-Indentation matters: the header lines must start with two spaces, and `/*` must be flush left.
+That tells Command Prompt: "do everything from this folder."
 
-2. Redeploy the whole folder (not just `manifests`):
+### 2. Rename the file
 
-```powershell
-cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+Type this exact command and press Enter:
+
+```cmd
+ren _headers.txt _headers
+```
+
+What this means:
+- `ren` is short for rename.
+- `_headers.txt` is the current name.
+- `_headers` is the new name.
+
+### 3. Check it worked
+
+Type this and press Enter:
+
+```cmd
+dir _headers*
+```
+
+You should see a file named `_headers` only. If you still see `_headers.txt`, the rename did not work.
+
+### 4. Re-deploy to Netlify
+
+Type this and press Enter:
+
+```cmd
 netlify deploy --prod --dir .
 ```
 
-If it asks about a build command, pick nothing / cancel out of it — this folder is static files only. If it prompts to link, link to the existing `gpkonwaxbackup` project.
+This uploads the whole folder again, including the correctly-named `_headers` file.
 
-3. Verify the header is now live:
+If Netlify asks you to pick a build command, press Escape or choose the option that says no build / static deploy only.
 
-```powershell
+### 5. Verify the fix
+
+After the deploy finishes, type this and press Enter:
+
+```cmd
 curl.exe -I https://gpkonwaxbackup.netlify.app/manifests/manifest.json
 ```
 
-You should see a line `access-control-allow-origin: *` in the output.
+Look for a line that says:
 
-4. Hard-refresh the Collection Manager (Ctrl+F5) and open Offline backup. Backup A should flip from failed to OK.
+```text
+access-control-allow-origin: *
+```
 
-## Note on the primary (GitHub Pages) mirror
-
-`https://gpkonwaxbackup.github.io/gpk-backup/mirror/manifests/manifest.json` currently returns 404, so the primary mirror has no manifest published yet either. That's a separate upload job — worth doing after Netlify is green.
+If you see that, the mirror is fixed. Hard-refresh the Collection Manager (Ctrl+F5) and check Backup A again.
 
 ## Code changes
 
-None. This is purely a hosting-header/deploy issue on your side; the app logic is already correct.
+None. This is a file-naming fix on your computer and a re-deploy to Netlify.
