@@ -264,21 +264,67 @@ If you prefer the browser method, follow these steps instead of 5A.
 
 ## Part 6 — Upload to Cloudflare (backup copy)
 
+Cloudflare Pages refuses any single file bigger than 25 MB. Your `mirror-output` folder contains `gpk-image-mirror.zip` (1.65 GB) and the split ZIP parts, so the upload stops with:
+
+```
+Error: Pages only supports files up to 25 MiB in size
+```
+
+The fix is a small text file called `.assetsignore` that tells Cloudflare "skip these files". The download script rewrites the folder each time it runs, so this file often gets lost — you need to recreate it before every Cloudflare upload.
+
 **6.1** In Command Prompt, move into the `mirror-output` folder inside your project:
 
 ```
 cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 ```
 
-**6.2** Type this and press Enter:
+**6.2** Create the ignore file. Copy and paste this whole block in one go and press Enter:
 
 ```
-npx wrangler pages deploy . --project-name gpkonwaxbackup
+(echo *.zip& echo *.zip.001& echo *.zip.002& echo *.zip.003& echo *.z01& echo *.z02& echo *.z03)> .assetsignore
 ```
 
-**6.3** If it asks you to log in, a browser window opens — approve it, then the upload continues.
+**6.3** Check it worked. Type this and press Enter:
 
-**6.4** Cloudflare refuses files bigger than 25MB, so it will skip a handful of large pictures. **This is expected and fine** — Cloudflare is only the third mirror the app tries. As long as the `.assetsignore` file is still sitting in `mirror-output`, those oversized files are skipped automatically instead of failing the whole upload.
+```
+type .assetsignore
+```
+
+You should see the seven lines starting with `*.zip`. If the file is empty or you get "cannot find", repeat step 6.2 exactly.
+
+**6.4** Find any other oversized files. Cloudflare rejects **any** file over 25 MB, not just ZIPs. Type this and press Enter:
+
+```
+forfiles /S /M *.* /C "cmd /c if @fsize GTR 26214400 echo @relpath @fsize"
+```
+
+- If it prints nothing (or only the ZIP files you already ignored), you are fine — go to step 6.5.
+- If it prints other files (some large `.gif` cards can be oversized), note their names. For each one, add a line to `.assetsignore`. For example, if it printed `.\QmcAky...\prism\58a.gif`, run:
+
+```
+echo QmcAky...\prism\58a.gif>> .assetsignore
+```
+
+Use the path exactly as printed, but without the leading `.\` and with forward slashes, e.g. `QmcAky.../prism/58a.gif`. Those few pictures will simply be missing from Cloudflare, which is fine — Cloudflare is the third mirror the app tries, after Netlify and GitHub.
+
+**6.5** Now upload. Type this and press Enter:
+
+```
+npx wrangler pages deploy . --project-name gpkonwaxbackup --commit-dirty=true
+```
+
+The `--commit-dirty=true` part just silences the "uncommitted changes" warning you saw.
+
+**6.6** If it asks you to log in, a browser window opens — approve it, then the upload continues.
+
+**6.7** When it finishes it prints a deployment URL. Test one picture:
+
+`https://gpkonwaxbackup.pages.dev/QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/base/58c.jpg`
+
+If that shows a picture, Cloudflare is done.
+
+**If it still errors on a file size:** the error message names the exact file. Add that file's path to `.assetsignore` the same way as step 6.4 and run the deploy command again. Repeat until it goes through.
+
 
 ---
 
