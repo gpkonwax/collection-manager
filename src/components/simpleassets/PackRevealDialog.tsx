@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { playCardRevealSound } from '@/lib/fartSounds';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
-import { buildGpkCardImageUrl, getGpkCategoryForBoxtype, normalizePendingGpkCardId } from '@/lib/gpkCardImages';
+import { EXPECTED_CARDS, getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardImages';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
 import {
   buildRevealCandidates,
@@ -22,10 +22,6 @@ import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { RevealResult } from '@/lib/packReveal';
 
-const EXPECTED_CARDS: Record<string, number> = {
-  GPKFIVE: 5, GPKMEGA: 30, GPKTWOA: 8, GPKTWOB: 25, GPKTWOC: 35,
-  EXOFIVE: 5, EXOMEGA: 25,
-};
 
 const SYMBOL_TO_BOXTYPE: Record<string, string> = {
   GPKFIVE: 'five', GPKMEGA: 'thirty',
@@ -460,15 +456,16 @@ export function PackRevealDialog({
           clearInterval(interval);
           const sorted = targetRows.sort((a, b) => a.draw - b.draw);
           const cards: RevealCard[] = sorted.map((r) => {
-            const displayCardId = normalizePendingGpkCardId(r.boxtype, r.cardid);
+            const resolved = resolvePendingGpkCard(r.boxtype, r.cardid, r.quality, r.variant);
             return {
               asset_id: String(r.id),
-              name: `Card #${displayCardId}${r.quality}`,
-              image: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
-              originalImage: buildGpkCardImageUrl(r.boxtype, r.variant, displayCardId, r.quality),
+              name: `Card #${resolved.cardid}${resolved.side}`,
+              image: resolved.image,
+              originalImage: resolved.image,
               rarity: `${r.variant} ${r.quality}`,
             };
           });
+
           console.log(`[pack-reveal] targeting ${cards.length}-card unboxing (boxtype=${sorted[0]?.boxtype})`);
           setPendingRowIds(sorted.map((r) => r.id));
           setUnboxingId(targetUnboxingId);
