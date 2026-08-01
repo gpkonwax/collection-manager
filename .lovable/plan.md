@@ -30,37 +30,19 @@ If it says it cannot find them, that is fine — nothing to clean.
 
 ## Part 1 — Find the fullest copy, then count it
 
-You have more than one candidate folder, so before rebuilding anything we pick the one with the most images. Run each of these three, one line at a time, and send me the three numbers.
+The last command still failed because the long path wrapped in your window and the front half was lost. Fix: always `cd` into the folder first, then use a short command with no paths in it.
 
-The copy we were using (already counted at **2344**):
-
-```
-dir /s /b C:\Users\User\Desktop\gpk-app-latest2\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2\mirror-output\*.gif | find /c /v ""
-```
-
-The GitHub repo clone you just mentioned:
+**Folder A — the copy we were using.** Run these two lines, one at a time:
 
 ```
-dir /s /b C:\Users\User\Desktop\gpkonwaxbackup-repo\*.jpg C:\Users\User\Desktop\gpkonwaxbackup-repo\*.gif | find /c /v ""
+cd /d C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 ```
 
-And its folder layout, so I can see whether images sit under `mirror\` and `atomic\` as the live site expects:
-
 ```
-dir /s /b /ad C:\Users\User\Desktop\gpkonwaxbackup-repo
+dir /s /b *.jpg *.gif | find /c /v ""
 ```
 
-If any of those lines wrap in your window, widen it as described in Part 0 first — a wrapped command runs as two broken ones.
-
-A note on what the repo clone can and cannot be: GitHub rejects files over 100 MB and the repo is what feeds the Primary mirror, so if the clone is complete it is the best source. But it also will not contain the ZIP parts, since those live in Releases rather than the repo.
-
-Whichever folder has the highest count becomes the one we build from. I will call it the **build folder** in the parts below — substitute its path anywhere the plan says `gpk-app-latest2`.
-
-Once we pick it, split the count so I can see which half is short:
-
-```
-dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
-```
+You already got **2344** here. While you are in this folder, also run these two:
 
 ```
 dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
@@ -70,9 +52,27 @@ dir /s /b atomic\*.jpg atomic\*.gif | find /c /v ""
 dir /b /ad
 ```
 
-The first is the AtomicAssets count (Crash Gordon and friends) — a full atomic snapshot is roughly 2,600 files on its own. The second lists the top-level CID folders so I can confirm which SimpleAssets series are present.
+**Folder B — the GitHub repo clone you just mentioned.** Same pattern:
 
-Rough reading while you wait: SimpleAssets (Series 1, Series 2, Exotic) accounts for about 1,030 files, so 2344 total means the atomic side is likely incomplete rather than the SA side. Part 3 refills the SimpleAssets gaps; Part 3b below refills the atomic ones.
+```
+cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
+```
+
+```
+dir /s /b *.jpg *.gif | find /c /v ""
+```
+
+```
+dir /b /ad
+```
+
+Send me all six numbers/listings. Every command above is short enough that it cannot wrap.
+
+What I am looking for: the atomic count (a full AtomicAssets snapshot is roughly 2,600 files on its own) and the SimpleAssets CID folders (about 1,030 files across Series 1, Series 2 and Exotic). Total 2344 suggests the atomic side is the one that is short, but the folder listing will confirm it.
+
+One caveat on Folder B: it feeds the Primary mirror, so if it is complete it is the better source — but it will not contain the ZIP parts, since those live in GitHub Releases rather than in the repo itself.
+
+Whichever folder has the higher count becomes the **build folder**. Substitute its path anywhere the parts below say `gpk-app-latest2`. Part 3 refills SimpleAssets gaps; Part 3b refills the atomic ones.
 
 ## Part 2 — Put the updated scripts in place and point them at the right folder
 
