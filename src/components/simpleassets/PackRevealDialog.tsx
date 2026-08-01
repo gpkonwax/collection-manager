@@ -66,7 +66,9 @@ interface PackRevealDialogProps {
 function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; isRevealed: boolean; packImage?: string }) {
   const [gwIdx, setGwIdx] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
   const [fallbacks, setFallbacks] = useState<string[]>(() => buildRevealCandidateUrls(card.originalImage ?? card.image, card.image));
+
   const currentSrc = fallbacks[gwIdx] ?? null;
 
   useEffect(() => {
