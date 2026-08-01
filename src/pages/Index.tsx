@@ -212,9 +212,11 @@ function matchPendingRowsToMintedAssets(rows: PendingNftAuditRow[], assets: Simp
 
   for (const row of sortedRows) {
     const category = getGpkCategoryForBoxtype(row.boxtype);
-    const cardid = normalizePendingGpkCardId(row.boxtype, row.cardid);
-    const side = String(row.quality ?? '').toLowerCase();
+    const resolved = resolvePendingGpkCard(row.boxtype, row.cardid, String(row.quality ?? ''), String(row.variant ?? ''));
+    const cardid = resolved.cardid;
+    const side = resolved.side;
     const variant = normalizeGpkVariant(String(row.variant ?? ''));
+
     const hit = assets
       .filter((asset) =>
         !used.has(asset.id) &&
