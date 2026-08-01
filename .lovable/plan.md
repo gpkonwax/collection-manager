@@ -10,33 +10,62 @@ It contains the `atomic` folder (Crash Gordon and the other AtomicAssets series)
 
 The ZIP you built earlier came from `gpk-app-latest2-new`, which is only a partial tree (1045 files, 1.65 GB, no atomic folder). Do not upload it. Nothing published is broken — the live mirrors and the current Release ZIPs are untouched.
 
+## Part 0 — Fix the wrapping problem first
+
+Your Command Prompt window is cutting long commands in half at the line break, so the second half runs as its own broken command. That is why you saw "The system cannot find the path specified" and why two files were copied into `C:\Users\User` instead of the project.
+
+Two fixes:
+
+1. Make the window wider — right-click the Command Prompt title bar, choose **Properties**, then the **Layout** tab, and set **Window Size Width** to `120`. Click OK.
+2. From here on, every command below is short because we `cd` into the folder first. Copy and run them **one line at a time**, pressing Enter after each.
+
+Clean up the two files that landed in the wrong place:
+
+```
+del C:\Users\User\mirror-config.json
+del C:\Users\User\build-image-mirror.mjs
+```
+
+If it says it cannot find them, that is fine — nothing to clean.
+
 ## Part 1 — Count what you have
 
 ```
-dir /s /b C:\Users\User\Desktop\gpk-app-latest2\mirror-output\*.jpg C:\Users\User\Desktop\gpk-app-latest2\mirror-output\*.gif | find /c /v ""
+cd /d C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+```
+
+```
+dir /s /b *.jpg *.gif | find /c /v ""
 ```
 
 Expect a large number, roughly 3,600 or more. Tell me the number before moving on if it looks small.
 
 ## Part 2 — Put the updated scripts in place and point them at the right folder
 
-Copy the two changed files from the newer project over the old ones:
-
 ```
-copy /Y C:\Users\User\Desktop\gpk-app-latest2-new\scripts\mirror-config.json C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
-copy /Y C:\Users\User\Desktop\gpk-app-latest2-new\scripts\build-image-mirror.mjs C:\Users\User\Desktop\gpk-app-latest2\scripts\build-image-mirror.mjs
+cd /d C:\Users\User\Desktop\gpk-app-latest2\scripts
 ```
 
-Check the config is the new version — this should print matching lines rather than nothing:
+```
+copy /Y ..\..\gpk-app-latest2-new\scripts\mirror-config.json .
+```
 
 ```
-findstr /C:"returning" /C:"sharedBack" C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
+copy /Y ..\..\gpk-app-latest2-new\scripts\build-image-mirror.mjs .
+```
+
+Each should say `1 file(s) copied.`
+
+Check the config is the new version — this should print two matching lines rather than nothing:
+
+```
+findstr /C:"returning" /C:"sharedBack" mirror-config.json
 ```
 
 **Now the critical bit.** Open the config:
 
 ```
-notepad C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
+notepad mirror-config.json
 ```
 
 Near the top there is a line:
@@ -52,6 +81,7 @@ That path is relative to the `scripts` folder, so as written it points at `gpk-a
 ```
 
 Save and close. If you skip this, the script will create a new empty folder and download everything again from scratch.
+
 
 ## Part 3 — Download the missing Series 2 images into the full tree
 
