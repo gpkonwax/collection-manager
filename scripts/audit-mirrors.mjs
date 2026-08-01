@@ -203,7 +203,7 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
   if (mirror.checkZips && zipParts.length) {
     console.log(`  zip parts: ${zipParts.length}`);
     for (const part of zipParts) {
-      const url = mirror.baseUrl + part.fileName;
+      const url = (mirror.zipBaseUrl ?? mirror.baseUrl) + part.fileName;
       const r = await headCheck(url);
       const sizeOk = r.ok && (r.bytes == null || r.bytes === part.bytes);
       zipReport.push({ name: part.fileName, expected: part.bytes, actual: r.bytes, ok: sizeOk, status: r.status, error: r.error });
