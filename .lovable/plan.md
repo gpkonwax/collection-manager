@@ -1,60 +1,35 @@
-# Finish the backup refresh — publish the new ZIPs, update the app, audit
+# Publish the new ZIPs and get the app pointing at them
 
-The build worked. You now have three parts totalling 4.37 GB covering 2576 files (2575 images + `manifest.json`):
+The three parts are built and you have given me their exact sizes and checksums. Two things now have to happen: the project's copy of the manifest must be corrected, and the files must go up to the mirrors.
 
-```text
-gpk-image-mirror-part-001.zip   1.76 GB
-gpk-image-mirror-part-002.zip   1.75 GB
-gpk-image-mirror-part-003.zip   875.0 MB
-```
+## What is wrong right now
 
-`missing=879` is expected — those are the images that no IPFS gateway would serve, and we agreed to accept them.
+The project's `public/gpk-manifest.json` is stale. It lists only **832** files (your rebuilt one has 2575), its `zipParts` sizes are from the previous build, and every `sha256` in it is an empty string. The app reads this file to decide what to offer for download, and `audit-mirrors.mjs` reads it to decide what to check — so until it is replaced, both are working from wrong data.
 
-Everything below is copy/paste. Do one step at a time and paste back what it prints. If anything differs from what is described, stop and send it to me instead of continuing.
+## Step 1 — I patch the ZIP part details (I do this, no action from you)
 
-## Step 8 — Send me the new manifest numbers first
-
-Do this before uploading anything. The build rewrote `public\gpk-manifest.json` on your machine with the new part sizes and checksums. The app reads that file to know what to download, so it has to come back into the project — otherwise the app will still advertise the old ZIPs.
-
-1. Press the Windows key, type `notepad`, press Enter.
-2. **File → Open**, paste this into the file-name box and press Enter:
+I will update the `zipParts` block in `public/gpk-manifest.json` to exactly what you pasted:
 
 ```text
-C:\Users\User\Desktop\gpk-app-latest2\public\gpk-manifest.json
+part-001   1,885,365,317 bytes   905 files   sha256 cfcd4bf6…
+part-002   1,884,197,424 bytes  1186 files   sha256 a7c6f4c6…
+part-003     917,537,907 bytes   485 files   sha256 e37ea9ff…
 ```
 
-3. Press `Ctrl+End` to jump to the bottom of the file.
-4. Near the bottom there is a block that starts with `"zipParts": [`. Select from `"zipParts": [` down to the closing `]` and copy it (`Ctrl+C`).
-5. Paste it into the chat.
+This immediately fixes the download panel's sizes and the ZIP portion of the audit. The file-list part of the manifest gets fixed in Step 4, once the merged manifest is live somewhere I can read it.
 
-It will look roughly like this (yours will have real numbers):
+## Step 2 — Upload the three ZIPs to the GitHub Release
 
-```json
-"zipParts": [
-  { "fileName": "gpk-image-mirror-part-001.zip", "bytes": 1888888888, "sha256": "cfcd4b…", "files": 905 },
-  …
-]
-```
+1. Open the `gpkonwaxbackup` repository in a browser → **Releases** → open the release that holds the ZIP parts.
+2. Click **Edit** (the pencil icon).
+3. In the assets list, remove **every** old `gpk-image-mirror-part-*.zip` with the small **x** beside it. They must go — their checksums no longer match, and a mix of old and new parts corrupts an import silently.
+4. Open `C:\Users\User\Desktop\gpk-zip-src` in File Explorer, select the three new `gpk-image-mirror-part-00*.zip` files, and drag them onto the upload box.
+5. Wait for all three bars to reach 100%. That is 4.37 GB — leave the tab open and do not navigate away.
+6. Click **Update release**, then reload the page and confirm exactly three assets are listed.
 
-I need the exact `bytes` values, which is why a screenshot or the human-readable "1.76 GB" is not enough. Once you paste it I will update the project's manifest so the app, the audit script, and the download panel all agree.
+## Step 3 — Refresh the three image mirrors
 
-## Step 9 — Upload the ZIPs to the GitHub Release
-
-1. In a browser, open the `gpkonwaxbackup` repository → **Releases** → open the release that currently holds the ZIP parts.
-2. Click **Edit** (the pencil icon, top right of the release).
-3. In the assets list, remove **every** old `gpk-image-mirror-part-*.zip` by clicking the small **x** next to each one. They must go — their checksums no longer match and leaving them causes silent corruption for anyone who downloads a mix.
-4. Open `C:\Users\User\Desktop\gpk-zip-src` in File Explorer, select the three new `gpk-image-mirror-part-00*.zip` files, and drag them onto the release's upload box.
-5. Wait for all three progress bars to reach 100%. This is 4.37 GB, so expect a long wait — leave the tab open and do not navigate away.
-6. Click **Update release**.
-7. Reload the release page and confirm exactly three assets are listed, with sizes 1.76 GB, 1.75 GB and 875 MB.
-
-## Step 10 — Refresh the browsable mirrors
-
-The three hosted mirrors serve individual images (not the ZIPs), and they also need the merged `manifest.json`.
-
-### 10a. GitHub Pages (primary)
-
-Copy the merged manifest and any new images into your local copy of the mirror repo:
+### 3a. GitHub Pages (primary)
 
 ```bat
 copy /Y C:\Users\User\Desktop\gpk-zip-src\manifest.json C:\Users\User\Desktop\gpkonwaxbackup-repo\manifest.json
@@ -64,21 +39,23 @@ copy /Y C:\Users\User\Desktop\gpk-zip-src\manifest.json C:\Users\User\Desktop\gp
 robocopy C:\Users\User\Desktop\gpk-zip-src C:\Users\User\Desktop\gpkonwaxbackup-repo /E /XF *.zip /XO
 ```
 
-`/XF *.zip` keeps the huge ZIPs out of the repo — they belong only on the Release. `/XO` skips files that are already there and unchanged, so this is safe to re-run.
+`/XF *.zip` keeps the giant ZIPs out of the repo — they live only on the Release. `/XO` skips files already present, so it is safe to re-run.
 
-Then commit and push that repo the way you normally do, and wait for the Pages deployment to finish (green tick in the repo's Actions tab).
+Commit and push that repo as you normally do, then wait for the green tick in its **Actions** tab.
 
-### 10b. Netlify
+### 3b. Netlify
 
-Deploy the same folder you just pushed. One thing must not be lost: the `_headers` file has to sit at the root of what you deploy, otherwise the browser blocks cross-origin image loads and the mirror shows as failed in the app.
+Deploy the same folder you just pushed. The `_headers` file must stay at the root of what you deploy — without it the browser blocks the images and the mirror reports as failed in the app.
 
-### 10c. Cloudflare Pages
+### 3c. Cloudflare Pages
 
-Deploy the images and `manifest.json` only. Do **not** include the ZIP parts — Cloudflare rejects any single file over 25 MB and the whole deployment will fail. If you use `.assetsignore`, confirm it still contains a `*.zip` line.
+Deploy the images and `manifest.json` only. Never the ZIP parts: Cloudflare rejects any file over 25 MB and the deployment fails. If you use `.assetsignore`, check it still has a `*.zip` line.
 
-## Step 11 — Audit every mirror
+## Step 4 — Tell me when Pages is live
 
-Once all three deployments report complete:
+Once the GitHub Pages deployment has finished, say so. I will fetch the published `manifest.json`, verify it has 2575 entries, and write it into the project as `public/gpk-manifest.json` with the correct `zipParts` preserved. That is the piece that brings the app's file list up to date.
+
+## Step 5 — Audit
 
 ```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
@@ -88,30 +65,17 @@ cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/audit-mirrors.mjs
 ```
 
-This walks the manifest and checks each file on each mirror. It takes a few minutes and prints a summary at the end.
+Takes a few minutes. You want `verdict: COMPLETE` for all three mirrors, and the three ZIP parts listed as `OK` under the primary. If anything reports `GAPS (...)`, paste me the summary — the detailed lists are written to `scripts\mirror-output\audit-report\`.
 
-What you want to see for all three mirrors:
+## Step 6 — Live check in the app
 
-```text
-verdict:      COMPLETE
-```
-
-If any mirror says `GAPS (...)`, the detailed lists land in `scripts\mirror-output\audit-report\` — paste me the summary block and I will tell you exactly what to re-upload where.
-
-Note: the primary mirror also checks the three ZIP parts against the Release. If that part fails but the images pass, it usually means Step 8 has not been applied to the project manifest yet.
-
-## Step 12 — Live check in the app
-
-1. Open the app, go to the **Offline backup** panel.
-2. Confirm it now lists three parts with the new sizes (1.76 GB / 1.75 GB / 875 MB) and a total of about 4.37 GB.
-3. Download **part 3** (the smallest, 875 MB) and import it.
-4. Open a card whose image is inside that part and confirm the image renders and the source indicator shows the local copy.
-
-That is the end-to-end proof that the ZIPs, the manifest, and the app agree.
+1. Open the app → **Offline backup** panel.
+2. Confirm three parts are listed at roughly 1.76 GB / 1.75 GB / 875 MB, about 4.37 GB total.
+3. Download part 3 (the smallest) and import it.
+4. Open a card whose image is in that part; confirm it renders and the source indicator shows the local copy.
 
 ## Technical notes
 
-- The only project-side change in all of this is replacing `public/gpk-manifest.json`'s `zipParts` block with the values from Step 8; the images themselves are hosted externally.
-- `audit-mirrors.mjs` reads `public/gpk-manifest.json` and `public/atomic-manifest.json`, so the audit in Step 11 is only meaningful after the manifest update lands.
-- Parts are capped at 1.76 GB because a single GitHub release asset cannot exceed 2 GB. The app's importer accepts parts individually — nothing needs to be rejoined by the end user.
-- `missing=879` reflects images unavailable on every IPFS gateway; they are recorded in the manifest as absent rather than silently dropped, so a future retry can pick them up without a full rebuild.
+- `remoteMirror.ts` reads `zipParts` from `public/gpk-manifest.json` for the download list; `audit-mirrors.mjs` reads the same file for both the file list and the ZIP checks. One file drives both, which is why Steps 1 and 4 matter.
+- Parts are capped at 1.76 GB because a single GitHub release asset cannot exceed 2 GB. Parts are imported individually — nothing needs rejoining by the end user.
+- `missing=879` from the build is expected: those images are unavailable on every IPFS gateway. They are recorded as absent rather than dropped, so a later retry can pick them up without a full rebuild.
