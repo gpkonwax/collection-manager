@@ -17,12 +17,23 @@ Open Command Prompt and go into your project folder (use the folder that has the
 cd C:\Users\User\Desktop\gpk-app-latest2-new
 ```
 
-If you moved any ZIPs into `zip-holding` for the Cloudflare upload, delete the old ones so they cannot be mixed up with the new ones:
+Delete any old ZIP parts so they cannot be mixed up with the new ones. Run both lines:
 
 ```
 del scripts\mirror-output\gpk-image-mirror-part-*.zip
 del scripts\zip-holding\gpk-image-mirror-part-*.zip
 ```
+
+If either line says **"Could Not Find ..."**, that is completely fine and expected — it just means there were no old ZIPs sitting in that folder (they were moved out during the Cloudflare upload, or they live in your other project folder). Nothing is broken. Carry on to the next step.
+
+If you want to be sure no stray old parts are left anywhere on the desktop, run this and check the results:
+
+```
+dir /s /b C:\Users\User\Desktop\gpk-image-mirror-part-*.zip
+```
+
+Delete anything it lists before continuing.
+
 
 Now rebuild. This only re-zips what is already on disk — it does not re-download any images:
 
