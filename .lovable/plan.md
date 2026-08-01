@@ -1,122 +1,182 @@
-# Re-snapshot the image mirror and redeploy
+# Refill the missing mirror images, step by step
 
-Goal: download the newly-enumerated Series 2 images (side "c", `raw`, `returning`, `collector`, `originalart`, and the corrected exotic variant names) into your local `mirror-output` folder, then push that folder to all three mirror hosts so the app stops showing blank tiles for those cards.
+Some Series 2 card pictures (the "raw" cards, the "returning" cards, and the "c" side cards) were never copied into your backup mirrors, so they show up blank in the app. The fix is: run the download script on your PC again so it grabs the missing pictures, then upload the folder to your three backup websites again.
 
-Nothing in the app code changes here. This is purely a data refresh you run on your own PC.
+You do not need to change any code. Everything below happens on your own computer.
 
----
-
-## Before you start
-
-- You need the same PC/folder you used last time: `C:\Users\User\Desktop\gpk-app-latest2`
-- Keep the existing `mirror-output` folder. Do NOT delete it. The build script is resumable — it skips every file already on disk with a valid hash, so this run only downloads the new ones.
-- Have Node.js installed (you already do — you ran the holders script with it).
-- Expect this run to take a while (roughly 30–90 minutes depending on IPFS gateway speed). You can stop it with Ctrl+C and re-run at any time; it picks up where it left off.
+Time needed: about 10 minutes of your attention, plus 30–90 minutes of waiting while the script downloads.
 
 ---
 
-## Step 1 — Get the updated scripts onto your PC
+## Part 1 — Get the two updated files onto your computer
 
-The two files that changed are `scripts/mirror-config.json` and `scripts/build-image-mirror.mjs`. Pull them down the same way you normally sync the project (GitHub push from Lovable, then `git pull` in your local folder). If you copy files manually, make sure BOTH of those two files are the new versions — the config alone will not work, because the new variant options need the new script.
+I changed two files inside the project: a settings file that lists which pictures to download, and the script that does the downloading. Your PC still has the old versions, so first you copy the new ones down.
 
-Quick check that you have the new config: open `scripts/mirror-config.json` in Notepad and confirm you can see the word `returning` and the word `sharedBack`. If they are not there, you have the old file.
+**1.1** In Lovable, look at the top-right of the screen for the **GitHub** button and click it. If it says the project is synced/connected, you are good. If it asks you to connect, connect it — this is what lets your PC receive the changes.
 
----
+**1.2** Open **Command Prompt** on Windows. To do this: press the Windows key, type `cmd`, press Enter. A black window opens.
 
-## Step 2 — Run the snapshot build
-
-Open Command Prompt and run:
+**1.3** Type this exactly and press Enter. This moves the black window into your project folder:
 
 ```
 cd C:\Users\User\Desktop\gpk-app-latest2
+```
+
+**1.4** Type this and press Enter. This pulls the new files down from GitHub onto your PC:
+
+```
+git pull
+```
+
+You should see a few lines mentioning `scripts/mirror-config.json` and `scripts/build-image-mirror.mjs`. That means it worked.
+
+**1.5** Double-check it actually worked. Type this and press Enter:
+
+```
+findstr returning scripts\mirror-config.json
+```
+
+If it prints a line containing the word `returning`, you have the new file and you can move on. If it prints nothing, the pull did not bring the new file down — stop here and tell me, and I will give you a manual copy-paste method instead.
+
+---
+
+## Part 2 — Run the download script
+
+**2.1** Still in the same black Command Prompt window, type this and press Enter:
+
+```
 node scripts/build-image-mirror.mjs
 ```
 
-What you will see: a running log of files being fetched, and a count of skipped (already-present) versus downloaded files. The already-mirrored ~1500 files should skip almost instantly; the new ones will download one after another.
+**2.2** Now just watch. You will see lines scrolling past showing file names. Two things to know:
 
-If some files fail with timeouts (normal for IPFS), re-run once more with the retry flag when it finishes:
+- The roughly 1,500 pictures you already downloaded last time will be **skipped instantly** — the script checks what is already on your disk. Do not worry when it flies past at the start.
+- The new pictures download one at a time from IPFS, which is slow. This is the part that takes 30–90 minutes.
+
+**2.3** You can leave it running and go do something else. If you need to stop it, press `Ctrl` + `C`. You can start it again later with the exact same command and it carries on where it stopped — nothing is lost.
+
+**2.4** When it finishes it prints a summary with a count of downloaded files and a count of errors. **If the error count is not zero**, some downloads timed out (very normal with IPFS). Run this to retry just the failed ones:
 
 ```
 node scripts/build-image-mirror.mjs --retry-errors
 ```
 
-Repeat that until the "errors" count at the end is zero, or until repeated runs stop improving it.
+Repeat that command until the error count reaches zero, or until running it again stops reducing the number.
 
 ---
 
-## Step 3 — Verify the local folder is intact
+## Part 3 — Check the folder is healthy before uploading
+
+**3.1** Type this and press Enter:
 
 ```
 node scripts/verify-mirror.mjs
 ```
 
-You want to see `OK` at the end. If it lists MISSING files, run the `--retry-errors` command from Step 2 again. If it lists CORRUPT files, delete just those files and re-run the build.
+**3.2** You want the last line to say `OK`.
+
+- If it lists **MISSING** files: go back and run the `--retry-errors` command from step 2.4 again.
+- If it lists **CORRUPT** files: it prints their names. Delete just those files in File Explorer, then run the download command from step 2.1 again to re-fetch them.
 
 ---
 
-## Step 4 — Redeploy Backup A (Netlify)
+## Part 4 — One thing to check before you upload
 
-This is the most important mirror — the app races it first.
+Open **File Explorer** and go to `C:\Users\User\Desktop\gpk-app-latest2\mirror-output`.
 
-1. Go to <https://app.netlify.com> and open the `gpkonwaxbackup` site.
-2. Click the **Deploys** tab.
-3. Drag the **whole `mirror-output` folder** (not any folder inside it) onto the drag-and-drop area.
-4. Wait for "Published".
+Look for a file called exactly `_headers` — with **no** `.txt` on the end. This is the file that tells the mirror website to allow the app to read it. If it is missing or is called `_headers.txt`, the app will report the mirror as broken even though the pictures are there.
 
-Important: always drag the entire `mirror-output` folder. Dragging a subfolder replaces the whole site with just that subfolder, which is what wiped your images last time.
+If it says `_headers.txt`, fix it in Command Prompt:
 
-Check afterwards that these three URLs return an image, not a 404 page:
+```
+cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+ren _headers.txt _headers
+```
+
+---
+
+## Part 5 — Upload to Netlify (this is the important one)
+
+Netlify is the mirror the app tries first, so this one matters most.
+
+**5.1** Go to <https://app.netlify.com> in your browser and sign in.
+
+**5.2** Click on your site named **gpkonwaxbackup**.
+
+**5.3** Click the **Deploys** tab at the top.
+
+**5.4** Scroll down until you see the drag-and-drop box (it says something like "Drag and drop your site output folder here").
+
+**5.5** Open File Explorer next to it, go to `C:\Users\User\Desktop\gpk-app-latest2`, and drag the folder named **`mirror-output`** into that box.
+
+**Very important:** drag the folder called `mirror-output` itself — not any folder that lives inside it. Last time dragging an inside folder wiped the whole site, because Netlify replaces everything with whatever you drop.
+
+**5.6** Wait for the page to say **Published**. Large uploads can take several minutes.
+
+**5.7** Test it. Paste each of these three links into your browser. Each one should show a picture, not a "Page not found" message:
 
 - `https://gpkonwaxbackup.netlify.app/QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/base/58c.jpg`
 - `https://gpkonwaxbackup.netlify.app/QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/raw/65.jpg`
 - `https://gpkonwaxbackup.netlify.app/QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/returning/6b.gif`
 
-Also confirm `_headers` (no `.txt`) is still at the root of `mirror-output` before dragging — without it, CORS breaks and the app marks Netlify unreachable.
+If all three show pictures, the main job is done. Parts 6 and 7 are the two backup copies.
 
 ---
 
-## Step 5 — Redeploy Backup B (Cloudflare Pages)
+## Part 6 — Upload to Cloudflare (backup copy)
 
-From the project folder:
+**6.1** In Command Prompt:
 
 ```
 cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 npx wrangler pages deploy . --project-name gpkonwaxbackup
 ```
 
-Cloudflare rejects individual files over 25MB and the ZIP parts, so keep the `.assetsignore` file in `mirror-output` that excludes `*.zip` and the oversized images. Cloudflare being partially incomplete is expected and fine — it is the third choice in the race.
+**6.2** If it asks you to log in, a browser window opens — approve it, then the upload continues.
+
+**6.3** Cloudflare refuses files bigger than 25MB, so it will skip a handful of large pictures. **This is expected and fine** — Cloudflare is only the third mirror the app tries. As long as the `.assetsignore` file is still sitting in `mirror-output`, those oversized files are skipped automatically instead of failing the whole upload.
 
 ---
 
-## Step 6 — Refresh the Primary mirror (GitHub Pages)
+## Part 7 — Update GitHub Pages (backup copy)
 
-Push the new files into the `mirror/` folder of the `gpkonwaxbackup` repo in batches (GitHub rejects very large single pushes). The new Series 2 files are a small addition, so one batch should be enough:
+This is your `gpkonwaxbackup` repository, which you have cloned somewhere separately on your PC.
+
+**7.1** Copy the new picture files from `mirror-output` into the `mirror` folder inside that clone (File Explorer, copy and paste, choose "replace/merge" if asked).
+
+**7.2** In Command Prompt, move into that cloned folder (replace the path with wherever you keep it):
 
 ```
-cd <your local clone of gpkonwaxbackup>
+cd C:\path\to\your\gpkonwaxbackup
 git add mirror
-git commit -m "Add Series 2 side-c, raw, returning variants"
+git commit -m "Add Series 2 side-c, raw and returning card images"
 git push
 ```
 
+The new files are a small addition this time, so it should push in one go without hitting GitHub's size limits.
+
 ---
 
-## Step 7 — Confirm everything landed
+## Part 8 — Final check
+
+**8.1** Back in the project folder, run the audit. It checks every single file against all three websites and tells you what is missing where:
 
 ```
 cd C:\Users\User\Desktop\gpk-app-latest2
 node scripts/audit-mirrors.mjs
 ```
 
-This HEAD-checks every manifest entry against all three hosts and prints which files are missing where. Netlify and GitHub should be complete; Cloudflare will legitimately be missing the oversized files.
+Expected result: Netlify and GitHub complete; Cloudflare missing only the oversized files.
 
-Then open the app, click the **IPFS Live** indicator in the header, and press **Check again**. All three mirrors should read reachable. Open a Series 2 card that uses a `raw` or `returning` variant and confirm the artwork now loads instantly instead of falling through to IPFS.
+**8.2** Open the app in your browser, click the **IPFS Live** indicator in the header, and press **Check again**. All three mirrors should show as reachable.
+
+**8.3** Open a Series 2 card that uses a `raw` or `returning` variant. The artwork should now appear instantly instead of hanging or showing blank.
 
 ---
 
 ## Technical notes
 
-- The new `scripts/mirror-config.json` enumerates, for Series 2 (`QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ`): `base` with sides a/b/c, `raw` as a sideless `.jpg` with a shared `raw/back.jpg`, `returning` as ids 1–13 `.gif` with a shared back, plus `collector` and `originalart`. Exotic uses the on-chain names `tigerscratch` and `tigerborder`.
-- `build-image-mirror.mjs` now honours per-variant `sides`, `cardIdRange`, `sharedBack`, and `backPattern` overrides, which is what makes those non-standard paths enumerable.
-- `manifest.json` is rewritten each run with a sha256 per file, so the audit and verify scripts stay accurate after this refresh.
-- No app code needs redeploying for this — the client resolves paths at runtime from the same mirror base URLs already wired in `src/lib/ipfsGateways.ts`.
+- The updated `scripts/mirror-config.json` now enumerates, for Series 2 (`QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ`): `base` with sides a/b/c, `raw` as a sideless `.jpg` with a shared `raw/back.jpg`, `returning` as ids 1–13 `.gif` with a shared back, plus `collector` and `originalart`. Exotic uses the on-chain variant names `tigerscratch` and `tigerborder`.
+- `scripts/build-image-mirror.mjs` now honours per-variant `sides`, `cardIdRange`, `sharedBack`, and `backPattern` overrides — that is what makes those non-standard paths enumerable at all.
+- `manifest.json` is rewritten on each run with a sha256 per file, so `verify-mirror.mjs` and `audit-mirrors.mjs` stay accurate after this refresh.
+- No app redeploy is required; the client resolves these paths at runtime from the mirror base URLs already configured in `src/lib/ipfsGateways.ts`.
