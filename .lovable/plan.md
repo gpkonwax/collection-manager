@@ -1,123 +1,84 @@
-# Finish from Step 7 — build the ZIPs, publish, audit
+# Finish the backup refresh — publish the new ZIPs, update the app, audit
 
-The staging folder `C:\Users\User\Desktop\gpk-zip-src` is now correct: 2575 images plus the merged `manifest.json`. Everything left is packaging and uploading. Nothing gets downloaded again.
-
-Run one line at a time in Command Prompt and paste back what it prints. If any step prints something different from what is described, stop there and send it to me rather than continuing.
-
-## Step 7a — Point the build at the staging folder
-
-The build script reads a small settings file to know which folder to zip. Right now it points at a different folder, so you must change one line.
-
-1. Press the Windows key, type `notepad`, press Enter.
-2. In Notepad choose **File → Open**.
-3. In the file-name box paste this exactly and press Enter:
+The build worked. You now have three parts totalling 4.37 GB covering 2576 files (2575 images + `manifest.json`):
 
 ```text
-C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
+gpk-image-mirror-part-001.zip   1.76 GB
+gpk-image-mirror-part-002.zip   1.75 GB
+gpk-image-mirror-part-003.zip   875.0 MB
 ```
 
-4. Near the top you will see a line like:
+`missing=879` is expected — those are the images that no IPFS gateway would serve, and we agreed to accept them.
+
+Everything below is copy/paste. Do one step at a time and paste back what it prints. If anything differs from what is described, stop and send it to me instead of continuing.
+
+## Step 8 — Send me the new manifest numbers first
+
+Do this before uploading anything. The build rewrote `public\gpk-manifest.json` on your machine with the new part sizes and checksums. The app reads that file to know what to download, so it has to come back into the project — otherwise the app will still advertise the old ZIPs.
+
+1. Press the Windows key, type `notepad`, press Enter.
+2. **File → Open**, paste this into the file-name box and press Enter:
+
+```text
+C:\Users\User\Desktop\gpk-app-latest2\public\gpk-manifest.json
+```
+
+3. Press `Ctrl+End` to jump to the bottom of the file.
+4. Near the bottom there is a block that starts with `"zipParts": [`. Select from `"zipParts": [` down to the closing `]` and copy it (`Ctrl+C`).
+5. Paste it into the chat.
+
+It will look roughly like this (yours will have real numbers):
 
 ```json
-"outDir": "./mirror-output",
+"zipParts": [
+  { "fileName": "gpk-image-mirror-part-001.zip", "bytes": 1888888888, "sha256": "cfcd4b…", "files": 905 },
+  …
+]
 ```
 
-5. Change that whole line so it reads exactly:
+I need the exact `bytes` values, which is why a screenshot or the human-readable "1.76 GB" is not enough. Once you paste it I will update the project's manifest so the app, the audit script, and the download panel all agree.
 
-```json
-"outDir": "C:\\Users\\User\\Desktop\\gpk-zip-src",
-```
+## Step 9 — Upload the ZIPs to the GitHub Release
 
-Two things matter: the backslashes must be **doubled**, and the comma at the end must stay. Leave every other line alone.
+1. In a browser, open the `gpkonwaxbackup` repository → **Releases** → open the release that currently holds the ZIP parts.
+2. Click **Edit** (the pencil icon, top right of the release).
+3. In the assets list, remove **every** old `gpk-image-mirror-part-*.zip` by clicking the small **x** next to each one. They must go — their checksums no longer match and leaving them causes silent corruption for anyone who downloads a mix.
+4. Open `C:\Users\User\Desktop\gpk-zip-src` in File Explorer, select the three new `gpk-image-mirror-part-00*.zip` files, and drag them onto the release's upload box.
+5. Wait for all three progress bars to reach 100%. This is 4.37 GB, so expect a long wait — leave the tab open and do not navigate away.
+6. Click **Update release**.
+7. Reload the release page and confirm exactly three assets are listed, with sizes 1.76 GB, 1.75 GB and 875 MB.
 
-6. **File → Save**, then close Notepad.
+## Step 10 — Refresh the browsable mirrors
 
-## Step 7b — Make sure no old ZIP parts are sitting in the folder
+The three hosted mirrors serve individual images (not the ZIPs), and they also need the merged `manifest.json`.
 
-If old parts are still there, the new ZIP will contain the old ZIPs inside it.
+### 10a. GitHub Pages (primary)
 
-```bat
-dir /b C:\Users\User\Desktop\gpk-zip-src\*.zip
-```
-
-- `File Not Found` — good, skip to Step 7c.
-- If it lists any `gpk-image-mirror-part-*.zip` files, delete them:
-
-```bat
-del /q C:\Users\User\Desktop\gpk-zip-src\gpk-image-mirror-part-*.zip
-```
-
-Then run the `dir` line again and confirm `File Not Found`.
-
-## Step 7c — Build the split ZIPs
-
-```bat
-cd /d C:\Users\User\Desktop\gpk-app-latest2
-```
-
-```bat
-node scripts/build-image-mirror.mjs --zip-only --split-zip
-```
-
-`--zip-only` means "do not download anything, just package what is on disk". `--split-zip` means "cut it into pieces of about 1.8 GB" so each piece fits GitHub's upload limit.
-
-This takes several minutes and the window may look frozen while it works. That is normal — do not close it.
-
-When it finishes it prints a summary. Copy the last 10-15 lines and paste them to me. The things I need to see:
-
-- the number of parts it wrote,
-- each part's size and its SHA-256 (a long string of letters and numbers),
-- the total file count, which should be **2576** — that is 2575 images plus `manifest.json`.
-
-If the total is not 2576, stop and send me the output.
-
-## Step 7d — Confirm the parts exist on disk
-
-```bat
-dir C:\Users\User\Desktop\gpk-zip-src\*.zip
-```
-
-You should see the part files with sizes around 1.8 GB each. Paste this listing too.
-
-## Step 8 — Publish
-
-Four places get the update. Do them in this order.
-
-### 8a. GitHub Release (the ZIP download)
-
-1. In a browser go to the `gpkonwaxbackup` repository, click **Releases**, and open the release that currently holds the ZIP parts.
-2. Click **Edit** (the pencil icon).
-3. Under the existing assets, delete every old `gpk-image-mirror-part-*.zip` by clicking the small **x** next to each.
-4. Open `C:\Users\User\Desktop\gpk-zip-src` in File Explorer and drag the new part files onto the upload box.
-5. Wait for every upload bar to reach 100% — they are large, this takes a while — then click **Update release**.
-
-### 8b. GitHub Pages mirror (the browsable images)
-
-1. Copy the merged manifest into your local copy of the mirror repo, overwriting the old one:
+Copy the merged manifest and any new images into your local copy of the mirror repo:
 
 ```bat
 copy /Y C:\Users\User\Desktop\gpk-zip-src\manifest.json C:\Users\User\Desktop\gpkonwaxbackup-repo\manifest.json
 ```
 
-2. Copy across any images that are in staging but not yet in the repo (this skips files already there, so it is safe to re-run):
-
 ```bat
 robocopy C:\Users\User\Desktop\gpk-zip-src C:\Users\User\Desktop\gpkonwaxbackup-repo /E /XF *.zip /XO
 ```
 
-3. Commit and push that repo the way you normally do.
+`/XF *.zip` keeps the huge ZIPs out of the repo — they belong only on the Release. `/XO` skips files that are already there and unchanged, so this is safe to re-run.
 
-Do **not** copy the ZIP parts into this repo — that is what `/XF *.zip` prevents. The ZIPs live only on the Release.
+Then commit and push that repo the way you normally do, and wait for the Pages deployment to finish (green tick in the repo's Actions tab).
 
-### 8c. Netlify
+### 10b. Netlify
 
-Deploy the same folder tree you just pushed. One critical detail: the `_headers` file must stay at the root of what you deploy. Without it the browser blocks the images and the mirror shows as failed.
+Deploy the same folder you just pushed. One thing must not be lost: the `_headers` file has to sit at the root of what you deploy, otherwise the browser blocks cross-origin image loads and the mirror shows as failed in the app.
 
-### 8d. Cloudflare Pages
+### 10c. Cloudflare Pages
 
-Deploy the images and `manifest.json` only. Do **not** upload the ZIP parts — Cloudflare rejects any file over 25 MB and the deploy will fail.
+Deploy the images and `manifest.json` only. Do **not** include the ZIP parts — Cloudflare rejects any single file over 25 MB and the whole deployment will fail. If you use `.assetsignore`, confirm it still contains a `*.zip` line.
 
-## Step 9 — Audit
+## Step 11 — Audit every mirror
+
+Once all three deployments report complete:
 
 ```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
@@ -127,17 +88,30 @@ cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/audit-mirrors.mjs
 ```
 
-All three mirrors must report `COMPLETE`. If one reports missing files, the script writes the list to `scripts\mirror-output\audit-report\` — send me the summary and I will tell you what to re-upload.
+This walks the manifest and checks each file on each mirror. It takes a few minutes and prints a summary at the end.
 
-## Step 10 — Live test in the app
+What you want to see for all three mirrors:
 
-1. Open the app and go to **Offline backup**.
-2. Check the download size shown matches the total size of the new parts.
-3. Download one part and import it, then open a card and confirm the image loads from the local copy.
+```text
+verdict:      COMPLETE
+```
+
+If any mirror says `GAPS (...)`, the detailed lists land in `scripts\mirror-output\audit-report\` — paste me the summary block and I will tell you exactly what to re-upload where.
+
+Note: the primary mirror also checks the three ZIP parts against the Release. If that part fails but the images pass, it usually means Step 8 has not been applied to the project manifest yet.
+
+## Step 12 — Live check in the app
+
+1. Open the app, go to the **Offline backup** panel.
+2. Confirm it now lists three parts with the new sizes (1.76 GB / 1.75 GB / 875 MB) and a total of about 4.37 GB.
+3. Download **part 3** (the smallest, 875 MB) and import it.
+4. Open a card whose image is inside that part and confirm the image renders and the source indicator shows the local copy.
+
+That is the end-to-end proof that the ZIPs, the manifest, and the app agree.
 
 ## Technical notes
 
-- `--zip-only` skips all network fetching and zips whatever is under `outDir`, so the contents are exactly the 2575 verified images plus the merged manifest.
-- Splitting is required because a single GitHub release asset cannot exceed 2 GB; the app's importer accepts the parts individually, so no re-joining is needed on the user's side.
-- The SHA-256 values printed in Step 7c are what the app displays for integrity checking; they change with every rebuild, which is why the old release assets must be removed rather than left alongside.
-- No code changes are needed for any of this — the scripts already in the project do all the work.
+- The only project-side change in all of this is replacing `public/gpk-manifest.json`'s `zipParts` block with the values from Step 8; the images themselves are hosted externally.
+- `audit-mirrors.mjs` reads `public/gpk-manifest.json` and `public/atomic-manifest.json`, so the audit in Step 11 is only meaningful after the manifest update lands.
+- Parts are capped at 1.76 GB because a single GitHub release asset cannot exceed 2 GB. The app's importer accepts parts individually — nothing needs to be rejoined by the end user.
+- `missing=879` reflects images unavailable on every IPFS gateway; they are recorded in the manifest as absent rather than silently dropped, so a future retry can pick them up without a full rebuild.
