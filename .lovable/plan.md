@@ -130,18 +130,61 @@ node scripts/verify-mirror.mjs
 
 ---
 
-## Part 4 — One thing to check before you upload
+## Part 4 — Create or fix the `_headers` file before you upload
 
-Open **File Explorer** and go to the `mirror-output` folder inside whichever project folder you are using.
+The `_headers` file is what tells Netlify to allow the app to read from your mirror. Without it the app will report the mirror as broken even though the pictures are there.
 
-Look for a file called exactly `_headers` — with **no** `.txt` on the end. This is the file that tells the mirror website to allow the app to read it. If it is missing or is called `_headers.txt`, the app will report the mirror as broken even though the pictures are there.
+Open **File Explorer** and go to the `mirror-output` folder inside whichever project folder you are using. Check whether a file called exactly `_headers` is there — with **no** `.txt` on the end.
 
-If it says `_headers.txt`, fix it in Command Prompt. Replace `gpk-app-latest2` with your actual folder name:
+### If the file is missing
+
+**4a.1** Right-click in the empty space of the `mirror-output` folder, choose **New → Text Document**.
+
+**4a.2** Windows names it `New Text Document.txt`. Rename it to `_headers`. Windows will warn you that changing the extension might make the file unusable — click **Yes**.
+
+If Windows refuses to let you remove the `.txt` extension, do it through Command Prompt instead:
+
+```
+cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
+notepad _headers
+```
+
+This opens Notepad with a new empty file named `_headers` (no extension). Save it and close Notepad.
+
+**4a.3** Right-click the `_headers` file, choose **Open with → Notepad**, and paste in exactly this:
+
+```
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: *
+```
+
+**4a.4** Save the file and close Notepad.
+
+### If the file is called `_headers.txt`
+
+**4b.1** In Command Prompt, type this (replace `gpk-app-latest2` with your actual folder name):
 
 ```
 cd C:\Users\User\Desktop\gpk-app-latest2\mirror-output
 ren _headers.txt _headers
 ```
+
+**4b.2** Then open the file in Notepad and make sure it contains exactly this:
+
+```
+/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Access-Control-Allow-Headers: *
+```
+
+Save and close Notepad.
+
+### Quick check
+
+The file should now be sitting directly inside `mirror-output` and should be called `_headers` with no `.txt`. If you open it, the first line should be `/*` and the next three lines should start with two spaces and say `Access-Control-Allow-...`.
 
 ---
 
