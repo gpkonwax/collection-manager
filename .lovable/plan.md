@@ -112,6 +112,27 @@ If entries fail with timeouts, run this once to retry them slowly:
 node scripts/build-image-mirror.mjs --retry-errors
 ```
 
+## Part 3b — Top up the AtomicAssets series
+
+The atomic images (Crash Gordon and the other AtomicAssets sets) come from a different script. Run it from the same folder so it writes into the same `mirror-output\atomic`:
+
+```
+cd /d C:\Users\User\Desktop\gpk-app-latest2
+```
+
+```
+node scripts/build-atomic-mirror.mjs
+```
+
+It skips anything already on disk and only fetches what is missing, so it is safe to re-run. When it finishes, re-count:
+
+```
+dir /s /b mirror-output\*.jpg mirror-output\*.gif | find /c /v ""
+```
+
+Send me the new number. If it has climbed close to 3,600 we are good to zip.
+
+
 ## Part 4 — Build the ZIP parts
 
 Clear out any stale parts first. "Could Not Find" here is fine:
