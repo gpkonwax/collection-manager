@@ -15,10 +15,31 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 const MIRRORS = [
-  { key: 'primary',    label: 'Primary (GitHub Pages)', baseUrl: 'https://gpkonwaxbackup.github.io/gpk-backup/mirror/', checkZips: true  },
-  { key: 'netlify',    label: 'Backup A (Netlify)',     baseUrl: 'https://gpkonwaxbackup.netlify.app/',                 checkZips: true  },
-  { key: 'cloudflare', label: 'Backup B (Cloudflare)',  baseUrl: 'https://gpkonwaxbackup.pages.dev/',                   checkZips: false },
+  {
+    key: 'primary',
+    label: 'Primary (GitHub Pages)',
+    baseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/mirror/',
+    // In the backup repo, atomic/ sits at the repo root, next to mirror/.
+    atomicBaseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/',
+    checkZips: true,
+  },
+  { key: 'netlify',    label: 'Backup A (Netlify)',    baseUrl: 'https://gpkonwaxbackup.netlify.app/', checkZips: true  },
+  { key: 'cloudflare', label: 'Backup B (Cloudflare)', baseUrl: 'https://gpkonwaxbackup.pages.dev/',   checkZips: false },
 ];
+
+/**
+ * Resolve the URL for a manifest entry on a given mirror. Manifest entries may
+ * carry an explicit stored `path` (atomic assets live under atomic/ and may
+ * have an extension appended); otherwise the manifest key is the path.
+ */
+function urlFor(mirror, rel, meta) {
+  const storedPath = meta?.path ?? rel;
+  const base = storedPath.startsWith('atomic/')
+    ? (mirror.atomicBaseUrl ?? mirror.baseUrl)
+    : mirror.baseUrl;
+  return base + storedPath;
+}
+
 
 const MANIFEST_PATHS = [
   'public/gpk-manifest.json',
