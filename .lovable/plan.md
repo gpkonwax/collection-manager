@@ -44,6 +44,27 @@ Confirm the config is the new one — this should print matching lines rather th
 findstr /C:"returning" /C:"sharedBack" C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
 ```
 
+**Important — point the config at your existing mirror folder.** The new config contains a line near the top that reads:
+
+```
+"outDir": "./mirror-output",
+```
+
+That path is relative to the `scripts` folder, so it means `gpk-app-latest2\scripts\mirror-output`. If Part 1 showed your real folder is at the project top level (`gpk-app-latest2\mirror-output`), open the config in Notepad:
+
+```
+notepad C:\Users\User\Desktop\gpk-app-latest2\scripts\mirror-config.json
+```
+
+and change that line to:
+
+```
+"outDir": "../mirror-output",
+```
+
+Save and close. Get this wrong and the script will start a brand new empty folder instead of topping up your real one.
+
+
 ## Part 3 — Download the missing Series 2 images into the full tree
 
 Move into the full folder:
