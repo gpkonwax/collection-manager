@@ -12,6 +12,7 @@ needs to be rebuilt.
 - **`build-image-mirror.mjs`** — fetches every file, writes them to `./mirror-output/<hash>/<variant>/<id><side>.<ext>`, emits `manifest.json` with a sha256 per file, and zips the tree into `./mirror-output/gpk-image-mirror.zip` (inside the folder, so every mirror host serves it). The manifest also records `zipSha256` and `zipBytes` for the app to display. **Resumable** — re-running skips files already on disk with valid hashes, and won't retry entries recorded as missing.
 - **`verify-mirror.mjs`** — checks every file in a local mirror folder against the manifest sha256s. Exits non-zero on missing / corrupted / extra files.
 - **`verify-remote-mirror.mjs`** — same check, but against a live URL (e.g. someone's Cloudflare Pages fork).
+- **`merge-manifests.mjs`** — combines an AtomicAssets-only manifest with a SimpleAssets manifest into one manifest that covers every file in a staging folder. SimpleAssets entries keep their `<cid>/<variant>/<file>` key with no `path` field; AtomicAssets entries keep their `atomic/...` `path`. Where both describe the same image, the SimpleAssets entry owns the canonical key and the `atomic/` twin is recorded under its own key so ZIP verification still covers it. Aborts if the two manifests disagree on a shared key's sha256, backs the original up outside the staging folder, and clears stale `zipParts` metadata. Usage: `node scripts/merge-manifests.mjs [atomicManifest] [simpleManifest]`.
 
 ## How to build the mirror (one-time)
 
