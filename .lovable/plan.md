@@ -89,11 +89,12 @@ node scripts/build-image-mirror.mjs --retry-errors
 
 ## Part 4 — Build the ZIP parts
 
-Delete any stale parts in this folder first (a "Could Not Find" message here is fine):
+Delete any stale parts in the mirror folder first (a "Could Not Find" message here is fine). Use your `<MIRROR>` path:
 
 ```
-del scripts\mirror-output\gpk-image-mirror-part-*.zip
+del <MIRROR>\gpk-image-mirror-part-*.zip
 ```
+
 
 Then build:
 
