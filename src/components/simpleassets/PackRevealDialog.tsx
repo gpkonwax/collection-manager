@@ -123,16 +123,28 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
     <div className="relative aspect-[2/3]"
       style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
       <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
-        {currentSrc ? (
+        {currentSrc && !exhausted ? (
           <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center"
             loading="eager"
             decoding="async"
             fetchPriority="high"
             onLoad={() => setLoaded(true)}
-            onError={() => { setLoaded(false); setGwIdx((g) => (g < fallbacks.length - 1 ? g + 1 : g)); }} />
+            onError={() => {
+              setLoaded(false);
+              setGwIdx((g) => {
+                if (g < fallbacks.length - 1) return g + 1;
+                setExhausted(true);
+                return g;
+              });
+            }} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted text-2xl">🃏</div>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 bg-muted p-1 text-center">
+            <span className="text-2xl">🃏</span>
+            <span className="text-[10px] leading-tight text-muted-foreground break-words">{card.name}</span>
+            {exhausted && <span className="text-[9px] text-muted-foreground/70">image offline</span>}
+          </div>
         )}
+
       </div>
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 flex items-center justify-center shadow-md border border-zinc-700/50 rounded-sm"
         style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
