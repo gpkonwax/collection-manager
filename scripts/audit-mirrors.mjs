@@ -158,7 +158,8 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
   const ok = [];
 
   await pool(entries, opts.concurrency, async ([rel, meta]) => {
-    const url = mirror.baseUrl + rel;
+    const url = urlFor(mirror, rel, meta);
+
     let r = await headCheck(url);
     if (!r.ok && !r.status) {
       // one retry on transient network error
