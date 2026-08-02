@@ -102,60 +102,6 @@ const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
 const ITEMS_PER_PAGE = 36;
 
-const CATEGORY_LABELS: Record<string, string> = {
-  series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
-  exotic: 'Tiger King', bernventures: 'Bernventures', mittens: 'Mittens',
-  
-  gamestonk: 'GameStonk', foodfightb: 'Food Fight', bonus: 'Bonus',
-  promo: 'Promo', originalart: 'Original Art',
-};
-
-const SERIES1_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'sketch', label: 'Sketch' },
-  { value: 'collector', label: 'Collectors' },
-  { value: 'golden', label: 'Gold' },
-];
-
-const SERIES2_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'raw', label: 'Raw' },
-  { value: 'slime', label: 'Slime' },
-  { value: 'gum', label: 'Gum' },
-  { value: 'vhs', label: 'VHS' },
-  { value: 'sketch', label: 'Sketch' },
-  { value: 'returning', label: 'Returning' },
-  { value: 'error', label: 'Error' },
-  { value: 'originalart', label: 'Original Art' },
-  { value: 'relic', label: 'Relic' },
-  { value: 'promo', label: 'Promo' },
-  { value: 'collector', label: 'Collectors' },
-  { value: 'golden', label: 'Golden' },
-];
-
-const EXOTIC_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'tiger stripe', label: 'Tiger Stripe' },
-  { value: 'tiger claw', label: 'Tiger Claw' },
-  { value: 'golden', label: 'Golden' },
-  { value: 'collector', label: 'Collector' },
-];
-
-const CRASHGORDON_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'golden', label: 'Golden' },
-];
-
-const FOODFIGHT_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'sketch', label: 'Sketch' },
-  { value: 'artistssignature', label: "Artist's Signature" },
-  { value: 'golden', label: 'Golden' },
-];
 
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'exotic',
