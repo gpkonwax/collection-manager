@@ -87,6 +87,8 @@ function normalizeAsset(a: RawOfferAsset): OfferAsset {
     schema_name: a.schema?.schema_name || '',
     template_id: a.template?.template_id || null,
     mint: a.template_mint || null,
+    variant: normalizeGpkVariant(combined.variant),
+    cardid: String(combined.cardid ?? ''),
   };
 }
 
