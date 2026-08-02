@@ -115,32 +115,6 @@ export function buildMsigCancelAction(
   };
 }
 
-/** Dust transfer that makes a proposal (or a decline) discoverable. */
-export function buildBeaconAction(
-  from: string,
-  to: string,
-  memo: string,
-): WaxAction {
-  return {
-    account: TOKEN_CONTRACT,
-    name: 'transfer',
-    authorization: auth(from),
-    data: {
-      from,
-      to,
-      quantity: SA_BEACON_QUANTITY,
-      memo: memo.slice(0, SA_MAX_MEMO_LENGTH),
-    },
-  };
-}
-
-export function offerBeaconMemo(proposalName: string): string {
-  return `${SA_BEACON_OFFER_PREFIX}${proposalName}`;
-}
-
-export function declineBeaconMemo(proposalName: string): string {
-  return `${SA_BEACON_DECLINE_PREFIX}${proposalName}`;
-}
 
 const NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz12345';
 
