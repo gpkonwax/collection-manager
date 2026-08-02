@@ -14,6 +14,11 @@ import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
+// Bump these whenever this script changes, so a stale local copy is obvious
+// the moment it runs.
+const SCRIPT_VERSION = 'v2';
+const SCRIPT_UPDATED = '2026-08-02';
+
 const MIRRORS = [
   {
     key: 'primary',
@@ -28,7 +33,17 @@ const MIRRORS = [
     checkZips: true,
   },
   { key: 'netlify',    label: 'Backup A (Netlify)',    baseUrl: 'https://gpkonwaxbackup.netlify.app/', checkZips: false },
-  { key: 'cloudflare', label: 'Backup B (Cloudflare)', baseUrl: 'https://gpkonwaxbackup.pages.dev/',   checkZips: false },
+  {
+    key: 'cloudflare',
+    label: 'Backup B (Cloudflare)',
+    baseUrl: 'https://gpkonwaxbackup.pages.dev/',
+    checkZips: false,
+    // Cloudflare Pages refuses any single file larger than 25 MiB. Those files
+    // are expected exclusions rather than gaps — they are still served by the
+    // primary mirror, Netlify and the ZIP release.
+    maxFileBytes: 25 * 1024 * 1024,
+    maxFileReason: 'over 25 MiB Cloudflare limit',
+  },
 ];
 
 
