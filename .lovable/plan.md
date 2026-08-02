@@ -42,7 +42,14 @@ Leave `atomic\` and `mirror\` where they are for now; the pull did not complain 
 git pull origin main
 ```
 
-This should now complete. If Notepad or an editor opens asking for a merge message, just close it (or `Ctrl+X`, `Y`, Enter).
+You will get one conflict: `.gitignore` (you moved it aside in Step 3, GitHub changed it). Keep GitHub's version — it is already sitting in the folder:
+
+```bat
+git add .gitignore
+git commit -m "Merge origin/main"
+```
+
+If an editor opens for the commit message, just close it (or `Ctrl+X`, `Y`, Enter).
 
 Then:
 
@@ -50,7 +57,8 @@ Then:
 git status -sb
 ```
 
-You want `## main...origin/main [ahead 3]` (no `behind`).
+You want `## main...origin/main [ahead 4]` (no `behind`).
+
 
 ## Step 5 — Copy back only the files GitHub does not already have
 
