@@ -397,9 +397,10 @@ export default function SimpleAssetsPage() {
     setTradeBusyOfferId(offer.offer_id);
     setTradeBusyAction(action);
     try {
+      const iApproved = !!saRef && (offer.proposal?.approvedBy || []).includes(accountName);
       const actions = isSa && saRef
         ? (action === 'accept'  ? buildSaAcceptActions(accountName, saRef.proposer, saRef.name)
-        :  action === 'decline' ? buildSaDeclineActions(accountName, saRef.proposer, saRef.name)
+        :  action === 'decline' ? buildSaDeclineActions(accountName, saRef.proposer, saRef.name, iApproved)
         :                         buildSaCancelActions(accountName, saRef.name))
         : (action === 'accept'  ? [buildAcceptOfferAction(accountName, offer.offer_id)]
         :  action === 'decline' ? [buildDeclineOfferAction(accountName, offer.offer_id)]
@@ -411,11 +412,17 @@ export default function SimpleAssetsPage() {
         cancel:  'Offer cancelled',
       } as const;
 
-      const res = await executeTransaction(actions, {
-        successTitle: titles[action],
-        successDescription: isSa && saRef ? `Swap ${saRef.name}` : `Offer #${offer.offer_id}`,
-        errorTitle: `${action.charAt(0).toUpperCase() + action.slice(1)} failed`,
-      });
+      // Declining a SimpleAssets proposal I never approved needs no signature —
+      // it just disappears from my list and expires on-chain.
+      const res = actions.length === 0
+        ? { success: true }
+        : await executeTransaction(actions, {
+            successTitle: titles[action],
+            successDescription: isSa && saRef ? `Swap ${saRef.name}` : `Offer #${offer.offer_id}`,
+            errorTitle: `${action.charAt(0).toUpperCase() + action.slice(1)} failed`,
+          });
+      if (actions.length === 0) toast.success('Offer declined');
+
       if (res.success) {
         if (isSa && saRef) {
           hideProposalLocally(accountName, saRef.proposer, saRef.name);
