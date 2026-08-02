@@ -424,5 +424,15 @@ export function TradeComposerDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <TransactionSuccessDialog
+      open={successOpen}
+      onOpenChange={handleSuccessClose}
+      title={isCounter ? 'Counter-offer sent!' : 'Trade offer sent!'}
+      description={isCounter
+        ? `You declined the original offer and sent a fresh counter-offer to ${counterparty || 'the other trader'}.`
+        : `Your trade offer was successfully sent to ${counterparty || 'the other trader'}. They can review and accept it in their Trades tab.`}
+      txId={successTxId}
+    />
   );
 }
