@@ -49,6 +49,12 @@ export function parseCounterRef(memo: string | null | undefined): string | null 
   return m ? m[1] : null;
 }
 
+/** Memo without the internal `re:<name>` marker, for display. */
+export function stripCounterRef(memo: string | null | undefined): string {
+  return (memo || '').replace(COUNTER_REF_RE, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+
 
 
 
