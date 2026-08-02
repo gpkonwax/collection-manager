@@ -3,16 +3,40 @@ import { fetchSaOffers } from '@/lib/saOffers';
 import type { AtomicOffer } from '@/lib/atomicOffers';
 
 const POLL_INTERVAL_MS = 60_000;
+// Shared with useAtomicOffers on purpose: one "last seen" moment across both
+// protocols keeps the merged trades list and the header badge consistent.
+const LAST_SEEN_PREFIX = 'gpk-trades-last-seen:';
+
+function readLastSeen(account: string | null): number {
+  if (!account || typeof window === 'undefined') return 0;
+  try {
+    const raw = window.localStorage.getItem(`${LAST_SEEN_PREFIX}${account}`);
+    return raw ? Number(raw) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeLastSeen(account: string | null, ts: number) {
+  if (!account || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`${LAST_SEEN_PREFIX}${account}`, String(ts));
+  } catch {
+    /* ignore */
+  }
+}
 
 export interface UseSaOffersResult {
   offers: AtomicOffer[];
   incoming: AtomicOffer[];
   outgoing: AtomicOffer[];
+  incomingUnreadCount: number;
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
   removeOfferLocally: (offerId: string) => void;
   refreshWithRetries: (attempts?: number, delayMs?: number) => Promise<void>;
+  markAllRead: () => void;
 }
 
 /**
@@ -23,11 +47,13 @@ export function useSaOffers(account: string | null): UseSaOffersResult {
   const [offers, setOffers] = useState<AtomicOffer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastSeen, setLastSeen] = useState<number>(() => readLastSeen(account));
 
   const accountRef = useRef(account);
   accountRef.current = account;
 
   useEffect(() => {
+    setLastSeen(readLastSeen(account));
     setOffers([]);
     setError(null);
   }, [account]);
@@ -70,6 +96,20 @@ export function useSaOffers(account: string | null): UseSaOffersResult {
     return { incoming: inc, outgoing: out };
   }, [offers, account]);
 
+  // Proposals discovered without a history timestamp have created_at_time 0;
+  // treat those as new rather than silently never flagging them.
+  const incomingUnreadCount = useMemo(
+    () => incoming.filter((o) => !o.created_at_time || o.created_at_time > lastSeen).length,
+    [incoming, lastSeen],
+  );
+
+  const markAllRead = useCallback(() => {
+    if (!accountRef.current) return;
+    const now = Date.now();
+    writeLastSeen(accountRef.current, now);
+    setLastSeen(now);
+  }, []);
+
   const removeOfferLocally = useCallback((offerId: string) => {
     setOffers((prev) => prev.filter((o) => o.offer_id !== offerId));
   }, []);
@@ -86,5 +126,8 @@ export function useSaOffers(account: string | null): UseSaOffersResult {
     }
   }, [refresh]);
 
-  return { offers, incoming, outgoing, isLoading, error, refresh, removeOfferLocally, refreshWithRetries };
+  return {
+    offers, incoming, outgoing, incomingUnreadCount, isLoading, error,
+    refresh, removeOfferLocally, refreshWithRetries, markAllRead,
+  };
 }

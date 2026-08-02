@@ -381,7 +381,7 @@ export function TradesDialog({
                       key={o.offer_id}
                       offer={o}
                       direction="incoming"
-                      isNew={o.created_at_time > lastSeenAtOpen}
+                      isNew={!o.created_at_time || o.created_at_time > lastSeenAtOpen}
                       onAction={onOfferAction}
                       busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
                     />

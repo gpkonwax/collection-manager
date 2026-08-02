@@ -321,7 +321,7 @@ export default function SimpleAssetsPage() {
   const {
     incoming: tradesIncoming,
     outgoing: tradesOutgoing,
-    incomingUnreadCount: tradesUnread,
+    incomingUnreadCount: aaUnread,
     isLoading: tradesLoading,
     error: tradesError,
     refresh: refreshTrades,
@@ -338,7 +338,16 @@ export default function SimpleAssetsPage() {
     refresh: refreshSaTrades,
     removeOfferLocally: removeSaOfferLocally,
     refreshWithRetries: refreshSaTradesWithRetries,
+    incomingUnreadCount: saUnread,
+    markAllRead: markSaTradesRead,
   } = useSaOffers(tradesAccount);
+
+  // One badge across both protocols.
+  const tradesUnread = aaUnread + saUnread;
+  const markAllTradesRead = useCallback(() => {
+    markTradesRead();
+    markSaTradesRead();
+  }, [markTradesRead, markSaTradesRead]);
 
   // Merged, newest-first views across both protocols.
   const mergedIncoming = useMemo(
@@ -2307,7 +2316,7 @@ export default function SimpleAssetsPage() {
         isLoading={tradesLoading || saTradesLoading}
         error={tradesError || saTradesError}
         onRefresh={async () => { await Promise.all([refreshTrades(), refreshSaTrades()]); }}
-        onMarkAllRead={markTradesRead}
+        onMarkAllRead={markAllTradesRead}
         onOfferAction={handleOfferAction}
         busyOfferId={tradeBusyOfferId}
         busyAction={tradeBusyAction}
