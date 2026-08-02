@@ -165,9 +165,19 @@ function OfferCard({
       )}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <AssetRow label={direction === 'incoming' ? 'They give you' : 'You send'} assets={theyGive} />
-        <AssetRow label={direction === 'incoming' ? 'You give' : 'They send back'} assets={youGive} />
+        {direction === 'incoming' ? (
+          <>
+            <AssetRow label="They give you" assets={theyGive} />
+            <AssetRow label="You give" assets={youGive} />
+          </>
+        ) : (
+          <>
+            <AssetRow label="You send" assets={youGive} />
+            <AssetRow label="They send back" assets={theyGive} />
+          </>
+        )}
       </div>
+
 
       <div className="flex flex-wrap gap-2 pt-1">
         {direction === 'incoming' ? (
