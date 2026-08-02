@@ -3,7 +3,7 @@ import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, F
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
 import { MissingPuzzlePiecePlaceholder } from '@/components/simpleassets/MissingPuzzlePiecePlaceholder';
