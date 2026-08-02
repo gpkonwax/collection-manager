@@ -12,7 +12,8 @@ import { Serializer, Transaction } from '@wharfkit/antelope';
 import { fetchTableRows, HYPERION_ENDPOINTS } from '@/lib/waxRpcFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
-import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
+import type { AtomicOffer, OfferAsset, OfferPack } from '@/lib/atomicOffers';
+import { packImage, packLabel } from '@/lib/gpkPackMeta';
 import {
   MSIG_CONTRACT,
   SIMPLEASSETS_CONTRACT,
