@@ -73,6 +73,12 @@ import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
 import { TradesDialog } from '@/components/TradesDialog';
 import { TradeComposerDialog } from '@/components/TradeComposerDialog';
 import { useAtomicOffers } from '@/hooks/useAtomicOffers';
+import { useSaOffers } from '@/hooks/useSaOffers';
+import type { TradeProtocol } from '@/lib/atomicOffers';
+import { parseSaOfferId, hideProposalLocally } from '@/lib/saOffers';
+import {
+  buildSaAcceptActions, buildSaDeclineActions, buildSaCancelActions,
+} from '@/lib/saTradeActions';
 import {
   buildAcceptOfferAction, buildDeclineOfferAction, buildCancelOfferAction,
 } from '@/lib/atomicTradeActions';
@@ -303,6 +309,9 @@ export default function SimpleAssetsPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
   const [composerCounterOfferId, setComposerCounterOfferId] = useState<string | null>(null);
+  const [composerProtocol, setComposerProtocol] = useState<TradeProtocol>('atomicassets');
+  const [composerCounterProposal, setComposerCounterProposal] =
+    useState<{ proposer: string; name: string } | null>(null);
   const [composerCounterparty, setComposerCounterparty] = useState<string | null>(null);
   const [tradeBusyOfferId, setTradeBusyOfferId] = useState<string | null>(null);
   const [tradeBusyAction, setTradeBusyAction] = useState<'accept' | 'decline' | 'cancel' | 'counter' | null>(null);
@@ -321,6 +330,23 @@ export default function SimpleAssetsPage() {
     markAllRead: markTradesRead,
 
   } = useAtomicOffers(tradesAccount);
+  const {
+    incoming: saIncoming,
+    outgoing: saOutgoing,
+    isLoading: saTradesLoading,
+    error: saTradesError,
+    refresh: refreshSaTrades,
+    removeOfferLocally: removeSaOfferLocally,
+    refreshWithRetries: refreshSaTradesWithRetries,
+  } = useSaOffers(tradesAccount);
+
+  // Merged, newest-first views across both protocols.
+  const mergedIncoming = useMemo(
+    () => [...tradesIncoming, ...saIncoming].sort((a, b) => b.created_at_time - a.created_at_time),
+    [tradesIncoming, saIncoming]);
+  const mergedOutgoing = useMemo(
+    () => [...tradesOutgoing, ...saOutgoing].sort((a, b) => b.created_at_time - a.created_at_time),
+    [tradesOutgoing, saOutgoing]);
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
   // Open the Trade Composer from a card in another wallet.
@@ -330,9 +356,12 @@ export default function SimpleAssetsPage() {
       return;
     }
     if (!viewedAccount || viewedAccount === accountName) return;
+    // The clicked card locks the protocol — no mixed AA/SA trades.
+    setComposerProtocol(asset.source === 'simpleassets' ? 'simpleassets' : 'atomicassets');
     setComposerCounterparty(viewedAccount);
     setComposerInitialTheirIds([asset.id]);
     setComposerCounterOfferId(null);
+    setComposerCounterProposal(null);
     setComposerOpen(true);
   }, [accountName, viewedAccount]);
 
@@ -342,40 +371,65 @@ export default function SimpleAssetsPage() {
     offer: AtomicOffer,
   ) => {
     if (!accountName || !session) return;
+    const protocol: TradeProtocol = offer.protocol ?? 'atomicassets';
+    const isSa = protocol === 'simpleassets';
+    const saRef = isSa
+      ? (offer.proposal
+          ? { proposer: offer.proposal.proposer, name: offer.proposal.name }
+          : parseSaOfferId(offer.offer_id))
+      : null;
+
     if (action === 'counter') {
       // Prefill composer: sender's assets go on "They give" (they were being offered),
       // and initially clear "You give" so the recipient can rebuild their side.
+      setComposerProtocol(protocol);
       setComposerCounterparty(offer.sender_name);
       setComposerInitialTheirIds(offer.sender_assets.map((a) => a.asset_id));
       setComposerCounterOfferId(offer.offer_id);
+      setComposerCounterProposal(saRef);
       setComposerOpen(true);
+      return;
+    }
+    if (isSa && !saRef) {
+      toast.error('Could not resolve this swap proposal.');
       return;
     }
     setTradeBusyOfferId(offer.offer_id);
     setTradeBusyAction(action);
     try {
-      const actions =
-        action === 'accept'  ? [buildAcceptOfferAction(accountName, offer.offer_id)]
-      : action === 'decline' ? [buildDeclineOfferAction(accountName, offer.offer_id)]
-      :                        [buildCancelOfferAction(accountName, offer.offer_id)];
+      const actions = isSa && saRef
+        ? (action === 'accept'  ? buildSaAcceptActions(accountName, saRef.proposer, saRef.name)
+        :  action === 'decline' ? buildSaDeclineActions(accountName, saRef.proposer, saRef.name)
+        :                         buildSaCancelActions(accountName, saRef.name))
+        : (action === 'accept'  ? [buildAcceptOfferAction(accountName, offer.offer_id)]
+        :  action === 'decline' ? [buildDeclineOfferAction(accountName, offer.offer_id)]
+        :                         [buildCancelOfferAction(accountName, offer.offer_id)]);
 
       const titles = {
-        accept:  'Offer accepted',
+        accept:  isSa ? 'Swap executed' : 'Offer accepted',
         decline: 'Offer declined',
         cancel:  'Offer cancelled',
       } as const;
 
       const res = await executeTransaction(actions, {
         successTitle: titles[action],
-        successDescription: `Offer #${offer.offer_id}`,
+        successDescription: isSa && saRef ? `Swap ${saRef.name}` : `Offer #${offer.offer_id}`,
         errorTitle: `${action.charAt(0).toUpperCase() + action.slice(1)} failed`,
       });
-      if (res.success) await refreshTrades();
+      if (res.success) {
+        if (isSa && saRef) {
+          hideProposalLocally(accountName, saRef.proposer, saRef.name);
+          removeSaOfferLocally(offer.offer_id);
+          await refreshSaTrades();
+        } else {
+          await refreshTrades();
+        }
+      }
     } finally {
       setTradeBusyOfferId(null);
       setTradeBusyAction(null);
     }
-  }, [accountName, session, executeTransaction, refreshTrades]);
+  }, [accountName, session, executeTransaction, refreshTrades, refreshSaTrades, removeSaOfferLocally]);
 
 
   const toggleSelection = useCallback((id: string) => {
@@ -2241,11 +2295,11 @@ export default function SimpleAssetsPage() {
         open={showTradesDialog}
         onOpenChange={setShowTradesDialog}
         account={tradesAccount}
-        incoming={tradesIncoming}
-        outgoing={tradesOutgoing}
-        isLoading={tradesLoading}
-        error={tradesError}
-        onRefresh={refreshTrades}
+        incoming={mergedIncoming}
+        outgoing={mergedOutgoing}
+        isLoading={tradesLoading || saTradesLoading}
+        error={tradesError || saTradesError}
+        onRefresh={async () => { await Promise.all([refreshTrades(), refreshSaTrades()]); }}
         onMarkAllRead={markTradesRead}
         onOfferAction={handleOfferAction}
         busyOfferId={tradeBusyOfferId}
@@ -2260,14 +2314,22 @@ export default function SimpleAssetsPage() {
         session={session}
         initialTheirAssetIds={composerInitialTheirIds}
         counterOfferId={composerCounterOfferId}
+        protocol={composerProtocol}
+        counterProposal={composerCounterProposal}
         onSuccess={() => {
           // Counter-offer declines the original in the same tx: drop it from
           // "Received" right away, then re-poll so the new "Sent" offer shows
           // up as soon as the indexer catches it — no page refresh needed.
-          if (composerCounterOfferId) removeTradeOfferLocally(composerCounterOfferId);
-          void refreshTradesWithRetries();
+          if (composerProtocol === 'simpleassets') {
+            if (composerCounterOfferId) removeSaOfferLocally(composerCounterOfferId);
+            void refreshSaTradesWithRetries();
+          } else {
+            if (composerCounterOfferId) removeTradeOfferLocally(composerCounterOfferId);
+            void refreshTradesWithRetries();
+          }
         }}
       />
+
 
 
       {/* Info Dialog */}

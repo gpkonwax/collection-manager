@@ -25,6 +25,9 @@ export interface OfferAsset {
   cardid?: string;
 }
 
+/** Which contract a trade lives on. Trades are never mixed across protocols. */
+export type TradeProtocol = 'atomicassets' | 'simpleassets';
+
 export interface AtomicOffer {
   offer_id: string;
   sender_name: string;
@@ -37,7 +40,17 @@ export interface AtomicOffer {
   is_recipient_contract: boolean;
   created_at_time: number; // ms epoch
   updated_at_time: number; // ms epoch
+  /** Defaults to 'atomicassets' when absent. */
+  protocol?: TradeProtocol;
+  /** Present for SimpleAssets swaps (eosio.msig proposals). */
+  proposal?: {
+    proposer: string;
+    name: string;
+    expiresAt: number;
+    approvedBy: string[];
+  };
 }
+
 
 interface RawOfferAsset {
   asset_id: string;
@@ -105,6 +118,8 @@ function normalizeOffer(o: RawOffer): AtomicOffer {
     is_recipient_contract: !!o.is_recipient_contract,
     created_at_time: Number(o.created_at_time || 0),
     updated_at_time: Number(o.updated_at_time || 0),
+    protocol: 'atomicassets',
+
   };
 }
 
