@@ -97,6 +97,9 @@ import { ViewingBanner } from '@/components/ViewingBanner';
 import logoSimpleAssets from '@/assets/logo-simpleassets.png';
 import logoAtomicAssets from '@/assets/logo-atomicassets.png';
 import { useTheme } from '@/hooks/useTheme';
+import { CATEGORY_LABELS, hasVariants } from '@/lib/gpkCategories';
+import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
+
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
