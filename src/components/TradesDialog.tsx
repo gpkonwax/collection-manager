@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
 import { cn } from '@/lib/utils';
+import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
 
 type OfferAction = 'accept' | 'decline' | 'cancel' | 'counter';
 
