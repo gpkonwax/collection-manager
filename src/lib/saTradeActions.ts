@@ -266,12 +266,14 @@ export async function buildSwapTransactionObject(params: {
   theirAssetIds: string[];
   memo?: string;
   expireSeconds?: number;
+  /** Name of the proposal this swap replaces (written into the memo). */
+  counterRef?: string | null;
 }): Promise<{ trx: Record<string, unknown>; expiresAt: number }> {
   const abi = await getContractAbi(SIMPLEASSETS_CONTRACT);
   const expireSeconds = params.expireSeconds ?? SA_PROPOSAL_EXPIRY_SECONDS;
   const header = await getTransactionHeader(expireSeconds);
 
-  const memo = (params.memo || '').slice(0, SA_MAX_MEMO_LENGTH);
+  const memo = withCounterRef(params.memo || '', params.counterRef);
   const inner = [
     buildSaTransferAction(params.me, params.counterparty, params.myAssetIds, memo),
     buildSaTransferAction(params.counterparty, params.me, params.theirAssetIds, memo),
@@ -291,9 +293,14 @@ export interface SaSwapBundle {
 
 /**
  * Full action bundle for proposing a swap: msig propose + my approval.
- * Costs no tokens — only CPU/NET. When countering my own earlier proposal it is
- * cancelled in the same transaction; someone else's proposal can't be cancelled
- * by me, so it is simply hidden locally by the caller.
+ * Costs no tokens — only CPU/NET.
+ *
+ * When countering:
+ * - my own earlier proposal is cancelled on-chain in the same transaction;
+ * - someone else's proposal can't be cancelled by me, so instead I withdraw my
+ *   approval (if I had given one) so it can never execute behind the counter,
+ *   and the new proposal's memo carries a `re:<name>` marker so both clients
+ *   can show the original as superseded.
  */
 export async function buildSaSwapActions(params: {
   me: string;
@@ -303,15 +310,24 @@ export async function buildSaSwapActions(params: {
   memo?: string;
   /** Existing proposal being countered. */
   counterProposal?: { proposer: string; name: string } | null;
+  /** Whether I had already approved the proposal being countered. */
+  counterApproved?: boolean;
   proposalName?: string;
 }): Promise<SaSwapBundle> {
   const proposalName = params.proposalName || makeProposalName();
-  const { trx, expiresAt } = await buildSwapTransactionObject(params);
+  const counterRef = params.counterProposal?.name ?? null;
+  const { trx, expiresAt } = await buildSwapTransactionObject({ ...params, counterRef });
 
   const actions: WaxAction[] = [];
 
-  if (params.counterProposal && params.counterProposal.proposer === params.me) {
-    actions.push(buildMsigCancelAction(params.me, params.me, params.counterProposal.name));
+  if (params.counterProposal) {
+    if (params.counterProposal.proposer === params.me) {
+      actions.push(buildMsigCancelAction(params.me, params.me, params.counterProposal.name));
+    } else if (params.counterApproved) {
+      actions.push(
+        buildMsigUnapproveAction(params.me, params.counterProposal.proposer, params.counterProposal.name),
+      );
+    }
   }
 
   actions.push({
@@ -332,6 +348,7 @@ export async function buildSaSwapActions(params: {
 
   return { actions, proposalName, expiresAt };
 }
+
 
 /** Accept: approve then execute in a single signed transaction. */
 export function buildSaAcceptActions(me: string, proposer: string, proposalName: string): WaxAction[] {
