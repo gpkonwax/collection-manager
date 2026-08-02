@@ -53,21 +53,9 @@ _headers
 
 If a name is different or there are extra folders, paste the output and stop here.
 
-## Step 4 — Push the small stuff first
+## Step 4 — Skip the small stuff
 
-```bat
-git add manifest.json _headers
-```
-
-```bat
-git commit -m "Update manifest to full 2575 entries"
-```
-
-```bat
-git push origin main
-```
-
-This should finish in a few seconds.
+You already pushed `manifest.json` and `_headers` earlier, so they are on GitHub. Do **not** add or commit them again — just move straight to the image folders.
 
 ## Step 5 — Push each image folder, one at a time
 
