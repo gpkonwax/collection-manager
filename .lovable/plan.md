@@ -1,62 +1,23 @@
-# Fix the Netlify ZIP downloads
+# Stack-aware selection in Collector Binder
 
-Right now the offline backup panel lists Netlify as a ZIP download source and links to
-`gpk-image-mirror-part-001/002/003.zip` on `gpkonwaxbackup.netlify.app`. Those three
-files are not there (all return 404), so anyone who picks Netlify gets a dead download.
-GitHub Releases is the only place that actually has the new ZIP parts, and the audit
-confirmed all three match size and hash there.
+Today, in the Collector Binder, clicking a stacked card (a card you own multiple copies of) opens a chooser dialog listing every copy — but only when Select mode is OFF. With Select mode ON, clicking the stack silently selects just the first copy, so there is no way to pick a specific duplicate or send both.
 
-There are two ways to fix it. I recommend Option A.
+## What changes
 
-## Option A (recommended): stop advertising ZIPs on Netlify
+When Select mode is on and you click a stacked binder slot, the same copy-chooser dialog opens, this time in selection mode:
 
-Change only the app code so the ZIP download section offers the GitHub Releases parts
-and does not offer a Netlify ZIP link at all. Netlify stays exactly as it is today —
-a complete image mirror, untouched, with no risk of wiping it.
+- Each copy is shown as a card with a checkbox, exactly like the grid.
+- Tapping a copy toggles it for transfer/burn; you can pick one, some, or all.
+- A "Select all copies" / "Deselect all" control at the top of the dialog.
+- The dialog header shows how many of the copies are currently selected.
+- Closing the dialog keeps the selections; the bottom selection bar count updates live.
 
-Why this is the better choice:
+Non-stacked cards keep behaving exactly as they do now (one click toggles selection).
 
-- The ZIP parts are 1.8 GB, 1.8 GB and 0.9 GB (4.4 GB total). Netlify's free tier gives
-  100 GB of bandwidth per month; about 22 full downloads would exhaust it and the site
-  would be throttled or suspended — taking the image mirror down with it.
-- Every Netlify upload is a whole-site replacement, so re-uploading means re-uploading
-  all 2,575 images plus 4.4 GB of ZIPs in one go. That's the exact operation that
-  erased the mirror last time.
-- GitHub Releases has no bandwidth cap for public repos and is purpose-built for large
-  binary assets.
+The binder slot for a stack will show a selection indicator when at least one copy inside is selected, so you can tell at a glance which stacks contribute to the current transfer.
 
-What changes in the panel:
+## Technical notes
 
-- ZIP download source list shows: **GitHub Releases (primary)** with the three parts.
-- Netlify and Cloudflare are still shown as *image mirror* sources (that's what they
-  are), but no longer as ZIP download sources.
-- A short note explains the big archives live on GitHub Releases.
-
-## Option B: actually put the ZIPs on Netlify
-
-Only worth doing if you want a second ZIP host despite the bandwidth risk. It requires:
-
-1. Assemble a full `mirror-upload` folder containing everything currently live
-   (`atomic/`, all CID folders, `manifest.json`, `_headers`) **plus** the three ZIP parts.
-2. Deploy that whole folder with the Netlify CLI (`netlify deploy --prod --dir=mirror-upload`).
-   Browser drag-and-drop will not handle 4.4 GB reliably.
-3. Re-run `scripts/audit-mirrors.mjs` to confirm images and ZIP parts both resolve.
-
-I'd hold off on this until there's a clear need for a second ZIP host.
-
-## Technical details (Option A)
-
-- `src/lib/remoteMirror.ts` → `getZipDownloadUrls()`: currently skips only `backupB`
-  (Cloudflare) and builds `${m.url}${part.fileName}` for every other mirror. Change it
-  to emit ZIP parts for the `primary` key only, pointing at
-  `ZIP_GITHUB_RELEASE_DOWNLOAD_BASE`, and skip `backupA` (Netlify) the same way
-  Cloudflare is skipped. Update the doc comment above the function so the reasoning
-  (bandwidth cap + whole-site-replacement risk) is recorded.
-- `src/components/BackupPanel.tsx`: the ZIP source list is driven by
-  `getZipDownloadUrls()`, so it collapses to the GitHub option automatically. Add a
-  one-line caption clarifying that the image mirrors (Netlify/Cloudflare) serve
-  individual images, while the full archives come from GitHub Releases.
-- No change to the image-mirror probing (`useImageSourceStatus.ts`) — Netlify and
-  Cloudflare remain live image sources.
-- No change to `public/gpk-manifest.json`; the `zipParts` metadata (hashes, sizes,
-  file counts) stays as the source of truth for verification.
+- `src/components/simpleassets/BinderStackDialog.tsx`: add optional `selectionMode`, `selectedIds`, and `onToggleSelect` props. When `selectionMode` is true, render each `SimpleAssetCard` with `selectionMode`/`selected`/`onSelect` instead of the detail `onClick`, and add the select-all/deselect-all row plus an "N of M selected" line in the header. Default (view) behaviour is unchanged.
+- `src/pages/Index.tsx` `renderBinderCard`: drop the `!selectionMode` condition so a stack opens `BinderStackDialog` in both modes; pass `selectionMode`, `selectedIds`, and `toggleSelection` into the dialog. For the stack slot card itself, mark `selected` when any copy in `owned` is selected so the ring/checkbox reflects partial selection, and keep `onSelect` only for single-copy slots.
+- No changes to transfer/burn logic — they already act on `selectedIds`, so multi-copy selections flow through unchanged.
