@@ -79,22 +79,10 @@ Your `.gitignore` currently looks like one broken line:
 mirror/gpk-image-mirror.zip*.zip
 ```
 
-It should be three separate lines. Overwrite it with this exact content:
-
-```text
-mirror/gpk-image-mirror.zip
-*.zip
-.wrangler/
-```
-
-The easiest way is to run:
+It should be three separate lines. Run this single command exactly as written — it writes all three lines at once:
 
 ```bat
-(
-echo mirror/gpk-image-mirror.zip
-echo *.zip
-echo .wrangler/
-) > .gitignore
+@echo mirror/gpk-image-mirror.zip > .gitignore && @echo *.zip >> .gitignore && @echo .wrangler/ >> .gitignore
 ```
 
 Then check it:
@@ -103,7 +91,16 @@ Then check it:
 type .gitignore
 ```
 
-You should see three clean lines.
+You should see:
+
+```text
+mirror/gpk-image-mirror.zip
+*.zip
+.wrangler/
+```
+
+If you see any extra text like `echo` on the lines, run the command again.
+
 
 
 ## Step 7 — Commit and push in small chunks
