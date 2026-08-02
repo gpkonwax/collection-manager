@@ -71,15 +71,40 @@ copy C:\Users\User\Desktop\gpk-park\.assetsignore .
 
 Do **not** copy `.wrangler` or `status.txt` back into the repo — they are local build junk and should never be pushed.
 
-## Step 6 — Make sure junk stays out
+## Step 6 — Fix the broken `.gitignore`
 
-Check the `.gitignore` that came down from GitHub:
+Your `.gitignore` currently looks like one broken line:
+
+```text
+mirror/gpk-image-mirror.zip*.zip
+```
+
+It should be three separate lines. Overwrite it with this exact content:
+
+```text
+mirror/gpk-image-mirror.zip
+*.zip
+.wrangler/
+```
+
+The easiest way is to run:
+
+```bat
+(
+echo mirror/gpk-image-mirror.zip
+echo *.zip
+echo .wrangler/
+) > .gitignore
+```
+
+Then check it:
 
 ```bat
 type .gitignore
 ```
 
-It should contain lines for `.wrangler/` and `*.zip`. If either is missing, tell me and I'll give you the exact file contents to paste in.
+You should see three clean lines.
+
 
 ## Step 7 — Commit and push in small chunks
 
