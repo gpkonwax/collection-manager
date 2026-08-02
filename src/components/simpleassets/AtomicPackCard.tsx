@@ -10,6 +10,7 @@ import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { RevealResult } from '@/lib/packReveal';
+import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 
 interface RevealCard {
   asset_id: string;
@@ -87,7 +88,15 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           <img src={pack.image} alt={pack.name} className="w-3/4 h-auto rounded mx-auto" />
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.name}</p>
-          <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.cardsPerPack} cards per pack</p>
+          <div className="flex items-center justify-center gap-1.5">
+            <img
+              src={atomicAssetsLogo}
+              alt="AtomicAssets"
+              title="AtomicAssets"
+              className="h-4 w-4 rounded-full object-contain shrink-0"
+            />
+            <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.cardsPerPack} cards per pack</p>
+          </div>
           <p className="text-lg font-mono text-primary theme-bright-text">{pack.count}</p>
           {isReadOnly ? (
             <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">

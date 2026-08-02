@@ -19,6 +19,7 @@ import gpkSeries2bImg from '@/assets/gpk_pack_series_2b_geepeekay.jpg';
 import gpkSeries2cImg from '@/assets/gpk_pack_series_2c_geepeekay.jpg';
 import gpkExoticImg from '@/assets/gpk_pack_exotic.jpeg';
 import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpeg';
+import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
 const SERIES_2_IMAGES: Record<string, string> = {
   GPKFIVE: gpkSeries1Img, GPKMEGA: gpkSeries1MegaImg,
@@ -118,7 +119,15 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           {series2Img ? <img src={series2Img} alt={pack.label} className="w-3/4 h-auto rounded mx-auto" /> : <span className="text-3xl">📦</span>}
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.label}</p>
-          <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.symbol}</p>
+          <div className="flex items-center justify-center gap-1.5">
+            <img
+              src={simpleAssetsLogo}
+              alt="SimpleAssets"
+              title="SimpleAssets"
+              className="h-4 w-4 rounded-full object-contain shrink-0 bg-white p-[1px]"
+            />
+            <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.symbol}</p>
+          </div>
           <p className="text-lg font-mono text-primary theme-bright-text">{pack.amount}</p>
           {isReadOnly ? (
             <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
