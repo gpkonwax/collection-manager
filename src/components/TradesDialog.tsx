@@ -100,16 +100,49 @@ function AssetThumb({ asset, protocol }: { asset: OfferAsset; protocol: TradePro
 
 
 
-function AssetRow({ label, assets, protocol }: { label: string; assets: OfferAsset[]; protocol: TradeProtocol }) {
+function PackThumb({ pack }: { pack: OfferPack }) {
+  const image = pack.image ?? packImage(pack.symbol);
+  return (
+    <div
+      className="flex flex-col items-center gap-1 w-20 shrink-0 rounded-md border border-cheese/30 bg-background/40 p-1.5 theme-bright-border"
+      title={`${pack.amount} × ${pack.label} (${pack.symbol})`}
+    >
+      <div className="w-full flex justify-center">
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
+          {pack.amount}x
+        </span>
+      </div>
+      <div className="w-full aspect-[3/4] overflow-hidden rounded-sm bg-black/40">
+        {image
+          ? <img src={image} alt={pack.label} className="w-full h-full object-contain" />
+          : <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground">{pack.symbol}</div>}
+      </div>
+      <div className="text-[10px] leading-tight text-center text-cheese/80 theme-bright-text w-full truncate">
+        {pack.label}
+      </div>
+      <div className="text-[9px] leading-tight text-center text-muted-foreground theme-bright-text-muted w-full truncate">
+        Pack
+      </div>
+    </div>
+  );
+}
+
+function AssetRow({ label, assets, packs = [], protocol }: {
+  label: string;
+  assets: OfferAsset[];
+  packs?: OfferPack[];
+  protocol: TradeProtocol;
+}) {
+  const total = assets.length + packs.length;
   return (
     <div className="space-y-1.5">
       <div className="text-xs font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
         {label}{' '}
         <span className="text-muted-foreground theme-bright-text-muted font-normal">
-          ({assets.length})
+          ({total})
         </span>
       </div>
-      {assets.length === 0 ? (
+      {total === 0 ? (
         <div className="text-xs text-muted-foreground theme-bright-text-muted italic px-1">
           Nothing
         </div>
@@ -117,6 +150,7 @@ function AssetRow({ label, assets, protocol }: { label: string; assets: OfferAss
         <ScrollArea className="w-full">
           <div className="flex gap-2 pb-2">
             {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} protocol={protocol} />)}
+            {packs.map((p) => <PackThumb key={`pack-${p.symbol}`} pack={p} />)}
           </div>
         </ScrollArea>
       )}
