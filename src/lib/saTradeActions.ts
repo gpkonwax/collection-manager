@@ -322,26 +322,49 @@ async function getTransactionHeader(expireSeconds: number): Promise<TransactionH
 }
 
 
-/** Serialize the two-transfer swap transaction that the proposal will hold. */
+/**
+ * Serialize the swap transaction the proposal will hold: one SimpleAssets
+ * transfer per side that sends cards, plus one packs.topps transfer per pack
+ * token per side. Empty sides are simply omitted.
+ */
 export async function buildSwapTransactionObject(params: {
   me: string;
   counterparty: string;
   myAssetIds: string[];
   theirAssetIds: string[];
+  myPacks?: PackEntry[];
+  theirPacks?: PackEntry[];
   memo?: string;
   expireSeconds?: number;
   /** Name of the proposal this swap replaces (written into the memo). */
   counterRef?: string | null;
 }): Promise<{ trx: Record<string, unknown>; expiresAt: number }> {
-  const abi = await getContractAbi(SIMPLEASSETS_CONTRACT);
   const expireSeconds = params.expireSeconds ?? SA_PROPOSAL_EXPIRY_SECONDS;
   const header = await getTransactionHeader(expireSeconds);
 
   const memo = withCounterRef(params.memo || '', params.counterRef);
-  const inner = [
-    buildSaTransferAction(params.me, params.counterparty, params.myAssetIds, memo),
-    buildSaTransferAction(params.counterparty, params.me, params.theirAssetIds, memo),
-  ].map((a) => Action.from(a, abi));
+  const myPacks = params.myPacks || [];
+  const theirPacks = params.theirPacks || [];
+
+  const raw: WaxAction[] = [];
+  if (params.myAssetIds.length > 0) {
+    raw.push(buildSaTransferAction(params.me, params.counterparty, params.myAssetIds, memo));
+  }
+  for (const p of myPacks) {
+    raw.push(buildPackTransferAction(params.me, params.counterparty, p, memo));
+  }
+  if (params.theirAssetIds.length > 0) {
+    raw.push(buildSaTransferAction(params.counterparty, params.me, params.theirAssetIds, memo));
+  }
+  for (const p of theirPacks) {
+    raw.push(buildPackTransferAction(params.counterparty, params.me, p, memo));
+  }
+
+  const abis = new Map<string, ABI>();
+  for (const account of new Set(raw.map((a) => a.account))) {
+    abis.set(account, await getContractAbi(account));
+  }
+  const inner = raw.map((a) => Action.from(a, abis.get(a.account)!));
 
   const transaction = Transaction.from({ ...header, actions: inner });
   const trx = Serializer.objectify(transaction) as Record<string, unknown>;
