@@ -269,6 +269,7 @@ async function main() {
     console.error('No manifest entries loaded — nothing to audit.');
     process.exit(2);
   }
+  console.log(`audit-mirrors.mjs ${SCRIPT_VERSION} — updated ${SCRIPT_UPDATED}`);
   console.log(`Total unique files to audit: ${total}`);
   console.log(`Sample size for sha256 verification: ${opts.sample}`);
   console.log(`Concurrency: ${opts.concurrency}`);
@@ -276,20 +277,37 @@ async function main() {
   await fs.mkdir(OUT_DIR, { recursive: true });
 
   const summaries = [];
+  // Files confirmed present on an already-audited mirror. Used so that a
+  // size-capped mirror may only "exclude" a file we know still exists.
+  const verifiedElsewhere = new Set();
   for (const mirror of targets) {
-    const rep = await auditMirror(mirror, files, zipParts, opts);
+    const rep = await auditMirror(mirror, files, zipParts, opts, verifiedElsewhere);
     summaries.push(rep);
+    for (const [rel, meta] of Object.entries(files)) {
+      if (!rep.missing.some((m) => m.rel === rel) && !rep.wrongSize.some((m) => m.rel === rel)
+          && !rep.excluded.some((m) => m.rel === rel) && meta) {
+        // only mark entries this mirror actually served
+      }
+    }
+    for (const rel of Object.keys(files)) {
+      const bad = rep.missing.some((m) => m.rel === rel) || rep.wrongSize.some((m) => m.rel === rel)
+        || rep.excluded.some((m) => m.rel === rel);
+      if (!bad) verifiedElsewhere.add(rel);
+    }
 
-    const missingList = rep.missing.map((m) => `${m.rel}\t${m.status || 'net'}${m.error ? `\t${m.error}` : ''}`).join('\n');
-    const wrongList = rep.wrongSize.map((m) => `${m.rel}\texpected=${m.expected}\tactual=${m.actual}`).join('\n');
-    const shaList = rep.shaMismatch.map((m) => `${m.rel}\t${m.sha || m.status}`).join('\n');
+    const missingList = rep.missing.map((m) => `${m.rel}\t${m.status || 'net'}\t${m.url}${m.error ? `\t${m.error}` : ''}`).join('\n');
+    const wrongList = rep.wrongSize.map((m) => `${m.rel}\texpected=${m.expected}\tactual=${m.actual}\t${m.url}`).join('\n');
+    const shaList = rep.shaMismatch.map((m) => `${m.rel}\t${m.sha || m.status}\t${m.url}`).join('\n');
+    const exclList = rep.excluded.map((m) => `${m.rel}\t${fmtBytes(m.bytes)}\t${m.reason}\t${m.url}`).join('\n');
     await fs.writeFile(path.join(OUT_DIR, `missing-${mirror.key}.txt`), missingList + (missingList ? '\n' : ''));
     await fs.writeFile(path.join(OUT_DIR, `wrongsize-${mirror.key}.txt`), wrongList + (wrongList ? '\n' : ''));
     await fs.writeFile(path.join(OUT_DIR, `sha-mismatch-${mirror.key}.txt`), shaList + (shaList ? '\n' : ''));
+    await fs.writeFile(path.join(OUT_DIR, `excluded-${mirror.key}.txt`), exclList + (exclList ? '\n' : ''));
   }
 
   // Summary.
   const lines = [];
+  lines.push(`audit-mirrors.mjs ${SCRIPT_VERSION} — updated ${SCRIPT_UPDATED}`);
   lines.push(`Mirror audit — ${new Date().toISOString()}`);
   lines.push(`Manifest entries: ${total}`);
   lines.push('');
@@ -302,6 +320,7 @@ async function main() {
     lines.push(`  checked:      ${rep.total}`);
     lines.push(`  ok:           ${rep.ok}`);
     lines.push(`  missing:      ${rep.missing.length}`);
+    if (rep.excluded.length) lines.push(`  excluded:     ${rep.excluded.length} (${m.maxFileReason ?? 'size limit'})`);
     lines.push(`  wrong size:   ${rep.wrongSize.length}`);
     lines.push(`  sha mismatch: ${rep.shaMismatch.length}`);
     if (rep.zipReport.length) {
@@ -311,8 +330,11 @@ async function main() {
       }
     }
     const zipFail = rep.zipReport.filter((z) => !z.ok).length;
-    const verdict = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0 && zipFail === 0
-      ? 'COMPLETE'
+    const clean = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0 && zipFail === 0;
+    const verdict = clean
+      ? (rep.excluded.length
+          ? `COMPLETE (${rep.excluded.length} expected exclusions — ${m.maxFileReason ?? 'size limit'})`
+          : 'COMPLETE')
       : `GAPS (missing=${rep.missing.length}, wrongSize=${rep.wrongSize.length}, shaMismatch=${rep.shaMismatch.length}, zipFail=${zipFail})`;
     lines.push(`  verdict:      ${verdict}`);
 
