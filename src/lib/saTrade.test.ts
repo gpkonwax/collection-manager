@@ -6,8 +6,13 @@ import {
   validateSaOffer,
   makeProposalName,
   MSIG_CONTRACT,
+  SA_MAX_MEMO_LENGTH,
+  withCounterRef,
+  parseCounterRef,
+  stripCounterRef,
 } from '@/lib/saTradeActions';
-import { filterProposeActions } from '@/lib/saOffers';
+import { filterProposeActions, applySupersession } from '@/lib/saOffers';
+import type { AtomicOffer } from '@/lib/atomicOffers';
 import { describeResourceProblem } from '@/lib/accountResources';
 
 describe('saTradeActions (no dust beacon)', () => {
@@ -86,5 +91,60 @@ describe('resource preflight', () => {
   });
   it('is silent when the check could not run', () => {
     expect(describeResourceProblem(null)).toBeNull();
+  });
+});
+
+describe('counter-offer supersession', () => {
+  it('memo carries the re: marker and round-trips', () => {
+    const memo = withCounterRef('trade me this', 'gabc123');
+    expect(memo).toBe('trade me this re:gabc123');
+    expect(parseCounterRef(memo)).toBe('gabc123');
+    expect(stripCounterRef(memo)).toBe('trade me this');
+    expect(parseCounterRef('plain memo')).toBeNull();
+  });
+
+  it('keeps the marker even when the memo is at the length limit', () => {
+    const memo = withCounterRef('x'.repeat(SA_MAX_MEMO_LENGTH), 'gabc123');
+    expect(memo.length).toBeLessThanOrEqual(SA_MAX_MEMO_LENGTH);
+    expect(parseCounterRef(memo)).toBe('gabc123');
+  });
+
+  const offer = (
+    name: string,
+    sender: string,
+    recipient: string,
+    memo = '',
+  ): AtomicOffer => ({
+    offer_id: `sa:${sender}:${name}`,
+    sender_name: sender,
+    recipient_name: recipient,
+    memo,
+    state: 0,
+    sender_assets: [],
+    recipient_assets: [],
+    is_sender_contract: false,
+    is_recipient_contract: false,
+    created_at_time: 0,
+    updated_at_time: 0,
+    protocol: 'simpleassets',
+    proposal: { proposer: sender, name, expiresAt: 0, approvedBy: [] },
+  });
+
+  it('drops a countered proposal from the counterer view and flags it for its proposer', () => {
+    const original = offer('gorig', 'them', 'me');
+    const counter = offer('gnew', 'me', 'them', 'here you go re:gorig');
+
+    const mine = applySupersession([original, counter], 'me');
+    expect(mine.map((o) => o.proposal?.name)).toEqual(['gnew']);
+
+    const theirs = applySupersession([original, counter], 'them');
+    const flagged = theirs.find((o) => o.proposal?.name === 'gorig');
+    expect(flagged?.proposal?.supersededBy).toBe('gnew');
+    expect(theirs.find((o) => o.proposal?.name === 'gnew')?.memo).toBe('here you go');
+  });
+
+  it('leaves unrelated proposals untouched', () => {
+    const a = offer('gone', 'them', 'me');
+    expect(applySupersession([a], 'me')).toHaveLength(1);
   });
 });
