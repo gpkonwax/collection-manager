@@ -168,10 +168,27 @@ function pickSample(entries, sampleSize) {
   return out;
 }
 
-async function auditMirror(mirror, manifest, zipParts, opts) {
+async function auditMirror(mirror, manifest, zipParts, opts, verifiedElsewhere) {
   console.log(`\n=== ${mirror.label} ===`);
   console.log(`base: ${mirror.baseUrl}`);
-  const entries = Object.entries(manifest); // [path, {sha256, bytes, ...}]
+  const allEntries = Object.entries(manifest); // [path, {sha256, bytes, ...}]
+
+  // Files a mirror physically cannot host (per-file size cap) are expected
+  // exclusions — but only when we have confirmed the file exists on another
+  // mirror. Exclusion must never hide a genuine loss.
+  const excluded = [];
+  const entries = [];
+  for (const [rel, meta] of allEntries) {
+    const tooBig = mirror.maxFileBytes != null && meta.bytes != null && meta.bytes > mirror.maxFileBytes;
+    if (tooBig && (verifiedElsewhere == null || verifiedElsewhere.has(rel))) {
+      excluded.push({ rel, bytes: meta.bytes, url: urlFor(mirror, rel, meta), reason: mirror.maxFileReason ?? 'exceeds mirror file size limit' });
+    } else {
+      entries.push([rel, meta]);
+    }
+  }
+  if (excluded.length) {
+    console.log(`  expected exclusions: ${excluded.length} (${mirror.maxFileReason ?? 'size limit'})`);
+  }
 
   const missing = [];
   const wrongSize = [];
@@ -186,11 +203,11 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
       r = await headCheck(url);
     }
     if (!r.ok) {
-      missing.push({ rel, status: r.status, error: r.error });
+      missing.push({ rel, status: r.status, error: r.error, url });
       return;
     }
     if (r.bytes != null && meta.bytes != null && r.bytes !== meta.bytes) {
-      wrongSize.push({ rel, expected: meta.bytes, actual: r.bytes });
+      wrongSize.push({ rel, expected: meta.bytes, actual: r.bytes, url });
       return;
     }
     ok.push(rel);
@@ -209,10 +226,11 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
       const url = urlFor(mirror, rel, meta);
 
       const r = await shaCheck(url, meta.sha256);
-      if (!r.ok && r.reason !== 'http') shaMismatch.push({ rel, sha: r.sha });
-      else if (!r.ok) shaMismatch.push({ rel, status: r.status });
+      if (!r.ok && r.reason !== 'http') shaMismatch.push({ rel, sha: r.sha, url });
+      else if (!r.ok) shaMismatch.push({ rel, status: r.status, url });
     });
   }
+
 
   // ZIP parts audit.
   const zipReport = [];
