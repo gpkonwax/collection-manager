@@ -629,6 +629,8 @@ export function TradeComposerDialog({
           counterparty,
           myAssetIds: senderAssetIds,
           theirAssetIds: recipientAssetIds,
+          myPacks: myPackEntries,
+          theirPacks: theirPackEntries,
           memo,
           counterProposal: counterProposal ?? null,
           counterApproved,
