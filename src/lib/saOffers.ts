@@ -2,10 +2,11 @@
 // simpleassets::transfer actions between the two parties.
 //
 // Discovery: eosio.msig proposals are scoped by proposer and the chain has no
-// "proposals awaiting me" index, so we locate them through the dust beacon
-// transfer sent alongside each proposal (see saTradeActions.ts) which Hyperion
-// indexes per account. A local cache of proposals we created ourselves is kept
-// as a fallback in case history is unavailable.
+// "proposals awaiting me" index, so we scan recent `eosio.msig::propose`
+// actions in history (chain-wide volume is tiny) and keep the ones where I am
+// the proposer or a requested approver. No on-chain beacon is needed, which
+// means proposing works even with a zero liquid WAX balance. A local cache of
+// proposals we created ourselves is kept as a fallback if history is down.
 
 import { Serializer, Transaction } from '@wharfkit/antelope';
 import { fetchTableRows, HYPERION_ENDPOINTS } from '@/lib/waxRpcFallback';
@@ -13,11 +14,11 @@ import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
 import {
-  SA_BEACON_DECLINE_PREFIX,
-  SA_BEACON_OFFER_PREFIX,
+  MSIG_CONTRACT,
   SIMPLEASSETS_CONTRACT,
   getContractAbi,
 } from '@/lib/saTradeActions';
+
 
 const LOOKBACK_DAYS = 30;
 const CACHE_PREFIX = 'gpk-sa-proposals:';
