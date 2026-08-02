@@ -51,6 +51,25 @@ interface PickerAsset {
   side: string;
   quality: string;
   category: string;
+  mint: string;
+}
+
+/** Bridged SimpleAssets schemas: their AA sequence is not the real GPK mint. */
+const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
+
+/** Mint ribbon text: real mint for native AA, placeholder for bridged cards. */
+function mintDisplayFor(category: string, mint: string): string {
+  if (BRIDGED_SCHEMAS.has((category || '').toLowerCase())) return '#--';
+  return mint && mint.trim() !== '' ? `#${mint}` : '#--';
+}
+
+/** Human label for a variant within its category. */
+function variantLabelFor(category: string, quality: string): string {
+  const raw = (quality || '').trim();
+  if (!raw) return '';
+  const cat = normalizeAssetCategory((category || '').toLowerCase());
+  return getVariantsForCategory(cat).find((v) => v.value === raw)?.label
+    ?? raw.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function toPicker(a: SimpleAsset): PickerAsset {
@@ -62,8 +81,10 @@ function toPicker(a: SimpleAsset): PickerAsset {
     side: a.side || '',
     quality: a.quality || '',
     category: a.category || '',
+    mint: String((a.idata as Record<string, unknown>)?.mint ?? ''),
   };
 }
+
 
 function AssetPicker({
   title, subtitle, assets, isLoading, selectedIds, onToggle, emptyLabel,
