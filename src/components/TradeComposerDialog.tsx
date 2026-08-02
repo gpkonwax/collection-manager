@@ -29,7 +29,10 @@ import { getAccountResources, describeResourceProblem } from '@/lib/accountResou
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
-import { CATEGORY_LABELS, getVariantsForCategory, hasVariants, normalizeAssetCategory } from '@/lib/gpkCategories';
+import {
+  CATEGORY_LABELS, PACKS_CATEGORY, getVariantsForCategory, hasVariants,
+  isPacksCategory, normalizeAssetCategory,
+} from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
