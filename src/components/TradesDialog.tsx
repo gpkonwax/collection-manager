@@ -30,7 +30,15 @@ interface TradesDialogProps {
   busyAction?: OfferAction | null;
 }
 
+const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
+
 function AssetThumb({ asset }: { asset: OfferAsset }) {
+  const isBridged = BRIDGED_SCHEMAS.has(String(asset.schema_name || '').toLowerCase());
+  const mintValue = isBridged ? null : asset.mint;
+  const mintDisplay = mintValue !== null && mintValue !== undefined && String(mintValue).trim() !== ''
+    ? `#${mintValue}`
+    : '#--';
+
   return (
     <div
       className={cn(
@@ -40,6 +48,14 @@ function AssetThumb({ asset }: { asset: OfferAsset }) {
       )}
       title={`${asset.name} • #${asset.asset_id}${asset.mint ? ` • mint ${asset.mint}` : ''}`}
     >
+      <div
+        className="w-full flex justify-center"
+        title="Mint number (placeholder — real mint will populate when available)"
+      >
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
+          {mintDisplay}
+        </span>
+      </div>
       <div className="w-full aspect-[3/4] overflow-hidden rounded-sm bg-black/40">
         <IpfsMedia
           url={asset.image || undefined}
@@ -57,6 +73,7 @@ function AssetThumb({ asset }: { asset: OfferAsset }) {
     </div>
   );
 }
+
 
 function AssetRow({ label, assets }: { label: string; assets: OfferAsset[] }) {
   return (
