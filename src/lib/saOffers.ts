@@ -205,7 +205,13 @@ async function fetchApprovals(proposer: string, name: string): Promise<MsigAppro
 
 export interface DecodedSwap {
   expiration: number;
-  transfers: Array<{ from: string; to: string; assetIds: string[]; memo: string }>;
+  transfers: Array<{
+    from: string;
+    to: string;
+    assetIds: string[];
+    packs: PackEntry[];
+    memo: string;
+  }>;
 }
 
 interface ObjectifiedAction {
@@ -216,12 +222,12 @@ interface ObjectifiedAction {
 
 /**
  * Decode a packed msig transaction and assert it is a clean two-sided
- * SimpleAssets swap between exactly two accounts. Anything else is rejected so
- * the UI never renders (or offers to approve) an unrecognised proposal.
+ * SimpleAssets swap between exactly two accounts — cards (`simpleassets`) and
+ * packs (`packs.topps`) in either direction. Anything else is rejected so the
+ * UI never renders (or offers to approve) an unrecognised proposal.
  */
 export async function decodeSwapTransaction(packedHex: string): Promise<DecodedSwap | null> {
   try {
-    const abi = await getContractAbi(SIMPLEASSETS_CONTRACT);
     const tx = Serializer.decode({ data: packedHex, type: Transaction });
     const obj = Serializer.objectify(tx) as {
       expiration: string;
@@ -230,25 +236,52 @@ export async function decodeSwapTransaction(packedHex: string): Promise<DecodedS
     };
     if ((obj.context_free_actions || []).length > 0) return null;
     const actions = obj.actions || [];
-    if (actions.length !== 2) return null;
-    if (!actions.every((a) => a.account === SIMPLEASSETS_CONTRACT && a.name === 'transfer')) return null;
+    if (actions.length < 2 || actions.length > 12) return null;
+    if (!actions.every((a) =>
+      (a.account === SIMPLEASSETS_CONTRACT || a.account === PACKS_CONTRACT) && a.name === 'transfer',
+    )) return null;
 
-    const transfers = actions.map((a) => {
+    const abis = new Map<string, Awaited<ReturnType<typeof getContractAbi>>>();
+    for (const account of new Set(actions.map((a) => a.account))) {
+      abis.set(account, await getContractAbi(account));
+    }
+
+    // Group every action by direction (from -> to).
+    const byDirection = new Map<string, DecodedSwap['transfers'][number]>();
+    for (const a of actions) {
       const decoded = Serializer.objectify(
-        Serializer.decode({ data: a.data, abi, type: 'transfer' }),
-      ) as { from: string; to: string; assetids: Array<string | number>; memo?: string };
-      return {
-        from: String(decoded.from),
-        to: String(decoded.to),
-        assetIds: (decoded.assetids || []).map((id) => String(id)),
-        memo: String(decoded.memo ?? ''),
+        Serializer.decode({ data: a.data, abi: abis.get(a.account)!, type: 'transfer' }),
+      ) as {
+        from: string; to: string;
+        assetids?: Array<string | number>;
+        quantity?: string;
+        memo?: string;
       };
-    });
+      const from = String(decoded.from);
+      const to = String(decoded.to);
+      if (!from || !to || from === to) return null;
+      const key = `${from}>${to}`;
+      const entry = byDirection.get(key) || { from, to, assetIds: [], packs: [], memo: '' };
+      if (a.account === SIMPLEASSETS_CONTRACT) {
+        const ids = (decoded.assetids || []).map((id) => String(id));
+        if (ids.length === 0) return null;
+        entry.assetIds.push(...ids);
+      } else {
+        const pack = parsePackQuantity(String(decoded.quantity ?? ''));
+        if (!pack || pack.amount <= 0) return null;
+        entry.packs.push(pack);
+      }
+      if (!entry.memo) entry.memo = String(decoded.memo ?? '');
+      byDirection.set(key, entry);
+    }
+
+    const transfers = Array.from(byDirection.values());
+    if (transfers.length !== 2) return null;
 
     const [a, b] = transfers;
     if (a.from !== b.to || a.to !== b.from) return null;
-    if (a.from === a.to) return null;
-    if (a.assetIds.length === 0 || b.assetIds.length === 0) return null;
+    if (a.assetIds.length + a.packs.length === 0) return null;
+    if (b.assetIds.length + b.packs.length === 0) return null;
 
     return {
       expiration: new Date(`${obj.expiration.replace(/Z$/, '')}Z`).getTime(),
