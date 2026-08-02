@@ -10,19 +10,26 @@ import { Badge } from '@/components/ui/badge';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { useToast } from '@/hooks/use-toast';
 import { useGpkAtomicAssets } from '@/hooks/useGpkAtomicAssets';
+import { useSimpleAssets } from '@/hooks/useSimpleAssets';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import type { Session } from '@wharfkit/session';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import type { TradeProtocol } from '@/lib/atomicOffers';
 import {
   buildCreateOfferAction, buildCounterOfferActions,
   validateOffer, MAX_ASSETS_PER_SIDE, MAX_MEMO_LENGTH,
 } from '@/lib/atomicTradeActions';
+import {
+  buildSaSwapActions, validateSaOffer, SA_MAX_ASSETS_PER_SIDE,
+} from '@/lib/saTradeActions';
+import { hideProposalLocally, rememberProposal } from '@/lib/saOffers';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import { CATEGORY_LABELS, getVariantsForCategory, hasVariants, normalizeAssetCategory } from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
+
 
 
 interface TradeComposerDialogProps {
@@ -39,6 +46,10 @@ interface TradeComposerDialogProps {
   initialMyAssetIds?: string[];
   /** When set, this is a counter-offer: decline this offer + create a new one atomically. */
   counterOfferId?: string | null;
+  /** Which contract this trade runs on. Trades are never mixed across protocols. */
+  protocol?: TradeProtocol;
+  /** SimpleAssets counter-offer target (the msig proposal being replaced). */
+  counterProposal?: { proposer: string; name: string } | null;
   /** Fires after a successful trade so parents can refresh state. */
   onSuccess?: (txId: string | null) => void;
 }
@@ -57,9 +68,9 @@ interface PickerAsset {
 /** Bridged SimpleAssets schemas: their AA sequence is not the real GPK mint. */
 const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 
-/** Mint ribbon text: real mint for native AA, placeholder for bridged cards. */
-function mintDisplayFor(category: string, mint: string): string {
-  if (BRIDGED_SCHEMAS.has((category || '').toLowerCase())) return '#--';
+/** Mint ribbon text: real mint for native SA / native AA, placeholder for bridged AA. */
+function mintDisplayFor(category: string, mint: string, protocol: TradeProtocol): string {
+  if (protocol === 'atomicassets' && BRIDGED_SCHEMAS.has((category || '').toLowerCase())) return '#--';
   return mint && mint.trim() !== '' ? `#${mint}` : '#--';
 }
 
@@ -86,8 +97,9 @@ function toPicker(a: SimpleAsset): PickerAsset {
 }
 
 
+
 function AssetPicker({
-  title, subtitle, assets, isLoading, selectedIds, onToggle, emptyLabel,
+  title, subtitle, assets, isLoading, selectedIds, onToggle, emptyLabel, protocol, maxPerSide,
 }: {
   title: string;
   subtitle: string;
@@ -96,7 +108,10 @@ function AssetPicker({
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   emptyLabel: string;
+  protocol: TradeProtocol;
+  maxPerSide: number;
 }) {
+
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [variants, setVariants] = useState<string[]>(['all']);
@@ -159,7 +174,7 @@ function AssetPicker({
           <div className="text-[11px] text-muted-foreground theme-bright-text-muted">{subtitle}</div>
         </div>
         <Badge variant="outline" className="border-cheese/50 text-cheese theme-bright-border theme-bright-text">
-          {selectedIds.size}/{MAX_ASSETS_PER_SIDE}
+          {selectedIds.size}/{maxPerSide}
         </Badge>
       </div>
       <Input
@@ -214,7 +229,7 @@ function AssetPicker({
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {selectedAssets.map((a) => {
-              const mintDisplay = mintDisplayFor(a.category, a.mint);
+              const mintDisplay = mintDisplayFor(a.category, a.mint, protocol);
               const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
               const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
               const variantLabel = variantLabelFor(a.category, a.quality);
@@ -275,8 +290,8 @@ function AssetPicker({
           <div className="grid grid-cols-3 gap-2">
             {filtered.map((a) => {
               const selected = selectedIds.has(a.id);
-              const capReached = !selected && selectedIds.size >= MAX_ASSETS_PER_SIDE;
-              const mintDisplay = mintDisplayFor(a.category, a.mint);
+              const capReached = !selected && selectedIds.size >= maxPerSide;
+              const mintDisplay = mintDisplayFor(a.category, a.mint, protocol);
               const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
               const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
               const variantLabel = variantLabelFor(a.category, a.quality);
@@ -340,20 +355,36 @@ function AssetPicker({
 
 export function TradeComposerDialog({
   open, onOpenChange, me, counterparty, session,
-  initialTheirAssetIds, initialMyAssetIds, counterOfferId, onSuccess,
+  initialTheirAssetIds, initialMyAssetIds, counterOfferId,
+  protocol = 'atomicassets', counterProposal, onSuccess,
 }: TradeComposerDialogProps) {
   const { toast } = useToast();
   const { executeTransaction } = useWaxTransaction(session);
+  const isAtomic = protocol === 'atomicassets';
   const isCounter = Boolean(counterOfferId);
+  const maxPerSide = isAtomic ? MAX_ASSETS_PER_SIDE : SA_MAX_ASSETS_PER_SIDE;
+  const protocolLabel = isAtomic ? 'AtomicAssets' : 'SimpleAssets';
 
-  // Load AA assets for both accounts while the composer is open.
-  const activeMe = open ? me : null;
-  const activeThem = open ? counterparty : null;
-  const { assets: myAssets, isLoading: myLoading } = useGpkAtomicAssets(activeMe);
-  const { assets: theirAssets, isLoading: theirLoading } = useGpkAtomicAssets(activeThem);
+  // Load assets for both accounts while the composer is open — only for the
+  // protocol this trade is locked to, so the two can never be mixed.
+  const aaMe = open && isAtomic ? me : null;
+  const aaThem = open && isAtomic ? counterparty : null;
+  const saMe = open && !isAtomic ? me : null;
+  const saThem = open && !isAtomic ? counterparty : null;
+  const { assets: aaMyAssets, isLoading: aaMyLoading } = useGpkAtomicAssets(aaMe);
+  const { assets: aaTheirAssets, isLoading: aaTheirLoading } = useGpkAtomicAssets(aaThem);
+  const { assets: saMyAssets, isLoading: saMyLoading } = useSimpleAssets(saMe);
+  const { assets: saTheirAssets, isLoading: saTheirLoading } = useSimpleAssets(saThem);
 
-  const myPicker = useMemo(() => myAssets.filter((a) => a.source === 'atomicassets').map(toPicker), [myAssets]);
-  const theirPicker = useMemo(() => theirAssets.filter((a) => a.source === 'atomicassets').map(toPicker), [theirAssets]);
+  const myAssets = isAtomic ? aaMyAssets : saMyAssets;
+  const theirAssets = isAtomic ? aaTheirAssets : saTheirAssets;
+  const myLoading = isAtomic ? aaMyLoading : saMyLoading;
+  const theirLoading = isAtomic ? aaTheirLoading : saTheirLoading;
+
+  const myPicker = useMemo(
+    () => myAssets.filter((a) => a.source === protocol).map(toPicker), [myAssets, protocol]);
+  const theirPicker = useMemo(
+    () => theirAssets.filter((a) => a.source === protocol).map(toPicker), [theirAssets, protocol]);
 
   const [mySelected, setMySelected] = useState<Set<string>>(new Set());
   const [theirSelected, setTheirSelected] = useState<Set<string>>(new Set());
@@ -378,8 +409,12 @@ export function TradeComposerDialog({
 
   const validation = useMemo(() => {
     if (!me || !counterparty) return { ok: false, reason: 'Wallet not ready' };
-    return validateOffer(me, counterparty, Array.from(mySelected), Array.from(theirSelected));
-  }, [me, counterparty, mySelected, theirSelected]);
+    const mine = Array.from(mySelected);
+    const theirs = Array.from(theirSelected);
+    return isAtomic
+      ? validateOffer(me, counterparty, mine, theirs)
+      : validateSaOffer(me, counterparty, mine, theirs);
+  }, [me, counterparty, mySelected, theirSelected, isAtomic]);
 
   const handleSubmit = async () => {
     if (!me || !counterparty || !session) return;
@@ -392,22 +427,38 @@ export function TradeComposerDialog({
       const senderAssetIds = Array.from(mySelected);
       const recipientAssetIds = Array.from(theirSelected);
 
-      const actions = isCounter && counterOfferId
-        ? buildCounterOfferActions({
-            originalOfferId: counterOfferId,
-            me,
-            originalSender: counterparty,
-            senderAssetIds,
-            recipientAssetIds,
-            memo,
-          })
-        : [buildCreateOfferAction({
-            sender: me,
-            recipient: counterparty,
-            senderAssetIds,
-            recipientAssetIds,
-            memo,
-          })];
+      let actions;
+      let proposalName: string | null = null;
+
+      if (isAtomic) {
+        actions = isCounter && counterOfferId
+          ? buildCounterOfferActions({
+              originalOfferId: counterOfferId,
+              me,
+              originalSender: counterparty,
+              senderAssetIds,
+              recipientAssetIds,
+              memo,
+            })
+          : [buildCreateOfferAction({
+              sender: me,
+              recipient: counterparty,
+              senderAssetIds,
+              recipientAssetIds,
+              memo,
+            })];
+      } else {
+        const bundle = await buildSaSwapActions({
+          me,
+          counterparty,
+          myAssetIds: senderAssetIds,
+          theirAssetIds: recipientAssetIds,
+          memo,
+          counterProposal: counterProposal ?? null,
+        });
+        actions = bundle.actions;
+        proposalName = bundle.proposalName;
+      }
 
       const result = await executeTransaction(actions, {
         successTitle: isCounter ? 'Counter-offer sent' : 'Trade offer sent',
@@ -418,14 +469,25 @@ export function TradeComposerDialog({
       });
 
       if (result.success) {
+        if (!isAtomic && proposalName) {
+          rememberProposal(me, { proposer: me, name: proposalName, createdAt: Date.now() });
+          if (counterProposal) hideProposalLocally(me, counterProposal.proposer, counterProposal.name);
+        }
         setSuccessTxId(result.txId ?? null);
         setSuccessOpen(true);
         onSuccess?.(result.txId);
       }
+    } catch (err) {
+      toast({
+        title: 'Trade failed',
+        description: (err as Error).message || 'Could not build the swap proposal.',
+        variant: 'destructive',
+      });
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const handleSuccessClose = () => {
     setSuccessOpen(false);
@@ -440,14 +502,26 @@ export function TradeComposerDialog({
           <DialogTitle className="text-cheese theme-bright-text flex items-center gap-2">
             <ArrowLeftRight className="h-5 w-5" />
             {isCounter ? 'Counter-offer' : 'Propose a trade'}
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-[10px] uppercase tracking-wide',
+                isAtomic
+                  ? 'border-cheese/60 text-cheese theme-bright-border theme-bright-text'
+                  : 'border-emerald-500/60 text-emerald-400',
+              )}
+            >
+              {protocolLabel} ↔ {protocolLabel}
+            </Badge>
           </DialogTitle>
           <DialogDescription className="theme-bright-text-muted">
-            Pure card-for-card AtomicAssets trade between{' '}
+            Pure card-for-card {protocolLabel} trade between{' '}
             <span className="text-cheese theme-bright-text font-medium">{me || '—'}</span>{' '}
             and{' '}
             <span className="text-cheese theme-bright-text font-medium">{counterparty || '—'}</span>.
+            {' '}Mixed-contract trades are not supported, so only {protocolLabel} cards are shown.
             {isCounter && (
-              <> This will <span className="text-destructive font-medium">decline offer #{counterOfferId}</span> and send a fresh one in a single transaction.</>
+              <> This will <span className="text-destructive font-medium">decline the original offer</span> and send a fresh one in a single transaction.</>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -455,21 +529,25 @@ export function TradeComposerDialog({
         <div className="grid gap-3 md:grid-cols-2 flex-1 min-h-0">
           <AssetPicker
             title="They give"
-            subtitle={`Pick from ${counterparty || 'their'} AtomicAssets`}
+            subtitle={`Pick from ${counterparty || 'their'} ${protocolLabel}`}
             assets={theirPicker}
             isLoading={theirLoading}
             selectedIds={theirSelected}
             onToggle={toggleTheirs}
-            emptyLabel="No AtomicAssets found in that wallet."
+            emptyLabel={`No ${protocolLabel} cards found in that wallet.`}
+            protocol={protocol}
+            maxPerSide={maxPerSide}
           />
           <AssetPicker
             title="You give"
-            subtitle={`Pick from your AtomicAssets`}
+            subtitle={`Pick from your ${protocolLabel}`}
             assets={myPicker}
             isLoading={myLoading}
             selectedIds={mySelected}
             onToggle={toggleMine}
-            emptyLabel="You have no AtomicAssets to offer."
+            emptyLabel={`You have no ${protocolLabel} cards to offer.`}
+            protocol={protocol}
+            maxPerSide={maxPerSide}
           />
         </div>
 
@@ -486,9 +564,16 @@ export function TradeComposerDialog({
             <p className="text-xs text-destructive">{validation.reason}</p>
           )}
           <p className="text-[11px] text-muted-foreground theme-bright-text-muted">
-            Card-for-card only — no WAX or tokens are exchanged. AtomicAssets contract: <span className="font-mono">createoffer</span>.
+            {isAtomic ? (
+              <>Card-for-card only — no WAX or tokens are exchanged. AtomicAssets contract: <span className="font-mono">createoffer</span>.</>
+            ) : (
+              <>Card-for-card only. SimpleAssets has no escrow, so both transfers are wrapped in a single
+                {' '}<span className="font-mono">eosio.msig</span> proposal that can only execute once both of you approve.
+                It stays valid for 7 days and costs a 0.00000001 WAX notification transfer.</>
+            )}
           </p>
         </div>
+
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>

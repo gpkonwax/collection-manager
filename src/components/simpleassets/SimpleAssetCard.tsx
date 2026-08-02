@@ -91,7 +91,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const hasAlert = Boolean(alert);
   const isAlertTriggered = Boolean(alert?.triggered);
   const showAlertButton = Boolean(priceAlertTemplate) && !effectiveSelectionMode && !isReadOnly;
-  const showTradeButton = Boolean(onTradeClick) && isReadOnly && isAtomic && !effectiveSelectionMode;
+  const showTradeButton = Boolean(onTradeClick) && isReadOnly && !effectiveSelectionMode;
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => { setIsDragging(true); onDragStart?.(e); };
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragOver(true); onDragOver?.(e); };

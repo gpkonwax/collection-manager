@@ -2,7 +2,7 @@
 // Automatically retries requests across multiple endpoints
 
 // Hyperion endpoints for get_tokens (faster for balance queries)
-const HYPERION_ENDPOINTS = [
+export const HYPERION_ENDPOINTS = [
   "https://wax.api.eosnation.io",
   "https://wax.eosphere.io",
   "https://api.hivebp.io",

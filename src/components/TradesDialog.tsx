@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
-import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
+import type { AtomicOffer, OfferAsset, TradeProtocol } from '@/lib/atomicOffers';
 import { cn } from '@/lib/utils';
 import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
 
@@ -33,8 +33,13 @@ interface TradesDialogProps {
 
 const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 
-function AssetThumb({ asset }: { asset: OfferAsset }) {
-  const isBridged = BRIDGED_SCHEMAS.has(String(asset.schema_name || '').toLowerCase());
+/** Offers older than this are surfaced as "stale" with a one-click way out. */
+const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
+function AssetThumb({ asset, protocol }: { asset: OfferAsset; protocol: TradeProtocol }) {
+  // Bridged AtomicAssets copies carry a bridge sequence, not the real GPK mint.
+  const isBridged = protocol === 'atomicassets'
+    && BRIDGED_SCHEMAS.has(String(asset.schema_name || '').toLowerCase());
   const mintValue = isBridged ? null : asset.mint;
   const mintDisplay = mintValue !== null && mintValue !== undefined && String(mintValue).trim() !== ''
     ? `#${mintValue}`
@@ -94,7 +99,8 @@ function AssetThumb({ asset }: { asset: OfferAsset }) {
 }
 
 
-function AssetRow({ label, assets }: { label: string; assets: OfferAsset[] }) {
+
+function AssetRow({ label, assets, protocol }: { label: string; assets: OfferAsset[]; protocol: TradeProtocol }) {
   return (
     <div className="space-y-1.5">
       <div className="text-xs font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
@@ -110,7 +116,7 @@ function AssetRow({ label, assets }: { label: string; assets: OfferAsset[] }) {
       ) : (
         <ScrollArea className="w-full">
           <div className="flex gap-2 pb-2">
-            {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} />)}
+            {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} protocol={protocol} />)}
           </div>
         </ScrollArea>
       )}
@@ -136,6 +142,11 @@ function OfferCard({
   const counterparty = direction === 'incoming' ? offer.sender_name : offer.recipient_name;
   const created = offer.created_at_time ? new Date(offer.created_at_time) : null;
   const isBusy = Boolean(busyAction);
+  const protocol: TradeProtocol = offer.protocol ?? 'atomicassets';
+  const isAtomic = protocol === 'atomicassets';
+  const expires = offer.proposal?.expiresAt ? new Date(offer.proposal.expiresAt) : null;
+  const isStale = Boolean(offer.created_at_time)
+    && Date.now() - offer.created_at_time > STALE_AFTER_MS;
 
   const btn = (a: OfferAction, label: string, icon: React.ReactNode, variant: 'default' | 'outline' | 'destructive' = 'outline') => (
     <Button
@@ -166,8 +177,24 @@ function OfferCard({
       <div className="flex flex-wrap items-center gap-2 justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <Badge variant="outline" className="border-cheese/50 text-cheese theme-bright-border theme-bright-text">
-            Offer #{offer.offer_id}
+            {isAtomic ? `Offer #${offer.offer_id}` : `Swap ${offer.proposal?.name ?? offer.offer_id}`}
           </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[10px] uppercase tracking-wide',
+              isAtomic
+                ? 'border-cheese/50 text-cheese theme-bright-border theme-bright-text'
+                : 'border-emerald-500/60 text-emerald-400',
+            )}
+          >
+            {isAtomic ? 'AtomicAssets' : 'SimpleAssets'}
+          </Badge>
+          {isStale && (
+            <Badge variant="outline" className="border-destructive/60 text-destructive text-[10px] uppercase">
+              Stale
+            </Badge>
+          )}
           {isNew && (
             <Badge className="bg-cheese text-cheese-foreground hover:bg-cheese/90">NEW</Badge>
           )}
@@ -182,6 +209,12 @@ function OfferCard({
               {created.toLocaleString()}
             </span>
           )}
+          {expires && (
+            <span className="text-[11px] text-muted-foreground theme-bright-text-muted">
+              expires {expires.toLocaleDateString()}
+            </span>
+          )}
+          {isAtomic ? (
           <a
             href={`https://wax.atomichub.io/trading/offer/${offer.offer_id}`}
             target="_blank"
@@ -191,6 +224,17 @@ function OfferCard({
           >
             AtomicHub <ExternalLink className="h-3 w-3" />
           </a>
+          ) : (
+            <a
+              href={`https://waxblock.io/account/eosio.msig?loadContract=true&tab=Tables&table=proposal&account=eosio.msig&scope=${offer.proposal?.proposer ?? ''}&limit=100`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1 text-xs text-cheese hover:text-cheese/80 theme-bright-text underline underline-offset-2"
+              title="View the msig proposal on WaxBlock"
+            >
+              WaxBlock <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
         </div>
       </div>
 
@@ -203,13 +247,13 @@ function OfferCard({
       <div className="grid gap-3 md:grid-cols-2">
         {direction === 'incoming' ? (
           <>
-            <AssetRow label="They give you" assets={theyGive} />
-            <AssetRow label="You give" assets={youGive} />
+            <AssetRow label="They give you" assets={theyGive} protocol={protocol} />
+            <AssetRow label="You give" assets={youGive} protocol={protocol} />
           </>
         ) : (
           <>
-            <AssetRow label="You send" assets={youGive} />
-            <AssetRow label="They send back" assets={theyGive} />
+            <AssetRow label="You send" assets={youGive} protocol={protocol} />
+            <AssetRow label="They send back" assets={theyGive} protocol={protocol} />
           </>
         )}
       </div>
@@ -218,7 +262,7 @@ function OfferCard({
       <div className="flex flex-wrap gap-2 pt-1">
         {direction === 'incoming' ? (
           <>
-            {btn('accept',  'Accept',        <Check className="h-3.5 w-3.5 mr-1" />, 'default')}
+            {btn('accept', isAtomic ? 'Accept' : 'Approve & execute', <Check className="h-3.5 w-3.5 mr-1" />, 'default')}
             {btn('counter', 'Counter-offer', <Reply className="h-3.5 w-3.5 mr-1" />, 'outline')}
             {btn('decline', 'Decline',       <X className="h-3.5 w-3.5 mr-1" />,     'destructive')}
           </>
