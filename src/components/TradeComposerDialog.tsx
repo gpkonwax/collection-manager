@@ -24,6 +24,8 @@ import {
   buildSaSwapActions, validateSaOffer, SA_MAX_ASSETS_PER_SIDE,
 } from '@/lib/saTradeActions';
 import { hideProposalLocally, rememberProposal } from '@/lib/saOffers';
+import { getAccountResources, describeResourceProblem } from '@/lib/accountResources';
+
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
@@ -424,6 +426,12 @@ export function TradeComposerDialog({
     }
     setSubmitting(true);
     try {
+      const problem = describeResourceProblem(await getAccountResources(me));
+      if (problem) {
+        toast({ title: 'Account resources too low', description: problem, variant: 'destructive' });
+        return;
+      }
+
       const senderAssetIds = Array.from(mySelected);
       const recipientAssetIds = Array.from(theirSelected);
 

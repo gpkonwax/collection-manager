@@ -9,11 +9,9 @@
 // The proposal only ever executes once both parties have approved, so neither
 // side can walk away holding both cards.
 //
-// Discovery beacon: eosio.msig proposals are stored scoped by proposer, and the
-// chain offers no index of "proposals awaiting my approval". We therefore send a
-// dust eosio.token transfer alongside the proposal whose memo carries the
-// proposal name. That transfer IS indexed per-account by Hyperion, which makes
-// incoming offers discoverable by the recipient (see saOffers.ts).
+// Discovery: no on-chain beacon is used (a dust token transfer would fail for
+// accounts with zero liquid WAX). Incoming proposals are found by scanning
+// recent `eosio.msig::propose` actions in history — see saOffers.ts.
 
 import { ABI, Action, Serializer, Transaction } from '@wharfkit/antelope';
 import { waxRpcCall } from '@/lib/waxRpcFallback';
@@ -21,7 +19,6 @@ import type { WaxAction } from '@/lib/atomicTradeActions';
 
 export const SIMPLEASSETS_CONTRACT = 'simpleassets';
 export const MSIG_CONTRACT = 'eosio.msig';
-export const TOKEN_CONTRACT = 'eosio.token';
 
 /** Soft cap per side, mirroring the AtomicAssets composer. */
 export const SA_MAX_ASSETS_PER_SIDE = 30;
@@ -30,10 +27,6 @@ export const SA_MAX_MEMO_LENGTH = 256;
 /** Proposals stay valid on-chain for 7 days. */
 export const SA_PROPOSAL_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
 
-/** Dust beacon so the counterparty can discover the proposal. */
-export const SA_BEACON_QUANTITY = '0.00000001 WAX';
-export const SA_BEACON_OFFER_PREFIX = 'gpktrade:';
-export const SA_BEACON_DECLINE_PREFIX = 'gpktradeno:';
 
 function auth(actor: string): Array<{ actor: string; permission: string }> {
   return [{ actor, permission: 'active' }];
@@ -122,32 +115,6 @@ export function buildMsigCancelAction(
   };
 }
 
-/** Dust transfer that makes a proposal (or a decline) discoverable. */
-export function buildBeaconAction(
-  from: string,
-  to: string,
-  memo: string,
-): WaxAction {
-  return {
-    account: TOKEN_CONTRACT,
-    name: 'transfer',
-    authorization: auth(from),
-    data: {
-      from,
-      to,
-      quantity: SA_BEACON_QUANTITY,
-      memo: memo.slice(0, SA_MAX_MEMO_LENGTH),
-    },
-  };
-}
-
-export function offerBeaconMemo(proposalName: string): string {
-  return `${SA_BEACON_OFFER_PREFIX}${proposalName}`;
-}
-
-export function declineBeaconMemo(proposalName: string): string {
-  return `${SA_BEACON_DECLINE_PREFIX}${proposalName}`;
-}
 
 const NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz12345';
 
@@ -299,9 +266,10 @@ export interface SaSwapBundle {
 }
 
 /**
- * Full action bundle for proposing a swap: msig propose + my approval +
- * the discovery beacon. Optionally prefixed with a decline beacon when this is
- * a counter-offer to an existing proposal.
+ * Full action bundle for proposing a swap: msig propose + my approval.
+ * Costs no tokens — only CPU/NET. When countering my own earlier proposal it is
+ * cancelled in the same transaction; someone else's proposal can't be cancelled
+ * by me, so it is simply hidden locally by the caller.
  */
 export async function buildSaSwapActions(params: {
   me: string;
@@ -309,7 +277,7 @@ export async function buildSaSwapActions(params: {
   myAssetIds: string[];
   theirAssetIds: string[];
   memo?: string;
-  /** Existing proposal being countered: it is declined in the same transaction. */
+  /** Existing proposal being countered. */
   counterProposal?: { proposer: string; name: string } | null;
   proposalName?: string;
 }): Promise<SaSwapBundle> {
@@ -318,18 +286,8 @@ export async function buildSaSwapActions(params: {
 
   const actions: WaxAction[] = [];
 
-  if (params.counterProposal) {
-    // I can't cancel someone else's proposal, so decline it by beacon; if I am
-    // the proposer, cancel it outright.
-    if (params.counterProposal.proposer === params.me) {
-      actions.push(buildMsigCancelAction(params.me, params.me, params.counterProposal.name));
-    } else {
-      actions.push(buildBeaconAction(
-        params.me,
-        params.counterProposal.proposer,
-        declineBeaconMemo(params.counterProposal.name),
-      ));
-    }
+  if (params.counterProposal && params.counterProposal.proposer === params.me) {
+    actions.push(buildMsigCancelAction(params.me, params.me, params.counterProposal.name));
   }
 
   actions.push({
@@ -347,7 +305,6 @@ export async function buildSaSwapActions(params: {
     },
   });
   actions.push(buildMsigApproveAction(params.me, params.me, proposalName));
-  actions.push(buildBeaconAction(params.me, params.counterparty, offerBeaconMemo(proposalName)));
 
   return { actions, proposalName, expiresAt };
 }
@@ -360,12 +317,21 @@ export function buildSaAcceptActions(me: string, proposer: string, proposalName:
   ];
 }
 
-/** Decline (recipient): beacon back to the proposer so both sides hide it. */
-export function buildSaDeclineActions(me: string, proposer: string, proposalName: string): WaxAction[] {
-  return [buildBeaconAction(me, proposer, declineBeaconMemo(proposalName))];
+/**
+ * Decline (recipient): withdraw my approval if I had given one, otherwise there
+ * is nothing to sign — the offer is just hidden locally.
+ */
+export function buildSaDeclineActions(
+  me: string,
+  proposer: string,
+  proposalName: string,
+  hasApproved = false,
+): WaxAction[] {
+  return hasApproved ? [buildMsigUnapproveAction(me, proposer, proposalName)] : [];
 }
 
 /** Cancel (proposer): remove the proposal from the chain. */
 export function buildSaCancelActions(me: string, proposalName: string): WaxAction[] {
   return [buildMsigCancelAction(me, me, proposalName)];
 }
+

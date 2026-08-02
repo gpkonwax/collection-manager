@@ -2,10 +2,11 @@
 // simpleassets::transfer actions between the two parties.
 //
 // Discovery: eosio.msig proposals are scoped by proposer and the chain has no
-// "proposals awaiting me" index, so we locate them through the dust beacon
-// transfer sent alongside each proposal (see saTradeActions.ts) which Hyperion
-// indexes per account. A local cache of proposals we created ourselves is kept
-// as a fallback in case history is unavailable.
+// "proposals awaiting me" index, so we scan recent `eosio.msig::propose`
+// actions in history (chain-wide volume is tiny) and keep the ones where I am
+// the proposer or a requested approver. No on-chain beacon is needed, which
+// means proposing works even with a zero liquid WAX balance. A local cache of
+// proposals we created ourselves is kept as a fallback if history is down.
 
 import { Serializer, Transaction } from '@wharfkit/antelope';
 import { fetchTableRows, HYPERION_ENDPOINTS } from '@/lib/waxRpcFallback';
@@ -13,11 +14,11 @@ import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
 import {
-  SA_BEACON_DECLINE_PREFIX,
-  SA_BEACON_OFFER_PREFIX,
+  MSIG_CONTRACT,
   SIMPLEASSETS_CONTRACT,
   getContractAbi,
 } from '@/lib/saTradeActions';
+
 
 const LOOKBACK_DAYS = 30;
 const CACHE_PREFIX = 'gpk-sa-proposals:';
@@ -83,37 +84,63 @@ function readHidden(account: string): Set<string> {
   return new Set(readJson<string[]>(`${HIDDEN_PREFIX}${account}`, []));
 }
 
-/* --------------------------- beacon discovery --------------------------- */
+/* --------------------------- history discovery -------------------------- */
 
-interface BeaconHit {
-  proposer: string;
-  name: string;
-  createdAt: number;
-  declined: boolean;
-}
-
-interface HyperionAction {
+interface HyperionProposeAction {
   timestamp?: string;
-  act?: { account?: string; name?: string; data?: { from?: string; to?: string; memo?: string } };
+  act?: {
+    account?: string;
+    name?: string;
+    data?: {
+      proposer?: string;
+      proposal_name?: string;
+      requested?: Array<{ actor?: string; permission?: string }>;
+    };
+  };
 }
 
-async function fetchBeacons(account: string): Promise<BeaconHit[]> {
+/**
+ * Keep the `eosio.msig::propose` actions in which `account` is the proposer or
+ * a requested approver. Exported for tests.
+ */
+export function filterProposeActions(
+  actions: HyperionProposeAction[],
+  account: string,
+): SaProposalRef[] {
+  const out: SaProposalRef[] = [];
+  for (const a of actions) {
+    if (a.act?.account !== MSIG_CONTRACT || a.act?.name !== 'propose') continue;
+    const proposer = String(a.act?.data?.proposer || '');
+    const name = String(a.act?.data?.proposal_name || '');
+    if (!proposer || !name) continue;
+    const requested = (a.act?.data?.requested || []).map((r) => String(r.actor || ''));
+    if (proposer !== account && !requested.includes(account)) continue;
+    out.push({
+      proposer,
+      name,
+      createdAt: a.timestamp ? new Date(`${a.timestamp.replace(/Z$/, '')}Z`).getTime() : 0,
+    });
+  }
+  return out;
+}
+
+async function fetchProposeActions(account: string): Promise<SaProposalRef[]> {
   const after = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString();
   const path =
-    `/v2/history/get_actions?account=${encodeURIComponent(account)}` +
-    `&filter=eosio.token:transfer&limit=500&sort=desc&after=${encodeURIComponent(after)}`;
+    `/v2/history/get_actions?filter=${encodeURIComponent(`${MSIG_CONTRACT}:propose`)}` +
+    `&limit=1000&sort=desc&after=${encodeURIComponent(after)}`;
 
-  let actions: HyperionAction[] | null = null;
+  let actions: HyperionProposeAction[] | null = null;
   for (const base of HYPERION_ENDPOINTS) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10_000);
+      const timer = setTimeout(() => controller.abort(), 12_000);
       const resp = await fetch(`${base}${path}`, { signal: controller.signal });
       clearTimeout(timer);
       if (!resp.ok) continue;
       const json = await resp.json();
       if (Array.isArray(json?.actions)) {
-        actions = json.actions as HyperionAction[];
+        actions = json.actions as HyperionProposeAction[];
         break;
       }
     } catch {
@@ -121,36 +148,9 @@ async function fetchBeacons(account: string): Promise<BeaconHit[]> {
     }
   }
   if (!actions) return [];
-
-  const hits: BeaconHit[] = [];
-  for (const a of actions) {
-    const memo = a.act?.data?.memo || '';
-    const from = a.act?.data?.from || '';
-    const to = a.act?.data?.to || '';
-    if (from !== account && to !== account) continue;
-    const createdAt = a.timestamp ? new Date(`${a.timestamp.replace(/Z$/, '')}Z`).getTime() : 0;
-
-    if (memo.startsWith(SA_BEACON_OFFER_PREFIX)) {
-      hits.push({
-        proposer: from,
-        name: memo.slice(SA_BEACON_OFFER_PREFIX.length).trim(),
-        createdAt,
-        declined: false,
-      });
-    } else if (memo.startsWith(SA_BEACON_DECLINE_PREFIX)) {
-      // A decline names the proposal but is sent by the *recipient*, so the
-      // proposer is the other party in the transfer.
-      const proposer = from === account ? to : from;
-      hits.push({
-        proposer,
-        name: memo.slice(SA_BEACON_DECLINE_PREFIX.length).trim(),
-        createdAt,
-        declined: true,
-      });
-    }
-  }
-  return hits;
+  return filterProposeActions(actions, account);
 }
+
 
 /* ----------------------------- msig hydration ---------------------------- */
 
@@ -338,26 +338,20 @@ function placeholderAsset(assetId: string): OfferAsset {
 export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
   if (!account) return [];
 
-  const beacons = await fetchBeacons(account);
-  const declined = new Set(
-    beacons.filter((b) => b.declined).map((b) => saOfferId(b.proposer, b.name)),
-  );
+  const discovered = await fetchProposeActions(account);
   const hidden = readHidden(account);
 
   const candidates = new Map<string, SaProposalRef>();
   for (const ref of readJson<SaProposalRef[]>(`${CACHE_PREFIX}${account}`, [])) {
     candidates.set(saOfferId(ref.proposer, ref.name), ref);
   }
-  for (const b of beacons) {
-    if (b.declined || !b.name || !b.proposer) continue;
-    const id = saOfferId(b.proposer, b.name);
-    if (!candidates.has(id)) {
-      candidates.set(id, { proposer: b.proposer, name: b.name, createdAt: b.createdAt });
-    }
+  for (const ref of discovered) {
+    const id = saOfferId(ref.proposer, ref.name);
+    if (!candidates.has(id)) candidates.set(id, ref);
   }
 
-  const live = Array.from(candidates.entries())
-    .filter(([id]) => !declined.has(id) && !hidden.has(id));
+  const live = Array.from(candidates.entries()).filter(([id]) => !hidden.has(id));
+
 
   const ownerCache = new Map<string, Promise<Map<string, OfferAsset>>>();
   const assetsFor = (owner: string) => {
