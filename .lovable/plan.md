@@ -1,208 +1,111 @@
-# Push the backup repo to GitHub in small chunks
+# Unblock the backup repo pull, then finish publishing
 
-The single 3.29 GiB push failed. The fix is to send the same commit as several smaller pushes. Nothing is lost — the files are all still on your disk.
+The pull stopped because GitHub already has some of these files (from an earlier push), while on your PC the same files sit there as **untracked** — git refuses to overwrite files it never tracked. Nothing is lost or broken.
 
-Run one line at a time in Command Prompt and paste back anything that looks like an error.
+The fix: park the blocking folders in a temp folder, pull, then copy back only what is genuinely missing.
 
-## Step 1 — Undo the giant commit (keeps all files)
+## Step 1 — Open the repo folder
 
 ```bat
 cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
 ```
 
-```bat
-git reset --soft HEAD~1
-```
+## Step 2 — See what your 3 local commits actually are
 
 ```bat
-git reset
+git log --oneline origin/main..HEAD
 ```
 
-The first reset removes the commit, the second un-stages the files. Your images stay exactly where they are.
+Paste this output to me before pushing anything — it tells us how big the pending pushes are.
 
-## Step 2 — Make sure no ZIPs are in the repo
+## Step 3 — Park the blocking untracked files
 
 ```bat
-dir /s /b *.zip
+mkdir C:\Users\User\Desktop\gpk-park
+move .assetsignore C:\Users\User\Desktop\gpk-park\
+move .gitignore C:\Users\User\Desktop\gpk-park\
+move status.txt C:\Users\User\Desktop\gpk-park\
+robocopy .wrangler C:\Users\User\Desktop\gpk-park\.wrangler /E /MOVE
+robocopy QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25 C:\Users\User\Desktop\gpk-park\QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25 /E /MOVE
 ```
 
-`File Not Found` is what you want. If any are listed, run:
+`robocopy` prints a table and usually exits with code 1 — that means success, not failure.
+
+Leave `atomic\` and `mirror\` where they are for now; the pull did not complain about them.
+
+## Step 4 — Pull again
 
 ```bat
-git rm --cached -r . 2>nul & del /s /q *.zip
+git pull origin main
 ```
 
-Then re-run `dir /s /b *.zip` and confirm it says `File Not Found`. ZIPs belong on the Release only.
+This should now complete. If Notepad or an editor opens asking for a merge message, just close it (or `Ctrl+X`, `Y`, Enter).
 
-## Step 3 — Confirm the folder names
-
-```bat
-dir /b
-```
-
-You should see something close to:
-
-```text
-atomic
-QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ
-QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p
-QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25
-manifest.json
-_headers
-```
-
-If a name is different or there are extra folders, paste the output and stop here.
-
-## Step 4 — Skip the small stuff
-
-You already pushed `manifest.json` and `_headers` earlier, so they are on GitHub. Do **not** add or commit them again — just move straight to the image folders.
-
-## Step 5 — Push each image folder, one at a time
-
-Do these in order. Each block is add → commit → push. Wait for each push to finish before starting the next one.
-
-### 5a. Series 1 folder
-
-```bat
-git add QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p
-```
-
-```bat
-git commit -m "Add images: QmSRti (series 1)"
-```
-
-```bat
-git push origin main
-```
-
-### 5b. Series 2 folder
-
-```bat
-git add QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ
-```
-
-```bat
-git commit -m "Add images: QmcAky (series 2)"
-```
-
-```bat
-git push origin main
-```
-
-### 5c. Exotic folder
-
-```bat
-git add QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25
-```
-
-```bat
-git commit -m "Add images: QmYkMD (exotic)"
-```
-
-```bat
-git push origin main
-```
-
-### 5d. Atomic folder — in four slices
-
-`atomic\` holds 1545 loose files, too many for one push, so it goes in four alphabetical slices. The quotes matter — they stop Command Prompt expanding the `*` itself.
-
-```bat
-git add "atomic/Qm[a-f]*"
-```
-
-```bat
-git commit -m "Add images: atomic a-f"
-```
-
-```bat
-git push origin main
-```
-
-```bat
-git add "atomic/Qm[g-p]*"
-```
-
-```bat
-git commit -m "Add images: atomic g-p"
-```
-
-```bat
-git push origin main
-```
-
-```bat
-git add "atomic/Qm[q-z]*"
-```
-
-```bat
-git commit -m "Add images: atomic q-z"
-```
-
-```bat
-git push origin main
-```
-
-```bat
-git add atomic
-```
-
-```bat
-git commit -m "Add images: atomic remainder"
-```
-
-```bat
-git push origin main
-```
-
-The last block catches anything the three slices missed (files not starting with `Qm`, uppercase names, and so on). If it prints `nothing to commit, working tree clean`, that is fine — it means everything was already sent. Skip its push and move on.
-
-## Step 6 — Confirm everything is up
+Then:
 
 ```bat
 git status -sb
 ```
 
-You want exactly `## main...origin/main` with **no** `[ahead N]`.
+You want `## main...origin/main [ahead 3]` (no `behind`).
+
+## Step 5 — Copy back only the files GitHub does not already have
 
 ```bat
-git count-objects -vH
+robocopy C:\Users\User\Desktop\gpk-park\QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25 C:\Users\User\Desktop\gpkonwaxbackup-repo\QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25 /E /XC /XN /XO
+copy C:\Users\User\Desktop\gpk-park\.assetsignore .
 ```
 
-Not required, just useful if something looks off.
+`/XC /XN /XO` means "skip any file that already exists" — so the versions GitHub sent you are kept and only truly new images are added.
 
-Then open https://github.com/bewbzz/gpkonwaxbackup/actions and wait for the green tick on the last commit. Reply "green tick" when you see it and I will fetch the live manifest and update the app's `public/gpk-manifest.json` to the full 2575 entries.
+Do **not** copy `.wrangler` or `status.txt` back into the repo — they are local build junk and should never be pushed.
 
-## If a push still fails
+## Step 6 — Make sure junk stays out
 
-If one of the pushes dies with `RPC failed` or `unexpected disconnect`, that folder is still too big. Split it:
+Check the `.gitignore` that came down from GitHub:
 
 ```bat
-dir /b <foldername>
+type .gitignore
 ```
 
-Then add its subfolders individually, for example:
+It should contain lines for `.wrangler/` and `*.zip`. If either is missing, tell me and I'll give you the exact file contents to paste in.
+
+## Step 7 — Commit and push in small chunks
+
+Repeat this trio once per folder, waiting for each push to finish:
 
 ```bat
-git add QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/base
-git commit -m "Add images: QmcAky base"
+git add .assetsignore .gitignore manifest.json
+git commit -m "Config and manifest"
 git push origin main
 ```
 
 ```bat
-git add QmcAkyEvUNgc6CDKn9yQP9my6pCz5Dk21amr2t6pdZocDZ/back
-git commit -m "Add images: QmcAky back"
+git add QmYkMDkB1d8ToHNHnFwpeESF3Npfid671NrfbPKiKG8e25
+git commit -m "Images: series folder"
 git push origin main
 ```
 
-Raising the buffer once can also help on a flaky connection:
-
 ```bat
-git config http.postBuffer 524288000
+git add atomic
+git commit -m "Images: atomic"
+git push origin main
 ```
 
-## Technical notes
+If any single push fails with an HTTP 500 or "remote hung up", that folder is too big — reply and I'll split it into subfolder-sized pushes.
 
-- `git reset --soft HEAD~1` followed by bare `git reset` rewinds the commit and the index without touching the working tree, so no image files are deleted at any point.
-- Each push sends only the objects in that commit, which is why splitting by folder keeps every transfer well under GitHub's pack-size ceiling.
-- ZIP parts must never enter the repo — they live on the GitHub Release. Cloudflare Pages also rejects any file over 25 MB, so keeping the repo ZIP-free keeps all three mirrors deployable from the same tree.
+## Step 8 — Confirm clean
+
+```bat
+git status -sb
+```
+
+Should read `## main...origin/main` with no `[ahead N]`. Then wait for the green tick at https://github.com/bewbzz/gpkonwaxbackup/actions.
+
+## Step 9 — I finish the app side
+
+Once Pages is live I will fetch the live merged manifest and replace the 832-entry file list in `public/gpk-manifest.json` with the full 2575 entries, then we run the mirror audit and a live import test.
+
+## Open question
+
+Before Step 7, paste the Step 2 output. There is a chance one of those 3 commits is the old giant 3.29 GiB commit resurfacing, in which case we drop it first rather than trying to push it again.
