@@ -272,7 +272,11 @@ export function TradesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent
+        className="max-w-3xl max-h-[85vh] flex flex-col"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="text-cheese theme-bright-text flex items-center gap-2">
             <ArrowLeftRight className="h-5 w-5" />
