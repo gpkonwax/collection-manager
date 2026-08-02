@@ -2713,51 +2713,15 @@ export default function SimpleAssetsPage() {
               >
                 <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading || packsLoading || atomicPacksLoading) ? 'animate-spin' : ''}`} />
               </Button>
-              {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb' || categoryFilter === 'crashgordon') && (() => {
-                const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : categoryFilter === 'foodfightb' ? FOODFIGHT_VARIANTS : categoryFilter === 'crashgordon' ? CRASHGORDON_VARIANTS : SERIES2_VARIANTS;
-                const isAll = variantFilter.includes('all');
-                const toggleVariant = (val: string) => {
-                  if (val === 'all') {
-                    setVariantFilter(['all']);
-                    return;
-                  }
-                  let next: string[];
-                  if (variantFilter.includes(val)) {
-                    next = variantFilter.filter(v => v !== val && v !== 'all');
-                  } else {
-                    next = [...variantFilter.filter(v => v !== 'all'), val];
-                  }
-                  if (next.length === 0 || next.length === variants.length) {
-                    setVariantFilter(['all']);
-                  } else {
-                    setVariantFilter(next);
-                  }
-                };
-                const label = isAll ? 'All Variants' : variantFilter.length === 1 ? variants.find(v => v.value === variantFilter[0])?.label ?? variantFilter[0] : `${variantFilter.length} Variants`;
-                return (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text theme-bright-hover theme-bright-fill">
-                        {label}
-                        <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-2 max-h-[300px] overflow-y-auto" align="start">
-                      <label className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
-                        <Checkbox checked={isAll} onCheckedChange={() => toggleVariant('all')} />
-                        All Variants
-                      </label>
-                      <div className="my-1 h-px bg-border" />
-                      {variants.map(v => (
-                        <label key={v.value} className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
-                          <Checkbox checked={isAll || variantFilter.includes(v.value)} onCheckedChange={() => toggleVariant(v.value)} />
-                          {v.label}
-                        </label>
-                      ))}
-                    </PopoverContent>
-                  </Popover>
-                );
-              })()}
+              {hasVariants(categoryFilter) && (
+                <VariantFilterPopover
+                  category={categoryFilter}
+                  value={variantFilter}
+                  onChange={setVariantFilter}
+                  className="w-full sm:w-[180px]"
+                />
+              )}
+
             </div>
 
             <div className="flex justify-center mt-2">
