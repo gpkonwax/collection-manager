@@ -31,8 +31,13 @@ export interface UseAtomicOffersResult {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /** Drop an offer from local state immediately (optimistic UI). */
+  removeOfferLocally: (offerId: string) => void;
+  /** Refresh now, then again a few times to outrun indexer lag. */
+  refreshWithRetries: (attempts?: number, delayMs?: number) => Promise<void>;
   markAllRead: () => void;
 }
+
 
 /**
  * Poll pending AtomicAssets offers for the given account.
@@ -106,6 +111,22 @@ export function useAtomicOffers(account: string | null): UseAtomicOffersResult {
     setLastSeen(now);
   }, []);
 
+  const removeOfferLocally = useCallback((offerId: string) => {
+    setOffers((prev) => prev.filter((o) => o.offer_id !== offerId));
+  }, []);
+
+  const refreshWithRetries = useCallback(async (attempts = 4, delayMs = 2500) => {
+    const acc = accountRef.current;
+    for (let i = 0; i < attempts; i++) {
+      await refresh();
+      if (accountRef.current !== acc) return;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, delayMs));
+        if (accountRef.current !== acc) return;
+      }
+    }
+  }, [refresh]);
+
   return {
     offers,
     incoming,
@@ -114,6 +135,9 @@ export function useAtomicOffers(account: string | null): UseAtomicOffersResult {
     isLoading,
     error,
     refresh,
+    removeOfferLocally,
+    refreshWithRetries,
     markAllRead,
   };
+
 }

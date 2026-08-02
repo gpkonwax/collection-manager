@@ -316,7 +316,10 @@ export default function SimpleAssetsPage() {
     isLoading: tradesLoading,
     error: tradesError,
     refresh: refreshTrades,
+    removeOfferLocally: removeTradeOfferLocally,
+    refreshWithRetries: refreshTradesWithRetries,
     markAllRead: markTradesRead,
+
   } = useAtomicOffers(tradesAccount);
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
@@ -2257,7 +2260,13 @@ export default function SimpleAssetsPage() {
         session={session}
         initialTheirAssetIds={composerInitialTheirIds}
         counterOfferId={composerCounterOfferId}
-        onSuccess={() => { void refreshTrades(); }}
+        onSuccess={() => {
+          // Counter-offer declines the original in the same tx: drop it from
+          // "Received" right away, then re-poll so the new "Sent" offer shows
+          // up as soon as the indexer catches it — no page refresh needed.
+          if (composerCounterOfferId) removeTradeOfferLocally(composerCounterOfferId);
+          void refreshTradesWithRetries();
+        }}
       />
 
 
