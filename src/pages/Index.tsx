@@ -100,8 +100,8 @@ import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type Det
 import { JsonMenu } from '@/components/JsonMenu';
 import { ViewWalletControl } from '@/components/ViewWalletControl';
 import { ViewingBanner } from '@/components/ViewingBanner';
-import logoSimpleAssets from '@/assets/logo-simpleassets.png';
-import logoAtomicAssets from '@/assets/logo-atomicassets.png';
+import logoSimpleAssets from '@/assets/simpleassets-logo.png';
+import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { useTheme } from '@/hooks/useTheme';
 import { CATEGORY_LABELS, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
