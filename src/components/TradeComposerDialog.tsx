@@ -223,7 +223,7 @@ function AssetPicker({
           <div className="text-[11px] text-muted-foreground theme-bright-text-muted">{subtitle}</div>
         </div>
         <Badge variant="outline" className="border-cheese/50 text-cheese theme-bright-border theme-bright-text">
-          {selectedIds.size}/{maxPerSide}
+          {totalSelected}/{maxPerSide}
         </Badge>
       </div>
       <Input
