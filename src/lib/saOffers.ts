@@ -397,6 +397,15 @@ export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
     return ownerCache.get(owner)!;
   };
 
+  const packCache = new Map<string, Promise<Map<string, number>>>();
+  const packsFor = (owner: string) => {
+    if (!packCache.has(owner)) {
+      packCache.set(owner, loadOwnerPackBalances(owner).catch(() => new Map<string, number>()));
+    }
+    return packCache.get(owner)!;
+  };
+
+
   const offers = await Promise.all(live.map(async ([id, ref]) => {
     const [row, approvals] = await Promise.all([
       fetchProposalRow(ref.proposer, ref.name),
