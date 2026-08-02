@@ -97,9 +97,9 @@ export interface ZipManifestPart {
 }
 
 const RELEASE_ZIP_PARTS: ZipManifestPart[] = [
-  { index: 1, fileName: 'gpk-image-mirror-part-001.zip', bytes: 1885365317, sha256: '' },
-  { index: 2, fileName: 'gpk-image-mirror-part-002.zip', bytes: 1887321761, sha256: '' },
-  { index: 3, fileName: 'gpk-image-mirror-part-003.zip', bytes: 487481462, sha256: '' },
+  { index: 1, fileName: 'gpk-image-mirror-part-001.zip', bytes: 1885365317, sha256: 'cfcd4bf60a42b4735c202ca445719e30e16d60103fdde5a971c398bc59c5c06a', fileCount: 905 },
+  { index: 2, fileName: 'gpk-image-mirror-part-002.zip', bytes: 1884197424, sha256: 'a7c6f4c642c92a58297311d7a1d12f87e1f0b7811dbe32cc7ce9237a406dc1bd', fileCount: 1186 },
+  { index: 3, fileName: 'gpk-image-mirror-part-003.zip', bytes: 917537907, sha256: 'e37ea9ff7f248a464146a7df8b17f927880f340a7ed9d3cfe67ca7cf3bc65e6e', fileCount: 485 },
 ];
 
 const RELEASE_ZIP_TOTAL_BYTES = RELEASE_ZIP_PARTS.reduce((sum, part) => sum + part.bytes, 0);
