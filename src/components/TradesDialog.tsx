@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
-import type { AtomicOffer, OfferAsset, TradeProtocol } from '@/lib/atomicOffers';
+import type { AtomicOffer, OfferAsset, OfferPack, TradeProtocol } from '@/lib/atomicOffers';
+import { packImage } from '@/lib/gpkPackMeta';
 import { cn } from '@/lib/utils';
 import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
 
