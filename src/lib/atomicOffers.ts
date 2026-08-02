@@ -19,6 +19,10 @@ export interface OfferAsset {
   schema_name: string;
   template_id: string | null;
   mint: string | null;
+  /** Normalized GPK variant (base, sketch, golden, ...) when available. */
+  variant?: string;
+  /** Card id within its series, when available. */
+  cardid?: string;
 }
 
 export interface AtomicOffer {
