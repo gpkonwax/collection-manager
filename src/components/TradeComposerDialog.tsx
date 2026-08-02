@@ -42,9 +42,9 @@ interface TradeComposerDialogProps {
   /** The other party's wallet account. */
   counterparty: string | null;
   session: Session | null;
-  /** Pre-selected asset IDs on the "They give" side (e.g. clicked from card). */
+  /** Pre-selected asset IDs on the "They send back" side (e.g. clicked from card). */
   initialTheirAssetIds?: string[];
-  /** Pre-selected asset IDs on the "You give" side. */
+  /** Pre-selected asset IDs on the "You send" side. */
   initialMyAssetIds?: string[];
   /** When set, this is a counter-offer: decline this offer + create a new one atomically. */
   counterOfferId?: string | null;
