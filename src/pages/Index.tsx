@@ -308,6 +308,7 @@ export default function SimpleAssetsPage() {
   const [showTradesDialog, setShowTradesDialog] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
+  const [composerInitialTheirPackQty, setComposerInitialTheirPackQty] = useState<Record<string, number>>({});
   const [composerCounterOfferId, setComposerCounterOfferId] = useState<string | null>(null);
   const [composerProtocol, setComposerProtocol] = useState<TradeProtocol>('atomicassets');
   const [composerCounterApproved, setComposerCounterApproved] = useState(false);
@@ -370,6 +371,25 @@ export default function SimpleAssetsPage() {
     setComposerProtocol(asset.source === 'simpleassets' ? 'simpleassets' : 'atomicassets');
     setComposerCounterparty(viewedAccount);
     setComposerInitialTheirIds([asset.id]);
+    setComposerInitialTheirPackQty({});
+    setComposerCounterOfferId(null);
+    setComposerCounterProposal(null);
+    setComposerCounterApproved(false);
+    setComposerOpen(true);
+  }, [accountName, viewedAccount]);
+
+  // Same flow, started from a pack tile while viewing another wallet.
+  const handleTradeFromPack = useCallback((pack: { symbol?: string; assetIds?: string[] }) => {
+    if (!accountName) {
+      toast.error('Connect a wallet to propose a trade.');
+      return;
+    }
+    if (!viewedAccount || viewedAccount === accountName) return;
+    const isAtomic = Array.isArray(pack.assetIds);
+    setComposerProtocol(isAtomic ? 'atomicassets' : 'simpleassets');
+    setComposerCounterparty(viewedAccount);
+    setComposerInitialTheirIds(isAtomic ? [pack.assetIds![0]] : []);
+    setComposerInitialTheirPackQty(isAtomic || !pack.symbol ? {} : { [pack.symbol]: 1 });
     setComposerCounterOfferId(null);
     setComposerCounterProposal(null);
     setComposerCounterApproved(false);
@@ -396,6 +416,7 @@ export default function SimpleAssetsPage() {
       setComposerProtocol(protocol);
       setComposerCounterparty(offer.sender_name);
       setComposerInitialTheirIds(offer.sender_assets.map((a) => a.asset_id));
+      setComposerInitialTheirPackQty({});
       setComposerCounterOfferId(offer.offer_id);
       setComposerCounterProposal(saRef);
       setComposerCounterApproved(
@@ -2334,6 +2355,7 @@ export default function SimpleAssetsPage() {
         counterparty={composerCounterparty}
         session={session}
         initialTheirAssetIds={composerInitialTheirIds}
+        initialTheirPackQty={composerInitialTheirPackQty}
         counterOfferId={composerCounterOfferId}
         protocol={composerProtocol}
         counterProposal={composerCounterProposal}
@@ -2719,11 +2741,11 @@ export default function SimpleAssetsPage() {
               }
               const renderPackItem = (item: PackItem) => item.type === 'token' ? (
                 <div key={item.pack.symbol} className="w-[calc(50%-0.5rem)] sm:w-48">
-                  <GpkPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} isReadOnly={isViewing} />
+                  <GpkPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} isReadOnly={isViewing} onTradeClick={isViewing ? handleTradeFromPack : undefined} />
                 </div>
               ) : (
                 <div key={item.pack.templateId} className="w-[calc(50%-0.5rem)] sm:w-48">
-                  <AtomicPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const cat = ATOMIC_PACK_CATEGORY_MAP[item.pack.templateId]; return cat && a.category === cat; })} isReadOnly={isViewing} />
+                  <AtomicPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const cat = ATOMIC_PACK_CATEGORY_MAP[item.pack.templateId]; return cat && a.category === cat; })} isReadOnly={isViewing} onTradeClick={isViewing ? handleTradeFromPack : undefined} />
                 </div>
               );
               return (
