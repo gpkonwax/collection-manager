@@ -7,6 +7,7 @@
 import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
+import { normalizeGpkVariant } from '@/lib/gpkVariant';
 
 export type OfferState = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -18,6 +19,10 @@ export interface OfferAsset {
   schema_name: string;
   template_id: string | null;
   mint: string | null;
+  /** Normalized GPK variant (base, sketch, golden, ...) when available. */
+  variant?: string;
+  /** Card id within its series, when available. */
+  cardid?: string;
 }
 
 export interface AtomicOffer {
@@ -82,6 +87,8 @@ function normalizeAsset(a: RawOfferAsset): OfferAsset {
     schema_name: a.schema?.schema_name || '',
     template_id: a.template?.template_id || null,
     mint: a.template_mint || null,
+    variant: normalizeGpkVariant(combined.variant),
+    cardid: String(combined.cardid ?? ''),
   };
 }
 

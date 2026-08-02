@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
 import { cn } from '@/lib/utils';
+import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
 
 type OfferAction = 'accept' | 'decline' | 'cancel' | 'counter';
 
@@ -39,6 +40,14 @@ function AssetThumb({ asset }: { asset: OfferAsset }) {
     ? `#${mintValue}`
     : '#--';
 
+  const category = normalizeAssetCategory(String(asset.schema_name || '').toLowerCase());
+  const categoryLabel = CATEGORY_LABELS[category] || (asset.schema_name || '');
+  const variantRaw = (asset.variant || '').trim();
+  const variantLabel = variantRaw
+    ? (getVariantsForCategory(category).find(v => v.value === variantRaw)?.label
+        ?? variantRaw.replace(/\b\w/g, c => c.toUpperCase()))
+    : '';
+
   return (
     <div
       className={cn(
@@ -46,7 +55,7 @@ function AssetThumb({ asset }: { asset: OfferAsset }) {
         'rounded-md border border-cheese/30 bg-background/40 p-1.5',
         'theme-bright-border',
       )}
-      title={`${asset.name} • #${asset.asset_id}${asset.mint ? ` • mint ${asset.mint}` : ''}`}
+      title={`${asset.name} • #${asset.asset_id}${categoryLabel ? ` • ${categoryLabel}` : ''}${variantLabel ? ` • ${variantLabel}` : ''}${asset.mint ? ` • mint ${asset.mint}` : ''}`}
     >
       <div
         className="w-full flex justify-center"
@@ -67,6 +76,16 @@ function AssetThumb({ asset }: { asset: OfferAsset }) {
       <div className="text-[10px] leading-tight text-center text-cheese/80 theme-bright-text w-full truncate">
         {asset.name}
       </div>
+      {(asset.cardid || variantLabel) && (
+        <div className="text-[9px] leading-tight text-center font-semibold text-cheese theme-bright-text w-full truncate">
+          {[asset.cardid, variantLabel].filter(Boolean).join(' ')}
+        </div>
+      )}
+      {categoryLabel && (
+        <div className="text-[9px] leading-tight text-center text-muted-foreground theme-bright-text-muted w-full truncate">
+          {categoryLabel}
+        </div>
+      )}
       <div className="text-[9px] leading-tight text-muted-foreground theme-bright-text-muted">
         #{asset.asset_id}
       </div>
