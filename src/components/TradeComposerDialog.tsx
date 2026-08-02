@@ -366,7 +366,7 @@ function AssetPicker({
 
       <ScrollArea className="h-[42vh] pr-2">
         {showPackQuantities ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {packOptions.map((p) => {
               const qty = packQty[p.symbol] || 0;
               const canAdd = qty < p.available;
@@ -381,11 +381,12 @@ function AssetPicker({
                   )}
                   title={`${p.label} (${p.symbol}) — ${p.available} owned`}
                 >
-                  <div className="aspect-[3/4] w-full overflow-hidden rounded bg-black/40">
+                  <div className="aspect-square w-full overflow-hidden rounded bg-black/40">
                     {p.image
                       ? <img src={p.image} alt={p.label} className="w-full h-full object-contain" />
                       : <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">{p.symbol}</div>}
                   </div>
+
                   <div className="text-[10px] mt-1 truncate text-foreground theme-bright-text">{p.label}</div>
                   <div className="text-[9px] text-muted-foreground theme-bright-text-muted">
                     {p.available} owned
