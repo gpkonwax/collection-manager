@@ -18,8 +18,9 @@ const MIRRORS = [
   {
     key: 'primary',
     label: 'Primary (GitHub Pages)',
-    baseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/mirror/',
-    // In the backup repo, atomic/ sits at the repo root, next to mirror/.
+    // Everything (SimpleAssets CID folders, manifest.json and atomic/) now
+    // sits flat at the repo root — there is no nested mirror/ folder.
+    baseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/',
     atomicBaseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/',
     // The split ZIP parts are too large for Pages — they are served from the
     // GitHub Release assets instead.
