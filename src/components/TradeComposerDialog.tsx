@@ -42,9 +42,9 @@ interface TradeComposerDialogProps {
   /** The other party's wallet account. */
   counterparty: string | null;
   session: Session | null;
-  /** Pre-selected asset IDs on the "They give" side (e.g. clicked from card). */
+  /** Pre-selected asset IDs on the "They send back" side (e.g. clicked from card). */
   initialTheirAssetIds?: string[];
-  /** Pre-selected asset IDs on the "You give" side. */
+  /** Pre-selected asset IDs on the "You send" side. */
   initialMyAssetIds?: string[];
   /** When set, this is a counter-offer: decline this offer + create a new one atomically. */
   counterOfferId?: string | null;
@@ -539,24 +539,24 @@ export function TradeComposerDialog({
 
         <div className="grid gap-3 md:grid-cols-2 flex-1 min-h-0">
           <AssetPicker
-            title="They give"
-            subtitle={`Pick from ${counterparty || 'their'} ${protocolLabel}`}
-            assets={theirPicker}
-            isLoading={theirLoading}
-            selectedIds={theirSelected}
-            onToggle={toggleTheirs}
-            emptyLabel={`No ${protocolLabel} cards found in that wallet.`}
-            protocol={protocol}
-            maxPerSide={maxPerSide}
-          />
-          <AssetPicker
-            title="You give"
+            title="You send"
             subtitle={`Pick from your ${protocolLabel}`}
             assets={myPicker}
             isLoading={myLoading}
             selectedIds={mySelected}
             onToggle={toggleMine}
             emptyLabel={`You have no ${protocolLabel} cards to offer.`}
+            protocol={protocol}
+            maxPerSide={maxPerSide}
+          />
+          <AssetPicker
+            title="They send back"
+            subtitle={`Pick from ${counterparty || 'their'} ${protocolLabel}`}
+            assets={theirPicker}
+            isLoading={theirLoading}
+            selectedIds={theirSelected}
+            onToggle={toggleTheirs}
+            emptyLabel={`No ${protocolLabel} cards found in that wallet.`}
             protocol={protocol}
             maxPerSide={maxPerSide}
           />
