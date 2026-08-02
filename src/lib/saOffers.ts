@@ -447,7 +447,25 @@ export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
     const recipientAssets = theirs.assetIds.map((aid) => recipientIndex.get(aid));
     if (senderAssets.some((a) => !a) || recipientAssets.some((a) => !a)) return null;
 
+    // …and still hold enough of every pack token they promised.
+    if (mine.packs.length > 0 || theirs.packs.length > 0) {
+      const [senderBalances, recipientBalances] = await Promise.all([
+        mine.packs.length > 0 ? packsFor(ref.proposer) : Promise.resolve(new Map<string, number>()),
+        theirs.packs.length > 0 ? packsFor(recipient) : Promise.resolve(new Map<string, number>()),
+      ]);
+      const enough = (balances: Map<string, number>, packs: PackEntry[]) =>
+        packs.every((p) => (balances.get(p.symbol) ?? 0) >= p.amount);
+      if (!enough(senderBalances, mine.packs) || !enough(recipientBalances, theirs.packs)) return null;
+    }
+
     const provided = new Set((approvals?.provided_approvals || []).map(approvalActor));
+
+    const toOfferPacks = (packs: PackEntry[]): OfferPack[] => packs.map((p) => ({
+      symbol: p.symbol,
+      amount: p.amount,
+      label: packLabel(p.symbol),
+      image: packImage(p.symbol) ?? null,
+    }));
 
     const offer: AtomicOffer = {
       offer_id: id,
@@ -457,6 +475,8 @@ export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
       state: 0,
       sender_assets: senderAssets.map((a, i) => a ?? placeholderAsset(mine.assetIds[i])),
       recipient_assets: recipientAssets.map((a, i) => a ?? placeholderAsset(theirs.assetIds[i])),
+      sender_packs: toOfferPacks(mine.packs),
+      recipient_packs: toOfferPacks(theirs.packs),
       is_sender_contract: false,
       is_recipient_contract: false,
       created_at_time: ref.createdAt || swap.expiration - 7 * 86_400_000,
