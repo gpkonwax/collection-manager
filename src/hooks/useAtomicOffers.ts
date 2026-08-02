@@ -31,8 +31,13 @@ export interface UseAtomicOffersResult {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /** Drop an offer from local state immediately (optimistic UI). */
+  removeOfferLocally: (offerId: string) => void;
+  /** Refresh now, then again a few times to outrun indexer lag. */
+  refreshWithRetries: (attempts?: number, delayMs?: number) => Promise<void>;
   markAllRead: () => void;
 }
+
 
 /**
  * Poll pending AtomicAssets offers for the given account.
