@@ -2498,9 +2498,9 @@ export default function SimpleAssetsPage() {
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
               <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80 theme-bright-text-muted">
                 <span>Optional: Bridge your</span>
-                <img src={logoSimpleAssets} alt="SimpleAssets" className="h-5 w-auto rounded" />
+                <img src={logoSimpleAssets} alt="SimpleAssets" title="SimpleAssets" className="h-5 w-auto rounded-full bg-white p-[1px]" />
                 <span>to</span>
-                <img src={logoAtomicAssets} alt="AtomicAssets" className="h-5 w-auto rounded" />
+                <img src={logoAtomicAssets} alt="AtomicAssets" title="AtomicAssets" className="h-5 w-auto rounded-full" />
                 <a
                   href="https://atomichub.io/bridge"
                   onClick={(e) => { e.preventDefault(); footerRequestNav('https://atomichub.io/bridge'); }}
