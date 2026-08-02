@@ -535,21 +535,23 @@ export function TradeComposerDialog({
             <Badge
               variant="outline"
               className={cn(
-                'text-[10px] uppercase tracking-wide',
+                'gap-1 px-2 py-1 text-[10px] uppercase tracking-wide',
                 isAtomic
                   ? 'border-cheese/60 text-cheese theme-bright-border theme-bright-text'
                   : 'border-emerald-500/60 text-emerald-400',
               )}
             >
-              {protocolLabel} ↔ {protocolLabel}
+              <ProtocolLogo protocol={protocol} className="h-5 w-5" />
+              ↔
+              <ProtocolLogo protocol={protocol} className="h-5 w-5" />
             </Badge>
           </DialogTitle>
           <DialogDescription className="theme-bright-text-muted">
-            Pure card-for-card {protocolLabel} trade between{' '}
+            Pure card-for-card <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> trade between{' '}
             <span className="text-cheese theme-bright-text font-medium">{me || '—'}</span>{' '}
             and{' '}
             <span className="text-cheese theme-bright-text font-medium">{counterparty || '—'}</span>.
-            {' '}Mixed-contract trades are not supported, so only {protocolLabel} cards are shown.
+            {' '}Mixed-contract trades are not supported, so only <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> cards are shown.
             {isCounter && (
               <> This will <span className="text-destructive font-medium">decline the original offer</span> and send a fresh one in a single transaction.</>
             )}
