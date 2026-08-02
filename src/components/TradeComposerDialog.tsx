@@ -539,24 +539,24 @@ export function TradeComposerDialog({
 
         <div className="grid gap-3 md:grid-cols-2 flex-1 min-h-0">
           <AssetPicker
-            title="They give"
-            subtitle={`Pick from ${counterparty || 'their'} ${protocolLabel}`}
-            assets={theirPicker}
-            isLoading={theirLoading}
-            selectedIds={theirSelected}
-            onToggle={toggleTheirs}
-            emptyLabel={`No ${protocolLabel} cards found in that wallet.`}
-            protocol={protocol}
-            maxPerSide={maxPerSide}
-          />
-          <AssetPicker
-            title="You give"
+            title="You send"
             subtitle={`Pick from your ${protocolLabel}`}
             assets={myPicker}
             isLoading={myLoading}
             selectedIds={mySelected}
             onToggle={toggleMine}
             emptyLabel={`You have no ${protocolLabel} cards to offer.`}
+            protocol={protocol}
+            maxPerSide={maxPerSide}
+          />
+          <AssetPicker
+            title="They send back"
+            subtitle={`Pick from ${counterparty || 'their'} ${protocolLabel}`}
+            assets={theirPicker}
+            isLoading={theirLoading}
+            selectedIds={theirSelected}
+            onToggle={toggleTheirs}
+            emptyLabel={`No ${protocolLabel} cards found in that wallet.`}
             protocol={protocol}
             maxPerSide={maxPerSide}
           />
