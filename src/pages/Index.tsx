@@ -3,7 +3,7 @@ import { Wallet, ChevronDown, Check, BookOpen, Package, Grid3X3, GripVertical, F
 import { Search, RefreshCw, Download, Upload, CheckSquare, X, Send, Trash2, Flame } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
 import { MissingPuzzlePiecePlaceholder } from '@/components/simpleassets/MissingPuzzlePiecePlaceholder';
@@ -97,65 +97,14 @@ import { ViewingBanner } from '@/components/ViewingBanner';
 import logoSimpleAssets from '@/assets/logo-simpleassets.png';
 import logoAtomicAssets from '@/assets/logo-atomicassets.png';
 import { useTheme } from '@/hooks/useTheme';
+import { CATEGORY_LABELS, hasVariants } from '@/lib/gpkCategories';
+import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
+
 
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
 const ITEMS_PER_PAGE = 36;
 
-const CATEGORY_LABELS: Record<string, string> = {
-  series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
-  exotic: 'Tiger King', bernventures: 'Bernventures', mittens: 'Mittens',
-  
-  gamestonk: 'GameStonk', foodfightb: 'Food Fight', bonus: 'Bonus',
-  promo: 'Promo', originalart: 'Original Art',
-};
-
-const SERIES1_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'sketch', label: 'Sketch' },
-  { value: 'collector', label: 'Collectors' },
-  { value: 'golden', label: 'Gold' },
-];
-
-const SERIES2_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'raw', label: 'Raw' },
-  { value: 'slime', label: 'Slime' },
-  { value: 'gum', label: 'Gum' },
-  { value: 'vhs', label: 'VHS' },
-  { value: 'sketch', label: 'Sketch' },
-  { value: 'returning', label: 'Returning' },
-  { value: 'error', label: 'Error' },
-  { value: 'originalart', label: 'Original Art' },
-  { value: 'relic', label: 'Relic' },
-  { value: 'promo', label: 'Promo' },
-  { value: 'collector', label: 'Collectors' },
-  { value: 'golden', label: 'Golden' },
-];
-
-const EXOTIC_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'tiger stripe', label: 'Tiger Stripe' },
-  { value: 'tiger claw', label: 'Tiger Claw' },
-  { value: 'golden', label: 'Golden' },
-  { value: 'collector', label: 'Collector' },
-];
-
-const CRASHGORDON_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'golden', label: 'Golden' },
-];
-
-const FOODFIGHT_VARIANTS: { value: string; label: string }[] = [
-  { value: 'base', label: 'Base' },
-  { value: 'prism', label: 'Prism' },
-  { value: 'sketch', label: 'Sketch' },
-  { value: 'artistssignature', label: "Artist's Signature" },
-  { value: 'golden', label: 'Golden' },
-];
 
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'exotic',
@@ -2767,51 +2716,15 @@ export default function SimpleAssetsPage() {
               >
                 <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading || packsLoading || atomicPacksLoading) ? 'animate-spin' : ''}`} />
               </Button>
-              {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb' || categoryFilter === 'crashgordon') && (() => {
-                const variants = categoryFilter === 'series1' ? SERIES1_VARIANTS : categoryFilter === 'exotic' ? EXOTIC_VARIANTS : categoryFilter === 'foodfightb' ? FOODFIGHT_VARIANTS : categoryFilter === 'crashgordon' ? CRASHGORDON_VARIANTS : SERIES2_VARIANTS;
-                const isAll = variantFilter.includes('all');
-                const toggleVariant = (val: string) => {
-                  if (val === 'all') {
-                    setVariantFilter(['all']);
-                    return;
-                  }
-                  let next: string[];
-                  if (variantFilter.includes(val)) {
-                    next = variantFilter.filter(v => v !== val && v !== 'all');
-                  } else {
-                    next = [...variantFilter.filter(v => v !== 'all'), val];
-                  }
-                  if (next.length === 0 || next.length === variants.length) {
-                    setVariantFilter(['all']);
-                  } else {
-                    setVariantFilter(next);
-                  }
-                };
-                const label = isAll ? 'All Variants' : variantFilter.length === 1 ? variants.find(v => v.value === variantFilter[0])?.label ?? variantFilter[0] : `${variantFilter.length} Variants`;
-                return (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-[180px] justify-between border-cheese/50 text-cheese hover:bg-cheese/10 theme-bright-border theme-bright-text theme-bright-hover theme-bright-fill">
-                        {label}
-                        <ChevronDown className="h-4 w-4 ml-1 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-2 max-h-[300px] overflow-y-auto" align="start">
-                      <label className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
-                        <Checkbox checked={isAll} onCheckedChange={() => toggleVariant('all')} />
-                        All Variants
-                      </label>
-                      <div className="my-1 h-px bg-border" />
-                      {variants.map(v => (
-                        <label key={v.value} className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
-                          <Checkbox checked={isAll || variantFilter.includes(v.value)} onCheckedChange={() => toggleVariant(v.value)} />
-                          {v.label}
-                        </label>
-                      ))}
-                    </PopoverContent>
-                  </Popover>
-                );
-              })()}
+              {hasVariants(categoryFilter) && (
+                <VariantFilterPopover
+                  category={categoryFilter}
+                  value={variantFilter}
+                  onChange={setVariantFilter}
+                  className="w-full sm:w-[180px]"
+                />
+              )}
+
             </div>
 
             <div className="flex justify-center mt-2">
