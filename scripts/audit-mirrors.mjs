@@ -14,6 +14,11 @@ import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
+// Bump these whenever this script changes, so a stale local copy is obvious
+// the moment it runs.
+const SCRIPT_VERSION = 'v2';
+const SCRIPT_UPDATED = '2026-08-02';
+
 const MIRRORS = [
   {
     key: 'primary',
@@ -28,7 +33,17 @@ const MIRRORS = [
     checkZips: true,
   },
   { key: 'netlify',    label: 'Backup A (Netlify)',    baseUrl: 'https://gpkonwaxbackup.netlify.app/', checkZips: false },
-  { key: 'cloudflare', label: 'Backup B (Cloudflare)', baseUrl: 'https://gpkonwaxbackup.pages.dev/',   checkZips: false },
+  {
+    key: 'cloudflare',
+    label: 'Backup B (Cloudflare)',
+    baseUrl: 'https://gpkonwaxbackup.pages.dev/',
+    checkZips: false,
+    // Cloudflare Pages refuses any single file larger than 25 MiB. Those files
+    // are expected exclusions rather than gaps — they are still served by the
+    // primary mirror, Netlify and the ZIP release.
+    maxFileBytes: 25 * 1024 * 1024,
+    maxFileReason: 'over 25 MiB Cloudflare limit',
+  },
 ];
 
 
@@ -153,10 +168,27 @@ function pickSample(entries, sampleSize) {
   return out;
 }
 
-async function auditMirror(mirror, manifest, zipParts, opts) {
+async function auditMirror(mirror, manifest, zipParts, opts, verifiedElsewhere) {
   console.log(`\n=== ${mirror.label} ===`);
   console.log(`base: ${mirror.baseUrl}`);
-  const entries = Object.entries(manifest); // [path, {sha256, bytes, ...}]
+  const allEntries = Object.entries(manifest); // [path, {sha256, bytes, ...}]
+
+  // Files a mirror physically cannot host (per-file size cap) are expected
+  // exclusions — but only when we have confirmed the file exists on another
+  // mirror. Exclusion must never hide a genuine loss.
+  const excluded = [];
+  const entries = [];
+  for (const [rel, meta] of allEntries) {
+    const tooBig = mirror.maxFileBytes != null && meta.bytes != null && meta.bytes > mirror.maxFileBytes;
+    if (tooBig && (verifiedElsewhere == null || verifiedElsewhere.has(rel))) {
+      excluded.push({ rel, bytes: meta.bytes, url: urlFor(mirror, rel, meta), reason: mirror.maxFileReason ?? 'exceeds mirror file size limit' });
+    } else {
+      entries.push([rel, meta]);
+    }
+  }
+  if (excluded.length) {
+    console.log(`  expected exclusions: ${excluded.length} (${mirror.maxFileReason ?? 'size limit'})`);
+  }
 
   const missing = [];
   const wrongSize = [];
@@ -171,11 +203,11 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
       r = await headCheck(url);
     }
     if (!r.ok) {
-      missing.push({ rel, status: r.status, error: r.error });
+      missing.push({ rel, status: r.status, error: r.error, url });
       return;
     }
     if (r.bytes != null && meta.bytes != null && r.bytes !== meta.bytes) {
-      wrongSize.push({ rel, expected: meta.bytes, actual: r.bytes });
+      wrongSize.push({ rel, expected: meta.bytes, actual: r.bytes, url });
       return;
     }
     ok.push(rel);
@@ -194,10 +226,11 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
       const url = urlFor(mirror, rel, meta);
 
       const r = await shaCheck(url, meta.sha256);
-      if (!r.ok && r.reason !== 'http') shaMismatch.push({ rel, sha: r.sha });
-      else if (!r.ok) shaMismatch.push({ rel, status: r.status });
+      if (!r.ok && r.reason !== 'http') shaMismatch.push({ rel, sha: r.sha, url });
+      else if (!r.ok) shaMismatch.push({ rel, status: r.status, url });
     });
   }
+
 
   // ZIP parts audit.
   const zipReport = [];
@@ -211,7 +244,7 @@ async function auditMirror(mirror, manifest, zipParts, opts) {
     }
   }
 
-  return { mirror, total: entries.length, ok: ok.length, missing, wrongSize, shaMismatch, zipReport };
+  return { mirror, total: entries.length, ok: ok.length, missing, wrongSize, shaMismatch, zipReport, excluded };
 }
 
 function fmtBytes(n) {
@@ -236,6 +269,7 @@ async function main() {
     console.error('No manifest entries loaded — nothing to audit.');
     process.exit(2);
   }
+  console.log(`audit-mirrors.mjs ${SCRIPT_VERSION} — updated ${SCRIPT_UPDATED}`);
   console.log(`Total unique files to audit: ${total}`);
   console.log(`Sample size for sha256 verification: ${opts.sample}`);
   console.log(`Concurrency: ${opts.concurrency}`);
@@ -243,20 +277,36 @@ async function main() {
   await fs.mkdir(OUT_DIR, { recursive: true });
 
   const summaries = [];
+  // Files confirmed present on an already-audited mirror. Used so that a
+  // size-capped mirror may only "exclude" a file we know still exists.
+  const verifiedElsewhere = new Set();
   for (const mirror of targets) {
-    const rep = await auditMirror(mirror, files, zipParts, opts);
+    // With no prior mirror audited in this run (e.g. --only cloudflare) we
+    // cannot cross-check, so the size cap alone decides.
+    const rep = await auditMirror(mirror, files, zipParts, opts, verifiedElsewhere.size ? verifiedElsewhere : null);
     summaries.push(rep);
+    const bad = new Set([
+      ...rep.missing.map((m) => m.rel),
+      ...rep.wrongSize.map((m) => m.rel),
+      ...rep.excluded.map((m) => m.rel),
+    ]);
+    for (const rel of Object.keys(files)) {
+      if (!bad.has(rel)) verifiedElsewhere.add(rel);
+    }
 
-    const missingList = rep.missing.map((m) => `${m.rel}\t${m.status || 'net'}${m.error ? `\t${m.error}` : ''}`).join('\n');
-    const wrongList = rep.wrongSize.map((m) => `${m.rel}\texpected=${m.expected}\tactual=${m.actual}`).join('\n');
-    const shaList = rep.shaMismatch.map((m) => `${m.rel}\t${m.sha || m.status}`).join('\n');
+    const missingList = rep.missing.map((m) => `${m.rel}\t${m.status || 'net'}\t${m.url}${m.error ? `\t${m.error}` : ''}`).join('\n');
+    const wrongList = rep.wrongSize.map((m) => `${m.rel}\texpected=${m.expected}\tactual=${m.actual}\t${m.url}`).join('\n');
+    const shaList = rep.shaMismatch.map((m) => `${m.rel}\t${m.sha || m.status}\t${m.url}`).join('\n');
+    const exclList = rep.excluded.map((m) => `${m.rel}\t${fmtBytes(m.bytes)}\t${m.reason}\t${m.url}`).join('\n');
     await fs.writeFile(path.join(OUT_DIR, `missing-${mirror.key}.txt`), missingList + (missingList ? '\n' : ''));
     await fs.writeFile(path.join(OUT_DIR, `wrongsize-${mirror.key}.txt`), wrongList + (wrongList ? '\n' : ''));
     await fs.writeFile(path.join(OUT_DIR, `sha-mismatch-${mirror.key}.txt`), shaList + (shaList ? '\n' : ''));
+    await fs.writeFile(path.join(OUT_DIR, `excluded-${mirror.key}.txt`), exclList + (exclList ? '\n' : ''));
   }
 
   // Summary.
   const lines = [];
+  lines.push(`audit-mirrors.mjs ${SCRIPT_VERSION} — updated ${SCRIPT_UPDATED}`);
   lines.push(`Mirror audit — ${new Date().toISOString()}`);
   lines.push(`Manifest entries: ${total}`);
   lines.push('');
@@ -269,6 +319,7 @@ async function main() {
     lines.push(`  checked:      ${rep.total}`);
     lines.push(`  ok:           ${rep.ok}`);
     lines.push(`  missing:      ${rep.missing.length}`);
+    if (rep.excluded.length) lines.push(`  excluded:     ${rep.excluded.length} (${m.maxFileReason ?? 'size limit'})`);
     lines.push(`  wrong size:   ${rep.wrongSize.length}`);
     lines.push(`  sha mismatch: ${rep.shaMismatch.length}`);
     if (rep.zipReport.length) {
@@ -278,8 +329,11 @@ async function main() {
       }
     }
     const zipFail = rep.zipReport.filter((z) => !z.ok).length;
-    const verdict = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0 && zipFail === 0
-      ? 'COMPLETE'
+    const clean = rep.missing.length === 0 && rep.wrongSize.length === 0 && rep.shaMismatch.length === 0 && zipFail === 0;
+    const verdict = clean
+      ? (rep.excluded.length
+          ? `COMPLETE (${rep.excluded.length} expected exclusions — ${m.maxFileReason ?? 'size limit'})`
+          : 'COMPLETE')
       : `GAPS (missing=${rep.missing.length}, wrongSize=${rep.wrongSize.length}, shaMismatch=${rep.shaMismatch.length}, zipFail=${zipFail})`;
     lines.push(`  verdict:      ${verdict}`);
 
