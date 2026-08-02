@@ -10,6 +10,10 @@ import {
   withCounterRef,
   parseCounterRef,
   stripCounterRef,
+  formatPackQuantity,
+  parsePackQuantity,
+  buildPackTransferAction,
+  PACKS_CONTRACT,
 } from '@/lib/saTradeActions';
 import { filterProposeActions, applySupersession } from '@/lib/saOffers';
 import type { AtomicOffer } from '@/lib/atomicOffers';
@@ -146,5 +150,47 @@ describe('counter-offer supersession', () => {
   it('leaves unrelated proposals untouched', () => {
     const a = offer('gone', 'them', 'me');
     expect(applySupersession([a], 'me')).toHaveLength(1);
+  });
+});
+
+describe('pack trading', () => {
+  it('formats and parses pack quantities', () => {
+    expect(formatPackQuantity(3, 'GPKMEGA')).toBe('3 GPKMEGA');
+    expect(parsePackQuantity('3 GPKMEGA')).toEqual({ symbol: 'GPKMEGA', amount: 3, precision: 0 });
+    expect(parsePackQuantity('nonsense')).toBeNull();
+  });
+
+  it('builds a packs.topps transfer action', () => {
+    const action = buildPackTransferAction('me', 'them', { symbol: 'GPKTWOA', amount: 2, precision: 0 }, 'swap');
+    expect(action.account).toBe(PACKS_CONTRACT);
+    expect(action.name).toBe('transfer');
+    expect(action.authorization[0].actor).toBe('me');
+    expect(action.data).toMatchObject({ from: 'me', to: 'them', quantity: '2 GPKTWOA' });
+  });
+
+  it('accepts a packs-only swap on both sides', () => {
+    const res = validateSaOffer('me', 'them', [], [],
+      [{ symbol: 'GPKMEGA', amount: 1, precision: 0 }],
+      [{ symbol: 'GPKFIVE', amount: 2, precision: 0 }]);
+    expect(res.ok).toBe(true);
+  });
+
+  it('accepts a mixed card + pack swap', () => {
+    const res = validateSaOffer('me', 'them', ['1'], [],
+      [], [{ symbol: 'GPKFIVE', amount: 2, precision: 0 }]);
+    expect(res.ok).toBe(true);
+  });
+
+  it('rejects an empty side even when the other has packs', () => {
+    const res = validateSaOffer('me', 'them', [], [], [{ symbol: 'GPKMEGA', amount: 1, precision: 0 }], []);
+    expect(res.ok).toBe(false);
+  });
+
+  it('rejects zero or duplicate pack quantities', () => {
+    expect(validateSaOffer('me', 'them', ['1'], [], [], [{ symbol: 'GPKMEGA', amount: 0, precision: 0 }]).ok).toBe(false);
+    expect(validateSaOffer('me', 'them', ['1'], [], [], [
+      { symbol: 'GPKMEGA', amount: 1, precision: 0 },
+      { symbol: 'GPKMEGA', amount: 2, precision: 0 },
+    ]).ok).toBe(false);
   });
 });
