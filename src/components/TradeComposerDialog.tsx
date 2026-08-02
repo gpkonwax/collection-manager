@@ -252,16 +252,34 @@ function AssetPicker({
                       : 'border-cheese/25 theme-bright-border hover:border-cheese/60',
                     capReached && 'opacity-40 cursor-not-allowed',
                   )}
-                  title={`${a.name} · #${a.id}${a.cardid ? ` · ${a.cardid}${a.side}${a.quality ? ' ' + a.quality : ''}` : ''}`}
+                  title={`${a.name} · #${a.id}${categoryLabel ? ` · ${categoryLabel}` : ''}${variantLabel ? ` · ${variantLabel}` : ''} · mint ${mintDisplay}`}
                 >
+                  <div
+                    className="w-full flex justify-center mb-1"
+                    title="Mint number (placeholder — real mint will populate when available)"
+                  >
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40 theme-bright-text theme-bright-border">
+                      {mintDisplay}
+                    </span>
+                  </div>
                   <div className="aspect-square w-full overflow-hidden rounded bg-black/40">
                     <IpfsMedia url={a.image} alt={a.name} className="w-full h-full object-contain" context="card" />
                   </div>
                   <div className="text-[10px] mt-1 truncate text-foreground theme-bright-text">{a.name}</div>
-                  <div className="text-[9px] text-muted-foreground theme-bright-text-muted flex items-center justify-between">
-                    <span className="truncate">#{a.id}</span>
-                    {a.cardid && <span className="shrink-0 ml-1">{a.cardid}{a.side}</span>}
+                  {(a.cardid || variantLabel) && (
+                    <div className="text-[9px] leading-tight truncate font-semibold text-cheese theme-bright-text">
+                      {[`${a.cardid}${a.side}`.trim(), variantLabel].filter(Boolean).join(' ')}
+                    </div>
+                  )}
+                  {categoryLabel && (
+                    <div className="text-[9px] leading-tight truncate text-muted-foreground theme-bright-text-muted">
+                      {categoryLabel}
+                    </div>
+                  )}
+                  <div className="text-[9px] text-muted-foreground theme-bright-text-muted truncate">
+                    #{a.id}
                   </div>
+
                   {selected && (
                     <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-cheese text-cheese-foreground flex items-center justify-center shadow">
                       <Check className="h-3 w-3" />
