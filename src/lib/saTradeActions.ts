@@ -394,6 +394,8 @@ export async function buildSaSwapActions(params: {
   counterparty: string;
   myAssetIds: string[];
   theirAssetIds: string[];
+  myPacks?: PackEntry[];
+  theirPacks?: PackEntry[];
   memo?: string;
   /** Existing proposal being countered. */
   counterProposal?: { proposer: string; name: string } | null;
