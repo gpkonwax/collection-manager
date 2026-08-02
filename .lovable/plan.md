@@ -1,92 +1,67 @@
-# Refresh the mirror audit script and make the results easy to read
+# Make the mirror audit self-explanatory
 
-This plan fixes the false alarm you saw earlier (515 missing files) and makes the audit easier to trust next time.
+Your latest audit is the result we wanted:
+
+- **Primary (GitHub Pages):** 2575/2575 + all 3 ZIP parts — COMPLETE
+- **Backup A (Netlify):** 2575/2575 — COMPLETE
+- **Backup B (Cloudflare):** 2565/2575 — the 10 gaps are the files over Cloudflare's 25 MiB per-file limit
+
+Every image now exists on at least two mirrors plus the ZIP release, so nothing is at risk. The only thing left is to stop the audit reporting a known, unavoidable limitation as a failure.
 
 ---
 
-## Step 1 — Make sure your local audit script is up to date
+## What I will change in `scripts/audit-mirrors.mjs`
 
-You already checked this and the right code is there, so this step is just for confirmation.
+### 1. Treat Cloudflare's oversized files as expected exclusions
 
-Open Command Prompt and run:
+Cloudflare Pages refuses any single file over 25 MiB. Rather than hardcoding a list of ten filenames that could drift, the script will compute the exclusions from the manifest itself: for a mirror marked with a size cap, any entry whose recorded `bytes` exceeds that cap is counted as **excluded**, not **missing**.
 
-```bat
-cd /d C:\Users\User\Desktop\gpk-app-latest2
-findstr /C:"atomicBaseUrl" scripts\audit-mirrors.mjs
-```
+- Add `maxFileBytes: 25 * 1024 * 1024` to the Cloudflare mirror entry.
+- Excluded entries are skipped from the HEAD sweep and listed in a new `excluded-cloudflare.txt`.
+- Summary gains an `excluded:` line, and the verdict reads:
+  `COMPLETE (10 expected exclusions — over 25 MiB Cloudflare limit)`
+- Safety net: if an excluded file is somehow *also* missing from the primary mirror, it is still reported as a real gap. Exclusion never hides a genuine loss.
 
-You should see three lines printed back, including:
+### 2. Print the resolved URL next to every missing entry
+
+Right now `missing-<mirror>.txt` shows only the manifest key and a status, which is why the earlier atomic-path bug looked like 515 lost files. Each line becomes:
 
 ```text
-atomicBaseUrl: 'https://bewbzz.github.io/gpkonwaxbackup/',
+<manifest key>	<status>	<full URL that was requested>
 ```
 
-If you see that, **skip to Step 2**.
+A wrong base URL then looks obviously wrong instead of looking like a gap. Same treatment for `wrongsize-` and `sha-mismatch-` files.
 
-If nothing prints, your local copy is old and you need to replace it. Here is the safest way:
+### 3. Print the script's version and date in the header
 
-1. In Lovable, open `scripts/audit-mirrors.mjs`.
-2. Press **Ctrl+A**, then **Ctrl+C** to copy the whole file.
-3. On your PC, go to `C:\Users\User\Desktop\gpk-app-latest2\scripts`.
-4. Right-click `audit-mirrors.mjs` → **Open with** → **Notepad**.
-5. Press **Ctrl+A**, then **Delete** to clear the file.
-6. Press **Ctrl+V**, then **Ctrl+S** to save.
-7. Do the same for `scripts/verify-mirror.mjs`.
+The first lines of output become:
+
+```text
+audit-mirrors.mjs v2 — updated 2026-08-02
+Mirror audit — <timestamp>
+```
+
+If your desktop copy is stale, the version line makes it obvious before you spend twenty minutes chasing phantom gaps.
 
 ---
 
-## Step 2 — Run the audit again
+## After I make the changes — what you do
 
-This checks every image on all three mirrors and tells you exactly what is missing.
-
-In Command Prompt run:
+1. In Lovable, open `scripts/audit-mirrors.mjs`, select all (**Ctrl+A**), copy (**Ctrl+C**).
+2. On your PC open `C:\Users\User\Desktop\gpk-app-latest2\scripts\audit-mirrors.mjs` in Notepad, select all, delete, paste, save.
+3. Run it:
 
 ```bat
 cd /d C:\Users\User\Desktop\gpk-app-latest2
 node scripts/audit-mirrors.mjs
 ```
 
-It will print lines like `HEAD 2100/2575` while it works. Wait for it to finish.
-
-### What you want to see
-
-```text
-## Primary (GitHub Pages)
-  missing:      0
-  verdict:      COMPLETE
-
-## Backup A (Netlify)
-  missing:      0
-  verdict:      COMPLETE
-
-## Backup B (Cloudflare)
-  missing:      10
-  verdict:      GAPS (missing=10, ...)
-```
-
-The 10 Cloudflare gaps are **expected** — those 10 files are larger than Cloudflare's 25 MiB per-file limit. They exist on the primary mirror, on Netlify, and inside the ZIP release files, so the data is safe.
-
-### What to do if the numbers are wrong
-
-- **Netlify shows missing files** → it did not get the full upload. Do not re-upload a partial folder (that would erase what is already there). Tell me the number and I will guide you through adding only the missing files.
-- **Cloudflare shows more than 10 missing** → something went wrong during upload. Stop and paste the summary here.
-- **Primary shows any missing** → that is the source of truth; we need to fix the primary mirror first.
-
-Paste the final summary here either way and I will confirm it.
+4. Expected result — all three mirrors report COMPLETE, with Cloudflare noting 10 expected exclusions. Paste the summary here and I will confirm.
 
 ---
 
-## Step 3 — Make the audit easier to understand next time
+## Technical notes
 
-These are small edits to `scripts/audit-mirrors.mjs` in this project. Once they are done you would copy the updated file to your PC again using Step 1.
-
-1. **Mark the 10 oversized Cloudflare files as expected exclusions.**
-   Add a list of those 10 paths to the script. Cloudflare's verdict will then read `COMPLETE (10 expected exclusions)` instead of `GAPS`.
-
-2. **Print the full URL next to every missing file.**
-   In `missing-<mirror>.txt`, each line will show the actual URL that was checked. This way a wrong URL looks like a wrong URL, not a missing file.
-
-3. **Print the script version and date in the header.**
-   The first line of output will show when the script was last updated, so a stale local copy is obvious.
-
-Say the word and I will make these three changes.
+- Only `scripts/audit-mirrors.mjs` changes. No app code, no manifest edits, no mirror re-uploads.
+- Exclusion is driven by `meta.bytes` from the manifest, so if a future rebuild adds another oversized image it is classified automatically.
+- `urlFor()` already handles the `atomic/` base split; the change just surfaces its output in the reports.
