@@ -271,6 +271,34 @@ function AssetPicker({
           </button>
         )}
       </div>
+      {selectedPacks.length > 0 && (
+        <div className="rounded-md border border-cheese/25 theme-bright-border p-1.5 space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
+            Selected packs ({selectedPacks.length})
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {selectedPacks.map((p) => (
+              <span
+                key={`selpack-${p.symbol}`}
+                className="inline-flex items-center gap-1 rounded-full border border-cheese/40 theme-bright-border bg-background/60 theme-bright-fill px-2 py-0.5 text-[10px] text-foreground theme-bright-text"
+                title={`${packQty[p.symbol]} × ${p.label} (${p.symbol})`}
+              >
+                {p.image && <img src={p.image} alt="" className="h-4 w-3 rounded-sm object-cover" />}
+                {packQty[p.symbol]}x {p.label}
+                <button
+                  type="button"
+                  onClick={() => onPackQty?.(p.symbol, 0)}
+                  title={`Remove ${p.label} from this side`}
+                  className="ml-0.5 h-3.5 w-3.5 rounded-full bg-cheese text-cheese-foreground flex items-center justify-center hover:opacity-80"
+                >
+                  <X className="h-2 w-2" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {selectedAssets.length > 0 && (
         <div className="rounded-md border border-cheese/25 theme-bright-border p-1.5 space-y-1">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
