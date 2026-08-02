@@ -94,3 +94,13 @@ export function variantFilterLabel(current: string[], variants: VariantOption[])
   if (current.length === 1) return variants.find(v => v.value === current[0])?.label ?? current[0];
   return `${current.length} Variants`;
 }
+
+const SCHEMA_TO_CATEGORY: Record<string, string> = {
+  exotic: 'exotic',
+  five: 'series1',
+};
+
+/** Map an asset schema/category to the canonical category key used by the filters. */
+export function normalizeAssetCategory(category: string | undefined): string {
+  return SCHEMA_TO_CATEGORY[category ?? ''] || category || '';
+}
