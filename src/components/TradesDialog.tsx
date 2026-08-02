@@ -296,12 +296,11 @@ function OfferCard({
           <>
             <AssetRow label="They send" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
             <AssetRow label="You send back" assets={youGive} packs={youGivePacks} protocol={protocol} />
-
           </>
         ) : (
           <>
-            <AssetRow label="You send" assets={youGive} protocol={protocol} />
-            <AssetRow label="They send back" assets={theyGive} protocol={protocol} />
+            <AssetRow label="You send" assets={youGive} packs={youGivePacks} protocol={protocol} />
+            <AssetRow label="They send back" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
           </>
         )}
       </div>
