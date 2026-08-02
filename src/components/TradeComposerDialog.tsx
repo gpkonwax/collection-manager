@@ -23,6 +23,10 @@ import {
 import {
   buildSaSwapActions, validateSaOffer, SA_MAX_ASSETS_PER_SIDE,
 } from '@/lib/saTradeActions';
+import type { PackEntry } from '@/lib/saTradeActions';
+import { useGpkPacks } from '@/hooks/useGpkPacks';
+import type { GpkPack } from '@/hooks/useGpkPacks';
+import { packImage } from '@/lib/gpkPackMeta';
 import { hideProposalLocally, rememberProposal } from '@/lib/saOffers';
 import { getAccountResources, describeResourceProblem } from '@/lib/accountResources';
 
