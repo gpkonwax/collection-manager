@@ -16,10 +16,13 @@ import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
 import {
   MSIG_CONTRACT,
   SIMPLEASSETS_CONTRACT,
+  PACKS_CONTRACT,
   getContractAbi,
   parseCounterRef,
+  parsePackQuantity,
   stripCounterRef,
 } from '@/lib/saTradeActions';
+import type { PackEntry } from '@/lib/saTradeActions';
 
 
 const LOOKBACK_DAYS = 30;
