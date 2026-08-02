@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play } from 'lucide-react';
+import { Loader2, Play, ArrowLeftRight } from 'lucide-react';
 import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
@@ -27,9 +27,11 @@ interface AtomicPackCardProps {
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
   isReadOnly?: boolean;
+  /** Shown while viewing another wallet: propose a trade for this pack. */
+  onTradeClick?: (pack: AtomicPack) => void;
 }
 
-export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly }: AtomicPackCardProps) {
+export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly, onTradeClick }: AtomicPackCardProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
@@ -99,9 +101,20 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
           </div>
           <p className="text-lg font-mono text-primary theme-bright-text">{pack.count}</p>
           {isReadOnly ? (
-            <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
-              View Only
-            </Button>
+            onTradeClick && pack.count > 0 && pack.assetIds.length > 0 ? (
+              <Button
+                size="sm"
+                className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground theme-bright-fill theme-bright-text"
+                onClick={() => onTradeClick(pack)}
+                title="Propose a trade for this pack"
+              >
+                <ArrowLeftRight className="h-3 w-3 mr-1" /> Trade
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
+                View Only
+              </Button>
+            )
           ) : isDisabled ? (
             <div className="w-full space-y-1">
               <Button size="sm" className="w-full text-xs" disabled>
