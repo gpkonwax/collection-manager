@@ -52,6 +52,8 @@ interface TradeComposerDialogProps {
   protocol?: TradeProtocol;
   /** SimpleAssets counter-offer target (the msig proposal being replaced). */
   counterProposal?: { proposer: string; name: string } | null;
+  /** Whether I had already approved the SimpleAssets proposal being countered. */
+  counterApproved?: boolean;
   /** Fires after a successful trade so parents can refresh state. */
   onSuccess?: (txId: string | null) => void;
 }
@@ -358,7 +360,7 @@ function AssetPicker({
 export function TradeComposerDialog({
   open, onOpenChange, me, counterparty, session,
   initialTheirAssetIds, initialMyAssetIds, counterOfferId,
-  protocol = 'atomicassets', counterProposal, onSuccess,
+  protocol = 'atomicassets', counterProposal, counterApproved = false, onSuccess,
 }: TradeComposerDialogProps) {
   const { toast } = useToast();
   const { executeTransaction } = useWaxTransaction(session);
@@ -463,6 +465,7 @@ export function TradeComposerDialog({
           theirAssetIds: recipientAssetIds,
           memo,
           counterProposal: counterProposal ?? null,
+          counterApproved,
         });
         actions = bundle.actions;
         proposalName = bundle.proposalName;
