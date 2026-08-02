@@ -355,6 +355,19 @@ async function loadOwnerAssets(owner: string): Promise<Map<string, OfferAsset>> 
   return index;
 }
 
+/** Current packs.topps balances for an account, keyed by token symbol. */
+async function loadOwnerPackBalances(owner: string): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const res = await fetchTableRows<{ balance: string }>({
+    code: PACKS_CONTRACT, scope: owner, table: 'accounts', limit: 200,
+  });
+  for (const row of res.rows || []) {
+    const parsed = parsePackQuantity(row.balance);
+    if (parsed) out.set(parsed.symbol, parsed.amount);
+  }
+  return out;
+}
+
 function placeholderAsset(assetId: string): OfferAsset {
   return {
     asset_id: assetId,
