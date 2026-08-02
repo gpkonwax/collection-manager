@@ -223,11 +223,13 @@ export function validateSaOffer(
   counterparty: string,
   myIds: string[],
   theirIds: string[],
+  myPacks: PackEntry[] = [],
+  theirPacks: PackEntry[] = [],
 ): SaOfferValidation {
   if (!me || !counterparty) return { ok: false, reason: 'Missing account' };
   if (me === counterparty) return { ok: false, reason: "You can't trade with yourself" };
-  if (myIds.length === 0 || theirIds.length === 0) {
-    return { ok: false, reason: 'SimpleAssets swaps need at least one card on each side' };
+  if (myIds.length + myPacks.length === 0 || theirIds.length + theirPacks.length === 0) {
+    return { ok: false, reason: 'SimpleAssets swaps need at least one card or pack on each side' };
   }
   if (myIds.length > SA_MAX_ASSETS_PER_SIDE || theirIds.length > SA_MAX_ASSETS_PER_SIDE) {
     return { ok: false, reason: `Max ${SA_MAX_ASSETS_PER_SIDE} cards per side` };
@@ -237,6 +239,18 @@ export function validateSaOffer(
   }
   if (myIds.some((id) => theirIds.includes(id))) {
     return { ok: false, reason: 'The same asset appears on both sides' };
+  }
+  for (const p of [...myPacks, ...theirPacks]) {
+    if (!p.symbol) return { ok: false, reason: 'Invalid pack selection' };
+    if (!Number.isFinite(p.amount) || p.amount < 1) {
+      return { ok: false, reason: `Pack quantity for ${p.symbol} must be at least 1` };
+    }
+  }
+  for (const side of [myPacks, theirPacks]) {
+    const symbols = side.map((p) => p.symbol);
+    if (new Set(symbols).size !== symbols.length) {
+      return { ok: false, reason: 'Duplicate pack in selection' };
+    }
   }
   return { ok: true };
 }
