@@ -17,6 +17,8 @@ import {
   MSIG_CONTRACT,
   SIMPLEASSETS_CONTRACT,
   getContractAbi,
+  parseCounterRef,
+  stripCounterRef,
 } from '@/lib/saTradeActions';
 
 
@@ -412,5 +414,35 @@ export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
     return offer;
   }));
 
-  return offers.filter((o): o is AtomicOffer => o !== null);
+  return applySupersession(offers.filter((o): o is AtomicOffer => o !== null), account);
 }
+
+/**
+ * A counter-offer carries `re:<name>` in its memo. Any live proposal referenced
+ * that way has been replaced: drop it from my Received list, and flag it in my
+ * Sent list so I can see it was countered (and cancel it). The marker is
+ * stripped from the memo shown in the UI.
+ */
+export function applySupersession(offers: AtomicOffer[], account: string): AtomicOffer[] {
+  const supersededBy = new Map<string, string>();
+  for (const o of offers) {
+    const target = parseCounterRef(o.memo);
+    if (target && o.proposal?.name) supersededBy.set(target, o.proposal.name);
+  }
+
+  const out: AtomicOffer[] = [];
+  for (const o of offers) {
+    const cleanMemo = stripCounterRef(o.memo);
+    const name = o.proposal?.name;
+    const replacedBy = name ? supersededBy.get(name) : undefined;
+    if (replacedBy) {
+      // Only the proposer can act on it (cancel); for the recipient it is gone.
+      if (o.sender_name !== account) continue;
+      out.push({ ...o, memo: cleanMemo, proposal: { ...o.proposal!, supersededBy: replacedBy } });
+      continue;
+    }
+    out.push({ ...o, memo: cleanMemo });
+  }
+  return out;
+}
+

@@ -195,6 +195,16 @@ function OfferCard({
               Stale
             </Badge>
           )}
+          {offer.proposal?.supersededBy && (
+            <Badge
+              variant="outline"
+              className="border-amber-500/60 text-amber-400 text-[10px] uppercase"
+              title={`Replaced by counter-offer ${offer.proposal.supersededBy}`}
+            >
+              Countered
+            </Badge>
+          )}
+
           {isNew && (
             <Badge className="bg-cheese text-cheese-foreground hover:bg-cheese/90">NEW</Badge>
           )}
@@ -260,7 +270,14 @@ function OfferCard({
 
 
       <div className="flex flex-wrap gap-2 pt-1">
-        {direction === 'incoming' ? (
+        {offer.proposal?.supersededBy ? (
+          <>
+            <span className="text-xs text-muted-foreground theme-bright-text-muted self-center">
+              Replaced by a counter-offer — cancel it to clear it from the chain.
+            </span>
+            {btn('cancel', 'Cancel offer', <X className="h-3.5 w-3.5 mr-1" />, 'destructive')}
+          </>
+        ) : direction === 'incoming' ? (
           <>
             {btn('accept', isAtomic ? 'Accept' : 'Approve & execute', <Check className="h-3.5 w-3.5 mr-1" />, 'default')}
             {btn('counter', 'Counter-offer', <Reply className="h-3.5 w-3.5 mr-1" />, 'outline')}
@@ -270,6 +287,7 @@ function OfferCard({
           btn('cancel', 'Cancel offer', <X className="h-3.5 w-3.5 mr-1" />, 'destructive')
         )}
       </div>
+
     </div>
   );
 }

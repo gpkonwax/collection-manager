@@ -48,7 +48,10 @@ export interface AtomicOffer {
     name: string;
     expiresAt: number;
     approvedBy: string[];
+    /** Replaced by a newer counter-offer proposal (name of that proposal). */
+    supersededBy?: string;
   };
+
 }
 
 

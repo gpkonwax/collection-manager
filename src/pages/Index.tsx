@@ -310,6 +310,7 @@ export default function SimpleAssetsPage() {
   const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
   const [composerCounterOfferId, setComposerCounterOfferId] = useState<string | null>(null);
   const [composerProtocol, setComposerProtocol] = useState<TradeProtocol>('atomicassets');
+  const [composerCounterApproved, setComposerCounterApproved] = useState(false);
   const [composerCounterProposal, setComposerCounterProposal] =
     useState<{ proposer: string; name: string } | null>(null);
   const [composerCounterparty, setComposerCounterparty] = useState<string | null>(null);
@@ -371,6 +372,7 @@ export default function SimpleAssetsPage() {
     setComposerInitialTheirIds([asset.id]);
     setComposerCounterOfferId(null);
     setComposerCounterProposal(null);
+    setComposerCounterApproved(false);
     setComposerOpen(true);
   }, [accountName, viewedAccount]);
 
@@ -396,6 +398,9 @@ export default function SimpleAssetsPage() {
       setComposerInitialTheirIds(offer.sender_assets.map((a) => a.asset_id));
       setComposerCounterOfferId(offer.offer_id);
       setComposerCounterProposal(saRef);
+      setComposerCounterApproved(
+        Boolean(accountName && (offer.proposal?.approvedBy || []).includes(accountName)),
+      );
       setComposerOpen(true);
       return;
     }
@@ -2332,6 +2337,7 @@ export default function SimpleAssetsPage() {
         counterOfferId={composerCounterOfferId}
         protocol={composerProtocol}
         counterProposal={composerCounterProposal}
+        counterApproved={composerCounterApproved}
         onSuccess={() => {
           // Counter-offer declines the original in the same tx: drop it from
           // "Received" right away, then re-poll so the new "Sent" offer shows
