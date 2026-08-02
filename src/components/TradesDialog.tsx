@@ -294,8 +294,9 @@ function OfferCard({
       <div className="grid gap-3 md:grid-cols-2">
         {direction === 'incoming' ? (
           <>
-            <AssetRow label="They send" assets={theyGive} protocol={protocol} />
-            <AssetRow label="You send back" assets={youGive} protocol={protocol} />
+            <AssetRow label="They send" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
+            <AssetRow label="You send back" assets={youGive} packs={youGivePacks} protocol={protocol} />
+
           </>
         ) : (
           <>
