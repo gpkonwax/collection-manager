@@ -11,6 +11,7 @@ import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { useToast } from '@/hooks/use-toast';
 import { useGpkAtomicAssets } from '@/hooks/useGpkAtomicAssets';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
+import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import type { Session } from '@wharfkit/session';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import {
