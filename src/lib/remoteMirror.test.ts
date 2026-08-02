@@ -206,7 +206,7 @@ describe('remoteMirror', () => {
 
     const info = await getZipManifest();
     expect(info.sha256).toBeNull();
-    expect(info.bytes).toBe(4260168540);
+    expect(info.bytes).toBe(4687100648);
     expect(info.fileName).toBeNull();
     expect(info.parts.map((part) => part.fileName)).toEqual([
       'gpk-image-mirror-part-001.zip',

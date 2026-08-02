@@ -1,37 +1,37 @@
-Mirror audit — 2026-08-01T12:49:52.171Z
-Manifest entries: 832
+Mirror audit — 2026-08-02T02:49:47.916Z
+Manifest entries: 2575
 
 ## Primary (GitHub Pages)
-  base:         https://bewbzz.github.io/gpkonwaxbackup/mirror/
+  base:         https://bewbzz.github.io/gpkonwaxbackup/
   atomic base:  https://bewbzz.github.io/gpkonwaxbackup/
   zip base:     https://github.com/bewbzz/gpkonwaxbackup/releases/latest/download/
-  checked:      832
-  ok:           832
+  checked:      2575
+  ok:           2575
   missing:      0
   wrong size:   0
   sha mismatch: 0
   zip parts:
     - gpk-image-mirror-part-001.zip: OK status=200 expected=1.76 GiB actual=1.76 GiB
-    - gpk-image-mirror-part-002.zip: OK status=200 expected=1.76 GiB actual=1.76 GiB
-    - gpk-image-mirror-part-003.zip: OK status=200 expected=464.9 MiB actual=464.9 MiB
+    - gpk-image-mirror-part-002.zip: OK status=200 expected=1.75 GiB actual=1.75 GiB
+    - gpk-image-mirror-part-003.zip: OK status=200 expected=875.0 MiB actual=875.0 MiB
   verdict:      COMPLETE
 
 ## Backup A (Netlify)
   base:         https://gpkonwaxbackup.netlify.app/
-  checked:      832
-  ok:           832
-  missing:      0
+  checked:      2575
+  ok:           1030
+  missing:      1545
   wrong size:   0
   sha mismatch: 0
-  verdict:      COMPLETE
+  verdict:      GAPS (missing=1545, wrongSize=0, shaMismatch=0, zipFail=0)
 
 ## Backup B (Cloudflare)
   base:         https://gpkonwaxbackup.pages.dev/
-  checked:      832
-  ok:           832
-  missing:      0
+  checked:      2575
+  ok:           1030
+  missing:      1545
   wrong size:   0
   sha mismatch: 0
-  verdict:      COMPLETE
+  verdict:      GAPS (missing=1545, wrongSize=0, shaMismatch=0, zipFail=0)
 
 Detailed lists written to scripts/mirror-output/audit-report/

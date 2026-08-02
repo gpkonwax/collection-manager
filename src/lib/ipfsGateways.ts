@@ -24,7 +24,7 @@ export const PUBLIC_IPFS_GATEWAYS = [
  * Backup mirror A is Netlify; backup mirror B is Cloudflare Pages.
  * Update these constants if you recreate or move a mirror.
  */
-export const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/mirror/';
+export const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/';
 export const BACKUP_MIRROR_A = 'https://gpkonwaxbackup.netlify.app/';
 export const BACKUP_MIRROR_B = 'https://gpkonwaxbackup.pages.dev/';
 

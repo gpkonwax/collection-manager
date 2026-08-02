@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const MANIFEST_URL =
   process.env.PINNED_MANIFEST_URL ||
-  'https://bewbzz.github.io/gpkonwaxbackup/mirror/manifest.json';
+  'https://bewbzz.github.io/gpkonwaxbackup/manifest.json';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = resolve(__dirname, '..', 'public', 'gpk-manifest.json');
