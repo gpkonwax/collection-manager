@@ -121,8 +121,17 @@ function toPicker(a: SimpleAsset): PickerAsset {
 
 
 
+export interface PackOption {
+  symbol: string;
+  label: string;
+  image?: string;
+  /** How many of this pack the wallet holds. */
+  available: number;
+}
+
 function AssetPicker({
   title, subtitle, assets, isLoading, selectedIds, onToggle, emptyLabel, protocol, maxPerSide,
+  packOptions = [], packQty = {}, onPackQty,
 }: {
   title: string;
   subtitle: string;
@@ -133,6 +142,10 @@ function AssetPicker({
   emptyLabel: string;
   protocol: TradeProtocol;
   maxPerSide: number;
+  /** SimpleAssets pack tokens available on this side (quantity picker). */
+  packOptions?: PackOption[];
+  packQty?: Record<string, number>;
+  onPackQty?: (symbol: string, qty: number) => void;
 }) {
 
   const [query, setQuery] = useState('');
@@ -147,18 +160,23 @@ function AssetPicker({
       const c = normalizeAssetCategory(a.category);
       if (c) set.add(c);
     }
+    if (packOptions.length > 0) set.add(PACKS_CATEGORY);
     return Array.from(set).sort((x, y) =>
       (CATEGORY_LABELS[x] || x).localeCompare(CATEGORY_LABELS[y] || y));
-  }, [assets]);
+  }, [assets, packOptions.length]);
 
   const showVariants = hasVariants(category);
   const filtersActive = query.trim() !== '' || category !== 'all' || !variants.includes('all');
+  /** SimpleAssets packs are token balances, so they get a quantity picker. */
+  const showPackQuantities = category === PACKS_CATEGORY && packOptions.length > 0;
 
   const clearFilters = () => { setQuery(''); setCategory('all'); setVariants(['all']); };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = assets.filter((a) => {
+      // Packs stay out of the way until the Packs category is picked.
+      if (category === 'all' && isPacksCategory(a.category)) return false;
       if (category !== 'all' && normalizeAssetCategory(a.category) !== category) return false;
       if (hasVariants(category) && !variants.includes('all')
         && !variants.includes((a.quality || '').toLowerCase())) return false;
@@ -188,6 +206,11 @@ function AssetPicker({
 
   const selectedAssets = useMemo(
     () => assets.filter((a) => selectedIds.has(a.id)), [assets, selectedIds]);
+
+  const selectedPacks = useMemo(
+    () => packOptions.filter((p) => (packQty[p.symbol] || 0) > 0), [packOptions, packQty]);
+
+  const totalSelected = selectedIds.size + selectedPacks.reduce((n, p) => n + (packQty[p.symbol] || 0), 0);
 
   return (
     <div className="flex flex-col min-h-0 rounded-lg border border-cheese/30 theme-bright-border bg-background/40 theme-bright-fill p-2 gap-2">
