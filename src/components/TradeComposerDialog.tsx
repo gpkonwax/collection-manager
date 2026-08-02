@@ -238,6 +238,11 @@ function AssetPicker({
             {filtered.map((a) => {
               const selected = selectedIds.has(a.id);
               const capReached = !selected && selectedIds.size >= MAX_ASSETS_PER_SIDE;
+              const mintDisplay = mintDisplayFor(a.category, a.mint);
+              const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
+              const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
+              const variantLabel = variantLabelFor(a.category, a.quality);
+
               return (
                 <button
                   type="button"
