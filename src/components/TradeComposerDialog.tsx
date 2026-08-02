@@ -208,21 +208,59 @@ function AssetPicker({
         )}
       </div>
       {selectedAssets.length > 0 && (
-        <div className="flex flex-wrap gap-1 rounded-md border border-cheese/25 theme-bright-border p-1.5">
-          {selectedAssets.map((a) => (
-            <button
-              type="button"
-              key={`sel-${a.id}`}
-              onClick={() => onToggle(a.id)}
-              title={`Remove ${a.name} from this side`}
-              className="flex items-center gap-1 rounded bg-cheese/15 px-1.5 py-0.5 text-[10px] text-cheese theme-bright-text hover:bg-cheese/25"
-            >
-              <span className="max-w-[90px] truncate">{a.name}</span>
-              <X className="h-3 w-3 shrink-0" />
-            </button>
-          ))}
+        <div className="rounded-md border border-cheese/25 theme-bright-border p-1.5 space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
+            Selected ({selectedAssets.length})
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {selectedAssets.map((a) => {
+              const mintDisplay = mintDisplayFor(a.category, a.mint);
+              const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
+              const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
+              const variantLabel = variantLabelFor(a.category, a.quality);
+              return (
+                <div
+                  key={`sel-${a.id}`}
+                  className="relative w-16 shrink-0 rounded-md border border-cheese/40 theme-bright-border bg-background/60 theme-bright-fill p-1"
+                  title={`${a.name} · #${a.id}${categoryLabel ? ` · ${categoryLabel}` : ''}${variantLabel ? ` · ${variantLabel}` : ''} · mint ${mintDisplay}`}
+                >
+                  <div
+                    className="w-full flex justify-center"
+                    title="Mint number (placeholder — real mint will populate when available)"
+                  >
+                    <span className="text-[8px] font-bold px-1 py-px rounded-full bg-background/80 text-cheese border border-border/40 theme-bright-text theme-bright-border">
+                      {mintDisplay}
+                    </span>
+                  </div>
+                  <div className="aspect-square w-full overflow-hidden rounded bg-black/40 mt-0.5">
+                    <IpfsMedia url={a.image} alt={a.name} className="w-full h-full object-contain" context="card" />
+                  </div>
+                  <div className="text-[9px] leading-tight truncate text-foreground theme-bright-text mt-0.5">{a.name}</div>
+                  {(a.cardid || variantLabel) && (
+                    <div className="text-[8px] leading-tight truncate font-semibold text-cheese theme-bright-text">
+                      {[`${a.cardid}${a.side}`.trim(), variantLabel].filter(Boolean).join(' ')}
+                    </div>
+                  )}
+                  {categoryLabel && (
+                    <div className="text-[8px] leading-tight truncate text-muted-foreground theme-bright-text-muted">
+                      {categoryLabel}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onToggle(a.id)}
+                    title={`Remove ${a.name} from this side`}
+                    className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-cheese text-cheese-foreground flex items-center justify-center shadow hover:opacity-80"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
+
 
       <ScrollArea className="h-[42vh] pr-2">
         {isLoading ? (
