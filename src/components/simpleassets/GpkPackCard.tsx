@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play } from 'lucide-react';
+import { Loader2, Play, ArrowLeftRight } from 'lucide-react';
 import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
@@ -45,6 +45,8 @@ interface GpkPackCardProps {
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
   isReadOnly?: boolean;
+  /** Shown while viewing another wallet: propose a trade for this pack. */
+  onTradeClick?: (pack: GpkPack) => void;
 }
 
 async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
@@ -65,7 +67,7 @@ async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
   return ids;
 }
 
-export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly }: GpkPackCardProps) {
+export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly, onTradeClick }: GpkPackCardProps) {
   const series2Img = SERIES_2_IMAGES[pack.symbol];
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
@@ -130,9 +132,20 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
           </div>
           <p className="text-lg font-mono text-primary theme-bright-text">{pack.amount}</p>
           {isReadOnly ? (
-            <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
-              View Only
-            </Button>
+            onTradeClick && pack.amount > 0 ? (
+              <Button
+                size="sm"
+                className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground theme-bright-fill theme-bright-text"
+                onClick={() => onTradeClick(pack)}
+                title="Propose a trade for this pack"
+              >
+                <ArrowLeftRight className="h-3 w-3 mr-1" /> Trade
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="w-full text-xs" disabled title="Read-only view">
+                View Only
+              </Button>
+            )
           ) : pack.amount > 0 ? (
             <Button size="sm" className="w-full text-xs bg-cheese hover:bg-cheese/90 text-cheese-foreground" disabled={!session || isOpening || !unboxType}
               onClick={hasMultiple ? () => setBrowserOpen(true) : handleOpen}>

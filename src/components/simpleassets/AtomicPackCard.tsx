@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play } from 'lucide-react';
+import { Loader2, Play, ArrowLeftRight } from 'lucide-react';
 import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
@@ -27,9 +27,11 @@ interface AtomicPackCardProps {
   onDemoCollect?: (demoAssets: SimpleAsset[]) => void;
   collectionAssets?: SimpleAsset[];
   isReadOnly?: boolean;
+  /** Shown while viewing another wallet: propose a trade for this pack. */
+  onTradeClick?: (pack: AtomicPack) => void;
 }
 
-export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly }: AtomicPackCardProps) {
+export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly, onTradeClick }: AtomicPackCardProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
