@@ -60,22 +60,54 @@ If anything goes wrong, Netlify keeps every past deploy: Deploys → pick the pr
 
 ## Step 3 — Cloudflare Pages
 
-Cloudflare rejects any single file over **25 MB**, so a handful of large GIFs must be excluded, otherwise the whole upload fails.
+The dashboard upload stops at 1,000 files. Our verified folder has 2,576, so **do not split it into dashboard uploads**: each deployment replaces the previous one. Use Cloudflare's official Wrangler uploader, which accepts up to 20,000 files in one complete folder.
 
-1. Create a file named `.assetsignore` inside `mirror-upload` containing the oversized files. Simplest safe rule — exclude nothing by default and let the upload tell you: first try the plain upload, and only if it fails on size add lines like:
+Cloudflare also rejects individual files over **25 MiB**. The manifest confirms exactly 10 such files. Create `C:\Users\User\Desktop\mirror-upload\.assetsignore` with these exact lines:
 
-   ```text
-   atomic/QmeAzkDYBR3yFcDjY7rYhSLkTzrLD2ERtJXATUXc47kYgN.gif
+```text
+atomic/QmNnPE4aQddNZ362KR1tVGSE7deZKm3LLw584e6xmJeBwX.gif
+atomic/QmeAzkDYBR3yFcDjY7rYhSLkTzrLD2ERtJXATUXc47kYgN.gif
+atomic/QmZj8pwn1Jefc2wYJXLfrtaRUD7qhxQmJKqUqmik1fqeqs.gif
+atomic/QmVFEJb46EhAucik6AZyXZS4JiuZhcFo9FZzccueCAAK38.gif
+atomic/QmRyoAs48RqwyD3WzYvgCuKi6zWZikqRSwehU4mWvWbvd1.webp
+atomic/QmRXEgM1GkXXCvPnJs9GsYNtqgv8ij8hH5GLksDuscmsNA.webp
+atomic/QmcDXep1Yn6gE6DYDywZsxbNZujgrgSUwWtBD7tNrYevWD.webp
+atomic/QmfDdhpwoxRq8HrtsQLGLUy9xVzxPoC3VoGkyGV4eM8sVC.webp
+atomic/QmcHh1ZasZYycVcKEGtkHfDyYK5LEeiMkzytpqC8RwEweB.gif
+atomic/QmQiggvyH63Szm45MRwB7LFWd7pSxcoCmKqasvghmjf3Pd.gif
+```
+
+Then open **Command Prompt** and follow these steps:
+
+1. Sign in to Cloudflare. The command opens a browser; approve access to the account that owns the existing Pages project:
+
+   ```bat
+   npx wrangler login
    ```
 
-2. Go to <https://dash.cloudflare.com> → **Workers & Pages** → your `gpkonwaxbackup` project.
-3. Click **Create deployment** (or **Upload assets**) on the Deployments tab.
-4. Drag the whole **`mirror-upload`** folder in — again, the complete folder, never just `atomic`.
-5. Wait for **Success**.
+   If npm asks to install Wrangler, type `y`. Do not run `pages project create`; the project already exists.
+
+2. Confirm Wrangler can see the existing project and copy its exact project name from the list:
+
+   ```bat
+   npx wrangler pages project list
+   ```
+
+   It should list `gpkonwaxbackup`. If the spelling differs, use the listed name in the next command. **Stop rather than creating a second project if it is not listed.**
+
+3. Upload the one complete folder to the existing project:
+
+   ```bat
+   npx wrangler pages deploy "C:\Users\User\Desktop\mirror-upload" --project-name gpkonwaxbackup
+   ```
+
+   This is still a whole-site replacement, but it is safe because `mirror-upload` contains the three CID folders, `atomic`, `manifest.json`, and `_headers`. Wrangler reads `.assetsignore` and omits only the 10 oversized files. Do not run the command against `atomic` by itself.
+
+4. Wait until Wrangler prints **Deployment complete** and a URL. Then open Cloudflare → **Workers & Pages** → `gpkonwaxbackup` → **Deployments** and confirm the new deployment is marked **Production**. If it was created as Preview, do not delete the existing production deployment; paste Wrangler's output here before doing anything else.
 
 Cloudflare also keeps history: Deployments → previous deployment → **Rollback**.
 
-Cloudflare will always be slightly incomplete (the >25 MB files). That is expected and acceptable — it is Backup B, and the primary mirror plus the ZIPs carry those files.
+Cloudflare will always be missing those 10 files because of its per-file limit. That is expected and acceptable — it is Backup B, while the primary mirror, Netlify, and ZIPs carry them.
 
 ## Step 4 — Verify
 
@@ -86,7 +118,7 @@ node scripts/audit-mirrors.mjs --only netlify
 node scripts/audit-mirrors.mjs --only cloudflare
 ```
 
-Expected: Netlify `missing: 0` → verdict COMPLETE. Cloudflare missing only the oversized GIFs you excluded.
+Expected: Netlify `missing: 0` → verdict COMPLETE. Cloudflare `missing: 10`, consisting only of the exact oversized files listed in `.assetsignore`.
 
 Paste the summary here and I will confirm, and check the in-app **Backup mirrors** indicator turns green for both.
 
