@@ -71,16 +71,58 @@ function AssetPicker({
   emptyLabel: string;
 }) {
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('all');
+  const [variants, setVariants] = useState<string[]>(['all']);
+  const [sort, setSort] = useState<'natural' | 'name' | 'variant'>('natural');
+
+  // Only offer categories that actually exist in this wallet.
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of assets) {
+      const c = normalizeAssetCategory(a.category);
+      if (c) set.add(c);
+    }
+    return Array.from(set).sort((x, y) =>
+      (CATEGORY_LABELS[x] || x).localeCompare(CATEGORY_LABELS[y] || y));
+  }, [assets]);
+
+  const showVariants = hasVariants(category);
+  const filtersActive = query.trim() !== '' || category !== 'all' || !variants.includes('all');
+
+  const clearFilters = () => { setQuery(''); setCategory('all'); setVariants(['all']); };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return assets;
-    return assets.filter((a) =>
-      a.name.toLowerCase().includes(q) ||
-      a.cardid.toLowerCase().includes(q) ||
-      a.category.toLowerCase().includes(q) ||
-      a.id.includes(q),
-    );
-  }, [assets, query]);
+    const list = assets.filter((a) => {
+      if (category !== 'all' && normalizeAssetCategory(a.category) !== category) return false;
+      if (hasVariants(category) && !variants.includes('all')
+        && !variants.includes((a.quality || '').toLowerCase())) return false;
+      if (!q) return true;
+      return (
+        a.name.toLowerCase().includes(q) ||
+        a.cardid.toLowerCase().includes(q) ||
+        a.category.toLowerCase().includes(q) ||
+        a.id.includes(q)
+      );
+    });
+
+    if (sort === 'name') {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sort === 'variant') {
+      return [...list].sort((a, b) =>
+        getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality) ||
+        (parseInt(a.cardid, 10) || 0) - (parseInt(b.cardid, 10) || 0) ||
+        a.side.localeCompare(b.side));
+    }
+    return [...list].sort((a, b) =>
+      (parseInt(a.cardid, 10) || 0) - (parseInt(b.cardid, 10) || 0) ||
+      a.side.localeCompare(b.side) ||
+      getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality));
+  }, [assets, query, category, variants, sort]);
+
+  const selectedAssets = useMemo(
+    () => assets.filter((a) => selectedIds.has(a.id)), [assets, selectedIds]);
 
   return (
     <div className="flex flex-col min-h-0 rounded-lg border border-cheese/30 theme-bright-border bg-background/40 theme-bright-fill p-2 gap-2">
@@ -99,6 +141,62 @@ function AssetPicker({
         onChange={(e) => setQuery(e.target.value)}
         className="h-8 text-xs border-cheese/40 theme-bright-border theme-bright-fill"
       />
+      <div className="flex flex-wrap gap-1.5">
+        <Select value={category} onValueChange={(v) => { setCategory(v); if (!hasVariants(v)) setVariants(['all']); }}>
+          <SelectTrigger className="h-8 text-xs flex-1 min-w-[120px] border-cheese/40 text-cheese theme-bright-border theme-bright-text theme-bright-fill">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {showVariants && (
+          <VariantFilterPopover
+            category={category}
+            value={variants}
+            onChange={setVariants}
+            className="h-8 text-xs flex-1 min-w-[120px]"
+          />
+        )}
+        <Select value={sort} onValueChange={(v) => setSort(v as 'natural' | 'name' | 'variant')}>
+          <SelectTrigger className="h-8 text-xs flex-1 min-w-[120px] border-cheese/40 text-cheese theme-bright-border theme-bright-text theme-bright-fill">
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="natural">Natural (Card ID)</SelectItem>
+            <SelectItem value="name">Name (A–Z)</SelectItem>
+            <SelectItem value="variant">Variant Rarity</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground theme-bright-text-muted">
+        <span>{filtered.length} shown / {assets.length} owned</span>
+        {filtersActive && (
+          <button type="button" onClick={clearFilters} className="text-cheese theme-bright-text hover:underline">
+            Clear filters
+          </button>
+        )}
+      </div>
+      {selectedAssets.length > 0 && (
+        <div className="flex flex-wrap gap-1 rounded-md border border-cheese/25 theme-bright-border p-1.5">
+          {selectedAssets.map((a) => (
+            <button
+              type="button"
+              key={`sel-${a.id}`}
+              onClick={() => onToggle(a.id)}
+              title={`Remove ${a.name} from this side`}
+              className="flex items-center gap-1 rounded bg-cheese/15 px-1.5 py-0.5 text-[10px] text-cheese theme-bright-text hover:bg-cheese/25"
+            >
+              <span className="max-w-[90px] truncate">{a.name}</span>
+              <X className="h-3 w-3 shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+
       <ScrollArea className="h-[42vh] pr-2">
         {isLoading ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground theme-bright-text-muted">
