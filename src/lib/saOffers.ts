@@ -338,26 +338,20 @@ function placeholderAsset(assetId: string): OfferAsset {
 export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
   if (!account) return [];
 
-  const beacons = await fetchBeacons(account);
-  const declined = new Set(
-    beacons.filter((b) => b.declined).map((b) => saOfferId(b.proposer, b.name)),
-  );
+  const discovered = await fetchProposeActions(account);
   const hidden = readHidden(account);
 
   const candidates = new Map<string, SaProposalRef>();
   for (const ref of readJson<SaProposalRef[]>(`${CACHE_PREFIX}${account}`, [])) {
     candidates.set(saOfferId(ref.proposer, ref.name), ref);
   }
-  for (const b of beacons) {
-    if (b.declined || !b.name || !b.proposer) continue;
-    const id = saOfferId(b.proposer, b.name);
-    if (!candidates.has(id)) {
-      candidates.set(id, { proposer: b.proposer, name: b.name, createdAt: b.createdAt });
-    }
+  for (const ref of discovered) {
+    const id = saOfferId(ref.proposer, ref.name);
+    if (!candidates.has(id)) candidates.set(id, ref);
   }
 
-  const live = Array.from(candidates.entries())
-    .filter(([id]) => !declined.has(id) && !hidden.has(id));
+  const live = Array.from(candidates.entries()).filter(([id]) => !hidden.has(id));
+
 
   const ownerCache = new Map<string, Promise<Map<string, OfferAsset>>>();
   const assetsFor = (owner: string) => {
