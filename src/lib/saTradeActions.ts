@@ -19,6 +19,30 @@ import type { WaxAction } from '@/lib/atomicTradeActions';
 
 export const SIMPLEASSETS_CONTRACT = 'simpleassets';
 export const MSIG_CONTRACT = 'eosio.msig';
+/** SimpleAssets packs are fungible tokens on this contract, not NFTs. */
+export const PACKS_CONTRACT = 'packs.topps';
+
+/** A quantity of a fungible SimpleAssets pack token (e.g. 2 GPKTWOA). */
+export interface PackEntry {
+  symbol: string;
+  amount: number;
+  precision?: number;
+  /** Human label for the UI (e.g. "GPK Series 2A Pack"). */
+  label?: string;
+}
+
+/** `2 GPKTWOA` / `2.0000 GPKTWOA` depending on the token precision. */
+export function formatPackQuantity(amount: number, symbol: string, precision = 0): string {
+  return `${amount.toFixed(precision)} ${symbol}`;
+}
+
+/** Parse an asset string back into a pack entry. Returns null when malformed. */
+export function parsePackQuantity(quantity: string): PackEntry | null {
+  const m = /^([0-9]+(?:\.[0-9]+)?)\s+([A-Z]{1,7})$/.exec(String(quantity || '').trim());
+  if (!m) return null;
+  const precision = m[1].includes('.') ? m[1].split('.')[1].length : 0;
+  return { symbol: m[2], amount: parseFloat(m[1]), precision };
+}
 
 /** Soft cap per side, mirroring the AtomicAssets composer. */
 export const SA_MAX_ASSETS_PER_SIDE = 30;
@@ -80,6 +104,26 @@ export function buildSaTransferAction(
       from,
       to,
       assetids: assetIds,
+      memo: memo.slice(0, SA_MAX_MEMO_LENGTH),
+    },
+  };
+}
+
+/** `packs.topps::transfer` for a fungible pack token. */
+export function buildPackTransferAction(
+  from: string,
+  to: string,
+  pack: PackEntry,
+  memo = '',
+): WaxAction {
+  return {
+    account: PACKS_CONTRACT,
+    name: 'transfer',
+    authorization: auth(from),
+    data: {
+      from,
+      to,
+      quantity: formatPackQuantity(pack.amount, pack.symbol, pack.precision ?? 0),
       memo: memo.slice(0, SA_MAX_MEMO_LENGTH),
     },
   };
