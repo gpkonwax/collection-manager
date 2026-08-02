@@ -38,7 +38,7 @@ node scripts/verify-mirror.mjs
 Deploy the **same `mirror-output/` folder** to each of these — the app expects
 the ZIP at `<baseUrl>gpk-image-mirror.zip` on every one:
 
-1. **Primary (GitHub Pages):** push `mirror-output/` as `mirror/` in `bewbzz/gpkonwaxbackup`; Pages source = `main`, folder = `/mirror`. Serves at `https://bewbzz.github.io/gpkonwaxbackup/mirror/`.
+1. **Primary (GitHub Pages):** push the contents of `mirror-output/` to the **root** of `bewbzz/gpkonwaxbackup` (CID folders, `atomic/` and `manifest.json` flat at the top level); Pages source = `main`, folder = `/`. Serves at `https://bewbzz.github.io/gpkonwaxbackup/`.
 2. **Backup A (Cloudflare Pages):** create a Pages project, drop `mirror-output/` in as the build output, deploy.
 3. **Backup B (GitLab Pages):** same folder, `.gitlab-ci.yml` publishing `public/` = `mirror-output/`.
 
@@ -56,7 +56,7 @@ holding the ZIP) can re-serve the same content elsewhere:
 2. Verify it matches the canonical hashes: `node scripts/verify-mirror.mjs ./mirror`.
 3. Publish `mirror/` anywhere that serves static files: GitHub Pages fork, Cloudflare Pages, Netlify, an S3 bucket, an IPFS pin (e.g. web3.storage), or a home HTTP server. No build step needed.
 4. Share the base URL. Users paste it into the app's **Offline backup → Community mirror URL** field.
-5. Anyone can double-check the alternate host: `node scripts/verify-remote-mirror.mjs https://your-host/mirror/ --manifest ./mirror/manifest.json`.
+5. Anyone can double-check the alternate host: `node scripts/verify-remote-mirror.mjs https://your-host/ --manifest ./mirror/manifest.json`.
 
 ## For the backup repo `README.md`
 
@@ -65,12 +65,12 @@ Copy this into `bewbzz/gpkonwaxbackup/README.md`:
 > # gpk-backup
 >
 > Frozen, verifiable mirror of every GPK card image hosted on IPFS. Served at
-> <https://bewbzz.github.io/gpkonwaxbackup/mirror/> and packaged as a ZIP
+> <https://bewbzz.github.io/gpkonwaxbackup/> and packaged as a ZIP
 > in the latest [Release](../../releases/latest).
 >
-> Every file's sha256 is recorded in `mirror/manifest.json`. Verify a local copy
+> Every file's sha256 is recorded in `manifest.json` at the repo root. Verify a local copy
 > with `node scripts/verify-mirror.mjs ./mirror`. Verify a remote host with
-> `node scripts/verify-remote-mirror.mjs https://host/base/ --manifest ./mirror/manifest.json`.
+> `node scripts/verify-remote-mirror.mjs https://host/base/ --manifest ./manifest.json`.
 >
 > This mirror never updates — the underlying collection is frozen.
 
