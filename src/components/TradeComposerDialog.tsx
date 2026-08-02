@@ -508,6 +508,24 @@ export function TradeComposerDialog({
   const myLoading = isAtomic ? aaMyLoading : saMyLoading;
   const theirLoading = isAtomic ? aaTheirLoading : saTheirLoading;
 
+  // SimpleAssets packs are fungible packs.topps balances, not NFTs.
+  const { packs: saMyPacks } = useGpkPacks(saMe);
+  const { packs: saTheirPacks } = useGpkPacks(saThem);
+
+  const toPackOptions = (packs: GpkPack[]): PackOption[] => packs
+    .filter((p) => p.amount > 0)
+    .map((p) => ({
+      symbol: p.symbol,
+      label: p.label,
+      image: packImage(p.symbol),
+      available: Math.floor(p.amount),
+    }));
+
+  const myPackOptions = useMemo(
+    () => (isAtomic ? [] : toPackOptions(saMyPacks)), [isAtomic, saMyPacks]);
+  const theirPackOptions = useMemo(
+    () => (isAtomic ? [] : toPackOptions(saTheirPacks)), [isAtomic, saTheirPacks]);
+
   const myPicker = useMemo(
     () => myAssets.filter((a) => a.source === protocol).map(toPicker), [myAssets, protocol]);
   const theirPicker = useMemo(
@@ -515,6 +533,8 @@ export function TradeComposerDialog({
 
   const [mySelected, setMySelected] = useState<Set<string>>(new Set());
   const [theirSelected, setTheirSelected] = useState<Set<string>>(new Set());
+  const [myPackQty, setMyPackQty] = useState<Record<string, number>>({});
+  const [theirPackQty, setTheirPackQty] = useState<Record<string, number>>({});
   const [memo, setMemo] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
@@ -525,6 +545,8 @@ export function TradeComposerDialog({
     if (!open) return;
     setMySelected(new Set(initialMyAssetIds || []));
     setTheirSelected(new Set(initialTheirAssetIds || []));
+    setMyPackQty({});
+    setTheirPackQty({});
     setMemo('');
     setSubmitting(false);
     setSuccessOpen(false);
@@ -534,14 +556,31 @@ export function TradeComposerDialog({
   const toggleMine  = (id: string) => setMySelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleTheirs = (id: string) => setTheirSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
+  const setPackQty = (
+    setter: React.Dispatch<React.SetStateAction<Record<string, number>>>,
+  ) => (symbol: string, qty: number) => setter((prev) => {
+    const next = { ...prev };
+    if (qty > 0) next[symbol] = qty; else delete next[symbol];
+    return next;
+  });
+
+  const toPackEntries = (qty: Record<string, number>): PackEntry[] =>
+    Object.entries(qty)
+      .filter(([, amount]) => amount > 0)
+      .map(([symbol, amount]) => ({ symbol, amount, precision: 0 }));
+
+  const myPackEntries = useMemo(() => toPackEntries(myPackQty), [myPackQty]);
+  const theirPackEntries = useMemo(() => toPackEntries(theirPackQty), [theirPackQty]);
+
   const validation = useMemo(() => {
     if (!me || !counterparty) return { ok: false, reason: 'Wallet not ready' };
     const mine = Array.from(mySelected);
     const theirs = Array.from(theirSelected);
     return isAtomic
       ? validateOffer(me, counterparty, mine, theirs)
-      : validateSaOffer(me, counterparty, mine, theirs);
-  }, [me, counterparty, mySelected, theirSelected, isAtomic]);
+      : validateSaOffer(me, counterparty, mine, theirs, myPackEntries, theirPackEntries);
+  }, [me, counterparty, mySelected, theirSelected, isAtomic, myPackEntries, theirPackEntries]);
+
 
   const handleSubmit = async () => {
     if (!me || !counterparty || !session) return;
