@@ -27,6 +27,30 @@ export const SA_MAX_MEMO_LENGTH = 256;
 /** Proposals stay valid on-chain for 7 days. */
 export const SA_PROPOSAL_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
 
+/**
+ * Marker appended to a counter-offer's memo so both traders can tell which
+ * earlier proposal it replaces: `... re:<proposal name>`.
+ */
+const COUNTER_REF_RE = /\bre:([a-z1-5.]{1,12})\b/;
+
+export function withCounterRef(memo: string, targetName?: string | null): string {
+  const base = (memo || '').trim();
+  if (!targetName) return base.slice(0, SA_MAX_MEMO_LENGTH);
+  const marker = `re:${targetName}`;
+  const combined = base ? `${base} ${marker}` : marker;
+  if (combined.length <= SA_MAX_MEMO_LENGTH) return combined;
+  // Never drop the marker — trim the free-text part instead.
+  return `${base.slice(0, Math.max(0, SA_MAX_MEMO_LENGTH - marker.length - 1))} ${marker}`.trim();
+}
+
+/** Extract the proposal name a counter-offer supersedes, if any. */
+export function parseCounterRef(memo: string | null | undefined): string | null {
+  const m = COUNTER_REF_RE.exec(memo || '');
+  return m ? m[1] : null;
+}
+
+
+
 
 function auth(actor: string): Array<{ actor: string; permission: string }> {
   return [{ actor, permission: 'active' }];
