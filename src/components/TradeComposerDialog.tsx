@@ -89,6 +89,23 @@ function variantLabelFor(category: string, quality: string): string {
     ?? raw.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Protocol logo used in the grid, sized up for the trade header. */
+function ProtocolLogo({ protocol, className }: { protocol: TradeProtocol; className?: string }) {
+  const isAtomic = protocol === 'atomicassets';
+  return (
+    <img
+      src={isAtomic ? atomicAssetsLogo : simpleAssetsLogo}
+      alt={isAtomic ? 'AtomicAssets' : 'SimpleAssets'}
+      title={isAtomic ? 'AtomicAssets' : 'SimpleAssets'}
+      className={cn(
+        'inline-block rounded-full object-contain shrink-0',
+        !isAtomic && 'bg-white p-[1px]',
+        className,
+      )}
+    />
+  );
+}
+
 function toPicker(a: SimpleAsset): PickerAsset {
   return {
     id: a.id,
