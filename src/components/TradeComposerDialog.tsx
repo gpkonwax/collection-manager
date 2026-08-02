@@ -710,7 +710,7 @@ export function TradeComposerDialog({
         <div className="grid gap-3 md:grid-cols-2 flex-1 min-h-0">
           <AssetPicker
             title="You send"
-            subtitle={`Pick from your ${protocolLabel}`}
+            subtitle={`Pick cards or packs from your ${protocolLabel}`}
             assets={myPicker}
             isLoading={myLoading}
             selectedIds={mySelected}
@@ -718,10 +718,13 @@ export function TradeComposerDialog({
             emptyLabel={`You have no ${protocolLabel} cards to offer.`}
             protocol={protocol}
             maxPerSide={maxPerSide}
+            packOptions={myPackOptions}
+            packQty={myPackQty}
+            onPackQty={setPackQty(setMyPackQty)}
           />
           <AssetPicker
             title="They send back"
-            subtitle={`Pick from ${counterparty || 'their'} ${protocolLabel}`}
+            subtitle={`Pick cards or packs from ${counterparty || 'their'} ${protocolLabel}`}
             assets={theirPicker}
             isLoading={theirLoading}
             selectedIds={theirSelected}
@@ -729,6 +732,9 @@ export function TradeComposerDialog({
             emptyLabel={`No ${protocolLabel} cards found in that wallet.`}
             protocol={protocol}
             maxPerSide={maxPerSide}
+            packOptions={theirPackOptions}
+            packQty={theirPackQty}
+            onPackQty={setPackQty(setTheirPackQty)}
           />
         </div>
 
@@ -746,14 +752,15 @@ export function TradeComposerDialog({
           )}
           <p className="text-[11px] text-muted-foreground theme-bright-text-muted">
             {isAtomic ? (
-              <>Card-for-card only — no WAX or tokens are exchanged. AtomicAssets contract: <span className="font-mono">createoffer</span>.</>
+              <>Cards and packs only — no WAX or tokens are exchanged. AtomicAssets contract: <span className="font-mono">createoffer</span>.</>
             ) : (
-              <>Card-for-card only. SimpleAssets has no escrow, so both transfers are wrapped in a single
+              <>Cards and packs only. SimpleAssets has no escrow, so every transfer is wrapped in a single
                 {' '}<span className="font-mono">eosio.msig</span> proposal that can only execute once both of you approve.
-                It stays valid for 7 days and costs a 0.00000001 WAX notification transfer.</>
+                It stays valid for 7 days and costs nothing but CPU/NET.</>
             )}
           </p>
         </div>
+
 
 
         <DialogFooter className="gap-2">
