@@ -195,6 +195,16 @@ function OfferCard({
               Stale
             </Badge>
           )}
+          {offer.proposal?.supersededBy && (
+            <Badge
+              variant="outline"
+              className="border-amber-500/60 text-amber-400 text-[10px] uppercase"
+              title={`Replaced by counter-offer ${offer.proposal.supersededBy}`}
+            >
+              Countered
+            </Badge>
+          )}
+
           {isNew && (
             <Badge className="bg-cheese text-cheese-foreground hover:bg-cheese/90">NEW</Badge>
           )}
