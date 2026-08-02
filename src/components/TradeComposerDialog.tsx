@@ -696,11 +696,11 @@ export function TradeComposerDialog({
             </Badge>
           </DialogTitle>
           <DialogDescription className="theme-bright-text-muted">
-            Pure card-for-card <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> trade between{' '}
+            Cards and packs, <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> only, between{' '}
             <span className="text-cheese theme-bright-text font-medium">{me || '—'}</span>{' '}
             and{' '}
             <span className="text-cheese theme-bright-text font-medium">{counterparty || '—'}</span>.
-            {' '}Mixed-contract trades are not supported, so only <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> cards are shown.
+            {' '}Mixed-contract trades are not supported, so only <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> items are shown. Pick the "Packs" category to trade unopened packs.
             {isCounter && (
               <> This will <span className="text-destructive font-medium">decline the original offer</span> and send a fresh one in a single transaction.</>
             )}
