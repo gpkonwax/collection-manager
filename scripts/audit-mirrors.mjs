@@ -244,7 +244,7 @@ async function auditMirror(mirror, manifest, zipParts, opts, verifiedElsewhere) 
     }
   }
 
-  return { mirror, total: entries.length, ok: ok.length, missing, wrongSize, shaMismatch, zipReport };
+  return { mirror, total: entries.length, ok: ok.length, missing, wrongSize, shaMismatch, zipReport, excluded };
 }
 
 function fmtBytes(n) {
