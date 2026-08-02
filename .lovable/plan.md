@@ -129,8 +129,32 @@ If it says `nothing to commit`, that is good — everything is already pushed.
 git status -sb
 ```
 
-You want `## main...origin/main` with no `[ahead N]`. Then wait for the green tick at https://github.com/bewbzz/gpkonwaxbackup/actions.
+You want `## main...origin/main` with no `[ahead N]`.
+
+Status now shows exactly that, plus one leftover untracked folder: `?? mirror/`. That is handled in Step 6b.
+
+## Step 6b — The leftover `mirror/` folder
+
+`atomic/` is fully pushed. Only `mirror/` is left. First see what is inside it:
+
+```bat
+dir /b mirror
+```
+
+- If it only contains `.zip` files (the split download parts) — **do not push it**. ZIPs belong in GitHub Releases, not the repo, and `.gitignore` already excludes `*.zip`. Nothing to do; you are done with git.
+- If it contains image folders or `manifest.json`, push it in one commit (it should be small once ZIPs are ignored):
+
+```bat
+git add mirror
+git commit -m "mirror: remaining files"
+git push origin main
+```
+
+If that push fails with HTTP 500, tell me the output of `dir /b mirror` and I will split it the same way we split `atomic`.
+
+Then wait for the green tick at https://github.com/bewbzz/gpkonwaxbackup/actions.
 
 ## Step 7 — I finish the app side
 
 Once Pages is live I will fetch the live merged manifest and replace the 832-entry file list in `public/gpk-manifest.json` with the full 2575 entries, then run the mirror audit and a live import test.
+
