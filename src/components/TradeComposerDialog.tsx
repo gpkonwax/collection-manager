@@ -435,5 +435,6 @@ export function TradeComposerDialog({
         : `Your trade offer was successfully sent to ${counterparty || 'the other trader'}. They can review and accept it in their Trades tab.`}
       txId={successTxId}
     />
+    </>
   );
 }
