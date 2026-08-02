@@ -487,6 +487,10 @@ function RecommendedZipCard({
         everything's working. If every mirror ever goes down, you can load these files
         back into the app (Step 3 below) and every image still works.
       </p>
+      <p className="text-[10px] text-muted-foreground">
+        The backup mirrors serve individual images; the full archive downloads are hosted on GitHub Releases.
+      </p>
+
 
       {sourceOptions.length > 1 && (
         <div className="space-y-1.5">
