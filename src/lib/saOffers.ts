@@ -84,37 +84,63 @@ function readHidden(account: string): Set<string> {
   return new Set(readJson<string[]>(`${HIDDEN_PREFIX}${account}`, []));
 }
 
-/* --------------------------- beacon discovery --------------------------- */
+/* --------------------------- history discovery -------------------------- */
 
-interface BeaconHit {
-  proposer: string;
-  name: string;
-  createdAt: number;
-  declined: boolean;
-}
-
-interface HyperionAction {
+interface HyperionProposeAction {
   timestamp?: string;
-  act?: { account?: string; name?: string; data?: { from?: string; to?: string; memo?: string } };
+  act?: {
+    account?: string;
+    name?: string;
+    data?: {
+      proposer?: string;
+      proposal_name?: string;
+      requested?: Array<{ actor?: string; permission?: string }>;
+    };
+  };
 }
 
-async function fetchBeacons(account: string): Promise<BeaconHit[]> {
+/**
+ * Keep the `eosio.msig::propose` actions in which `account` is the proposer or
+ * a requested approver. Exported for tests.
+ */
+export function filterProposeActions(
+  actions: HyperionProposeAction[],
+  account: string,
+): SaProposalRef[] {
+  const out: SaProposalRef[] = [];
+  for (const a of actions) {
+    if (a.act?.account !== MSIG_CONTRACT || a.act?.name !== 'propose') continue;
+    const proposer = String(a.act?.data?.proposer || '');
+    const name = String(a.act?.data?.proposal_name || '');
+    if (!proposer || !name) continue;
+    const requested = (a.act?.data?.requested || []).map((r) => String(r.actor || ''));
+    if (proposer !== account && !requested.includes(account)) continue;
+    out.push({
+      proposer,
+      name,
+      createdAt: a.timestamp ? new Date(`${a.timestamp.replace(/Z$/, '')}Z`).getTime() : 0,
+    });
+  }
+  return out;
+}
+
+async function fetchProposeActions(account: string): Promise<SaProposalRef[]> {
   const after = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString();
   const path =
-    `/v2/history/get_actions?account=${encodeURIComponent(account)}` +
-    `&filter=eosio.token:transfer&limit=500&sort=desc&after=${encodeURIComponent(after)}`;
+    `/v2/history/get_actions?filter=${encodeURIComponent(`${MSIG_CONTRACT}:propose`)}` +
+    `&limit=1000&sort=desc&after=${encodeURIComponent(after)}`;
 
-  let actions: HyperionAction[] | null = null;
+  let actions: HyperionProposeAction[] | null = null;
   for (const base of HYPERION_ENDPOINTS) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10_000);
+      const timer = setTimeout(() => controller.abort(), 12_000);
       const resp = await fetch(`${base}${path}`, { signal: controller.signal });
       clearTimeout(timer);
       if (!resp.ok) continue;
       const json = await resp.json();
       if (Array.isArray(json?.actions)) {
-        actions = json.actions as HyperionAction[];
+        actions = json.actions as HyperionProposeAction[];
         break;
       }
     } catch {
@@ -122,36 +148,9 @@ async function fetchBeacons(account: string): Promise<BeaconHit[]> {
     }
   }
   if (!actions) return [];
-
-  const hits: BeaconHit[] = [];
-  for (const a of actions) {
-    const memo = a.act?.data?.memo || '';
-    const from = a.act?.data?.from || '';
-    const to = a.act?.data?.to || '';
-    if (from !== account && to !== account) continue;
-    const createdAt = a.timestamp ? new Date(`${a.timestamp.replace(/Z$/, '')}Z`).getTime() : 0;
-
-    if (memo.startsWith(SA_BEACON_OFFER_PREFIX)) {
-      hits.push({
-        proposer: from,
-        name: memo.slice(SA_BEACON_OFFER_PREFIX.length).trim(),
-        createdAt,
-        declined: false,
-      });
-    } else if (memo.startsWith(SA_BEACON_DECLINE_PREFIX)) {
-      // A decline names the proposal but is sent by the *recipient*, so the
-      // proposer is the other party in the transfer.
-      const proposer = from === account ? to : from;
-      hits.push({
-        proposer,
-        name: memo.slice(SA_BEACON_DECLINE_PREFIX.length).trim(),
-        createdAt,
-        declined: true,
-      });
-    }
-  }
-  return hits;
+  return filterProposeActions(actions, account);
 }
+
 
 /* ----------------------------- msig hydration ---------------------------- */
 
