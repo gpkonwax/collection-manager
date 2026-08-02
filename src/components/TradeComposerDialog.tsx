@@ -351,6 +351,7 @@ export function TradeComposerDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!submitting) onOpenChange(o); }}>
       <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col">
         <DialogHeader>
