@@ -60,50 +60,78 @@ If anything goes wrong, Netlify keeps every past deploy: Deploys → pick the pr
 
 ## Step 3 — Cloudflare Pages
 
-The dashboard upload stops at 1,000 files. Our verified folder has 2,576, so **do not split it into dashboard uploads**: each deployment replaces the previous one. Use Cloudflare's official Wrangler uploader, which accepts up to 20,000 files in one complete folder.
+The dashboard upload stops at 1,000 files. Our verified folder has 2,576, so **do not split it into dashboard uploads**: each deployment replaces the previous one. Wrangler is the right tool — it accepts up to 20,000 files in one complete folder.
 
-Cloudflare also rejects individual files over **25 MiB**. The manifest confirms exactly 10 such files. Create `C:\Users\User\Desktop\mirror-upload\.assetsignore` with these exact lines:
+Cloudflare also hard-rejects any single file over **25 MiB**, and `pages deploy` does **not** honour `.assetsignore` — it scans the folder and aborts on the first oversized file, which is exactly the error you hit. So the 10 oversized files must physically leave the folder for the Cloudflare upload, then go straight back.
 
-```text
-atomic/QmNnPE4aQddNZ362KR1tVGSE7deZKm3LLw584e6xmJeBwX.gif
-atomic/QmeAzkDYBR3yFcDjY7rYhSLkTzrLD2ERtJXATUXc47kYgN.gif
-atomic/QmZj8pwn1Jefc2wYJXLfrtaRUD7qhxQmJKqUqmik1fqeqs.gif
-atomic/QmVFEJb46EhAucik6AZyXZS4JiuZhcFo9FZzccueCAAK38.gif
-atomic/QmRyoAs48RqwyD3WzYvgCuKi6zWZikqRSwehU4mWvWbvd1.webp
-atomic/QmRXEgM1GkXXCvPnJs9GsYNtqgv8ij8hH5GLksDuscmsNA.webp
-atomic/QmcDXep1Yn6gE6DYDywZsxbNZujgrgSUwWtBD7tNrYevWD.webp
-atomic/QmfDdhpwoxRq8HrtsQLGLUy9xVzxPoC3VoGkyGV4eM8sVC.webp
-atomic/QmcHh1ZasZYycVcKEGtkHfDyYK5LEeiMkzytpqC8RwEweB.gif
-atomic/QmQiggvyH63Szm45MRwB7LFWd7pSxcoCmKqasvghmjf3Pd.gif
+Do Netlify (Step 2) **first**, with the complete folder including all 10 files. Only then do this.
+
+### 3a — Move the 10 oversized files aside
+
+```bat
+cd /d C:\Users\User\Desktop\mirror-upload
+mkdir ..\oversize-hold
+move atomic\QmNnPE4aQddNZ362KR1tVGSE7deZKm3LLw584e6xmJeBwX.gif ..\oversize-hold\
+move atomic\QmeAzkDYBR3yFcDjY7rYhSLkTzrLD2ERtJXATUXc47kYgN.gif ..\oversize-hold\
+move atomic\QmZj8pwn1Jefc2wYJXLfrtaRUD7qhxQmJKqUqmik1fqeqs.gif ..\oversize-hold\
+move atomic\QmVFEJb46EhAucik6AZyXZS4JiuZhcFo9FZzccueCAAK38.gif ..\oversize-hold\
+move atomic\QmRyoAs48RqwyD3WzYvgCuKi6zWZikqRSwehU4mWvWbvd1.webp ..\oversize-hold\
+move atomic\QmRXEgM1GkXXCvPnJs9GsYNtqgv8ij8hH5GLksDuscmsNA.webp ..\oversize-hold\
+move atomic\QmcDXep1Yn6gE6DYDywZsxbNZujgrgSUwWtBD7tNrYevWD.webp ..\oversize-hold\
+move atomic\QmfDdhpwoxRq8HrtsQLGLUy9xVzxPoC3VoGkyGV4eM8sVC.webp ..\oversize-hold\
+move atomic\QmcHh1ZasZYycVcKEGtkHfDyYK5LEeiMkzytpqC8RwEweB.gif ..\oversize-hold\
+move atomic\QmQiggvyH63Szm45MRwB7LFWd7pSxcoCmKqasvghmjf3Pd.gif ..\oversize-hold\
 ```
 
-Then open **Command Prompt** and follow these steps:
+`move`, not `del` — the files are parked, not deleted. `..\oversize-hold` sits **outside** `mirror-upload`, so nothing extra gets uploaded.
 
-1. Sign in to Cloudflare. The command opens a browser; approve access to the account that owns the existing Pages project:
+You can delete the `.assetsignore` file if you created it; it does nothing for `pages deploy`.
+
+### 3b — Deploy
+
+1. Sign in (opens a browser; approve the account that owns the existing Pages project):
 
    ```bat
    npx wrangler login
    ```
 
-   If npm asks to install Wrangler, type `y`. Do not run `pages project create`; the project already exists.
+   Do not run `pages project create` — the project already exists.
 
-2. Confirm Wrangler can see the existing project and copy its exact project name from the list:
+2. Confirm Wrangler sees it and copy the exact name:
 
    ```bat
    npx wrangler pages project list
    ```
 
-   It should list `gpkonwaxbackup`. If the spelling differs, use the listed name in the next command. **Stop rather than creating a second project if it is not listed.**
+   It should list `gpkonwaxbackup`. If it is not listed, **stop** and paste the output here rather than creating a second project.
 
-3. Upload the one complete folder to the existing project:
+3. Upload the complete folder:
 
    ```bat
    npx wrangler pages deploy "C:\Users\User\Desktop\mirror-upload" --project-name gpkonwaxbackup
    ```
 
-   This is still a whole-site replacement, but it is safe because `mirror-upload` contains the three CID folders, `atomic`, `manifest.json`, and `_headers`. Wrangler reads `.assetsignore` and omits only the 10 oversized files. Do not run the command against `atomic` by itself.
+   Still a whole-site replacement, but safe: the folder holds the three CID folders, `atomic`, `manifest.json`, and `_headers`. Never point this at `atomic` alone.
 
-4. Wait until Wrangler prints **Deployment complete** and a URL. Then open Cloudflare → **Workers & Pages** → `gpkonwaxbackup` → **Deployments** and confirm the new deployment is marked **Production**. If it was created as Preview, do not delete the existing production deployment; paste Wrangler's output here before doing anything else.
+   If it errors on another file over 25 MiB, `move` that one into `oversize-hold` too and re-run — do not delete it.
+
+4. Wait for **Deployment complete**. Then Cloudflare → **Workers & Pages** → `gpkonwaxbackup` → **Deployments**, and confirm the new deployment is **Production**. If it landed as Preview, leave the old production deployment alone and paste the output here.
+
+### 3c — Put the files back
+
+```bat
+move C:\Users\User\Desktop\oversize-hold\* C:\Users\User\Desktop\mirror-upload\atomic\
+rmdir C:\Users\User\Desktop\oversize-hold
+```
+
+Then re-verify the folder is whole again:
+
+```bat
+node scripts/verify-mirror.mjs C:\Users\User\Desktop\mirror-upload
+```
+
+Run that from `C:\Users\User\Desktop\gpk-app-latest2`. Expect **0 missing, 0 corrupt** and the single `EXTRA: _headers` line, same as before.
+
 
 Cloudflare also keeps history: Deployments → previous deployment → **Rollback**.
 
