@@ -424,6 +424,12 @@ export function TradeComposerDialog({
     }
     setSubmitting(true);
     try {
+      const problem = describeResourceProblem(await getAccountResources(me));
+      if (problem) {
+        toast({ title: 'Account resources too low', description: problem, variant: 'destructive' });
+        return;
+      }
+
       const senderAssetIds = Array.from(mySelected);
       const recipientAssetIds = Array.from(theirSelected);
 
