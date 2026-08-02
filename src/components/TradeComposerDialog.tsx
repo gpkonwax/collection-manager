@@ -336,12 +336,18 @@ export function TradeComposerDialog({
       });
 
       if (result.success) {
+        setSuccessTxId(result.txId ?? null);
+        setSuccessOpen(true);
         onSuccess?.(result.txId);
-        onOpenChange(false);
       }
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessOpen(false);
+    onOpenChange(false);
   };
 
   return (
