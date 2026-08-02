@@ -9,11 +9,9 @@
 // The proposal only ever executes once both parties have approved, so neither
 // side can walk away holding both cards.
 //
-// Discovery beacon: eosio.msig proposals are stored scoped by proposer, and the
-// chain offers no index of "proposals awaiting my approval". We therefore send a
-// dust eosio.token transfer alongside the proposal whose memo carries the
-// proposal name. That transfer IS indexed per-account by Hyperion, which makes
-// incoming offers discoverable by the recipient (see saOffers.ts).
+// Discovery: no on-chain beacon is used (a dust token transfer would fail for
+// accounts with zero liquid WAX). Incoming proposals are found by scanning
+// recent `eosio.msig::propose` actions in history — see saOffers.ts.
 
 import { ABI, Action, Serializer, Transaction } from '@wharfkit/antelope';
 import { waxRpcCall } from '@/lib/waxRpcFallback';
@@ -21,7 +19,6 @@ import type { WaxAction } from '@/lib/atomicTradeActions';
 
 export const SIMPLEASSETS_CONTRACT = 'simpleassets';
 export const MSIG_CONTRACT = 'eosio.msig';
-export const TOKEN_CONTRACT = 'eosio.token';
 
 /** Soft cap per side, mirroring the AtomicAssets composer. */
 export const SA_MAX_ASSETS_PER_SIDE = 30;
@@ -30,10 +27,6 @@ export const SA_MAX_MEMO_LENGTH = 256;
 /** Proposals stay valid on-chain for 7 days. */
 export const SA_PROPOSAL_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
 
-/** Dust beacon so the counterparty can discover the proposal. */
-export const SA_BEACON_QUANTITY = '0.00000001 WAX';
-export const SA_BEACON_OFFER_PREFIX = 'gpktrade:';
-export const SA_BEACON_DECLINE_PREFIX = 'gpktradeno:';
 
 function auth(actor: string): Array<{ actor: string; permission: string }> {
   return [{ actor, permission: 'active' }];
