@@ -19,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 // Mirror bases must stay in sync with src/lib/ipfsGateways.ts
-const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/mirror/';
+const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/';
 const BACKUP_MIRROR_A = 'https://gpkonwaxbackup.netlify.app/';
 const BACKUP_MIRROR_B = 'https://gpkonwaxbackup.pages.dev/';
 
