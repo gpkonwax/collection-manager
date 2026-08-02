@@ -355,7 +355,57 @@ function AssetPicker({
 
 
       <ScrollArea className="h-[42vh] pr-2">
-        {isLoading ? (
+        {showPackQuantities ? (
+          <div className="grid grid-cols-2 gap-2">
+            {packOptions.map((p) => {
+              const qty = packQty[p.symbol] || 0;
+              const canAdd = qty < p.available;
+              return (
+                <div
+                  key={p.symbol}
+                  className={cn(
+                    'rounded-md border p-1.5 bg-background/60 theme-bright-fill',
+                    qty > 0
+                      ? 'border-cheese ring-2 ring-cheese/70'
+                      : 'border-cheese/25 theme-bright-border',
+                  )}
+                  title={`${p.label} (${p.symbol}) — ${p.available} owned`}
+                >
+                  <div className="aspect-[3/4] w-full overflow-hidden rounded bg-black/40">
+                    {p.image
+                      ? <img src={p.image} alt={p.label} className="w-full h-full object-contain" />
+                      : <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">{p.symbol}</div>}
+                  </div>
+                  <div className="text-[10px] mt-1 truncate text-foreground theme-bright-text">{p.label}</div>
+                  <div className="text-[9px] text-muted-foreground theme-bright-text-muted">
+                    {p.available} owned
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-1">
+                    <button
+                      type="button"
+                      disabled={qty <= 0}
+                      onClick={() => onPackQty?.(p.symbol, Math.max(0, qty - 1))}
+                      className="h-6 w-6 rounded border border-cheese/40 theme-bright-border text-cheese theme-bright-text disabled:opacity-30"
+                      title="Remove one"
+                    >
+                      −
+                    </button>
+                    <span className="text-xs font-semibold text-cheese theme-bright-text">{qty}</span>
+                    <button
+                      type="button"
+                      disabled={!canAdd}
+                      onClick={() => onPackQty?.(p.symbol, qty + 1)}
+                      className="h-6 w-6 rounded border border-cheese/40 theme-bright-border text-cheese theme-bright-text disabled:opacity-30"
+                      title="Add one"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground theme-bright-text-muted">
             <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…
           </div>
