@@ -31,6 +31,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import { CATEGORY_LABELS, getVariantsForCategory, hasVariants, normalizeAssetCategory } from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
+import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
+import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
 
 
