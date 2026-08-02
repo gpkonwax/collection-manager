@@ -18,6 +18,11 @@ import {
   validateOffer, MAX_ASSETS_PER_SIDE, MAX_MEMO_LENGTH,
 } from '@/lib/atomicTradeActions';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
+import { CATEGORY_LABELS, hasVariants, normalizeAssetCategory } from '@/lib/gpkCategories';
+import { getGpkVariantRank } from '@/lib/gpkVariant';
+
 
 interface TradeComposerDialogProps {
   open: boolean;
