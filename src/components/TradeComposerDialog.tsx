@@ -31,6 +31,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import { CATEGORY_LABELS, getVariantsForCategory, hasVariants, normalizeAssetCategory } from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
+import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
+import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
 
 
@@ -85,6 +87,23 @@ function variantLabelFor(category: string, quality: string): string {
   const cat = normalizeAssetCategory((category || '').toLowerCase());
   return getVariantsForCategory(cat).find((v) => v.value === raw)?.label
     ?? raw.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Protocol logo used in the grid, sized up for the trade header. */
+function ProtocolLogo({ protocol, className }: { protocol: TradeProtocol; className?: string }) {
+  const isAtomic = protocol === 'atomicassets';
+  return (
+    <img
+      src={isAtomic ? atomicAssetsLogo : simpleAssetsLogo}
+      alt={isAtomic ? 'AtomicAssets' : 'SimpleAssets'}
+      title={isAtomic ? 'AtomicAssets' : 'SimpleAssets'}
+      className={cn(
+        'inline-block rounded-full object-contain shrink-0',
+        !isAtomic && 'bg-white p-[1px]',
+        className,
+      )}
+    />
+  );
 }
 
 function toPicker(a: SimpleAsset): PickerAsset {
@@ -516,21 +535,23 @@ export function TradeComposerDialog({
             <Badge
               variant="outline"
               className={cn(
-                'text-[10px] uppercase tracking-wide',
+                'gap-1 px-2 py-1 text-[10px] uppercase tracking-wide',
                 isAtomic
                   ? 'border-cheese/60 text-cheese theme-bright-border theme-bright-text'
                   : 'border-emerald-500/60 text-emerald-400',
               )}
             >
-              {protocolLabel} ↔ {protocolLabel}
+              <ProtocolLogo protocol={protocol} className="h-5 w-5" />
+              ↔
+              <ProtocolLogo protocol={protocol} className="h-5 w-5" />
             </Badge>
           </DialogTitle>
           <DialogDescription className="theme-bright-text-muted">
-            Pure card-for-card {protocolLabel} trade between{' '}
+            Pure card-for-card <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> trade between{' '}
             <span className="text-cheese theme-bright-text font-medium">{me || '—'}</span>{' '}
             and{' '}
             <span className="text-cheese theme-bright-text font-medium">{counterparty || '—'}</span>.
-            {' '}Mixed-contract trades are not supported, so only {protocolLabel} cards are shown.
+            {' '}Mixed-contract trades are not supported, so only <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> cards are shown.
             {isCounter && (
               <> This will <span className="text-destructive font-medium">decline the original offer</span> and send a fresh one in a single transaction.</>
             )}
