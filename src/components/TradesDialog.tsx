@@ -174,6 +174,8 @@ function OfferCard({
 }) {
   const theyGive = direction === 'incoming' ? offer.sender_assets : offer.recipient_assets;
   const youGive  = direction === 'incoming' ? offer.recipient_assets : offer.sender_assets;
+  const theyGivePacks = direction === 'incoming' ? offer.sender_packs : offer.recipient_packs;
+  const youGivePacks  = direction === 'incoming' ? offer.recipient_packs : offer.sender_packs;
   const counterparty = direction === 'incoming' ? offer.sender_name : offer.recipient_name;
   const created = offer.created_at_time ? new Date(offer.created_at_time) : null;
   const isBusy = Boolean(busyAction);
