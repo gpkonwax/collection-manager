@@ -316,7 +316,10 @@ export default function SimpleAssetsPage() {
     isLoading: tradesLoading,
     error: tradesError,
     refresh: refreshTrades,
+    removeOfferLocally: removeTradeOfferLocally,
+    refreshWithRetries: refreshTradesWithRetries,
     markAllRead: markTradesRead,
+
   } = useAtomicOffers(tradesAccount);
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
