@@ -286,26 +286,37 @@ function AssetPicker({
           <div className="text-[10px] font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
             Selected packs ({selectedPacks.length})
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
             {selectedPacks.map((p) => (
-              <span
+              <div
                 key={`selpack-${p.symbol}`}
-                className="inline-flex items-center gap-1 rounded-full border border-cheese/40 theme-bright-border bg-background/60 theme-bright-fill px-2 py-0.5 text-[10px] text-foreground theme-bright-text"
+                className="relative w-16 shrink-0 rounded-md border border-cheese/40 theme-bright-border bg-background/60 theme-bright-fill p-1"
                 title={`${packQty[p.symbol]} × ${p.label} (${p.symbol})`}
               >
-                {p.image && <img src={p.image} alt="" className="h-4 w-3 rounded-sm object-cover" />}
-                {packQty[p.symbol]}x {p.label}
+                <div className="w-full flex justify-center">
+                  <span className="text-[8px] font-bold px-1 py-px rounded-full bg-background/80 text-cheese border border-border/40 theme-bright-text theme-bright-border">
+                    {packQty[p.symbol]}x
+                  </span>
+                </div>
+                <div className="aspect-square w-full overflow-hidden rounded bg-black/40 mt-0.5">
+                  {p.image
+                    ? <img src={p.image} alt={p.label} className="w-full h-full object-contain" />
+                    : <div className="w-full h-full flex items-center justify-center text-[8px] text-muted-foreground">{p.symbol}</div>}
+                </div>
+                <div className="text-[9px] leading-tight truncate text-foreground theme-bright-text mt-0.5">{p.label}</div>
+                <div className="text-[8px] leading-tight truncate text-muted-foreground theme-bright-text-muted">Pack</div>
                 <button
                   type="button"
                   onClick={() => onPackQty?.(p.symbol, 0)}
                   title={`Remove ${p.label} from this side`}
-                  className="ml-0.5 h-3.5 w-3.5 rounded-full bg-cheese text-cheese-foreground flex items-center justify-center hover:opacity-80"
+                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-cheese text-cheese-foreground flex items-center justify-center shadow hover:opacity-80"
                 >
-                  <X className="h-2 w-2" />
+                  <X className="h-2.5 w-2.5" />
                 </button>
-              </span>
+              </div>
             ))}
           </div>
+
         </div>
       )}
 
@@ -366,7 +377,7 @@ function AssetPicker({
 
       <ScrollArea className="h-[42vh] pr-2">
         {showPackQuantities ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {packOptions.map((p) => {
               const qty = packQty[p.symbol] || 0;
               const canAdd = qty < p.available;
@@ -381,11 +392,12 @@ function AssetPicker({
                   )}
                   title={`${p.label} (${p.symbol}) — ${p.available} owned`}
                 >
-                  <div className="aspect-[3/4] w-full overflow-hidden rounded bg-black/40">
+                  <div className="aspect-square w-full overflow-hidden rounded bg-black/40">
                     {p.image
                       ? <img src={p.image} alt={p.label} className="w-full h-full object-contain" />
                       : <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">{p.symbol}</div>}
                   </div>
+
                   <div className="text-[10px] mt-1 truncate text-foreground theme-bright-text">{p.label}</div>
                   <div className="text-[9px] text-muted-foreground theme-bright-text-muted">
                     {p.available} owned
