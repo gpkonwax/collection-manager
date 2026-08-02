@@ -10,13 +10,16 @@ The fix: park the blocking folders in a temp folder, pull, then copy back only w
 cd /d C:\Users\User\Desktop\gpkonwaxbackup-repo
 ```
 
-## Step 2 — See what your 3 local commits actually are
+## Step 2 — Your 3 local commits (already checked)
 
-```bat
-git log --oneline origin/main..HEAD
+```text
+c1f992c Add images: QmcAky (series 2)
+99ab000 Add images: QmcAky (series 2)
+14d6fb1 Update manifest to full 2575 entries
 ```
 
-Paste this output to me before pushing anything — it tells us how big the pending pushes are.
+These are safe, chunked commits — the old 3.29 GiB commit is gone. Nothing to drop.
+
 
 ## Step 3 — Park the blocking untracked files
 
@@ -106,6 +109,7 @@ Should read `## main...origin/main` with no `[ahead N]`. Then wait for the green
 
 Once Pages is live I will fetch the live merged manifest and replace the 832-entry file list in `public/gpk-manifest.json` with the full 2575 entries, then we run the mirror audit and a live import test.
 
-## Open question
+## Note
 
-Before Step 7, paste the Step 2 output. There is a chance one of those 3 commits is the old giant 3.29 GiB commit resurfacing, in which case we drop it first rather than trying to push it again.
+The 3 pending commits are the manifest update plus two chunked series-2 image commits, so Step 7 pushes should each go through. Only split further if a push returns HTTP 500.
+
