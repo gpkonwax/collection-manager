@@ -277,6 +277,8 @@ export function TradeComposerDialog({
   const [theirSelected, setTheirSelected] = useState<Set<string>>(new Set());
   const [memo, setMemo] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successTxId, setSuccessTxId] = useState<string | null>(null);
 
   // Reset state whenever the dialog is (re)opened with fresh props.
   useEffect(() => {
@@ -285,6 +287,8 @@ export function TradeComposerDialog({
     setTheirSelected(new Set(initialTheirAssetIds || []));
     setMemo('');
     setSubmitting(false);
+    setSuccessOpen(false);
+    setSuccessTxId(null);
   }, [open, initialMyAssetIds, initialTheirAssetIds]);
 
   const toggleMine  = (id: string) => setMySelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
