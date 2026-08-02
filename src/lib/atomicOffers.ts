@@ -28,6 +28,14 @@ export interface OfferAsset {
 /** Which contract a trade lives on. Trades are never mixed across protocols. */
 export type TradeProtocol = 'atomicassets' | 'simpleassets';
 
+/** A quantity of fungible SimpleAssets pack tokens inside an offer. */
+export interface OfferPack {
+  symbol: string;
+  amount: number;
+  label: string;
+  image?: string | null;
+}
+
 export interface AtomicOffer {
   offer_id: string;
   sender_name: string;
@@ -36,6 +44,10 @@ export interface AtomicOffer {
   state: OfferState;
   sender_assets: OfferAsset[];
   recipient_assets: OfferAsset[];
+  /** SimpleAssets pack tokens the sender is offering. */
+  sender_packs?: OfferPack[];
+  /** SimpleAssets pack tokens the recipient is asked for. */
+  recipient_packs?: OfferPack[];
   is_sender_contract: boolean;
   is_recipient_contract: boolean;
   created_at_time: number; // ms epoch

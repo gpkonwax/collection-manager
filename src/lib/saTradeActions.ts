@@ -19,6 +19,30 @@ import type { WaxAction } from '@/lib/atomicTradeActions';
 
 export const SIMPLEASSETS_CONTRACT = 'simpleassets';
 export const MSIG_CONTRACT = 'eosio.msig';
+/** SimpleAssets packs are fungible tokens on this contract, not NFTs. */
+export const PACKS_CONTRACT = 'packs.topps';
+
+/** A quantity of a fungible SimpleAssets pack token (e.g. 2 GPKTWOA). */
+export interface PackEntry {
+  symbol: string;
+  amount: number;
+  precision?: number;
+  /** Human label for the UI (e.g. "GPK Series 2A Pack"). */
+  label?: string;
+}
+
+/** `2 GPKTWOA` / `2.0000 GPKTWOA` depending on the token precision. */
+export function formatPackQuantity(amount: number, symbol: string, precision = 0): string {
+  return `${amount.toFixed(precision)} ${symbol}`;
+}
+
+/** Parse an asset string back into a pack entry. Returns null when malformed. */
+export function parsePackQuantity(quantity: string): PackEntry | null {
+  const m = /^([0-9]+(?:\.[0-9]+)?)\s+([A-Z]{1,7})$/.exec(String(quantity || '').trim());
+  if (!m) return null;
+  const precision = m[1].includes('.') ? m[1].split('.')[1].length : 0;
+  return { symbol: m[2], amount: parseFloat(m[1]), precision };
+}
 
 /** Soft cap per side, mirroring the AtomicAssets composer. */
 export const SA_MAX_ASSETS_PER_SIDE = 30;
@@ -80,6 +104,26 @@ export function buildSaTransferAction(
       from,
       to,
       assetids: assetIds,
+      memo: memo.slice(0, SA_MAX_MEMO_LENGTH),
+    },
+  };
+}
+
+/** `packs.topps::transfer` for a fungible pack token. */
+export function buildPackTransferAction(
+  from: string,
+  to: string,
+  pack: PackEntry,
+  memo = '',
+): WaxAction {
+  return {
+    account: PACKS_CONTRACT,
+    name: 'transfer',
+    authorization: auth(from),
+    data: {
+      from,
+      to,
+      quantity: formatPackQuantity(pack.amount, pack.symbol, pack.precision ?? 0),
       memo: memo.slice(0, SA_MAX_MEMO_LENGTH),
     },
   };
@@ -179,11 +223,13 @@ export function validateSaOffer(
   counterparty: string,
   myIds: string[],
   theirIds: string[],
+  myPacks: PackEntry[] = [],
+  theirPacks: PackEntry[] = [],
 ): SaOfferValidation {
   if (!me || !counterparty) return { ok: false, reason: 'Missing account' };
   if (me === counterparty) return { ok: false, reason: "You can't trade with yourself" };
-  if (myIds.length === 0 || theirIds.length === 0) {
-    return { ok: false, reason: 'SimpleAssets swaps need at least one card on each side' };
+  if (myIds.length + myPacks.length === 0 || theirIds.length + theirPacks.length === 0) {
+    return { ok: false, reason: 'SimpleAssets swaps need at least one card or pack on each side' };
   }
   if (myIds.length > SA_MAX_ASSETS_PER_SIDE || theirIds.length > SA_MAX_ASSETS_PER_SIDE) {
     return { ok: false, reason: `Max ${SA_MAX_ASSETS_PER_SIDE} cards per side` };
@@ -193,6 +239,18 @@ export function validateSaOffer(
   }
   if (myIds.some((id) => theirIds.includes(id))) {
     return { ok: false, reason: 'The same asset appears on both sides' };
+  }
+  for (const p of [...myPacks, ...theirPacks]) {
+    if (!p.symbol) return { ok: false, reason: 'Invalid pack selection' };
+    if (!Number.isFinite(p.amount) || p.amount < 1) {
+      return { ok: false, reason: `Pack quantity for ${p.symbol} must be at least 1` };
+    }
+  }
+  for (const side of [myPacks, theirPacks]) {
+    const symbols = side.map((p) => p.symbol);
+    if (new Set(symbols).size !== symbols.length) {
+      return { ok: false, reason: 'Duplicate pack in selection' };
+    }
   }
   return { ok: true };
 }
@@ -264,26 +322,49 @@ async function getTransactionHeader(expireSeconds: number): Promise<TransactionH
 }
 
 
-/** Serialize the two-transfer swap transaction that the proposal will hold. */
+/**
+ * Serialize the swap transaction the proposal will hold: one SimpleAssets
+ * transfer per side that sends cards, plus one packs.topps transfer per pack
+ * token per side. Empty sides are simply omitted.
+ */
 export async function buildSwapTransactionObject(params: {
   me: string;
   counterparty: string;
   myAssetIds: string[];
   theirAssetIds: string[];
+  myPacks?: PackEntry[];
+  theirPacks?: PackEntry[];
   memo?: string;
   expireSeconds?: number;
   /** Name of the proposal this swap replaces (written into the memo). */
   counterRef?: string | null;
 }): Promise<{ trx: Record<string, unknown>; expiresAt: number }> {
-  const abi = await getContractAbi(SIMPLEASSETS_CONTRACT);
   const expireSeconds = params.expireSeconds ?? SA_PROPOSAL_EXPIRY_SECONDS;
   const header = await getTransactionHeader(expireSeconds);
 
   const memo = withCounterRef(params.memo || '', params.counterRef);
-  const inner = [
-    buildSaTransferAction(params.me, params.counterparty, params.myAssetIds, memo),
-    buildSaTransferAction(params.counterparty, params.me, params.theirAssetIds, memo),
-  ].map((a) => Action.from(a, abi));
+  const myPacks = params.myPacks || [];
+  const theirPacks = params.theirPacks || [];
+
+  const raw: WaxAction[] = [];
+  if (params.myAssetIds.length > 0) {
+    raw.push(buildSaTransferAction(params.me, params.counterparty, params.myAssetIds, memo));
+  }
+  for (const p of myPacks) {
+    raw.push(buildPackTransferAction(params.me, params.counterparty, p, memo));
+  }
+  if (params.theirAssetIds.length > 0) {
+    raw.push(buildSaTransferAction(params.counterparty, params.me, params.theirAssetIds, memo));
+  }
+  for (const p of theirPacks) {
+    raw.push(buildPackTransferAction(params.counterparty, params.me, p, memo));
+  }
+
+  const abis = new Map<string, ABI>();
+  for (const account of new Set(raw.map((a) => a.account))) {
+    abis.set(account, await getContractAbi(account));
+  }
+  const inner = raw.map((a) => Action.from(a, abis.get(a.account)!));
 
   const transaction = Transaction.from({ ...header, actions: inner });
   const trx = Serializer.objectify(transaction) as Record<string, unknown>;
@@ -313,6 +394,8 @@ export async function buildSaSwapActions(params: {
   counterparty: string;
   myAssetIds: string[];
   theirAssetIds: string[];
+  myPacks?: PackEntry[];
+  theirPacks?: PackEntry[];
   memo?: string;
   /** Existing proposal being countered. */
   counterProposal?: { proposer: string; name: string } | null;

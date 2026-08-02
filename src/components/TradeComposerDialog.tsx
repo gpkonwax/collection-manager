@@ -23,13 +23,20 @@ import {
 import {
   buildSaSwapActions, validateSaOffer, SA_MAX_ASSETS_PER_SIDE,
 } from '@/lib/saTradeActions';
+import type { PackEntry } from '@/lib/saTradeActions';
+import { useGpkPacks } from '@/hooks/useGpkPacks';
+import type { GpkPack } from '@/hooks/useGpkPacks';
+import { packImage } from '@/lib/gpkPackMeta';
 import { hideProposalLocally, rememberProposal } from '@/lib/saOffers';
 import { getAccountResources, describeResourceProblem } from '@/lib/accountResources';
 
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
-import { CATEGORY_LABELS, getVariantsForCategory, hasVariants, normalizeAssetCategory } from '@/lib/gpkCategories';
+import {
+  CATEGORY_LABELS, PACKS_CATEGORY, getVariantsForCategory, hasVariants,
+  isPacksCategory, normalizeAssetCategory,
+} from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
@@ -121,8 +128,17 @@ function toPicker(a: SimpleAsset): PickerAsset {
 
 
 
+export interface PackOption {
+  symbol: string;
+  label: string;
+  image?: string;
+  /** How many of this pack the wallet holds. */
+  available: number;
+}
+
 function AssetPicker({
   title, subtitle, assets, isLoading, selectedIds, onToggle, emptyLabel, protocol, maxPerSide,
+  packOptions = [], packQty = {}, onPackQty,
 }: {
   title: string;
   subtitle: string;
@@ -133,6 +149,10 @@ function AssetPicker({
   emptyLabel: string;
   protocol: TradeProtocol;
   maxPerSide: number;
+  /** SimpleAssets pack tokens available on this side (quantity picker). */
+  packOptions?: PackOption[];
+  packQty?: Record<string, number>;
+  onPackQty?: (symbol: string, qty: number) => void;
 }) {
 
   const [query, setQuery] = useState('');
@@ -147,18 +167,23 @@ function AssetPicker({
       const c = normalizeAssetCategory(a.category);
       if (c) set.add(c);
     }
+    if (packOptions.length > 0) set.add(PACKS_CATEGORY);
     return Array.from(set).sort((x, y) =>
       (CATEGORY_LABELS[x] || x).localeCompare(CATEGORY_LABELS[y] || y));
-  }, [assets]);
+  }, [assets, packOptions.length]);
 
   const showVariants = hasVariants(category);
   const filtersActive = query.trim() !== '' || category !== 'all' || !variants.includes('all');
+  /** SimpleAssets packs are token balances, so they get a quantity picker. */
+  const showPackQuantities = category === PACKS_CATEGORY && packOptions.length > 0;
 
   const clearFilters = () => { setQuery(''); setCategory('all'); setVariants(['all']); };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = assets.filter((a) => {
+      // Packs stay out of the way until the Packs category is picked.
+      if (category === 'all' && isPacksCategory(a.category)) return false;
       if (category !== 'all' && normalizeAssetCategory(a.category) !== category) return false;
       if (hasVariants(category) && !variants.includes('all')
         && !variants.includes((a.quality || '').toLowerCase())) return false;
@@ -189,6 +214,11 @@ function AssetPicker({
   const selectedAssets = useMemo(
     () => assets.filter((a) => selectedIds.has(a.id)), [assets, selectedIds]);
 
+  const selectedPacks = useMemo(
+    () => packOptions.filter((p) => (packQty[p.symbol] || 0) > 0), [packOptions, packQty]);
+
+  const totalSelected = selectedIds.size + selectedPacks.reduce((n, p) => n + (packQty[p.symbol] || 0), 0);
+
   return (
     <div className="flex flex-col min-h-0 rounded-lg border border-cheese/30 theme-bright-border bg-background/40 theme-bright-fill p-2 gap-2">
       <div className="flex items-baseline justify-between gap-2">
@@ -197,7 +227,7 @@ function AssetPicker({
           <div className="text-[11px] text-muted-foreground theme-bright-text-muted">{subtitle}</div>
         </div>
         <Badge variant="outline" className="border-cheese/50 text-cheese theme-bright-border theme-bright-text">
-          {selectedIds.size}/{maxPerSide}
+          {totalSelected}/{maxPerSide}
         </Badge>
       </div>
       <Input
@@ -245,6 +275,34 @@ function AssetPicker({
           </button>
         )}
       </div>
+      {selectedPacks.length > 0 && (
+        <div className="rounded-md border border-cheese/25 theme-bright-border p-1.5 space-y-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
+            Selected packs ({selectedPacks.length})
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {selectedPacks.map((p) => (
+              <span
+                key={`selpack-${p.symbol}`}
+                className="inline-flex items-center gap-1 rounded-full border border-cheese/40 theme-bright-border bg-background/60 theme-bright-fill px-2 py-0.5 text-[10px] text-foreground theme-bright-text"
+                title={`${packQty[p.symbol]} × ${p.label} (${p.symbol})`}
+              >
+                {p.image && <img src={p.image} alt="" className="h-4 w-3 rounded-sm object-cover" />}
+                {packQty[p.symbol]}x {p.label}
+                <button
+                  type="button"
+                  onClick={() => onPackQty?.(p.symbol, 0)}
+                  title={`Remove ${p.label} from this side`}
+                  className="ml-0.5 h-3.5 w-3.5 rounded-full bg-cheese text-cheese-foreground flex items-center justify-center hover:opacity-80"
+                >
+                  <X className="h-2 w-2" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {selectedAssets.length > 0 && (
         <div className="rounded-md border border-cheese/25 theme-bright-border p-1.5 space-y-1">
           <div className="text-[10px] font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
@@ -301,7 +359,57 @@ function AssetPicker({
 
 
       <ScrollArea className="h-[42vh] pr-2">
-        {isLoading ? (
+        {showPackQuantities ? (
+          <div className="grid grid-cols-2 gap-2">
+            {packOptions.map((p) => {
+              const qty = packQty[p.symbol] || 0;
+              const canAdd = qty < p.available;
+              return (
+                <div
+                  key={p.symbol}
+                  className={cn(
+                    'rounded-md border p-1.5 bg-background/60 theme-bright-fill',
+                    qty > 0
+                      ? 'border-cheese ring-2 ring-cheese/70'
+                      : 'border-cheese/25 theme-bright-border',
+                  )}
+                  title={`${p.label} (${p.symbol}) — ${p.available} owned`}
+                >
+                  <div className="aspect-[3/4] w-full overflow-hidden rounded bg-black/40">
+                    {p.image
+                      ? <img src={p.image} alt={p.label} className="w-full h-full object-contain" />
+                      : <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">{p.symbol}</div>}
+                  </div>
+                  <div className="text-[10px] mt-1 truncate text-foreground theme-bright-text">{p.label}</div>
+                  <div className="text-[9px] text-muted-foreground theme-bright-text-muted">
+                    {p.available} owned
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-1">
+                    <button
+                      type="button"
+                      disabled={qty <= 0}
+                      onClick={() => onPackQty?.(p.symbol, Math.max(0, qty - 1))}
+                      className="h-6 w-6 rounded border border-cheese/40 theme-bright-border text-cheese theme-bright-text disabled:opacity-30"
+                      title="Remove one"
+                    >
+                      −
+                    </button>
+                    <span className="text-xs font-semibold text-cheese theme-bright-text">{qty}</span>
+                    <button
+                      type="button"
+                      disabled={!canAdd}
+                      onClick={() => onPackQty?.(p.symbol, qty + 1)}
+                      className="h-6 w-6 rounded border border-cheese/40 theme-bright-border text-cheese theme-bright-text disabled:opacity-30"
+                      title="Add one"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : isLoading ? (
           <div className="flex items-center justify-center h-32 text-muted-foreground theme-bright-text-muted">
             <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…
           </div>
@@ -404,6 +512,24 @@ export function TradeComposerDialog({
   const myLoading = isAtomic ? aaMyLoading : saMyLoading;
   const theirLoading = isAtomic ? aaTheirLoading : saTheirLoading;
 
+  // SimpleAssets packs are fungible packs.topps balances, not NFTs.
+  const { packs: saMyPacks } = useGpkPacks(saMe);
+  const { packs: saTheirPacks } = useGpkPacks(saThem);
+
+  const toPackOptions = (packs: GpkPack[]): PackOption[] => packs
+    .filter((p) => p.amount > 0)
+    .map((p) => ({
+      symbol: p.symbol,
+      label: p.label,
+      image: packImage(p.symbol),
+      available: Math.floor(p.amount),
+    }));
+
+  const myPackOptions = useMemo(
+    () => (isAtomic ? [] : toPackOptions(saMyPacks)), [isAtomic, saMyPacks]);
+  const theirPackOptions = useMemo(
+    () => (isAtomic ? [] : toPackOptions(saTheirPacks)), [isAtomic, saTheirPacks]);
+
   const myPicker = useMemo(
     () => myAssets.filter((a) => a.source === protocol).map(toPicker), [myAssets, protocol]);
   const theirPicker = useMemo(
@@ -411,6 +537,8 @@ export function TradeComposerDialog({
 
   const [mySelected, setMySelected] = useState<Set<string>>(new Set());
   const [theirSelected, setTheirSelected] = useState<Set<string>>(new Set());
+  const [myPackQty, setMyPackQty] = useState<Record<string, number>>({});
+  const [theirPackQty, setTheirPackQty] = useState<Record<string, number>>({});
   const [memo, setMemo] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
@@ -421,6 +549,8 @@ export function TradeComposerDialog({
     if (!open) return;
     setMySelected(new Set(initialMyAssetIds || []));
     setTheirSelected(new Set(initialTheirAssetIds || []));
+    setMyPackQty({});
+    setTheirPackQty({});
     setMemo('');
     setSubmitting(false);
     setSuccessOpen(false);
@@ -430,14 +560,31 @@ export function TradeComposerDialog({
   const toggleMine  = (id: string) => setMySelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleTheirs = (id: string) => setTheirSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
+  const setPackQty = (
+    setter: React.Dispatch<React.SetStateAction<Record<string, number>>>,
+  ) => (symbol: string, qty: number) => setter((prev) => {
+    const next = { ...prev };
+    if (qty > 0) next[symbol] = qty; else delete next[symbol];
+    return next;
+  });
+
+  const toPackEntries = (qty: Record<string, number>): PackEntry[] =>
+    Object.entries(qty)
+      .filter(([, amount]) => amount > 0)
+      .map(([symbol, amount]) => ({ symbol, amount, precision: 0 }));
+
+  const myPackEntries = useMemo(() => toPackEntries(myPackQty), [myPackQty]);
+  const theirPackEntries = useMemo(() => toPackEntries(theirPackQty), [theirPackQty]);
+
   const validation = useMemo(() => {
     if (!me || !counterparty) return { ok: false, reason: 'Wallet not ready' };
     const mine = Array.from(mySelected);
     const theirs = Array.from(theirSelected);
     return isAtomic
       ? validateOffer(me, counterparty, mine, theirs)
-      : validateSaOffer(me, counterparty, mine, theirs);
-  }, [me, counterparty, mySelected, theirSelected, isAtomic]);
+      : validateSaOffer(me, counterparty, mine, theirs, myPackEntries, theirPackEntries);
+  }, [me, counterparty, mySelected, theirSelected, isAtomic, myPackEntries, theirPackEntries]);
+
 
   const handleSubmit = async () => {
     if (!me || !counterparty || !session) return;
@@ -482,6 +629,8 @@ export function TradeComposerDialog({
           counterparty,
           myAssetIds: senderAssetIds,
           theirAssetIds: recipientAssetIds,
+          myPacks: myPackEntries,
+          theirPacks: theirPackEntries,
           memo,
           counterProposal: counterProposal ?? null,
           counterApproved,
@@ -547,11 +696,11 @@ export function TradeComposerDialog({
             </Badge>
           </DialogTitle>
           <DialogDescription className="theme-bright-text-muted">
-            Pure card-for-card <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> trade between{' '}
+            Cards and packs, <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> only, between{' '}
             <span className="text-cheese theme-bright-text font-medium">{me || '—'}</span>{' '}
             and{' '}
             <span className="text-cheese theme-bright-text font-medium">{counterparty || '—'}</span>.
-            {' '}Mixed-contract trades are not supported, so only <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> cards are shown.
+            {' '}Mixed-contract trades are not supported, so only <ProtocolLogo protocol={protocol} className="h-5 w-5 align-text-bottom" /> items are shown. Pick the "Packs" category to trade unopened packs.
             {isCounter && (
               <> This will <span className="text-destructive font-medium">decline the original offer</span> and send a fresh one in a single transaction.</>
             )}
@@ -561,7 +710,7 @@ export function TradeComposerDialog({
         <div className="grid gap-3 md:grid-cols-2 flex-1 min-h-0">
           <AssetPicker
             title="You send"
-            subtitle={`Pick from your ${protocolLabel}`}
+            subtitle={`Pick cards or packs from your ${protocolLabel}`}
             assets={myPicker}
             isLoading={myLoading}
             selectedIds={mySelected}
@@ -569,10 +718,13 @@ export function TradeComposerDialog({
             emptyLabel={`You have no ${protocolLabel} cards to offer.`}
             protocol={protocol}
             maxPerSide={maxPerSide}
+            packOptions={myPackOptions}
+            packQty={myPackQty}
+            onPackQty={setPackQty(setMyPackQty)}
           />
           <AssetPicker
             title="They send back"
-            subtitle={`Pick from ${counterparty || 'their'} ${protocolLabel}`}
+            subtitle={`Pick cards or packs from ${counterparty || 'their'} ${protocolLabel}`}
             assets={theirPicker}
             isLoading={theirLoading}
             selectedIds={theirSelected}
@@ -580,6 +732,9 @@ export function TradeComposerDialog({
             emptyLabel={`No ${protocolLabel} cards found in that wallet.`}
             protocol={protocol}
             maxPerSide={maxPerSide}
+            packOptions={theirPackOptions}
+            packQty={theirPackQty}
+            onPackQty={setPackQty(setTheirPackQty)}
           />
         </div>
 
@@ -597,14 +752,15 @@ export function TradeComposerDialog({
           )}
           <p className="text-[11px] text-muted-foreground theme-bright-text-muted">
             {isAtomic ? (
-              <>Card-for-card only — no WAX or tokens are exchanged. AtomicAssets contract: <span className="font-mono">createoffer</span>.</>
+              <>Cards and packs only — no WAX or tokens are exchanged. AtomicAssets contract: <span className="font-mono">createoffer</span>.</>
             ) : (
-              <>Card-for-card only. SimpleAssets has no escrow, so both transfers are wrapped in a single
+              <>Cards and packs only. SimpleAssets has no escrow, so every transfer is wrapped in a single
                 {' '}<span className="font-mono">eosio.msig</span> proposal that can only execute once both of you approve.
-                It stays valid for 7 days and costs a 0.00000001 WAX notification transfer.</>
+                It stays valid for 7 days and costs nothing but CPU/NET.</>
             )}
           </p>
         </div>
+
 
 
         <DialogFooter className="gap-2">

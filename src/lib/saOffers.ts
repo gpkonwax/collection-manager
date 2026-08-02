@@ -12,14 +12,18 @@ import { Serializer, Transaction } from '@wharfkit/antelope';
 import { fetchTableRows, HYPERION_ENDPOINTS } from '@/lib/waxRpcFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
-import type { AtomicOffer, OfferAsset } from '@/lib/atomicOffers';
+import type { AtomicOffer, OfferAsset, OfferPack } from '@/lib/atomicOffers';
+import { packImage, packLabel } from '@/lib/gpkPackMeta';
 import {
   MSIG_CONTRACT,
   SIMPLEASSETS_CONTRACT,
+  PACKS_CONTRACT,
   getContractAbi,
   parseCounterRef,
+  parsePackQuantity,
   stripCounterRef,
 } from '@/lib/saTradeActions';
+import type { PackEntry } from '@/lib/saTradeActions';
 
 
 const LOOKBACK_DAYS = 30;
@@ -205,7 +209,13 @@ async function fetchApprovals(proposer: string, name: string): Promise<MsigAppro
 
 export interface DecodedSwap {
   expiration: number;
-  transfers: Array<{ from: string; to: string; assetIds: string[]; memo: string }>;
+  transfers: Array<{
+    from: string;
+    to: string;
+    assetIds: string[];
+    packs: PackEntry[];
+    memo: string;
+  }>;
 }
 
 interface ObjectifiedAction {
@@ -216,12 +226,12 @@ interface ObjectifiedAction {
 
 /**
  * Decode a packed msig transaction and assert it is a clean two-sided
- * SimpleAssets swap between exactly two accounts. Anything else is rejected so
- * the UI never renders (or offers to approve) an unrecognised proposal.
+ * SimpleAssets swap between exactly two accounts — cards (`simpleassets`) and
+ * packs (`packs.topps`) in either direction. Anything else is rejected so the
+ * UI never renders (or offers to approve) an unrecognised proposal.
  */
 export async function decodeSwapTransaction(packedHex: string): Promise<DecodedSwap | null> {
   try {
-    const abi = await getContractAbi(SIMPLEASSETS_CONTRACT);
     const tx = Serializer.decode({ data: packedHex, type: Transaction });
     const obj = Serializer.objectify(tx) as {
       expiration: string;
@@ -230,25 +240,52 @@ export async function decodeSwapTransaction(packedHex: string): Promise<DecodedS
     };
     if ((obj.context_free_actions || []).length > 0) return null;
     const actions = obj.actions || [];
-    if (actions.length !== 2) return null;
-    if (!actions.every((a) => a.account === SIMPLEASSETS_CONTRACT && a.name === 'transfer')) return null;
+    if (actions.length < 2 || actions.length > 12) return null;
+    if (!actions.every((a) =>
+      (a.account === SIMPLEASSETS_CONTRACT || a.account === PACKS_CONTRACT) && a.name === 'transfer',
+    )) return null;
 
-    const transfers = actions.map((a) => {
+    const abis = new Map<string, Awaited<ReturnType<typeof getContractAbi>>>();
+    for (const account of new Set(actions.map((a) => a.account))) {
+      abis.set(account, await getContractAbi(account));
+    }
+
+    // Group every action by direction (from -> to).
+    const byDirection = new Map<string, DecodedSwap['transfers'][number]>();
+    for (const a of actions) {
       const decoded = Serializer.objectify(
-        Serializer.decode({ data: a.data, abi, type: 'transfer' }),
-      ) as { from: string; to: string; assetids: Array<string | number>; memo?: string };
-      return {
-        from: String(decoded.from),
-        to: String(decoded.to),
-        assetIds: (decoded.assetids || []).map((id) => String(id)),
-        memo: String(decoded.memo ?? ''),
+        Serializer.decode({ data: a.data, abi: abis.get(a.account)!, type: 'transfer' }),
+      ) as {
+        from: string; to: string;
+        assetids?: Array<string | number>;
+        quantity?: string;
+        memo?: string;
       };
-    });
+      const from = String(decoded.from);
+      const to = String(decoded.to);
+      if (!from || !to || from === to) return null;
+      const key = `${from}>${to}`;
+      const entry = byDirection.get(key) || { from, to, assetIds: [], packs: [], memo: '' };
+      if (a.account === SIMPLEASSETS_CONTRACT) {
+        const ids = (decoded.assetids || []).map((id) => String(id));
+        if (ids.length === 0) return null;
+        entry.assetIds.push(...ids);
+      } else {
+        const pack = parsePackQuantity(String(decoded.quantity ?? ''));
+        if (!pack || pack.amount <= 0) return null;
+        entry.packs.push(pack);
+      }
+      if (!entry.memo) entry.memo = String(decoded.memo ?? '');
+      byDirection.set(key, entry);
+    }
+
+    const transfers = Array.from(byDirection.values());
+    if (transfers.length !== 2) return null;
 
     const [a, b] = transfers;
     if (a.from !== b.to || a.to !== b.from) return null;
-    if (a.from === a.to) return null;
-    if (a.assetIds.length === 0 || b.assetIds.length === 0) return null;
+    if (a.assetIds.length + a.packs.length === 0) return null;
+    if (b.assetIds.length + b.packs.length === 0) return null;
 
     return {
       expiration: new Date(`${obj.expiration.replace(/Z$/, '')}Z`).getTime(),
@@ -319,6 +356,19 @@ async function loadOwnerAssets(owner: string): Promise<Map<string, OfferAsset>> 
   return index;
 }
 
+/** Current packs.topps balances for an account, keyed by token symbol. */
+async function loadOwnerPackBalances(owner: string): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const res = await fetchTableRows<{ balance: string }>({
+    code: PACKS_CONTRACT, scope: owner, table: 'accounts', limit: 200,
+  });
+  for (const row of res.rows || []) {
+    const parsed = parsePackQuantity(row.balance);
+    if (parsed) out.set(parsed.symbol, parsed.amount);
+  }
+  return out;
+}
+
 function placeholderAsset(assetId: string): OfferAsset {
   return {
     asset_id: assetId,
@@ -361,6 +411,15 @@ export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
     return ownerCache.get(owner)!;
   };
 
+  const packCache = new Map<string, Promise<Map<string, number>>>();
+  const packsFor = (owner: string) => {
+    if (!packCache.has(owner)) {
+      packCache.set(owner, loadOwnerPackBalances(owner).catch(() => new Map<string, number>()));
+    }
+    return packCache.get(owner)!;
+  };
+
+
   const offers = await Promise.all(live.map(async ([id, ref]) => {
     const [row, approvals] = await Promise.all([
       fetchProposalRow(ref.proposer, ref.name),
@@ -389,7 +448,25 @@ export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
     const recipientAssets = theirs.assetIds.map((aid) => recipientIndex.get(aid));
     if (senderAssets.some((a) => !a) || recipientAssets.some((a) => !a)) return null;
 
+    // …and still hold enough of every pack token they promised.
+    if (mine.packs.length > 0 || theirs.packs.length > 0) {
+      const [senderBalances, recipientBalances] = await Promise.all([
+        mine.packs.length > 0 ? packsFor(ref.proposer) : Promise.resolve(new Map<string, number>()),
+        theirs.packs.length > 0 ? packsFor(recipient) : Promise.resolve(new Map<string, number>()),
+      ]);
+      const enough = (balances: Map<string, number>, packs: PackEntry[]) =>
+        packs.every((p) => (balances.get(p.symbol) ?? 0) >= p.amount);
+      if (!enough(senderBalances, mine.packs) || !enough(recipientBalances, theirs.packs)) return null;
+    }
+
     const provided = new Set((approvals?.provided_approvals || []).map(approvalActor));
+
+    const toOfferPacks = (packs: PackEntry[]): OfferPack[] => packs.map((p) => ({
+      symbol: p.symbol,
+      amount: p.amount,
+      label: packLabel(p.symbol),
+      image: packImage(p.symbol) ?? null,
+    }));
 
     const offer: AtomicOffer = {
       offer_id: id,
@@ -399,6 +476,8 @@ export async function fetchSaOffers(account: string): Promise<AtomicOffer[]> {
       state: 0,
       sender_assets: senderAssets.map((a, i) => a ?? placeholderAsset(mine.assetIds[i])),
       recipient_assets: recipientAssets.map((a, i) => a ?? placeholderAsset(theirs.assetIds[i])),
+      sender_packs: toOfferPacks(mine.packs),
+      recipient_packs: toOfferPacks(theirs.packs),
       is_sender_contract: false,
       is_recipient_contract: false,
       created_at_time: ref.createdAt || swap.expiration - 7 * 86_400_000,

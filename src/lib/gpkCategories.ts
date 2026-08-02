@@ -3,8 +3,15 @@ export const CATEGORY_LABELS: Record<string, string> = {
   exotic: 'Tiger King', bernventures: 'Bernventures', mittens: 'Mittens',
 
   gamestonk: 'GameStonk', foodfightb: 'Food Fight', bonus: 'Bonus',
-  promo: 'Promo', originalart: 'Original Art',
+  promo: 'Promo', originalart: 'Original Art', packs: 'Packs',
 };
+
+/** Category key for unopened packs (AA schema name / SA pack tokens). */
+export const PACKS_CATEGORY = 'packs';
+
+export function isPacksCategory(category: string | undefined): boolean {
+  return normalizeAssetCategory((category || '').toLowerCase()) === PACKS_CATEGORY;
+}
 
 export interface VariantOption { value: string; label: string }
 

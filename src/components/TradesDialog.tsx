@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
-import type { AtomicOffer, OfferAsset, TradeProtocol } from '@/lib/atomicOffers';
+import type { AtomicOffer, OfferAsset, OfferPack, TradeProtocol } from '@/lib/atomicOffers';
+import { packImage } from '@/lib/gpkPackMeta';
 import { cn } from '@/lib/utils';
 import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
 
@@ -100,16 +101,49 @@ function AssetThumb({ asset, protocol }: { asset: OfferAsset; protocol: TradePro
 
 
 
-function AssetRow({ label, assets, protocol }: { label: string; assets: OfferAsset[]; protocol: TradeProtocol }) {
+function PackThumb({ pack }: { pack: OfferPack }) {
+  const image = pack.image ?? packImage(pack.symbol);
+  return (
+    <div
+      className="flex flex-col items-center gap-1 w-20 shrink-0 rounded-md border border-cheese/30 bg-background/40 p-1.5 theme-bright-border"
+      title={`${pack.amount} × ${pack.label} (${pack.symbol})`}
+    >
+      <div className="w-full flex justify-center">
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
+          {pack.amount}x
+        </span>
+      </div>
+      <div className="w-full aspect-[3/4] overflow-hidden rounded-sm bg-black/40">
+        {image
+          ? <img src={image} alt={pack.label} className="w-full h-full object-contain" />
+          : <div className="w-full h-full flex items-center justify-center text-[9px] text-muted-foreground">{pack.symbol}</div>}
+      </div>
+      <div className="text-[10px] leading-tight text-center text-cheese/80 theme-bright-text w-full truncate">
+        {pack.label}
+      </div>
+      <div className="text-[9px] leading-tight text-center text-muted-foreground theme-bright-text-muted w-full truncate">
+        Pack
+      </div>
+    </div>
+  );
+}
+
+function AssetRow({ label, assets, packs = [], protocol }: {
+  label: string;
+  assets: OfferAsset[];
+  packs?: OfferPack[];
+  protocol: TradeProtocol;
+}) {
+  const total = assets.length + packs.length;
   return (
     <div className="space-y-1.5">
       <div className="text-xs font-semibold uppercase tracking-wide text-cheese/80 theme-bright-text">
         {label}{' '}
         <span className="text-muted-foreground theme-bright-text-muted font-normal">
-          ({assets.length})
+          ({total})
         </span>
       </div>
-      {assets.length === 0 ? (
+      {total === 0 ? (
         <div className="text-xs text-muted-foreground theme-bright-text-muted italic px-1">
           Nothing
         </div>
@@ -117,6 +151,7 @@ function AssetRow({ label, assets, protocol }: { label: string; assets: OfferAss
         <ScrollArea className="w-full">
           <div className="flex gap-2 pb-2">
             {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} protocol={protocol} />)}
+            {packs.map((p) => <PackThumb key={`pack-${p.symbol}`} pack={p} />)}
           </div>
         </ScrollArea>
       )}
@@ -139,6 +174,8 @@ function OfferCard({
 }) {
   const theyGive = direction === 'incoming' ? offer.sender_assets : offer.recipient_assets;
   const youGive  = direction === 'incoming' ? offer.recipient_assets : offer.sender_assets;
+  const theyGivePacks = direction === 'incoming' ? offer.sender_packs : offer.recipient_packs;
+  const youGivePacks  = direction === 'incoming' ? offer.recipient_packs : offer.sender_packs;
   const counterparty = direction === 'incoming' ? offer.sender_name : offer.recipient_name;
   const created = offer.created_at_time ? new Date(offer.created_at_time) : null;
   const isBusy = Boolean(busyAction);
@@ -257,13 +294,13 @@ function OfferCard({
       <div className="grid gap-3 md:grid-cols-2">
         {direction === 'incoming' ? (
           <>
-            <AssetRow label="They send" assets={theyGive} protocol={protocol} />
-            <AssetRow label="You send back" assets={youGive} protocol={protocol} />
+            <AssetRow label="They send" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
+            <AssetRow label="You send back" assets={youGive} packs={youGivePacks} protocol={protocol} />
           </>
         ) : (
           <>
-            <AssetRow label="You send" assets={youGive} protocol={protocol} />
-            <AssetRow label="They send back" assets={theyGive} protocol={protocol} />
+            <AssetRow label="You send" assets={youGive} packs={youGivePacks} protocol={protocol} />
+            <AssetRow label="They send back" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
           </>
         )}
       </div>
