@@ -53,6 +53,10 @@ interface TradeComposerDialogProps {
   session: Session | null;
   /** Pre-selected asset IDs on the "They send back" side (e.g. clicked from card). */
   initialTheirAssetIds?: string[];
+  /** SimpleAssets pack quantities preselected on the counterparty side. */
+  initialTheirPackQty?: Record<string, number>;
+  /** SimpleAssets pack quantities preselected on your side. */
+  initialMyPackQty?: Record<string, number>;
   /** Pre-selected asset IDs on the "You send" side. */
   initialMyAssetIds?: string[];
   /** When set, this is a counter-offer: decline this offer + create a new one atomically. */
@@ -138,7 +142,7 @@ export interface PackOption {
 
 function AssetPicker({
   title, subtitle, assets, isLoading, selectedIds, onToggle, emptyLabel, protocol, maxPerSide,
-  packOptions = [], packQty = {}, onPackQty,
+  packOptions = [], packQty = {}, onPackQty, defaultPacksCategory = false,
 }: {
   title: string;
   subtitle: string;
@@ -153,10 +157,12 @@ function AssetPicker({
   packOptions?: PackOption[];
   packQty?: Record<string, number>;
   onPackQty?: (symbol: string, qty: number) => void;
+  /** Open this side already switched to the Packs category. */
+  defaultPacksCategory?: boolean;
 }) {
 
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState(defaultPacksCategory ? PACKS_CATEGORY : 'all');
   const [variants, setVariants] = useState<string[]>(['all']);
   const [sort, setSort] = useState<'natural' | 'name' | 'variant'>('natural');
 
@@ -486,7 +492,7 @@ function AssetPicker({
 
 export function TradeComposerDialog({
   open, onOpenChange, me, counterparty, session,
-  initialTheirAssetIds, initialMyAssetIds, counterOfferId,
+  initialTheirAssetIds, initialMyAssetIds, initialTheirPackQty, initialMyPackQty, counterOfferId,
   protocol = 'atomicassets', counterProposal, counterApproved = false, onSuccess,
 }: TradeComposerDialogProps) {
   const { toast } = useToast();
@@ -549,13 +555,13 @@ export function TradeComposerDialog({
     if (!open) return;
     setMySelected(new Set(initialMyAssetIds || []));
     setTheirSelected(new Set(initialTheirAssetIds || []));
-    setMyPackQty({});
-    setTheirPackQty({});
+    setMyPackQty({ ...(initialMyPackQty || {}) });
+    setTheirPackQty({ ...(initialTheirPackQty || {}) });
     setMemo('');
     setSubmitting(false);
     setSuccessOpen(false);
     setSuccessTxId(null);
-  }, [open, initialMyAssetIds, initialTheirAssetIds]);
+  }, [open, initialMyAssetIds, initialTheirAssetIds, initialMyPackQty, initialTheirPackQty]);
 
   const toggleMine  = (id: string) => setMySelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleTheirs = (id: string) => setTheirSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -720,6 +726,7 @@ export function TradeComposerDialog({
             maxPerSide={maxPerSide}
             packOptions={myPackOptions}
             packQty={myPackQty}
+            defaultPacksCategory={Object.keys(initialMyPackQty || {}).length > 0}
             onPackQty={setPackQty(setMyPackQty)}
           />
           <AssetPicker
@@ -734,6 +741,7 @@ export function TradeComposerDialog({
             maxPerSide={maxPerSide}
             packOptions={theirPackOptions}
             packQty={theirPackQty}
+            defaultPacksCategory={Object.keys(initialTheirPackQty || {}).length > 0}
             onPackQty={setPackQty(setTheirPackQty)}
           />
         </div>
