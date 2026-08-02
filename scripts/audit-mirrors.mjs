@@ -281,18 +281,17 @@ async function main() {
   // size-capped mirror may only "exclude" a file we know still exists.
   const verifiedElsewhere = new Set();
   for (const mirror of targets) {
-    const rep = await auditMirror(mirror, files, zipParts, opts, verifiedElsewhere);
+    // With no prior mirror audited in this run (e.g. --only cloudflare) we
+    // cannot cross-check, so the size cap alone decides.
+    const rep = await auditMirror(mirror, files, zipParts, opts, verifiedElsewhere.size ? verifiedElsewhere : null);
     summaries.push(rep);
-    for (const [rel, meta] of Object.entries(files)) {
-      if (!rep.missing.some((m) => m.rel === rel) && !rep.wrongSize.some((m) => m.rel === rel)
-          && !rep.excluded.some((m) => m.rel === rel) && meta) {
-        // only mark entries this mirror actually served
-      }
-    }
+    const bad = new Set([
+      ...rep.missing.map((m) => m.rel),
+      ...rep.wrongSize.map((m) => m.rel),
+      ...rep.excluded.map((m) => m.rel),
+    ]);
     for (const rel of Object.keys(files)) {
-      const bad = rep.missing.some((m) => m.rel === rel) || rep.wrongSize.some((m) => m.rel === rel)
-        || rep.excluded.some((m) => m.rel === rel);
-      if (!bad) verifiedElsewhere.add(rel);
+      if (!bad.has(rel)) verifiedElsewhere.add(rel);
     }
 
     const missingList = rep.missing.map((m) => `${m.rel}\t${m.status || 'net'}\t${m.url}${m.error ? `\t${m.error}` : ''}`).join('\n');
