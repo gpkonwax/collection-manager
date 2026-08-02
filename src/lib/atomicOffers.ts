@@ -7,6 +7,7 @@
 import { ATOMIC_API } from '@/lib/waxConfig';
 import { fetchWithFallback } from '@/lib/fetchWithFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
+import { normalizeGpkVariant } from '@/lib/gpkVariant';
 
 export type OfferState = 0 | 1 | 2 | 3 | 4 | 5;
 
