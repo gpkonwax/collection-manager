@@ -11,6 +11,7 @@ import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { useToast } from '@/hooks/use-toast';
 import { useGpkAtomicAssets } from '@/hooks/useGpkAtomicAssets';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
+import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import type { Session } from '@wharfkit/session';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import {
@@ -276,6 +277,8 @@ export function TradeComposerDialog({
   const [theirSelected, setTheirSelected] = useState<Set<string>>(new Set());
   const [memo, setMemo] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successTxId, setSuccessTxId] = useState<string | null>(null);
 
   // Reset state whenever the dialog is (re)opened with fresh props.
   useEffect(() => {
@@ -284,6 +287,8 @@ export function TradeComposerDialog({
     setTheirSelected(new Set(initialTheirAssetIds || []));
     setMemo('');
     setSubmitting(false);
+    setSuccessOpen(false);
+    setSuccessTxId(null);
   }, [open, initialMyAssetIds, initialTheirAssetIds]);
 
   const toggleMine  = (id: string) => setMySelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -331,15 +336,22 @@ export function TradeComposerDialog({
       });
 
       if (result.success) {
+        setSuccessTxId(result.txId ?? null);
+        setSuccessOpen(true);
         onSuccess?.(result.txId);
-        onOpenChange(false);
       }
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleSuccessClose = () => {
+    setSuccessOpen(false);
+    onOpenChange(false);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!submitting) onOpenChange(o); }}>
       <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col">
         <DialogHeader>
@@ -413,5 +425,16 @@ export function TradeComposerDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <TransactionSuccessDialog
+      open={successOpen}
+      onOpenChange={handleSuccessClose}
+      title={isCounter ? 'Counter-offer sent!' : 'Trade offer sent!'}
+      description={isCounter
+        ? `You declined the original offer and sent a fresh counter-offer to ${counterparty || 'the other trader'}.`
+        : `Your trade offer was successfully sent to ${counterparty || 'the other trader'}. They can review and accept it in their Trades tab.`}
+      txId={successTxId}
+    />
+    </>
   );
 }
