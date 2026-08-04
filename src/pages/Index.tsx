@@ -3136,6 +3136,7 @@ export default function SimpleAssetsPage() {
         }}
       />
       <TransactionSuccessDialog
+
         open={successDialog.open}
         onOpenChange={(open) => setSuccessDialog(prev => ({ ...prev, open }))}
         title={successDialog.title}
