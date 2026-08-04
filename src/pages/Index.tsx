@@ -2197,6 +2197,21 @@ export default function SimpleAssetsPage() {
                   <RefreshCw className="h-4 w-4 mr-1" />
                   Show Received Cards{hasReceivedCardsToShow ? ` (${receivedCardsCount})` : ''}
                 </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="relative whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text"
+                  onClick={() => setShowTradesDialog(true)}
+                  title={tradesUnread > 0 ? `${tradesUnread} new incoming trade offer${tradesUnread === 1 ? '' : 's'}` : 'Trades'}
+                >
+                  <ArrowLeftRight className="h-4 w-4 mr-1.5" />
+                  Trades
+                  {tradesUnread > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none border-2 border-background">
+                      {tradesUnread > 9 ? '9+' : tradesUnread}
+                    </span>
+                  )}
+                </Button>
               </>
             )}
           </div>
@@ -2224,23 +2239,7 @@ export default function SimpleAssetsPage() {
               <span className="sr-only">GPK Collection Manager Info</span>
             </Button>
 
-            {isConnected && accountName && !isViewing && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative h-8 w-8 p-0 hover:bg-cheese/10"
-                onClick={() => setShowTradesDialog(true)}
-                title={tradesUnread > 0 ? `${tradesUnread} new incoming trade offer${tradesUnread === 1 ? '' : 's'}` : 'Trades'}
-              >
-                <ArrowLeftRight className="h-4 w-4 text-cheese" />
-                {tradesUnread > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-cheese text-cheese-foreground text-[10px] font-bold flex items-center justify-center leading-none">
-                    {tradesUnread > 9 ? '9+' : tradesUnread}
-                  </span>
-                )}
-                <span className="sr-only">Open trades</span>
-              </Button>
-            )}
+
 
 
             {isConnected && accountName && (
