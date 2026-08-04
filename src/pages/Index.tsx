@@ -2152,6 +2152,7 @@ export default function SimpleAssetsPage() {
     );
   };
 
+  const HEADER_BTN_CLASS = 'whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text';
   const receivedCardsCount = packAudit?.assets.length ?? 0;
   const hasReceivedCardsToShow = receivedCardsCount > 0;
   const receivedCardsCategory = packAudit?.category ?? collectionSyncNotice?.category ?? undefined;
