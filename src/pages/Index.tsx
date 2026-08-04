@@ -3016,6 +3016,18 @@ export default function SimpleAssetsPage() {
               <p>• Developed by $CHEESE</p>
               <p>• Free to Use</p>
               <p>• Open Source</p>
+              {isConnected && accountName && (
+                <p>
+                  •{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowDonateDialog(true)}
+                    className="font-semibold text-cheese hover:underline"
+                  >
+                    Donate
+                  </button>
+                </p>
+              )}
             </div>
             <div className="flex items-center justify-center gap-6">
               <button onClick={() => footerRequestNav('https://cheeseonwax.github.io/')} className="flex flex-col items-center gap-1 text-cheese hover:text-cheese/70 transition-colors" title="Website">
@@ -3050,21 +3062,9 @@ export default function SimpleAssetsPage() {
             </div>
           </div>
           <div className="mt-6 pt-4 border-t border-cheese/10 text-[10px] leading-relaxed text-muted-foreground max-w-4xl mx-auto space-y-2">
-
-            <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-              {isConnected && accountName && (
-                <button
-                  type="button"
-                  onClick={() => setShowDonateDialog(true)}
-                  className="shrink-0 text-xs font-semibold text-cheese hover:underline text-left"
-                >
-                  Donate
-                </button>
-              )}
-              <p className="flex-1">
-                <strong className="text-cheese/80">Disclaimer.</strong> The GPK Collection Manager is a free, open-source community tool built by the $CHEESE community on the WAX blockchain. It is hosted on GitHub and incurs no hosting costs, making it durable and independent. It is <strong className="text-cheese/80">not affiliated with, endorsed by, sponsored by, or associated with The Topps Company, Inc., Garbage Pail Kids, WWE, Netflix, Tiger King, GameStop / GameStonk, or any other rights holder</strong>. All trademarks, character names, artwork, and brand assets shown are the property of their respective owners and are displayed solely as on-chain metadata of NFTs that users already own on WAX. No Topps, WWE, Netflix, Tiger King, or GameStop branding, logos, or imagery are used to promote, market, or advertise this tool.
-              </p>
-            </div>
+            <p>
+              <strong className="text-cheese/80">Disclaimer.</strong> The GPK Collection Manager is a free, open-source community tool built by the $CHEESE community on the WAX blockchain. It is hosted on GitHub and incurs no hosting costs, making it durable and independent. It is <strong className="text-cheese/80">not affiliated with, endorsed by, sponsored by, or associated with The Topps Company, Inc., Garbage Pail Kids, WWE, Netflix, Tiger King, GameStop / GameStonk, or any other rights holder</strong>. All trademarks, character names, artwork, and brand assets shown are the property of their respective owners and are displayed solely as on-chain metadata of NFTs that users already own on WAX. No Topps, WWE, Netflix, Tiger King, or GameStop branding, logos, or imagery are used to promote, market, or advertise this tool.
+            </p>
 
             <p>
               This manager does <strong className="text-cheese/80">not mint, sell, or distribute any NFTs or packs</strong>. It deploys <strong className="text-cheese/80">no new smart contracts</strong> — all on-chain actions (pack opening, transfers, burns, claims) are executed against pre-existing public WAX contracts (<code className="text-cheese/80">gpk.topps</code>, AtomicAssets, etc.) using the user's own wallet and signatures. It was built to preserve community access to SimpleAssets pack opening and contract actions after the original front-end infrastructure serving these actions was deprecated, and to showcase and preserve these important assets for the Topps GPK, WAX, and broader digital collectibles communities.
