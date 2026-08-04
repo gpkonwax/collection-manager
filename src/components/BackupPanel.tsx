@@ -174,15 +174,15 @@ export function BackupPanel({ triggerClassName }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           className={cn(
-            'whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8',
+            'whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text',
             triggerClassName,
           )}
           title="Offline image backup"
         >
-          <HardDrive className="h-4 w-4 mr-1" aria-hidden />
+          <HardDrive className="h-4 w-4 mr-1.5" aria-hidden />
           Offline backup
         </Button>
       </DialogTrigger>

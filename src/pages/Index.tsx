@@ -2152,6 +2152,7 @@ export default function SimpleAssetsPage() {
     );
   };
 
+  const HEADER_BTN_CLASS = 'whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text';
   const receivedCardsCount = packAudit?.assets.length ?? 0;
   const hasReceivedCardsToShow = receivedCardsCount > 0;
   const receivedCardsCategory = packAudit?.category ?? collectionSyncNotice?.category ?? undefined;
@@ -2178,36 +2179,36 @@ export default function SimpleAssetsPage() {
                 <Button
                   onClick={handleCollectUnclaimed}
                   disabled={isCollecting}
-                  variant="outline"
+                  variant="default"
                   size="sm"
-                  className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8"
+                  className={HEADER_BTN_CLASS}
                   title="Scan pendingnft.a and claim any cards that were minted but never delivered."
                 >
-                  <RefreshCw className={`h-4 w-4 mr-1 ${isCollecting ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 mr-1.5 ${isCollecting ? 'animate-spin' : ''}`} />
                   {isCollecting ? 'Collecting...' : 'Recover Stuck Cards'}
                 </Button>
                 <Button
                   type="button"
                   onClick={handleShowReceivedCards}
                   disabled={!hasReceivedCardsToShow}
-                  variant="outline"
+                  variant="default"
                   size="sm"
-                  className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10 h-8 disabled:opacity-60"
+                  className={`${HEADER_BTN_CLASS} disabled:opacity-60`}
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" />
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
                   Show Received Cards{hasReceivedCardsToShow ? ` (${receivedCardsCount})` : ''}
                 </Button>
                 <Button
                   variant="default"
                   size="sm"
-                  className="relative whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text"
+                  className={`relative ${HEADER_BTN_CLASS}`}
                   onClick={() => setShowTradesDialog(true)}
                   title={tradesUnread > 0 ? `${tradesUnread} new incoming trade offer${tradesUnread === 1 ? '' : 's'}` : 'Trades'}
                 >
                   <ArrowLeftRight className="h-4 w-4 mr-1.5" />
                   Trades
                   {tradesUnread > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none border-2 border-background">
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-green-500 text-white text-[10px] font-bold flex items-center justify-center leading-none border-2 border-background">
                       {tradesUnread > 9 ? '9+' : tradesUnread}
                     </span>
                   )}
@@ -2220,22 +2221,22 @@ export default function SimpleAssetsPage() {
           <div className="flex items-center gap-2 ml-auto">
             <ImageSourceIndicator />
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
-              className="h-8 w-8 p-0 hover:bg-cheese/10"
+              className={`${HEADER_BTN_CLASS} px-2.5`}
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Switch to Bright skin' : 'Switch to Dark skin'}
             >
-              {theme === 'dark' ? <Sun className="h-4 w-4 text-cheese" /> : <Moon className="h-4 w-4 text-cheese" />}
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               <span className="sr-only">Toggle theme</span>
             </Button>
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
-              className="h-8 w-8 p-0 hover:bg-cheese/10"
+              className={`${HEADER_BTN_CLASS} px-2.5`}
               onClick={() => setShowInfoDialog(true)}
             >
-              <Info className="h-4 w-4 text-cheese" />
+              <Info className="h-4 w-4" />
               <span className="sr-only">GPK Collection Manager Info</span>
             </Button>
 
@@ -2255,10 +2256,10 @@ export default function SimpleAssetsPage() {
             {isConnected && accountName ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="border-cheese/30 hover:border-cheese hover:bg-cheese/10 h-8 gap-2">
-                    <Wallet className="h-4 w-4 text-cheese" />
-                    <span className="max-w-[120px] truncate text-sm">{accountName}</span>
-                    <span className="ml-1 text-cheese font-semibold text-sm">
+                  <Button variant="default" size="sm" className={`${HEADER_BTN_CLASS} gap-2`}>
+                    <Wallet className="h-4 w-4" />
+                    <span className="max-w-[120px] truncate text-sm text-white">{accountName}</span>
+                    <span className="ml-1 font-semibold text-sm">
                       {waxBalance.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} WAX
                     </span>
                     <ChevronDown className="ml-1 h-4 w-4" />
@@ -2313,8 +2314,8 @@ export default function SimpleAssetsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={login} size="sm" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground h-8">
-                <Wallet className="h-4 w-4 mr-1" />
+              <Button onClick={login} size="sm" className={HEADER_BTN_CLASS}>
+                <Wallet className="h-4 w-4 mr-1.5" />
                 Connect Wallet
               </Button>
             )}
