@@ -3016,6 +3016,18 @@ export default function SimpleAssetsPage() {
               <p>• Developed by $CHEESE</p>
               <p>• Free to Use</p>
               <p>• Open Source</p>
+              {isConnected && accountName && (
+                <p>
+                  •{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowDonateDialog(true)}
+                    className="font-semibold text-cheese hover:underline"
+                  >
+                    Donate
+                  </button>
+                </p>
+              )}
             </div>
             <div className="flex items-center justify-center gap-6">
               <button onClick={() => footerRequestNav('https://cheeseonwax.github.io/')} className="flex flex-col items-center gap-1 text-cheese hover:text-cheese/70 transition-colors" title="Website">
