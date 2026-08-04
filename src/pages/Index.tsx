@@ -63,6 +63,7 @@ async function warmDealImagesWithoutBlocking(cards: SimpleAsset[], maxWaitMs = 6
 }
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
+import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 
