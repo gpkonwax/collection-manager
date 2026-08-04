@@ -169,7 +169,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
         <Button
           variant="outline"
           size="sm"
-          className={`h-8 gap-1.5 border-cheese/30 hover:border-cheese hover:bg-cheese/10 ${viewedAccount ? 'border-cheese bg-cheese/10 text-cheese' : 'text-cheese'}`}
+          className="h-9 px-4 gap-1.5 whitespace-nowrap bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text"
           title={viewedAccount ? `Viewing ${viewedAccount}` : 'View another wallet (read-only)'}
         >
           <Eye className="h-4 w-4" />

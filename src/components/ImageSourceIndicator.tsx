@@ -78,9 +78,9 @@ export function ImageSourceIndicator() {
             type="button"
             onClick={openBackupPanel}
             className={cn(
-              'inline-flex items-center gap-1.5 h-8 rounded-md border border-cheese/40',
-              'px-2 text-xs font-medium text-cheese/90 hover:bg-cheese/10 transition-colors',
-              'whitespace-nowrap',
+              'inline-flex items-center gap-1.5 h-9 rounded-md',
+              'px-4 text-sm font-semibold bg-cheese hover:bg-cheese/90 text-cheese-foreground transition-colors',
+              'whitespace-nowrap theme-bright-fill theme-bright-text',
             )}
             aria-label={`Image source status: ${label}. Click to open Offline backup.`}
           >
