@@ -3135,8 +3135,18 @@ export default function SimpleAssetsPage() {
           setSelectedAsset(asset);
         }}
       />
+      <DonateDialog
+        open={showDonateDialog}
+        onOpenChange={setShowDonateDialog}
+        gpkPacks={packs}
+        atomicPacks={atomicPacks}
+        onSuccess={(txId) => {
+          refetchPacks();
+          refetchAtomicPacks();
+          setSuccessDialog({ open: true, title: 'Donation Sent!', description: 'Thank you for supporting the $CHEESE team.', txId });
+        }}
+      />
       <TransactionSuccessDialog
-
         open={successDialog.open}
         onOpenChange={(open) => setSuccessDialog(prev => ({ ...prev, open }))}
         title={successDialog.title}
