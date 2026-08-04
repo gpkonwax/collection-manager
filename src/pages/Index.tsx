@@ -107,6 +107,7 @@ import { CATEGORY_LABELS, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 
 
+const HEADER_BTN_CLASS = 'whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text';
 const EMPTY = '__empty__';
 const EXTRA_EMPTY_SLOTS = 6;
 const ITEMS_PER_PAGE = 36;
@@ -2152,7 +2153,6 @@ export default function SimpleAssetsPage() {
     );
   };
 
-  const HEADER_BTN_CLASS = 'whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text';
   const receivedCardsCount = packAudit?.assets.length ?? 0;
   const hasReceivedCardsToShow = receivedCardsCount > 0;
   const receivedCardsCategory = packAudit?.category ?? collectionSyncNotice?.category ?? undefined;
