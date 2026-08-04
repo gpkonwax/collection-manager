@@ -273,6 +273,7 @@ export default function SimpleAssetsPage() {
   const { assets: aaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(effectiveAccount);
   const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(effectiveAccount);
   const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(effectiveAccount);
+  const [showDonateDialog, setShowDonateDialog] = useState(false);
 
   const { executeRawTransaction, executeTransaction } = useWaxTransaction(session);
 
