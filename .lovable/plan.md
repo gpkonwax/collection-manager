@@ -15,7 +15,26 @@ Add five more classic GPK puzzles to the Puzzle Builder, built from the scanned 
 
 Card numbers used per puzzle are hard-coded from the site's puzzle reference sheets (`puzzleback_18numbers_os2LM.jpg`, `..._os3SS.jpg`, `..._os3MM.jpg`, `puzzleback_os4.png`, `os5_orangepuzzle.png`, `os5_purplepuzzle.png`). Each list will be checked against the live image URLs during the build so no piece 404s.
 
-Assumption to confirm while building: for OS3 and OS5 the `a` backs form the first puzzle and the `b` backs the second. If a spot-check of the reference sheets says otherwise, the lists get swapped — nothing else changes.
+The OS5 orange reference sheet confirms the split: its 21 pieces are all `A` cards (194A, 186A, 198A, 169A, …), so `a` backs form the first puzzle of a pair and `b` backs the second. The same check gets applied to OS3 before the lists are locked in.
+
+## Completed-picture reference
+
+Every puzzle gets its "here is what your completed puzzle will look like" box art, so you can see the target while building:
+
+| Puzzle | Reference image |
+|---|---|
+| OS2 1st printing (existing NFT puzzle) | `/gallery/os2/puzzleback_18numbers_os2LL.jpg` |
+| OS2 2nd/3rd printing | `/gallery/os2/puzzleback_18numbers_os2LM.jpg` |
+| OS3 A (blue) | `/gallery/os3/puzzleback_18numbers_os3SS.jpg` |
+| OS3 B (yellow) | `/gallery/os3/puzzleback_18numbers_os3MM.jpg` |
+| OS4 (green) | `/gallery/os4/backs/puzzleback_os4.png` |
+| OS5 D (orange) | `/gallery/os5/backs/os5_orangepuzzle.png` |
+| OS5 E (purple) | `/gallery/os5/backs/os5_purplepuzzle.png` |
+
+- Shown as a small thumbnail in the toolbar next to the puzzle name, with a "Reference" label.
+- Clicking it opens a lightbox with the full sheet — which also lists the exact card numbers in that puzzle, so it doubles as the checklist.
+- The existing NFT Series 2 puzzle gets the OS2 1st-printing reference too, so the feature is consistent across all seven.
+- The sheets include a grey/blank "picture only" crop on the left and the numbered piece grid on the right; both are part of the same image, so no cropping work is needed.
 
 ## How it behaves
 
@@ -25,6 +44,7 @@ Assumption to confirm while building: for OS3 and OS5 the `a` backs form the fir
 - Each puzzle keeps its own layout in memory, so switching back and forth doesn't lose progress.
 - Save/Load JSON keeps working: the export becomes keyed by puzzle id, and older single-puzzle files still import into the Series 2 NFT puzzle.
 - 21-piece puzzles lay out on a 7×3 default grid; 18-piece ones stay 6×3.
+
 
 ## Technical notes
 
