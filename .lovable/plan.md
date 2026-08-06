@@ -1,49 +1,61 @@
-# Pack Opening History + Replay
+# Selling SimpleAssets for WAX
 
-Give every connected user a personal log of every pack they've opened — when, which pack, and what came out — plus a Replay button that re-runs the full reveal and card-deal experience for any past opening.
+## What the digging found
 
-## What the user sees
+I pulled the live `simpleassets` ABI from WAX and went through every action and table.
 
-- A new **Pack History** button in the header (visible only when a wallet is connected, styled like the other header buttons).
-- A dialog listing past openings, newest first. Each row shows:
-  - Pack artwork + name (e.g. "GPK Series 2A Pack"), SA/AA protocol logo
-  - Date/time opened, card count
-  - A strip of thumbnails of the cards that came out
-  - **Replay** button, and a link to the opening transaction on the explorer
-- Replay runs the same experience as a live open: the reveal dialog (pack tear, per-card reveal, sounds, timing) followed by the card-deal animation dealing cards into the collection grid — no on-chain transaction, no wallet signing.
-- Cards still owned are shown from the live collection. Cards that were in the pack but are no longer in the wallet (traded, burned, transferred) render as a blank placeholder tile in the same slot, so the pack's shape is preserved.
-- Privacy: history is only ever shown for the connected account. When viewing someone else's wallet, the button is hidden.
+**SimpleAssets has no built-in sale mechanism.** Its transfer-related actions are:
 
-## How history is collected
+- `transfer` — move assets, no payment
+- `offer` / `claim` / `canceloffer` — a "gift waiting to be picked up" (owner, newowner, assetids, memo). There is **no price field anywhere**, so the claimer pays nothing
+- `delegate` / `undelegate` — timed lending
+- `burn`, `attach`, `mdupdate`, etc. — nothing money-related
 
-Two sources, merged and de-duplicated by transaction id:
+The fungible side (`offerf`, `transferf`) is the same story: a `quantity` of a token, not a price. So there is no native "sell this card for X WAX" action in the contract itself. Payment must be enforced by something outside SimpleAssets.
 
-1. **Recorded going forward** — every successful open is written to local device storage at the moment the reveal completes. This is instant and complete (includes exact card identities, images, variants).
-2. **Backfilled from the chain** — for openings that happened before this feature (or on another device), query WAX history for the connected account's claim actions and reconstruct each opening. Chain rows give the pack type, timestamp, transaction, and card identifiers; card artwork is resolved through the existing card-image tables.
+There are two realistic ways to do it, and both work today.
 
-Backfill runs once per account on first open of the dialog, with a manual "Refresh from chain" action. If history nodes are unavailable, the locally recorded entries still display, with a note that chain backfill failed.
+### Option A — SimpleMarket (`simplemarket`), the existing CryptoLions marketplace
 
-## Technical notes
-
-**New storage module** `src/lib/packOpenHistory.ts`, mirroring the `stuckPackStorage.ts` pattern (safe read/write JSON, capped list, per-account filter). Key `gpk:packHistory:v1`, cap ~300 entries. Entry shape:
+It's deployed and still functioning on WAX (most recent activity in the last weeks, though volume is very low). Verified flow from on-chain history:
 
 ```text
-{ txId, account, source: 'simpleassets' | 'atomicassets',
-  packSymbolOrTemplateId, packName, packImage,
-  openedAt (ms), matchers: RevealMatcher[],
-  cards: [{ id?, name, image, cardid?, side?, variant?, category?, templateId? }] }
+List:   simpleassets::transfer  owner -> simplemarket
+        memo: {"price":"5.00000000 WAX"}
+Buy:    eosio.token::transfer   buyer -> simplemarket
+        memo: {"nftid":100000020283693,"affiliate_id":200001}
+Cancel: simplemarket::cancel    { owner, assetids[] }
+Reprice: simplemarket::updateprice { saleid, newprice, offerprice, offertime }
+Listings live in the `sells` table (id, owner, author, category, price, offerprice).
 ```
 
-`matchers` reuses the existing `RevealMatcher` union from `src/lib/packReveal.ts`, so replay can re-resolve cards against the live collection with `matchRevealedAssets`; `cards` is the frozen snapshot used for placeholders when an asset is gone.
+Fees observed on a real sale: 1% house + 2% tax + an author fee set per author. The `feestable` scope for `gpk.topps` is **empty**, so GPK cards would carry no author fee — a seller nets roughly 97%.
 
-**Write point**: `handlePackOpened` in `src/pages/Index.tsx`, immediately after all matchers resolve (currently around the `setDealingCards` call) — pack metadata, txId and the matched `SimpleAsset[]` are all in scope there. Also write a partial entry when matchers time out, so nothing is lost.
+Trade-off: the card sits in the marketplace contract's custody while listed, and it's a third-party contract we don't control. Upside: listings are public, so anyone with any wallet or explorer can buy — it's a real open market.
 
-**Chain backfill** `src/lib/packOpenHistoryChain.ts`: a shared Hyperion helper (generalising the endpoint-fallback + AbortController pattern duplicated in `saOffers.ts` and `stuckPackDetect.ts`) querying `v2/history/get_actions` for the account filtered on the claim actions — `gpk.topps:getcards` for SimpleAssets and the AtomicAssets unpack/claim actions per `packOpenActions.ts`. SA rows carry `cardids`, resolved to card identity via the same `resolvePendingGpkCard` path used by the reveal dialog; AA rows resolve template ids through `templateCache`/`templateDataCache`.
+### Option B — WAX-for-cards atomic swap using our existing msig system (recommended)
 
-**Replay wiring**:
-- New `src/components/simpleassets/PackHistoryDialog.tsx` (list + filters by pack/date) and a `useCards`-side resolver hook that maps a history entry to `{ live: SimpleAsset[], missing: placeholder[] }`.
-- `PackRevealDialog` / `AtomicPackRevealDialog` gain a `replayCards` prop: when supplied they skip chain polling, the claim transaction and the collect button, and drive the existing reveal phases straight from the supplied cards (same timing, audio and animations). This reuses the existing components rather than forking them.
-- On replay finish, feed the resolved list into the existing `dealingCards` / `gridCellRefs` / `CardDealAnimation` path exactly as a live open does. Missing cards deal as placeholder tiles (reusing `MissingCardPlaceholder`) that land in a temporary slot rather than a grid cell.
-- Replay is blocked while a live open or deal animation is in flight.
+We already run SimpleAssets P2P trades through `eosio.msig` in `src/lib/saTradeActions.ts`: one proposal holding both sides' transfers, executing only when both parties approve. Adding WAX to a side is a one-line conceptual change — swap in an `eosio.token::transfer` action alongside the `simpleassets::transfer`:
 
-**Out of scope**: history for other people's wallets, cross-device sync, and any on-chain writes.
+```text
+proposal trx:
+  simpleassets::transfer  seller -> buyer   [assetids]
+  eosio.token::transfer   buyer  -> seller  "25.00000000 WAX"
+```
+
+Nothing leaves either wallet until both sign, no escrow contract, no marketplace fees, and it reuses the composer, offers list, counter-offer, supersession and expiry logic we already built. It also covers `packs.topps` pack tokens for WAX with the same shape.
+
+Trade-off: it's a private offer between two named accounts, not a public listing — a buyer has to be found first (same as our current card-for-card trades).
+
+## Recommendation
+
+Build Option B first: add WAX as an asset type inside the existing trade composer ("You send: 2 cards" / "They send back: 25 WAX"), since it's a small, self-contained extension of code that already works and carries no fees or custody risk. Option A can be layered on later as a public "List for sale" surface if you want open-market discovery.
+
+## Technical notes for Option B
+
+- `src/lib/saTradeActions.ts`: add `buildWaxTransferAction(from, to, amount, memo)` targeting `eosio.token::transfer` with `quantity: "N.00000000 WAX"` (8-decimal precision), and accept `myWax` / `theirWax` in `buildSwapTransactionObject` and `buildSaSwapActions` alongside the existing `myPacks` / `theirPacks`.
+- `validateSaOffer`: allow a side that contains only WAX; require at least one non-WAX item overall so it isn't just a payment; enforce a sane min (e.g. 0.1 WAX) and a max, and reject WAX on both sides.
+- Preflight: `describeResourceProblem(..., { requiresWax })` in `src/lib/accountResources.ts` already exists — use it to warn the payer before signing, and re-check the payer's liquid balance when the offer is *accepted* (balance can drop between propose and exec, which would make `exec` fail with "overdrawn balance").
+- `src/lib/saOffers.ts`: the proposal decoder needs to recognise `eosio.token::transfer` actions and surface the amount so received/sent offers show "+25 WAX" on the correct side.
+- `src/components/TradeComposerDialog.tsx`: a WAX amount input per side, rendered as a chip in the same strip as card and pack tiles, with the standard "You send / They send back" wording.
+- `src/components/TradesDialog.tsx`: show the WAX leg in both the received and sent views, and in the counter-offer flow.
