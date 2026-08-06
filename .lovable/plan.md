@@ -48,7 +48,8 @@ Every puzzle gets its "here is what your completed puzzle will look like" box ar
 
 ## Technical notes
 
-- New `src/lib/extraPuzzles.ts`: a `ExtraPuzzle` type (`id`, `name`, `series`, `subtitle`, `pieceCount`, `pieces: { key, url }[]`) and a `EXTRA_PUZZLES` array with the six definitions, URLs built from geepeekay.com paths above.
+- New `src/lib/extraPuzzles.ts`: a `ExtraPuzzle` type (`id`, `name`, `series`, `subtitle`, `pieceCount`, `referenceUrl`, `pieces: { key, url }[]`) and a `EXTRA_PUZZLES` array with the six definitions, URLs built from geepeekay.com paths above. The existing NFT puzzle gets a `referenceUrl` constant alongside it.
+- Reference thumbnail is a small `<img>` button in the toolbar opening a shadcn `Dialog` with the full-size sheet (`max-h-[85vh] object-contain`), so it never overflows.
 - `PuzzleBuilder.tsx` is generalised from "assets" to a piece list: an internal `PuzzlePiece = { key: string; imageUrl: string }` derived either from the NFT assets (current path, key = cardid) or from an `ExtraPuzzle`. Drag/rotate/scramble/timer logic is untouched.
 - Add `activePuzzleId` state plus a `Map<puzzleId, Map<key, PieceState>>` so layouts persist per puzzle within the session.
 - Unlock gate: `puzzleAssets.length >= TOTAL_PUZZLE_PIECES` (already computed) drives whether the selector is enabled.
