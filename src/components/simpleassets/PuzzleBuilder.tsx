@@ -1,10 +1,13 @@
 import { useState, useCallback, useRef, useEffect, useMemo, PointerEvent as RPointerEvent, type ReactNode } from 'react';
-import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen, X } from 'lucide-react';
+import { RotateCw, RotateCcw, Shuffle, Timer, Flag, Puzzle, BookOpen, X, Image as ImageIcon, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
+import { EXTRA_PUZZLES, NFT_SERIES2_REFERENCE_URL, getExtraPuzzle } from '@/lib/extraPuzzles';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
@@ -34,6 +37,17 @@ interface PuzzleBuilderProps {
 }
 
 const TOTAL_PUZZLE_PIECES = 18;
+const NFT_PUZZLE_ID = 'nft';
+
+/** A single draggable tile on the canvas, from either an NFT or a static image */
+interface CanvasPiece {
+  key: string;
+  label: string;
+  /** IPFS-backed url (NFT puzzle) */
+  ipfsUrl?: string | null;
+  /** Plain https url (extra puzzles) */
+  imageUrl?: string;
+}
 
 function isPuzzlePiece(asset: SimpleAsset): boolean {
   if (!asset.cardid) return false;
@@ -59,67 +73,120 @@ function getCardId(asset: SimpleAsset): number {
   return typeof asset.cardid === 'string' ? parseInt(asset.cardid, 10) : (asset.cardid ?? 0);
 }
 
-function buildDefaultLayout(puzzleAssets: SimpleAsset[]): Map<string, PieceState> {
+function columnsFor(count: number): number {
+  return count > 18 ? 7 : 6;
+}
+
+function buildDefaultLayout(pieces: CanvasPiece[]): Map<string, PieceState> {
   const m = new Map<string, PieceState>();
-  const cols = 6;
-  puzzleAssets.forEach((a, i) => {
-    m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
+  const cols = columnsFor(pieces.length);
+  pieces.forEach((p, i) => {
+    m.set(p.key, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
   });
   return m;
 }
 
-function applyImportedState(puzzleAssets: SimpleAsset[], imported: PuzzlePieceMap): Map<string, PieceState> {
+function applyImportedState(pieces: CanvasPiece[], imported: PuzzlePieceMap, keyOf: (p: CanvasPiece) => string): Map<string, PieceState> {
   const m = new Map<string, PieceState>();
-  const cols = 6;
-  puzzleAssets.forEach((a, i) => {
-    const cid = String(getCardId(a));
-    const saved = imported[cid];
+  const cols = columnsFor(pieces.length);
+  pieces.forEach((p, i) => {
+    const saved = imported[keyOf(p)];
     if (saved) {
-      m.set(a.id, { x: saved.x, y: saved.y, rotation: saved.rotation });
+      m.set(p.key, { x: saved.x, y: saved.y, rotation: saved.rotation });
     } else {
-      m.set(a.id, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
+      m.set(p.key, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
     }
   });
   return m;
-}
-
-/** Convert internal Map<assetId, PieceState> to portable Record<cardid, PieceState> */
-function toCardIdMap(pieces: Map<string, PieceState>, puzzleAssets: SimpleAsset[]): PuzzlePieceMap {
-  const result: PuzzlePieceMap = {};
-  for (const a of puzzleAssets) {
-    const s = pieces.get(a.id);
-    if (s) result[String(getCardId(a))] = s;
-  }
-  return result;
 }
 
 export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder, jsonMenuSlot }: PuzzleBuilderProps) {
   const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
+  const nftUnlocked = puzzleAssets.length >= TOTAL_PUZZLE_PIECES;
+
+  const [activeId, setActiveId] = useState<string>(NFT_PUZZLE_ID);
+  const activePuzzle = activeId === NFT_PUZZLE_ID ? null : getExtraPuzzle(activeId);
+
+  /** cardid map for the NFT puzzle (portable/export shape) */
+  const nftCardIdByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of puzzleAssets) m.set(a.id, String(getCardId(a)));
+    return m;
+  }, [puzzleAssets]);
+
+  const canvasPieces: CanvasPiece[] = useMemo(() => {
+    if (activePuzzle) {
+      return activePuzzle.pieces.map(p => ({ key: p.key, label: p.label, imageUrl: p.url }));
+    }
+    return puzzleAssets.map(a => {
+      const cardid = getCardId(a);
+      return { key: a.id, label: String(cardid), ipfsUrl: buildGpkCardBackUrl('gpktwoeight', cardid) };
+    });
+  }, [activePuzzle, puzzleAssets]);
+
+  const keyToCardId = useCallback((p: CanvasPiece) => nftCardIdByKey.get(p.key) ?? p.key, [nftCardIdByKey]);
 
   const [pieces, setPieces] = useState<Map<string, PieceState>>(() => {
+    const initialPieces: CanvasPiece[] = puzzleAssets.map(a => ({ key: a.id, label: '' }));
     if (initialPieceState && Object.keys(initialPieceState).length > 0) {
-      return applyImportedState(puzzleAssets, initialPieceState);
+      const cardIdMap = new Map(puzzleAssets.map(a => [a.id, String(getCardId(a))]));
+      return applyImportedState(initialPieces, initialPieceState, p => cardIdMap.get(p.key) ?? p.key);
     }
-    return buildDefaultLayout(puzzleAssets);
+    return buildDefaultLayout(initialPieces);
   });
 
-  // Re-apply when initialPieceState changes (e.g. new import)
+  /** Per-puzzle layout memory so switching back and forth keeps progress */
+  const layoutsRef = useRef<Map<string, Map<string, PieceState>>>(new Map());
+
+  const referenceUrl = activePuzzle ? activePuzzle.referenceUrl : NFT_SERIES2_REFERENCE_URL;
+  const [referenceOpen, setReferenceOpen] = useState(false);
+
+  // Report changes to parent (export only tracks the NFT puzzle)
+  const notifyParent = useCallback((map: Map<string, PieceState>) => {
+    if (activeId !== NFT_PUZZLE_ID) return;
+    const result: PuzzlePieceMap = {};
+    for (const [key, state] of map) {
+      const cid = nftCardIdByKey.get(key);
+      if (cid) result[cid] = state;
+    }
+    onPiecesChange?.(result);
+  }, [activeId, nftCardIdByKey, onPiecesChange]);
+
+  // Re-apply when initialPieceState changes (e.g. new import) — always targets the NFT puzzle
   const prevInitial = useRef(initialPieceState);
   useEffect(() => {
     if (initialPieceState !== prevInitial.current) {
       prevInitial.current = initialPieceState;
       if (initialPieceState && Object.keys(initialPieceState).length > 0) {
-        const next = applyImportedState(puzzleAssets, initialPieceState);
+        const nftPieces: CanvasPiece[] = puzzleAssets.map(a => ({ key: a.id, label: '' }));
+        const next = applyImportedState(nftPieces, initialPieceState, p => nftCardIdByKey.get(p.key) ?? p.key);
+        layoutsRef.current.set(NFT_PUZZLE_ID, next);
+        setActiveId(NFT_PUZZLE_ID);
         setPieces(next);
-        onPiecesChange?.(toCardIdMap(next, puzzleAssets));
+        const result: PuzzlePieceMap = {};
+        for (const [key, state] of next) {
+          const cid = nftCardIdByKey.get(key);
+          if (cid) result[cid] = state;
+        }
+        onPiecesChange?.(result);
       }
     }
-  }, [initialPieceState, puzzleAssets, onPiecesChange]);
+  }, [initialPieceState, puzzleAssets, nftCardIdByKey, onPiecesChange]);
 
-  // Report changes to parent
-  const notifyParent = useCallback((map: Map<string, PieceState>) => {
-    onPiecesChange?.(toCardIdMap(map, puzzleAssets));
-  }, [onPiecesChange, puzzleAssets]);
+  const handleSelectPuzzle = useCallback((nextId: string) => {
+    if (nextId === activeId) return;
+    setPieces(current => {
+      layoutsRef.current.set(activeId, current);
+      return current;
+    });
+    const saved = layoutsRef.current.get(nextId);
+    const nextPuzzle = nextId === NFT_PUZZLE_ID ? null : getExtraPuzzle(nextId);
+    const nextPieces: CanvasPiece[] = nextPuzzle
+      ? nextPuzzle.pieces.map(p => ({ key: p.key, label: p.label }))
+      : puzzleAssets.map(a => ({ key: a.id, label: '' }));
+    setActiveId(nextId);
+    setPieces(saved ?? buildDefaultLayout(nextPieces));
+  }, [activeId, puzzleAssets]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
@@ -201,15 +268,18 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   }, [notifyParent]);
 
   const handleSaveJson = useCallback(() => {
-    const data = toCardIdMap(pieces, puzzleAssets);
+    const data: PuzzlePieceMap = {};
+    for (const [key, state] of pieces) {
+      data[activeId === NFT_PUZZLE_ID ? (nftCardIdByKey.get(key) ?? key) : key] = state;
+    }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'puzzle-layout.json';
+    a.download = `puzzle-layout-${activeId}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [pieces, puzzleAssets]);
+  }, [pieces, activeId, nftCardIdByKey]);
 
   const handleLoadJson = useCallback(() => {
     fileInputRef.current?.click();
@@ -222,7 +292,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result as string) as PuzzlePieceMap;
-        const next = applyImportedState(puzzleAssets, data);
+        const next = applyImportedState(canvasPieces, data, activeId === NFT_PUZZLE_ID ? keyToCardId : (p) => p.key);
         setPieces(next);
         notifyParent(next);
         setLoadedFileName(file.name);
@@ -233,14 +303,14 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     reader.readAsText(file);
     // Reset so same file can be re-loaded
     e.target.value = '';
-  }, [puzzleAssets, notifyParent]);
+  }, [canvasPieces, activeId, keyToCardId, notifyParent]);
 
   const handleClearJson = useCallback(() => {
-    const next = buildDefaultLayout(puzzleAssets);
+    const next = buildDefaultLayout(canvasPieces);
     setPieces(next);
     notifyParent(next);
     setLoadedFileName(null);
-  }, [puzzleAssets, notifyParent]);
+  }, [canvasPieces, notifyParent]);
 
   const scramble = useCallback(() => {
     const canvasW = canvasRef.current?.clientWidth ?? 800;
@@ -265,7 +335,45 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     }
   }, [notifyParent, timerEnabled]);
 
-  if (puzzleAssets.length < TOTAL_PUZZLE_PIECES) {
+  const referenceControl = (
+    <>
+      <button
+        type="button"
+        onClick={() => setReferenceOpen(true)}
+        className="flex items-center gap-2 rounded-md border border-cheese/30 bg-muted/40 px-2 py-1 hover:border-cheese transition-colors"
+        title="See what the completed puzzle looks like"
+      >
+        <img
+          src={referenceUrl}
+          alt="Completed puzzle reference"
+          loading="lazy"
+          className="h-8 w-8 rounded object-cover"
+        />
+        <span className="text-xs font-medium text-cheese flex items-center gap-1">
+          <ImageIcon className="h-3 w-3" /> Reference
+        </span>
+      </button>
+      <Dialog open={referenceOpen} onOpenChange={setReferenceOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              {activePuzzle ? `${activePuzzle.series} — ${activePuzzle.name}` : 'OS2 — Leaky Lindsay / Messy Tessie'}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              The completed picture and the exact card numbers needed to build it.
+            </DialogDescription>
+          </DialogHeader>
+          <img
+            src={referenceUrl}
+            alt="Completed puzzle reference sheet"
+            className="w-full max-h-[75vh] object-contain rounded-md"
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
+  if (!nftUnlocked) {
     return (
       <div className="text-center py-16 space-y-4">
         <div className="mx-auto h-20 w-20 rounded-full bg-cheese/10 flex items-center justify-center">
@@ -276,6 +384,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         </p>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
           Collect all {TOTAL_PUZZLE_PIECES} Series 2 puzzle pieces to unlock the Puzzle Builder. Once unlocked, your collected pieces auto-populate onto the canvas. Check the Collection Binder to see which pieces you're missing!
+        </p>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto flex items-center justify-center gap-1.5">
+          <Lock className="h-3.5 w-3.5" />
+          {EXTRA_PUZZLES.length} classic GPK puzzles (OS2 2nd/3rd printing, OS3, OS4, OS5) unlock with it.
         </p>
         {onSwitchToBinder && (
           <Button
@@ -294,8 +406,30 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={activeId} onValueChange={handleSelectPuzzle}>
+            <SelectTrigger className="w-[280px] border-cheese/30 text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectGroup>
+                <SelectLabel>Your NFTs</SelectLabel>
+                <SelectItem value={NFT_PUZZLE_ID}>Series 2 — Leaky Lindsay / Messy Tessie (18)</SelectItem>
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>Classic GPK puzzles</SelectLabel>
+                {EXTRA_PUZZLES.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.series} — {p.name} ({p.pieces.length})
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          {referenceControl}
+        </div>
         <p className="text-sm text-muted-foreground">
-          {puzzleAssets.length} puzzle piece{puzzleAssets.length !== 1 ? 's' : ''} · Drag to position · Click arrows to rotate 90°
+          {canvasPieces.length} piece{canvasPieces.length !== 1 ? 's' : ''} · Drag to position · Click arrows to rotate 90°
         </p>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -349,7 +483,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               </button>
             </span>
           )}
-          {jsonMenuSlot ? (
+          {jsonMenuSlot && activeId === NFT_PUZZLE_ID ? (
             jsonMenuSlot
           ) : (
             <>
@@ -399,15 +533,13 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        {puzzleAssets.map(asset => {
-          const s = getState(asset.id);
-          const cardid = getCardId(asset);
-          const backUrl = buildGpkCardBackUrl('gpktwoeight', cardid);
-          const isSelected = selectedId === asset.id;
+        {canvasPieces.map(piece => {
+          const s = getState(piece.key);
+          const isSelected = selectedId === piece.key;
 
           return (
             <div
-              key={asset.id}
+              key={piece.key}
               className={`absolute select-none group ${isSelected ? 'z-50 hover:z-50' : 'z-10 hover:z-40'}`}
               style={{
                 left: s.x,
@@ -415,7 +547,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                 width: 120,
                 height: 168,
               }}
-              onClick={() => setSelectedId(asset.id)}
+              onClick={() => setSelectedId(piece.key)}
             >
               <div
                 className="absolute inset-0 cursor-grab active:cursor-grabbing"
@@ -423,13 +555,21 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                   transform: `rotate(${s.rotation}deg)`,
                   transformOrigin: 'center center',
                 }}
-                onPointerDown={(e) => handlePointerDown(asset.id, e)}
+                onPointerDown={(e) => handlePointerDown(piece.key, e)}
               >
                 <div className={`w-full h-full rounded-md overflow-hidden border-2 transition-colors ${isSelected ? 'border-cheese shadow-lg shadow-cheese/20' : 'border-border'}`}>
-                  {backUrl ? (
+                  {piece.imageUrl ? (
+                    <img
+                      src={piece.imageUrl}
+                      alt={`Puzzle piece ${piece.label}`}
+                      loading="lazy"
+                      draggable={false}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  ) : piece.ipfsUrl ? (
                     <IpfsMedia
-                      url={backUrl}
-                      alt={`Card ${cardid}`}
+                      url={piece.ipfsUrl}
+                      alt={`Card ${piece.label}`}
                       className="w-full h-full object-cover pointer-events-none"
                       context="card"
                       loading="eager"
@@ -447,7 +587,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                   size="icon"
                   variant="outline"
                   className="h-6 w-6 bg-background border-border"
-                  onClick={(e) => { e.stopPropagation(); rotate(asset.id, 'ccw'); }}
+                  onClick={(e) => { e.stopPropagation(); rotate(piece.key, 'ccw'); }}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <RotateCcw className="h-3 w-3" />
@@ -456,7 +596,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                   size="icon"
                   variant="outline"
                   className="h-6 w-6 bg-background border-border"
-                  onClick={(e) => { e.stopPropagation(); rotate(asset.id, 'cw'); }}
+                  onClick={(e) => { e.stopPropagation(); rotate(piece.key, 'cw'); }}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <RotateCw className="h-3 w-3" />
