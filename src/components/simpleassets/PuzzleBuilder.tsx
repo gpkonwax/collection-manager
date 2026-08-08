@@ -191,7 +191,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       prevInitial.current = initialPieceState;
       if (initialPieceState && Object.keys(initialPieceState).length > 0) {
         const nftPieces: CanvasPiece[] = puzzleAssets.map(a => ({ key: a.id, label: '' }));
-        const next = applyImportedState(nftPieces, initialPieceState, p => nftCardIdByKey.get(p.key) ?? p.key);
+        const next = applyImportedState(nftPieces, initialPieceState, p => nftCardIdByKey.get(p.key) ?? p.key, PORTRAIT_FRAME);
         layoutsRef.current.set(NFT_PUZZLE_ID, next);
         setActiveId(NFT_PUZZLE_ID);
         setPieces(next);
