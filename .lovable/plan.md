@@ -1,29 +1,28 @@
-# Fix piece orientation in the classic puzzles
+# Fix cropped/misfitted classic puzzle pieces
 
 ## What's wrong
 
-The classic (geepeekay) puzzle artwork is already landscape — every scan is 350x250 wide. The Puzzle Builder was built for the NFT Series 2 pieces, which are portrait card backs that must be rotated 90 degrees to lie down. That portrait-first behaviour is applied to every puzzle:
+The classic (geepeekay) puzzle scans are landscape — every piece image is 350x250. The Puzzle Builder renders every piece in a fixed **portrait** 120x168 frame with `object-cover`, because it was built for the NFT Series 2 pieces (portrait card backs rotated 90 degrees).
 
-- each piece starts at rotation 90
-- each piece sits in a fixed 120x168 portrait frame with `object-cover`
-
-For the classic puzzles this both stands the artwork on its end and crops the landscape scan into a portrait box, so pieces can never line up.
+So a landscape classic scan is squeezed into a portrait box and centre-cropped: the left and right edges of the artwork are cut off — literally half the puzzle piece is missing — and the visible sliver can never line up with its neighbours.
 
 ## The fix
 
-Make the piece frame and default rotation depend on the puzzle's native artwork orientation.
+Match the piece frame to the artwork's real orientation, and stop cropping.
 
-- Classic puzzles (OS2 2nd/3rd, OS3 A/B, OS4, OS5 D/E): landscape frame 168x120, default rotation 0, so pieces load already lying down and fitted edge to edge.
+- Classic puzzles (OS2 2nd/3rd, OS3 A/B, OS4, OS5 D/E): render in a **landscape** 168x120 frame at default rotation 0, so the whole 350x250 scan is shown edge to edge with nothing cut off.
 - NFT Series 2 puzzle: unchanged — portrait 120x168 frame, default rotation 90.
+- Use a fit that preserves the full image for the classic pieces so no edge is ever clipped.
 
-Also updated to match:
-- The default grid spacing when laying pieces out uses the frame size for the active puzzle, so landscape pieces don't overlap.
-- Scramble keeps offering all four rotations (still a puzzle), but stays inside the canvas using the active frame size.
-- Saved per-puzzle layouts and imported JSON keep working; a saved rotation always wins over the default.
+Also updated to stay consistent:
+- Default layout spacing uses the active puzzle's frame size, so landscape pieces don't overlap on load.
+- Scramble stays inside the canvas using the active frame size.
+- Saved per-puzzle layouts and imported JSON keep working; a saved position/rotation still wins over the default.
 
 ## Technical notes
 
 In `src/components/simpleassets/PuzzleBuilder.tsx`:
-- Add an orientation-derived `pieceW` / `pieceH` and `defaultRotation` from the active puzzle (extra puzzle = landscape, NFT = portrait).
-- Thread those through `buildDefaultLayout`, `applyImportedState`, `handleClearJson`, `scramble`, and the piece render style instead of the current hard-coded 120/168/rotation 90 values.
-- No change to `src/lib/extraPuzzles.ts` URLs — the artwork itself is correct.
+- Derive `pieceW` / `pieceH` and `defaultRotation` from the active puzzle (extra puzzle = landscape 168x120 / 0, NFT = portrait 120x168 / 90).
+- Thread those through `buildDefaultLayout`, `applyImportedState`, `handleClearJson`, `scramble`, and the piece wrapper style in place of the hard-coded 120/168/rotation-90 values.
+- Ensure the classic `<img>` shows the full scan rather than a cropped fill.
+- No change to `src/lib/extraPuzzles.ts` — the source artwork is correct.
