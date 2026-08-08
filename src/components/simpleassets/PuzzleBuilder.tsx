@@ -161,9 +161,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     const initialPieces: CanvasPiece[] = puzzleAssets.map(a => ({ key: a.id, label: '' }));
     if (initialPieceState && Object.keys(initialPieceState).length > 0) {
       const cardIdMap = new Map(puzzleAssets.map(a => [a.id, String(getCardId(a))]));
-      return applyImportedState(initialPieces, initialPieceState, p => cardIdMap.get(p.key) ?? p.key);
+      return applyImportedState(initialPieces, initialPieceState, p => cardIdMap.get(p.key) ?? p.key, PORTRAIT_FRAME);
     }
-    return buildDefaultLayout(initialPieces);
+    return buildDefaultLayout(initialPieces, PORTRAIT_FRAME);
+
   });
 
   /** Per-puzzle layout memory so switching back and forth keeps progress */
