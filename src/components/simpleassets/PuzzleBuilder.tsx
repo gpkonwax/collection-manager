@@ -324,7 +324,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result as string) as PuzzlePieceMap;
-        const next = applyImportedState(canvasPieces, data, activeId === NFT_PUZZLE_ID ? keyToCardId : (p) => p.key);
+        const next = applyImportedState(canvasPieces, data, activeId === NFT_PUZZLE_ID ? keyToCardId : (p) => p.key, frameFor(activeId));
         setPieces(next);
         notifyParent(next);
         setLoadedFileName(file.name);
