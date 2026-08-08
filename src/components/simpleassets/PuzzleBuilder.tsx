@@ -337,26 +337,30 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     e.target.value = '';
   }, [canvasPieces, activeId, keyToCardId, notifyParent]);
 
+  const frame = frameFor(activeId);
+
   const handleClearJson = useCallback(() => {
-    const next = buildDefaultLayout(canvasPieces);
+    const next = buildDefaultLayout(canvasPieces, frameFor(activeId));
     setPieces(next);
     notifyParent(next);
     setLoadedFileName(null);
-  }, [canvasPieces, notifyParent]);
+  }, [canvasPieces, activeId, notifyParent]);
 
   const scramble = useCallback(() => {
     const canvasW = canvasRef.current?.clientWidth ?? 800;
     const canvasH = canvasRef.current?.clientHeight ?? 500;
+    const f = frameFor(activeId);
     const rotations = [0, 90, 180, 270];
     setPieces(prev => {
       const next = new Map(prev);
       for (const [id] of next) {
         next.set(id, {
-          x: Math.floor(Math.random() * Math.max(canvasW - 140, 100)),
-          y: Math.floor(Math.random() * Math.max(canvasH - 190, 100)),
+          x: Math.floor(Math.random() * Math.max(canvasW - (f.w + 20), 100)),
+          y: Math.floor(Math.random() * Math.max(canvasH - (f.h + 22), 100)),
           rotation: rotations[Math.floor(Math.random() * 4)],
         });
       }
+
       notifyParent(next);
       return next;
     });
