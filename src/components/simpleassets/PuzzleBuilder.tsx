@@ -77,28 +77,59 @@ function columnsFor(count: number): number {
   return count > 18 ? 7 : 6;
 }
 
-function buildDefaultLayout(pieces: CanvasPiece[]): Map<string, PieceState> {
+/** Frame geometry per puzzle artwork orientation */
+interface PieceFrame {
+  w: number;
+  h: number;
+  defaultRotation: number;
+  /** Extra puzzle scans are landscape and must never be cropped */
+  contain: boolean;
+}
+
+/** NFT Series 2 pieces are portrait card backs that lie down when rotated 90deg */
+const PORTRAIT_FRAME: PieceFrame = { w: 120, h: 168, defaultRotation: 90, contain: false };
+/** Classic geepeekay scans are already landscape (350x250) */
+const LANDSCAPE_FRAME: PieceFrame = { w: 168, h: 120, defaultRotation: 0, contain: true };
+
+function frameFor(puzzleId: string): PieceFrame {
+  return puzzleId === NFT_PUZZLE_ID ? PORTRAIT_FRAME : LANDSCAPE_FRAME;
+}
+
+function defaultSlot(index: number, count: number, frame: PieceFrame): PieceState {
+  const cols = columnsFor(count);
+  return {
+    x: 20 + (index % cols) * (frame.w + 30),
+    y: 20 + Math.floor(index / cols) * (frame.h + 42),
+    rotation: frame.defaultRotation,
+  };
+}
+
+function buildDefaultLayout(pieces: CanvasPiece[], frame: PieceFrame): Map<string, PieceState> {
   const m = new Map<string, PieceState>();
-  const cols = columnsFor(pieces.length);
   pieces.forEach((p, i) => {
-    m.set(p.key, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
+    m.set(p.key, defaultSlot(i, pieces.length, frame));
   });
   return m;
 }
 
-function applyImportedState(pieces: CanvasPiece[], imported: PuzzlePieceMap, keyOf: (p: CanvasPiece) => string): Map<string, PieceState> {
+function applyImportedState(
+  pieces: CanvasPiece[],
+  imported: PuzzlePieceMap,
+  keyOf: (p: CanvasPiece) => string,
+  frame: PieceFrame,
+): Map<string, PieceState> {
   const m = new Map<string, PieceState>();
-  const cols = columnsFor(pieces.length);
   pieces.forEach((p, i) => {
     const saved = imported[keyOf(p)];
     if (saved) {
       m.set(p.key, { x: saved.x, y: saved.y, rotation: saved.rotation });
     } else {
-      m.set(p.key, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
+      m.set(p.key, defaultSlot(i, pieces.length, frame));
     }
   });
   return m;
 }
+
 
 export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder, jsonMenuSlot }: PuzzleBuilderProps) {
   const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
@@ -130,9 +161,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     const initialPieces: CanvasPiece[] = puzzleAssets.map(a => ({ key: a.id, label: '' }));
     if (initialPieceState && Object.keys(initialPieceState).length > 0) {
       const cardIdMap = new Map(puzzleAssets.map(a => [a.id, String(getCardId(a))]));
-      return applyImportedState(initialPieces, initialPieceState, p => cardIdMap.get(p.key) ?? p.key);
+      return applyImportedState(initialPieces, initialPieceState, p => cardIdMap.get(p.key) ?? p.key, PORTRAIT_FRAME);
     }
-    return buildDefaultLayout(initialPieces);
+    return buildDefaultLayout(initialPieces, PORTRAIT_FRAME);
+
   });
 
   /** Per-puzzle layout memory so switching back and forth keeps progress */
@@ -159,7 +191,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       prevInitial.current = initialPieceState;
       if (initialPieceState && Object.keys(initialPieceState).length > 0) {
         const nftPieces: CanvasPiece[] = puzzleAssets.map(a => ({ key: a.id, label: '' }));
-        const next = applyImportedState(nftPieces, initialPieceState, p => nftCardIdByKey.get(p.key) ?? p.key);
+        const next = applyImportedState(nftPieces, initialPieceState, p => nftCardIdByKey.get(p.key) ?? p.key, PORTRAIT_FRAME);
         layoutsRef.current.set(NFT_PUZZLE_ID, next);
         setActiveId(NFT_PUZZLE_ID);
         setPieces(next);
@@ -185,7 +217,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       ? nextPuzzle.pieces.map(p => ({ key: p.key, label: p.label }))
       : puzzleAssets.map(a => ({ key: a.id, label: '' }));
     setActiveId(nextId);
-    setPieces(saved ?? buildDefaultLayout(nextPieces));
+    setPieces(saved ?? buildDefaultLayout(nextPieces, frameFor(nextId)));
   }, [activeId, puzzleAssets]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -292,7 +324,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result as string) as PuzzlePieceMap;
-        const next = applyImportedState(canvasPieces, data, activeId === NFT_PUZZLE_ID ? keyToCardId : (p) => p.key);
+        const next = applyImportedState(canvasPieces, data, activeId === NFT_PUZZLE_ID ? keyToCardId : (p) => p.key, frameFor(activeId));
         setPieces(next);
         notifyParent(next);
         setLoadedFileName(file.name);
@@ -305,26 +337,30 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
     e.target.value = '';
   }, [canvasPieces, activeId, keyToCardId, notifyParent]);
 
+  const frame = frameFor(activeId);
+
   const handleClearJson = useCallback(() => {
-    const next = buildDefaultLayout(canvasPieces);
+    const next = buildDefaultLayout(canvasPieces, frameFor(activeId));
     setPieces(next);
     notifyParent(next);
     setLoadedFileName(null);
-  }, [canvasPieces, notifyParent]);
+  }, [canvasPieces, activeId, notifyParent]);
 
   const scramble = useCallback(() => {
     const canvasW = canvasRef.current?.clientWidth ?? 800;
     const canvasH = canvasRef.current?.clientHeight ?? 500;
+    const f = frameFor(activeId);
     const rotations = [0, 90, 180, 270];
     setPieces(prev => {
       const next = new Map(prev);
       for (const [id] of next) {
         next.set(id, {
-          x: Math.floor(Math.random() * Math.max(canvasW - 140, 100)),
-          y: Math.floor(Math.random() * Math.max(canvasH - 190, 100)),
+          x: Math.floor(Math.random() * Math.max(canvasW - (f.w + 20), 100)),
+          y: Math.floor(Math.random() * Math.max(canvasH - (f.h + 22), 100)),
           rotation: rotations[Math.floor(Math.random() * 4)],
         });
       }
+
       notifyParent(next);
       return next;
     });
@@ -333,7 +369,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       setElapsedMs(0);
       setTimerRunning(true);
     }
-  }, [notifyParent, timerEnabled]);
+  }, [notifyParent, timerEnabled, activeId]);
 
   const referenceControl = (
     <>
@@ -544,8 +580,9 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               style={{
                 left: s.x,
                 top: s.y,
-                width: 120,
-                height: 168,
+                width: frame.w,
+                height: frame.h,
+
               }}
               onClick={() => setSelectedId(piece.key)}
             >
@@ -564,7 +601,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                       alt={`Puzzle piece ${piece.label}`}
                       loading="lazy"
                       draggable={false}
-                      className="w-full h-full object-cover pointer-events-none"
+                      className={`w-full h-full pointer-events-none ${frame.contain ? 'object-fill' : 'object-cover'}`}
+
                     />
                   ) : piece.ipfsUrl ? (
                     <IpfsMedia
