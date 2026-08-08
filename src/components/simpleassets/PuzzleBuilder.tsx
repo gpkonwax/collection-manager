@@ -77,28 +77,59 @@ function columnsFor(count: number): number {
   return count > 18 ? 7 : 6;
 }
 
-function buildDefaultLayout(pieces: CanvasPiece[]): Map<string, PieceState> {
+/** Frame geometry per puzzle artwork orientation */
+interface PieceFrame {
+  w: number;
+  h: number;
+  defaultRotation: number;
+  /** Extra puzzle scans are landscape and must never be cropped */
+  contain: boolean;
+}
+
+/** NFT Series 2 pieces are portrait card backs that lie down when rotated 90deg */
+const PORTRAIT_FRAME: PieceFrame = { w: 120, h: 168, defaultRotation: 90, contain: false };
+/** Classic geepeekay scans are already landscape (350x250) */
+const LANDSCAPE_FRAME: PieceFrame = { w: 168, h: 120, defaultRotation: 0, contain: true };
+
+function frameFor(puzzleId: string): PieceFrame {
+  return puzzleId === NFT_PUZZLE_ID ? PORTRAIT_FRAME : LANDSCAPE_FRAME;
+}
+
+function defaultSlot(index: number, count: number, frame: PieceFrame): PieceState {
+  const cols = columnsFor(count);
+  return {
+    x: 20 + (index % cols) * (frame.w + 30),
+    y: 20 + Math.floor(index / cols) * (frame.h + 42),
+    rotation: frame.defaultRotation,
+  };
+}
+
+function buildDefaultLayout(pieces: CanvasPiece[], frame: PieceFrame): Map<string, PieceState> {
   const m = new Map<string, PieceState>();
-  const cols = columnsFor(pieces.length);
   pieces.forEach((p, i) => {
-    m.set(p.key, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
+    m.set(p.key, defaultSlot(i, pieces.length, frame));
   });
   return m;
 }
 
-function applyImportedState(pieces: CanvasPiece[], imported: PuzzlePieceMap, keyOf: (p: CanvasPiece) => string): Map<string, PieceState> {
+function applyImportedState(
+  pieces: CanvasPiece[],
+  imported: PuzzlePieceMap,
+  keyOf: (p: CanvasPiece) => string,
+  frame: PieceFrame,
+): Map<string, PieceState> {
   const m = new Map<string, PieceState>();
-  const cols = columnsFor(pieces.length);
   pieces.forEach((p, i) => {
     const saved = imported[keyOf(p)];
     if (saved) {
       m.set(p.key, { x: saved.x, y: saved.y, rotation: saved.rotation });
     } else {
-      m.set(p.key, { x: 20 + (i % cols) * 150, y: 20 + Math.floor(i / cols) * 210, rotation: 90 });
+      m.set(p.key, defaultSlot(i, pieces.length, frame));
     }
   });
   return m;
 }
+
 
 export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwitchToBinder, jsonMenuSlot }: PuzzleBuilderProps) {
   const puzzleAssets = useMemo(() => deduplicateByCardId(assets.filter(isPuzzlePiece)), [assets]);
