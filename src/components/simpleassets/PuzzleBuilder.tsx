@@ -580,8 +580,9 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               style={{
                 left: s.x,
                 top: s.y,
-                width: 120,
-                height: 168,
+                width: frame.w,
+                height: frame.h,
+
               }}
               onClick={() => setSelectedId(piece.key)}
             >
