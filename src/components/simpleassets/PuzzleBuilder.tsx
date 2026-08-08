@@ -217,7 +217,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       ? nextPuzzle.pieces.map(p => ({ key: p.key, label: p.label }))
       : puzzleAssets.map(a => ({ key: a.id, label: '' }));
     setActiveId(nextId);
-    setPieces(saved ?? buildDefaultLayout(nextPieces));
+    setPieces(saved ?? buildDefaultLayout(nextPieces, frameFor(nextId)));
   }, [activeId, puzzleAssets]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
