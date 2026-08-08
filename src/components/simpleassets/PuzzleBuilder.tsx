@@ -369,7 +369,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       setElapsedMs(0);
       setTimerRunning(true);
     }
-  }, [notifyParent, timerEnabled]);
+  }, [notifyParent, timerEnabled, activeId]);
 
   const referenceControl = (
     <>
