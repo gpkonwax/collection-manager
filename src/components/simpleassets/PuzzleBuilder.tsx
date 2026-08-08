@@ -601,7 +601,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                       alt={`Puzzle piece ${piece.label}`}
                       loading="lazy"
                       draggable={false}
-                      className="w-full h-full object-cover pointer-events-none"
+                      className={`w-full h-full pointer-events-none ${frame.contain ? 'object-fill' : 'object-cover'}`}
+
                     />
                   ) : piece.ipfsUrl ? (
                     <IpfsMedia
