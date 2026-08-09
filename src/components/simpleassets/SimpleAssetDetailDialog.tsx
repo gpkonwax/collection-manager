@@ -7,6 +7,7 @@ import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import { RETRO_CLASS, isRetroEligible } from '@/lib/retroMode';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
@@ -14,6 +15,8 @@ interface Props {
   asset: SimpleAsset | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Retro (1985 scan) grade toggle state from the collection toolbar. */
+  retro?: boolean;
 }
 
 type ViewMode = 'tilt' | 'lens' | 'draw';
@@ -162,11 +165,12 @@ function DrawCanvas({ canvasRegister, active }: {
   );
 }
 
-function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, canvasRegister }: {
+function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, canvasRegister, retro }: {
   url: string;
   alt: string;
   isLandscape: boolean;
   className?: string;
+  retro?: boolean;
   mode: ViewMode;
   drawColor: string;
   canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
@@ -230,7 +234,7 @@ function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, can
         <IpfsMedia
           url={url}
           alt={alt}
-          className={`w-full h-full ${className || ''}`}
+          className={`w-full h-full ${retro ? RETRO_CLASS : ''} ${className || ''}`}
           context="detail"
           showSkeleton
         />
@@ -265,6 +269,9 @@ function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, can
               backgroundSize: `${ZOOM * 100}%`,
               backgroundPosition: `${bgX}% ${bgY}%`,
               backgroundRepeat: 'no-repeat',
+              ...(retro
+                ? { filter: 'saturate(var(--retro-saturate)) sepia(var(--retro-sepia)) contrast(var(--retro-contrast)) brightness(var(--retro-brightness)) hue-rotate(var(--retro-hue))' }
+                : {}),
               ...(isLandscape ? { transform: 'rotate(90deg) scale(1.33)' } : {}),
             }}
           />
@@ -274,7 +281,7 @@ function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, can
   );
 }
 
-export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
+export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
@@ -372,6 +379,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   url={imgUrl}
                   alt={`${asset.name} - ${label}`}
                   isLandscape={isLandscape}
+                  retro={Boolean(retro) && isRetroEligible(asset)}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   mode={mode}
                   drawColor={unifiedColor}
