@@ -270,3 +270,46 @@
 #wharfkit-web-ui dialog::backdrop {
   z-index: 999998 !important;
 }
+
+/* ---------------------------------------------------------------
+   Retro (1985 scan) grade — applied to Series 1 & 2 card artwork
+   when the Retro toggle is on. Purely visual; tweak via the vars.
+   --------------------------------------------------------------- */
+:root {
+  --retro-saturate: 0.92;
+  --retro-sepia: 0.10;
+  --retro-contrast: 0.96;
+  --retro-brightness: 0.97;
+  --retro-hue: 0deg;
+  --retro-grain-opacity: 0.06;
+  --retro-vignette-opacity: 0.14;
+}
+
+.retro-grade {
+  filter: saturate(var(--retro-saturate)) sepia(var(--retro-sepia))
+    contrast(var(--retro-contrast)) brightness(var(--retro-brightness))
+    hue-rotate(var(--retro-hue));
+}
+
+.retro-grade::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse at center, transparent 60%, rgba(60, 38, 12, var(--retro-vignette-opacity)) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+  background-size: cover, 120px 120px;
+  opacity: 1;
+  mix-blend-mode: multiply;
+}
+
+.retro-grade::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: rgba(224, 190, 130, var(--retro-grain-opacity));
+  mix-blend-mode: multiply;
+}
