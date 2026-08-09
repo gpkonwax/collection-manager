@@ -212,7 +212,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
             <IpfsMedia
               url={asset.image}
               alt={asset.name}
-              className="w-full h-full"
+              className={cn('w-full h-full', retro && RETRO_CLASS)}
               context="card"
             />
           </div>
