@@ -27,6 +27,8 @@ interface SimpleAssetCardProps {
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
   priceAlertTemplate?: BinderTemplate;
   isReadOnly?: boolean;
+  /** Apply the retro (1985 scan) colour grade to the artwork. */
+  retro?: boolean;
   /** When set, a "Trade" button is shown (only used while viewing another wallet with AA assets). */
   onTradeClick?: (asset: SimpleAsset) => void;
 }
