@@ -6,6 +6,7 @@ import { Session } from '@wharfkit/session';
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
 import { AtomicPackBrowserDialog } from './AtomicPackBrowserDialog';
+import { PackInfoPopover } from './PackInfoPopover';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
@@ -86,6 +87,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
 
   return (
     <>
+      <PackInfoPopover specKey={pack.templateId}>
       <Card className="bg-card border-border hover:border-primary/40 transition-colors">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           <img src={pack.image} alt={pack.name} className="w-3/4 h-auto rounded mx-auto" />
@@ -135,6 +137,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
           )}
         </CardContent>
       </Card>
+      </PackInfoPopover>
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
         accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />

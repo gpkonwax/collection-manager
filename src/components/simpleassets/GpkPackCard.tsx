@@ -8,6 +8,7 @@ import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { PackRevealDialog } from './PackRevealDialog';
 import type { RevealCard } from './PackRevealDialog';
 import { PackBrowserDialog } from './PackBrowserDialog';
+import { PackInfoPopover } from './PackInfoPopover';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { RevealResult } from '@/lib/packReveal';
@@ -117,6 +118,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
 
   return (
     <>
+      <PackInfoPopover specKey={pack.symbol}>
       <Card className="bg-card border-border hover:border-primary/40 transition-colors">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           {series2Img ? <img src={series2Img} alt={pack.label} className="w-3/4 h-auto rounded mx-auto" /> : <span className="text-3xl">📦</span>}
@@ -161,6 +163,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
           )}
         </CardContent>
       </Card>
+      </PackInfoPopover>
       <PackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
         packImage={series2Img} accountName={accountName} preOpenUnboxingIds={preOpenIds} onComplete={handleRevealComplete} session={session} />
       <PackRevealDialog open={demoRevealOpen} onOpenChange={setDemoRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
