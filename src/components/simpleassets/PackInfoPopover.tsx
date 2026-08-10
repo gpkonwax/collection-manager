@@ -19,10 +19,8 @@ export function PackInfoPopover({ specKey, children }: PackInfoPopoverProps) {
         <div>{children}</div>
       </HoverCardTrigger>
       <HoverCardContent side="right" align="start" className="w-72 bg-card border-border">
-        <p className="font-bold text-foreground theme-bright-text">
-          {spec.packType}{' '}
-          <span className="text-primary">(Originally Priced {spec.price})</span>
-        </p>
+        <p className="font-bold text-foreground theme-bright-text">{spec.packType}</p>
+        <p className="text-sm text-primary">(Originally Priced {spec.price})</p>
         <dl className="mt-2 space-y-1 text-xs">
           {[
             ['Pack', spec.packType],
