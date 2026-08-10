@@ -277,13 +277,13 @@
    --------------------------------------------------------------- */
 :root {
   --retro-saturate: 0.95;
-  --retro-sepia: 0.32;
+  --retro-sepia: 0.42;
   --retro-contrast: 0.98;
   --retro-brightness: 0.98;
-  --retro-hue: 6deg;
+  --retro-hue: 8deg;
   --retro-grain-opacity: 0.10;
   --retro-vignette-opacity: 0.20;
-  --retro-warm-tint: rgba(230, 160, 70, 0.14);
+  --retro-warm-tint: rgba(235, 150, 50, 0.18);
 }
 
 .retro-grade {
