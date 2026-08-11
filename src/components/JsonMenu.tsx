@@ -33,6 +33,10 @@ interface JsonMenuProps {
   onExportAlerts: () => void;
   onExportLayout: () => void;
   onExportPuzzle?: () => void;
+  /** Export every recorded pack opening for this account. */
+  onExportPackHistory?: () => void;
+  /** How many openings are stored — shown next to the export item. */
+  packHistoryCount?: number;
   layoutHasData: boolean;
   puzzleHasData: boolean;
 }
@@ -57,6 +61,8 @@ export function JsonMenu({
   onExportAlerts,
   onExportLayout,
   onExportPuzzle,
+  onExportPackHistory,
+  packHistoryCount = 0,
   layoutHasData,
   puzzleHasData,
 }: JsonMenuProps) {
@@ -210,6 +216,17 @@ export function JsonMenu({
             >
               <Download className="h-4 w-4 mr-2" />
               <span>Export puzzle layout</span>
+            </DropdownMenuItem>
+          )}
+
+          {onExportPackHistory && (
+            <DropdownMenuItem
+              onClick={onExportPackHistory}
+              disabled={packHistoryCount === 0}
+              className="cursor-pointer data-[disabled]:opacity-50 data-[disabled]:pointer-events-none"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span>Export pack history{packHistoryCount > 0 ? ` (${packHistoryCount})` : ''}</span>
             </DropdownMenuItem>
           )}
 
