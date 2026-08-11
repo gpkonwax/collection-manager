@@ -261,6 +261,11 @@ export function PackHistoryDialog({
           </div>
         </div>
 
+        {chainProgress && (
+          <p className="text-[11px] text-cheese">{chainProgress.message}</p>
+        )}
+
+
         {unsaved > 0 && (
           <div className="flex items-start gap-2 rounded-md border border-cheese/40 bg-cheese/10 px-3 py-2 text-xs text-foreground">
             <AlertTriangle className="h-4 w-4 text-cheese shrink-0 mt-0.5" />
