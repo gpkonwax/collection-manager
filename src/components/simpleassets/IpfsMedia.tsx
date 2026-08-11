@@ -14,6 +14,8 @@ interface IpfsMediaProps {
   videoUrl?: string;
   style?: React.CSSProperties;
   loading?: 'lazy' | 'eager';
+  /** Try the primary static mirror first (opt-in; used by Pack History thumbnails) */
+  mirrorFirst?: boolean;
 }
 
 function useIntersectionVisible(rootMargin = '400px', skip = false): [React.RefObject<HTMLDivElement | null>, boolean] {
@@ -43,7 +45,7 @@ function useIntersectionVisible(rootMargin = '400px', skip = false): [React.RefO
   return [ref, visible];
 }
 
-function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSkeleton = false, videoUrl, style, loading }: IpfsMediaProps) {
+function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSkeleton = false, videoUrl, style, loading, mirrorFirst = false }: IpfsMediaProps) {
   const isLazy = loading === 'lazy' || (!loading && context === 'card');
 
   // If this hash already loaded successfully in this session, skip the visibility gate
@@ -57,7 +59,7 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
   // For eager, detail context, or already-loaded hashes, always enabled.
   const enabled = loading === 'eager' || context === 'detail' || alreadyLoaded || isVisible;
 
-  const { src, onError, onLoad, isLoading, failed } = useIpfsMedia(url, { context, enabled });
+  const { src, onError, onLoad, isLoading, failed } = useIpfsMedia(url, { context, enabled, mirrorFirst });
 
   const isVideo = useMemo(() => {
     return videoUrl || isVideoUrl(url) || isVideoUrl(src);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
-import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS } from '@/lib/ipfsGateways';
+import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS, PRIMARY_MIRROR, getPublicGatewayCount } from '@/lib/ipfsGateways';
 import { resolveLocalMirror, subscribeLocalMirror, hasLocalMirror } from '@/lib/localMirror';
 import { fetchVerifiedMirrorFile, getRemoteMirrorState, subscribeRemoteMirror, MIRRORS } from '@/lib/remoteMirror';
 
@@ -10,7 +10,28 @@ const loadedUrlCache = new Map<string, string>();
 // Global last-known-good gateway so new hashes skip dead gateways
 let lastGoodGatewayIndex = 0;
 
+// ---- mirror-first (opt-in) session state -------------------------------
+// Hashes known to be absent/slow on the primary mirror this session.
+const mirrorMissSet = new Set<string>();
+// After this many consecutive mirror failures we assume the mirror is down
+// and skip the mirror attempt entirely for the rest of the session.
+const MIRROR_DOWN_THRESHOLD = 5;
+const MIRROR_FIRST_TIMEOUT_MS = 1500;
+let mirrorConsecutiveFailures = 0;
+let mirrorDown = false;
+
+function noteMirrorMiss(hash: string) {
+  mirrorMissSet.add(hash);
+  mirrorConsecutiveFailures += 1;
+  if (mirrorConsecutiveFailures >= MIRROR_DOWN_THRESHOLD) mirrorDown = true;
+}
+
+function noteMirrorHit() {
+  mirrorConsecutiveFailures = 0;
+}
+
 const MAX_RETRY_ROUNDS = 10;
+
 const LOADED_CACHE_MAX = 2000;
 
 export function getCachedGatewayIndex(hash: string | null): number {
@@ -129,6 +150,11 @@ interface UseIpfsMediaOptions {
   context?: 'card' | 'detail';
   /** When false, skip all loading/gateway rotation until enabled */
   enabled?: boolean;
+  /**
+   * Opt-in: try the primary static mirror first (short timeout) before falling
+   * back to the normal public-gateway rotation. Used by Pack History thumbnails.
+   */
+  mirrorFirst?: boolean;
 }
 
 interface UseIpfsMediaResult {
@@ -143,8 +169,9 @@ export function useIpfsMedia(
   originalUrl: string | undefined,
   options: UseIpfsMediaOptions = {}
 ): UseIpfsMediaResult {
-  const { context = 'card', enabled = true } = options;
+  const { context = 'card', enabled = true, mirrorFirst = false } = options;
   const baseTimeout = context === 'detail' ? IMAGE_LOAD_TIMEOUT.detail : IMAGE_LOAD_TIMEOUT.card;
+
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
 
@@ -197,6 +224,11 @@ export function useIpfsMedia(
   // Track whether this hash has ever successfully rendered in this hook instance
   const hasLoadedRef = useRef(!!cachedLoadedUrl);
 
+  // Mirror-first phase: true while we're attempting the primary static mirror.
+  const canTryMirror = (h: string | null) =>
+    mirrorFirst && !!h && !!PRIMARY_MIRROR && !mirrorDown && !mirrorMissSet.has(h) && !getCachedLoadedUrl(h);
+  const [mirrorPhase, setMirrorPhase] = useState(() => canTryMirror(hash));
+
   // Reset state when URL or active mirror changes
   useEffect(() => {
     const newCached = getCachedLoadedUrl(hash);
@@ -208,6 +240,7 @@ export function useIpfsMedia(
     setIsLoading(!newCached);
     setNonce(0);
     setVerifiedMirrorUrl(null);
+    setMirrorPhase(canTryMirror(hash));
     hasLoadedRef.current = !!newCached;
     attemptRef.current += 1;
     if (retryTimerRef.current) {
@@ -218,7 +251,28 @@ export function useIpfsMedia(
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }, [originalUrl, hash, activeMirror]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [originalUrl, hash, activeMirror, mirrorFirst]);
+
+  const leaveMirrorPhase = useCallback(() => {
+    if (hash) noteMirrorMiss(hash);
+    attemptRef.current += 1;
+    setMirrorPhase(false);
+  }, [hash]);
+
+  // Short timeout for the mirror attempt — fall through to gateways quickly.
+  useEffect(() => {
+    if (!mirrorPhase || !enabled || !hash || hasLoadedRef.current) return;
+    const myAttempt = attemptRef.current;
+    const t = setTimeout(() => {
+      if (!mountedRef.current) return;
+      if (myAttempt !== attemptRef.current) return;
+      if (hasLoadedRef.current) return;
+      leaveMirrorPhase();
+    }, MIRROR_FIRST_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [mirrorPhase, enabled, hash, leaveMirrorPhase]);
+
 
   useEffect(() => {
     mountedRef.current = true;
@@ -274,7 +328,9 @@ export function useIpfsMedia(
 
   // Timeout-based fallback — only when enabled and not yet loaded
   useEffect(() => {
+    if (mirrorPhase) return; // the mirror attempt runs its own short timer
     if (!enabled || failed || !isLoading || !hash) return;
+
     // For detail context, defer the serial timer until the parallel race resolves —
     // otherwise it would rotate gwIdx mid-race and waste attempts.
     if (context === 'detail' && !raceDoneRef.current) return;
@@ -294,7 +350,8 @@ export function useIpfsMedia(
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled]);
+  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled, mirrorPhase]);
+
 
   const advance = useCallback(() => {
     // Don't rotate if we've already successfully loaded this hash
@@ -329,8 +386,15 @@ export function useIpfsMedia(
     // Ignore errors once we've already loaded successfully (sticky URL)
     if (hasLoadedRef.current) return;
     if (!enabled) return; // ignore cancellations from being disabled
+    if (mirrorPhase) {
+      // Mirror doesn't have this file — remember and fall back to gateways.
+      leaveMirrorPhase();
+      return;
+    }
     advance();
-  }, [advance, enabled]);
+  }, [advance, enabled, mirrorPhase, leaveMirrorPhase]);
+
+  const usingMirrorFirst = mirrorPhase && enabled && !!hash && !verifiedMirrorUrl && !localMirrorUrl && !cachedLoadedUrl;
 
   let src: string;
   if (verifiedMirrorUrl) {
@@ -347,6 +411,9 @@ export function useIpfsMedia(
     src = '/placeholder.svg';
   } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
+  } else if (usingMirrorFirst && hash) {
+    // Opt-in mirror-first attempt (Pack History thumbnails).
+    src = `${PRIMARY_MIRROR}${hash}`;
   } else if (hash) {
     const base = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
     // Append cache-buster only on retry rounds so browsers refetch
@@ -354,6 +421,7 @@ export function useIpfsMedia(
   } else {
     src = originalUrl;
   }
+
 
   const onLoadFinal = useCallback(() => {
     if (timerRef.current) {
@@ -368,10 +436,19 @@ export function useIpfsMedia(
     setIsLoading(false);
     setFailed(false);
     if (hash && !src.startsWith('blob:')) {
-      setCachedGateway(hash, gwIdx);
-      setCachedLoadedUrl(hash, src);
+      if (usingMirrorFirst) {
+        // Mirror served it — remember the exact URL, and record the mirror's slot
+        // in the rotation so a later miss resumes from the public gateways.
+        noteMirrorHit();
+        setCachedLoadedUrl(hash, src);
+        gatewayCache.set(hash, getPublicGatewayCount() % IPFS_GATEWAYS.length);
+      } else {
+        setCachedGateway(hash, gwIdx);
+        setCachedLoadedUrl(hash, src);
+      }
     }
-  }, [hash, gwIdx, src]);
+  }, [hash, gwIdx, src, usingMirrorFirst]);
+
 
   return {
     src,
