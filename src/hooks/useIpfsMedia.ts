@@ -355,6 +355,7 @@ export function useIpfsMedia(
   // Short timeout for the mirror attempt — fall through to gateways quickly.
   useEffect(() => {
     if (!mirrorPhase || !enabled || !hash || hasLoadedRef.current) return;
+    if (thumbBlobUrl) return; // served from the byte cache — no mirror miss
     const myAttempt = attemptRef.current;
     const t = setTimeout(() => {
       if (!mountedRef.current) return;
@@ -363,7 +364,7 @@ export function useIpfsMedia(
       leaveMirrorPhase();
     }, MIRROR_FIRST_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, [mirrorPhase, enabled, hash, leaveMirrorPhase]);
+  }, [mirrorPhase, enabled, hash, leaveMirrorPhase, thumbBlobUrl]);
 
 
   useEffect(() => {
