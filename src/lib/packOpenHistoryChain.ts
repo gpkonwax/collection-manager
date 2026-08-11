@@ -121,16 +121,25 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (item: T, index: num
 
 // ---------------------------------------------------------------- SimpleAssets
 
+/** Pack symbol guessed from the SA category + the real pack sizes. */
+function guessSaPackSymbol(category: string, count: number): string | null {
+  const c = (category || '').toLowerCase();
+  if (c === 'five' || c === 'series1') return count >= 20 ? 'GPKMEGA' : 'GPKFIVE';
+  if (c.startsWith('gpktwo') || c === 'series2') {
+    if (count >= 50) return 'GPKTWOC';
+    if (count >= 20) return 'GPKTWOB';
+    return 'GPKTWOA';
+  }
+  if (c.startsWith('exotic')) return count >= 20 ? 'EXOMEGA' : 'EXOFIVE';
+  return null;
+}
+
 /** Pack label guessed from the SA category + how many cards landed in one claim. */
 function guessSaPackName(category: string, count: number): string {
-  const c = (category || '').toLowerCase();
-  if (c === 'five' || c === 'series1') return count >= 20 ? 'GPK Series 1 Mega Pack' : 'GPK Series 1 Pack';
-  if (c.startsWith('gpktwo') || c === 'series2') {
-    if (count >= 50) return 'GPK Series 2C Pack';
-    if (count >= 20) return 'GPK Series 2B Pack';
-    return 'GPK Series 2A Pack';
-  }
-  if (c.startsWith('exotic')) return count >= 20 ? 'Tiger King Mega Pack' : 'Tiger King Pack';
+  const symbol = guessSaPackSymbol(category, count);
+  if (symbol === 'EXOMEGA') return 'Tiger King Mega Pack';
+  if (symbol === 'EXOFIVE') return 'Tiger King Pack';
+  if (symbol) return packLabel(symbol);
   return `${category || 'GPK'} pack`;
 }
 
@@ -139,69 +148,124 @@ interface TrxActionsResponse {
   trx_id?: string;
 }
 
+function parseJsonObject(raw: unknown): Record<string, unknown> {
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+  if (raw && typeof raw === 'object') return raw as Record<string, unknown>;
+  return {};
+}
+
+interface SaMintedCard {
+  card: PackHistoryCard;
+  matcher: RevealMatcher | null;
+  category: string;
+}
+
+/**
+ * One opening per `getcards` action, not per transaction.
+ *
+ * SimpleAssets logs each minted card twice (`create` + `createlog`); only
+ * `createlog` carries the asset id, so it is the single source of truth. The
+ * card payload lives in `mdata`, with `idata` kept as a fallback for older
+ * assets.
+ */
 async function reconstructSaOpening(
   account: string,
   trxId: string,
   openedAt: number,
-): Promise<PackHistoryEntry | null> {
+): Promise<PackHistoryEntry[]> {
   const json = await hyperionGet<TrxActionsResponse>(
     `/v2/history/get_transaction?id=${encodeURIComponent(trxId)}`,
   );
   const actions = json.actions || [];
-  const cards: PackHistoryCard[] = [];
-  const matchers: RevealMatcher[] = [];
-  let category = '';
+  const minted: SaMintedCard[] = [];
+  const claimSizes: number[] = [];
 
   for (const a of actions) {
-    if (a.act?.account !== 'simpleassets') continue;
-    if (a.act?.name !== 'createlog' && a.act?.name !== 'create') continue;
+    if (a.act?.account === 'gpk.topps' && a.act?.name === 'getcards') {
+      const data = (a.act?.data || {}) as Record<string, unknown>;
+      if (String(data.from ?? '') !== account) continue;
+      const ids = Array.isArray(data.cardids) ? data.cardids.length : 0;
+      if (ids > 0) claimSizes.push(ids);
+      continue;
+    }
+    if (a.act?.account !== 'simpleassets' || a.act?.name !== 'createlog') continue;
     const data = (a.act?.data || {}) as Record<string, unknown>;
     if (String(data.owner ?? '') !== account) continue;
-    let idata: Record<string, unknown> = {};
-    const rawIdata = data.idata;
-    if (typeof rawIdata === 'string') {
-      try { idata = JSON.parse(rawIdata) || {}; } catch { idata = {}; }
-    } else if (rawIdata && typeof rawIdata === 'object') {
-      idata = rawIdata as Record<string, unknown>;
-    }
-    category = String(data.category ?? category);
-    const cardid = idata.cardid != null ? String(idata.cardid) : null;
-    const side = idata.side != null ? String(idata.side) : null;
-    const variant = idata.variant != null ? String(idata.variant) : (idata.quality != null ? String(idata.quality) : null);
-    cards.push({
-      id: data.assetid != null ? String(data.assetid) : null,
-      name: String(idata.name ?? (cardid ? `Card #${cardid}${side ?? ''}` : 'Card')),
-      image: resolveImage(idata.img ?? idata.image),
-      cardid,
-      side,
-      variant,
-      category: String(data.category ?? '') || null,
-    });
-    if (cardid) {
-      matchers.push({
-        kind: 'sa',
+
+    const idata = parseJsonObject(data.idata);
+    const mdata = parseJsonObject(data.mdata);
+    const pick = (key: string): unknown => (mdata[key] != null ? mdata[key] : idata[key]);
+
+    const category = String(data.category ?? '');
+    const cardid = pick('cardid') != null ? String(pick('cardid')) : null;
+    const side = pick('side') != null ? String(pick('side')) : null;
+    const rawVariant = pick('variant') ?? pick('quality');
+    const variant = rawVariant != null ? String(rawVariant) : null;
+
+    minted.push({
+      category,
+      card: {
+        id: data.assetid != null ? String(data.assetid) : null,
+        name: String(pick('name') ?? (cardid ? `Card #${cardid}${side ?? ''}` : 'Card')),
+        image: resolveImage(pick('img') ?? pick('image')),
         cardid,
-        side: (side ?? '').toLowerCase(),
-        variant: normalizeGpkVariant(String(variant ?? '')),
-        category: String(data.category ?? '') || null,
-      });
-    }
+        side,
+        variant,
+        category: category || null,
+      },
+      matcher: cardid
+        ? {
+            kind: 'sa',
+            cardid,
+            side: (side ?? '').toLowerCase(),
+            variant: normalizeGpkVariant(String(variant ?? '')),
+            category: category || null,
+          }
+        : null,
+    });
   }
 
-  if (cards.length === 0) return null;
-  return {
-    txId: trxId,
-    account,
-    source: 'simpleassets',
-    packId: null,
-    packName: guessSaPackName(category, cards.length),
-    packImage: null,
-    openedAt,
-    matchers,
-    cards,
-    fromChain: true,
-  };
+  if (minted.length === 0) return [];
+
+  // Split the minted cards across the claims in this transaction. When the
+  // per-claim counts don't add up (partial history), fall back to one group.
+  const totalClaimed = claimSizes.reduce((sum, n) => sum + n, 0);
+  const groups: SaMintedCard[][] = [];
+  if (claimSizes.length > 1 && totalClaimed === minted.length) {
+    let cursor = 0;
+    for (const size of claimSizes) {
+      groups.push(minted.slice(cursor, cursor + size));
+      cursor += size;
+    }
+  } else {
+    groups.push(minted);
+  }
+
+  return groups.map((group, index) => {
+    const category = group.find((m) => m.category)?.category ?? '';
+    const symbol = guessSaPackSymbol(category, group.length);
+    return {
+      txId: groups.length > 1 ? `${trxId}#${index + 1}` : trxId,
+      account,
+      source: 'simpleassets' as const,
+      packId: symbol,
+      packName: guessSaPackName(category, group.length),
+      packImage: symbol ? packImage(symbol) ?? null : null,
+      openedAt,
+      matchers: group.map((m) => m.matcher).filter((m): m is RevealMatcher => m !== null),
+      cards: group.map((m) => m.card),
+      fromChain: true,
+    };
+  });
 }
+
 
 // --------------------------------------------------------------- AtomicAssets
 
