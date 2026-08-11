@@ -328,7 +328,7 @@ export function PackHistoryDialog({
                   <div className="flex gap-1 flex-wrap">
                     {entry.cards.slice(0, 14).map((card, i) => (
                       <div key={`${entry.txId}-${i}`} className="w-9 h-9 rounded overflow-hidden bg-muted/40" title={card.name}>
-                        <IpfsMedia url={card.image || ''} alt={card.name} className="w-full h-full" context="card" loading="lazy" />
+                        <IpfsMedia url={card.image || ''} alt={card.name} className="w-full h-full" context="card" loading="lazy" mirrorFirst />
                       </div>
                     ))}
                     {entry.cards.length > 14 && (
