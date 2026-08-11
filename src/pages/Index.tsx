@@ -26,7 +26,8 @@ import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDe
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
-import { fetchPendingNfts, fetchPendingNftsDetailed } from '@/components/simpleassets/PackRevealDialog';
+import { fetchPendingNfts, fetchPendingNftsDetailed, PackRevealDialog, type RevealCard } from '@/components/simpleassets/PackRevealDialog';
+import { AtomicPackRevealDialog } from '@/components/simpleassets/AtomicPackRevealDialog';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
 import { getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardImages';
@@ -96,7 +97,16 @@ import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
-import { Bell, BellRing } from 'lucide-react';
+import { Bell, BellRing, History } from 'lucide-react';
+import { PackHistoryDialog } from '@/components/simpleassets/PackHistoryDialog';
+import {
+  recordPackOpen,
+  getPackHistory,
+  mergePackHistory,
+  downloadPackHistory,
+  markPackHistoryDownloaded,
+  type PackHistoryEntry,
+} from '@/lib/packOpenHistory';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { JsonMenu } from '@/components/JsonMenu';
 import { ViewWalletControl } from '@/components/ViewWalletControl';
@@ -516,6 +526,10 @@ export default function SimpleAssetsPage() {
   const [preparingDeal, setPreparingDeal] = useState<{ matched: number; total: number; stage: 'indexing' | 'preloading' } | null>(null);
   const preparingDealCancelRef = useRef<{ cancelled: boolean } | null>(null);
   const gridCellRefs = useRef<Map<string, HTMLElement | null>>(new Map());
+  const [showPackHistory, setShowPackHistory] = useState(false);
+  const [packHistoryRefresh, setPackHistoryRefresh] = useState(0);
+  const [replayEntry, setReplayEntry] = useState<PackHistoryEntry | null>(null);
+  const [packHistoryCount, setPackHistoryCount] = useState(0);
 
   // NOTE: visibleCount is grown to cover dealing cards in an effect further
   // down in the file, once `sortedFiltered` and `savedGridSlots` are defined.
@@ -695,6 +709,29 @@ export default function SimpleAssetsPage() {
     const isUnboxNft = txId === 'unbox_nft_complete';
     const preIds = new Set(assetsRef.current.map(a => a.id));
     const hasReveal = !!(reveal && reveal.matchers.length > 0);
+
+    // Write the opening to the local pack history the moment the reveal
+    // completes, before any indexing wait — nothing is lost if matching
+    // times out or the user navigates away.
+    if (reveal && accountName && !isViewing) {
+      try {
+        recordPackOpen({
+          txId: (!txId || isUnboxNft) ? `local-${Date.now()}` : txId,
+          account: accountName,
+          source: reveal.source,
+          packId: reveal.pack?.id ?? null,
+          packName: reveal.pack?.name || 'Pack',
+          packImage: reveal.pack?.image ?? null,
+          openedAt: Date.now(),
+          matchers: reveal.matchers,
+          cards: reveal.cards ?? [],
+          fromChain: false,
+        });
+        setPackHistoryRefresh((n) => n + 1);
+      } catch (err) {
+        console.warn('[pack-history] failed to record opening', err);
+      }
+    }
     if (hasReveal) {
       preCollectIdsRef.current = preIds;
       pendingAnimationRef.current = { txId: isUnboxNft ? 'unbox_nft' : (txId ?? null) };
@@ -781,7 +818,7 @@ export default function SimpleAssetsPage() {
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
     }
-  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView]);
+  }, [refetchPacks, refetchAtomicPacks, refetchSa, refetchAa, recheckUnclaimed, focusCollectionView, accountName, isViewing]);
 
   // Manual bail-out from the "Preparing deal" indicator: user chose to skip
   // the animation and just see thumbnails.
@@ -808,6 +845,65 @@ export default function SimpleAssetsPage() {
     setDealtIds(new Set());
     setPendingSuccessInfo({ txId: null, count: demoAssets.length });
   }, []);
+
+  // ---------- Pack history replay ----------
+
+  useEffect(() => {
+    if (!accountName) { setPackHistoryCount(0); return; }
+    setPackHistoryCount(getPackHistory(accountName).length);
+  }, [accountName, packHistoryRefresh]);
+
+  const replayBusy = dealingCards.length > 0 || preparingDeal !== null || replayEntry !== null;
+
+  const replayRevealCards = useMemo<RevealCard[]>(() => {
+    if (!replayEntry) return [];
+    return replayEntry.cards.map((c, i) => ({
+      asset_id: `replay-${replayEntry.txId}-${i}`,
+      name: c.name,
+      image: c.image,
+      originalImage: c.image,
+      rarity: c.variant || '',
+    }));
+  }, [replayEntry]);
+
+  const handleReplayRequest = useCallback((entry: PackHistoryEntry) => {
+    if (replayBusy) {
+      toast.info('Finish the current pack opening before replaying another.');
+      return;
+    }
+    setShowPackHistory(false);
+    setReplayEntry(entry);
+  }, [replayBusy]);
+
+  // Replay finished its reveal: deal the cards from this opening that are
+  // still in the wallet. Cards that have since been traded/burned can't be
+  // dealt into a grid cell, so they're reported instead of animated.
+  const handleReplayCollect = useCallback((entry: PackHistoryEntry) => {
+    setReplayEntry(null);
+    const { matched } = matchRevealedAssets(entry.matchers ?? [], assetsRef.current, new Set<string>());
+    if (matched.length === 0) {
+      toast.info('None of the cards from this pack are in this wallet any more, so there is nothing to deal.');
+      return;
+    }
+    handleDemoCollect(matched);
+    const gone = entry.cards.length - matched.length;
+    if (gone > 0) {
+      toast.info(`${gone} card${gone === 1 ? '' : 's'} from this pack ${gone === 1 ? 'is' : 'are'} no longer in this wallet — only the cards you still own were dealt.`);
+    }
+  }, [handleDemoCollect]);
+
+  const handleExportPackHistory = useCallback(() => {
+    if (!accountName) return;
+    const entries = getPackHistory(accountName);
+    if (entries.length === 0) {
+      toast.info('No pack openings recorded yet.');
+      return;
+    }
+    downloadPackHistory(accountName, entries);
+    markPackHistoryDownloaded(accountName);
+    setPackHistoryRefresh((n) => n + 1);
+    toast.success(`Downloaded ${entries.length} opening${entries.length === 1 ? '' : 's'}`);
+  }, [accountName]);
 
   useEffect(() => {
     if (!accountName || isViewing) { setShowCollectUnclaimed(false); return; }
@@ -1478,6 +1574,13 @@ export default function SimpleAssetsPage() {
       parts.push(`Puzzle: ${puzzleOk.puzzle.pieces} piece${puzzleOk.puzzle.pieces !== 1 ? 's' : ''}`);
     }
 
+    const historyOk = ok.filter(r => r.kind === 'packhistory' && r.packhistory);
+    if (historyOk.length > 0) {
+      const added = historyOk.reduce((n, r) => n + r.packhistory!.added, 0);
+      const updated = historyOk.reduce((n, r) => n + r.packhistory!.updated, 0);
+      parts.push(`Pack history: ${added} new, ${updated} updated`);
+    }
+
     if (ok.length > 0) {
       toast.success(`Imported ${ok.length} file${ok.length !== 1 ? 's' : ''}${parts.length ? ` — ${parts.join(' · ')}` : ''}`);
     }
@@ -1490,6 +1593,11 @@ export default function SimpleAssetsPage() {
     onAlerts: (raw: string) => applyAlertsRaw(raw),
     onLayout: (parsed: DetectedLayout['parsed'], filename: string) => applyLayoutData(parsed, filename),
     onPuzzle: (parsed: PuzzlePieceMap) => applyPuzzleData(parsed),
+    onPackHistory: (entries: PackHistoryEntry[]) => {
+      const r = mergePackHistory(entries);
+      setPackHistoryRefresh((n) => n + 1);
+      return r;
+    },
   }), [applyAlertsRaw, applyLayoutData, applyPuzzleData]);
 
   const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
@@ -1989,6 +2097,8 @@ export default function SimpleAssetsPage() {
               onExportAlerts={handleExportAlerts}
               onExportLayout={handleExportLayout}
               onExportPuzzle={handleExportPuzzle}
+              onExportPackHistory={handleExportPackHistory}
+              packHistoryCount={packHistoryCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -2043,6 +2153,8 @@ export default function SimpleAssetsPage() {
               onExportAlerts={handleExportAlerts}
               onExportLayout={handleExportLayout}
               onExportPuzzle={handleExportPuzzle}
+              onExportPackHistory={handleExportPackHistory}
+              packHistoryCount={packHistoryCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -2086,6 +2198,8 @@ export default function SimpleAssetsPage() {
               onExportAlerts={handleExportAlerts}
               onExportLayout={handleExportLayout}
               onExportPuzzle={handleExportPuzzle}
+              onExportPackHistory={handleExportPackHistory}
+              packHistoryCount={packHistoryCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -2220,6 +2334,16 @@ export default function SimpleAssetsPage() {
                       {tradesUnread > 9 ? '9+' : tradesUnread}
                     </span>
                   )}
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className={HEADER_BTN_CLASS}
+                  onClick={() => setShowPackHistory(true)}
+                  title="Every pack you've opened — with a replay button"
+                >
+                  <History className="h-4 w-4 mr-1.5" />
+                  Pack History
                 </Button>
               </>
             )}
@@ -2935,6 +3059,8 @@ export default function SimpleAssetsPage() {
                               onExportAlerts={handleExportAlerts}
                               onExportLayout={handleExportLayout}
                               onExportPuzzle={handleExportPuzzle}
+                            onExportPackHistory={handleExportPackHistory}
+                            packHistoryCount={packHistoryCount}
                               layoutHasData={savedOrder !== null}
                               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
                             />
@@ -3007,6 +3133,8 @@ export default function SimpleAssetsPage() {
                           onExportAlerts={handleExportAlerts}
                           onExportLayout={handleExportLayout}
                           onExportPuzzle={handleExportPuzzle}
+              onExportPackHistory={handleExportPackHistory}
+              packHistoryCount={packHistoryCount}
                           layoutHasData={savedOrder !== null}
                           puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
                         />
@@ -3101,6 +3229,51 @@ export default function SimpleAssetsPage() {
 
         </div>
       </footer>
+
+      {accountName && !isViewing && (
+        <PackHistoryDialog
+          open={showPackHistory}
+          onOpenChange={setShowPackHistory}
+          account={accountName}
+          refreshKey={packHistoryRefresh}
+          onReplay={handleReplayRequest}
+          replayDisabled={replayBusy}
+          replayDisabledReason="A pack opening or deal animation is already running"
+          onHistoryChanged={() => setPackHistoryRefresh((n) => n + 1)}
+        />
+      )}
+
+      {replayEntry && replayEntry.source === 'simpleassets' && (
+        <PackRevealDialog
+          open
+          onOpenChange={(o) => { if (!o) setReplayEntry(null); }}
+          packSymbol={replayEntry.packId || ''}
+          packLabel={replayEntry.packName}
+          packImage={replayEntry.packImage || undefined}
+          accountName={accountName || ''}
+          preOpenUnboxingIds={new Set<number>()}
+          onComplete={() => {}}
+          demoCards={replayRevealCards}
+          onDemoCollect={() => handleReplayCollect(replayEntry)}
+        />
+      )}
+
+      {replayEntry && replayEntry.source === 'atomicassets' && (
+        <AtomicPackRevealDialog
+          open
+          onOpenChange={(o) => { if (!o) setReplayEntry(null); }}
+          packName={replayEntry.packName}
+          packImage={replayEntry.packImage || ''}
+          packAssetId={null}
+          unpackContract=""
+          expectedCards={replayEntry.cards.length}
+          accountName={accountName || ''}
+          session={null}
+          onComplete={() => {}}
+          demoCards={replayRevealCards}
+          onDemoCollect={() => handleReplayCollect(replayEntry)}
+        />
+      )}
 
       {dealingCards.length > 0 && (
         <CardDealAnimation

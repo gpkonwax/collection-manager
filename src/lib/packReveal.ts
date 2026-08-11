@@ -24,10 +24,26 @@ export type AaTemplateMatcher = {
 
 export type RevealMatcher = SaRevealMatcher | AaAssetMatcher | AaTemplateMatcher;
 
+/** Frozen snapshot of one revealed card, used for the pack-opening history log. */
+export interface RevealCardSnapshot {
+  id?: string | null;
+  name: string;
+  image: string | null;
+  cardid?: string | null;
+  side?: string | null;
+  variant?: string | null;
+  category?: string | null;
+  templateId?: string | null;
+}
+
 export interface RevealResult {
   source: 'simpleassets' | 'atomicassets';
   expectedCategory?: string | null;
   matchers: RevealMatcher[];
+  /** Pack identity, forwarded so the opening can be written to pack history. */
+  pack?: { id?: string | null; name: string; image?: string | null };
+  /** What actually came out of the pack, captured at reveal time. */
+  cards?: RevealCardSnapshot[];
 }
 
 /**

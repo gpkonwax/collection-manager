@@ -1,6 +1,7 @@
 import type { PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
+import { parsePackHistoryEnvelope, type PackHistoryEntry } from '@/lib/packOpenHistory';
 
-export type JsonKind = 'alerts' | 'layout' | 'puzzle' | 'unknown';
+export type JsonKind = 'alerts' | 'layout' | 'puzzle' | 'packhistory' | 'unknown';
 
 export interface DetectedAlerts {
   kind: 'alerts';
@@ -17,18 +18,24 @@ export interface DetectedPuzzle {
   raw: string;
   parsed: PuzzlePieceMap;
 }
+export interface DetectedPackHistory {
+  kind: 'packhistory';
+  raw: string;
+  parsed: PackHistoryEntry[];
+}
 export interface DetectedUnknown {
   kind: 'unknown';
   raw: string;
   parsed: unknown;
 }
 
-export type Detected = DetectedAlerts | DetectedLayout | DetectedPuzzle | DetectedUnknown;
+export type Detected = DetectedAlerts | DetectedLayout | DetectedPuzzle | DetectedPackHistory | DetectedUnknown;
 
 const KIND_LABELS: Record<JsonKind, string> = {
   alerts: 'Alerts',
   layout: 'Saved Layout',
   puzzle: 'Puzzle',
+  packhistory: 'Pack History',
   unknown: 'Unknown',
 };
 
@@ -46,6 +53,7 @@ export function detectKind(parsed: unknown): JsonKind {
   if (!parsed || typeof parsed !== 'object') return 'unknown';
   const obj = parsed as Record<string, unknown>;
 
+  if (obj.type === 'gpk-pack-history' && Array.isArray(obj.entries)) return 'packhistory';
   if (Array.isArray(obj.alerts)) return 'alerts';
   if (obj.orders && typeof obj.orders === 'object') return 'layout';
 
@@ -78,6 +86,8 @@ export function parseAndDetect(raw: string): Detected {
       return { kind, raw, parsed: parsed as DetectedLayout['parsed'] };
     case 'puzzle':
       return { kind, raw, parsed: parsed as PuzzlePieceMap };
+    case 'packhistory':
+      return { kind, raw, parsed: parsePackHistoryEnvelope(parsed) ?? [] };
     default:
       return { kind: 'unknown', raw, parsed };
   }
@@ -87,6 +97,7 @@ export interface RouterHandlers {
   onAlerts: (raw: string) => { added: number; updated: number; skipped: string[] };
   onLayout: (parsed: DetectedLayout['parsed'], filename: string) => { cards: number; hasPuzzle: boolean };
   onPuzzle: (parsed: PuzzlePieceMap) => { pieces: number };
+  onPackHistory: (entries: PackHistoryEntry[]) => { added: number; updated: number; skipped: number };
 }
 
 export interface RouteResult {
@@ -98,6 +109,7 @@ export interface RouteResult {
   alerts?: { added: number; updated: number; skipped: string[] };
   layout?: { cards: number; hasPuzzle: boolean };
   puzzle?: { pieces: number };
+  packhistory?: { added: number; updated: number; skipped: number };
 }
 
 export function routeOne(
@@ -119,6 +131,10 @@ export function routeOne(
       case 'puzzle': {
         const r = handlers.onPuzzle(detected.parsed);
         return { filename, kind: 'puzzle', ok: true, puzzle: r };
+      }
+      case 'packhistory': {
+        const r = handlers.onPackHistory(detected.parsed);
+        return { filename, kind: 'packhistory', ok: true, packhistory: r };
       }
       default:
         return { filename, kind: 'unknown', ok: false, message: 'Unrecognized JSON shape' };

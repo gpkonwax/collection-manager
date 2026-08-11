@@ -589,6 +589,18 @@ export function PackRevealDialog({
             category: getGpkCategoryForBoxtype(r.boxtype),
           };
         }),
+        pack: { id: packSymbol ?? null, name: packLabel, image: packImage ?? null },
+        cards: revealedRowsRef.current.map((r) => {
+          const resolved = resolvePendingGpkCard(r.boxtype, r.cardid, r.quality, r.variant);
+          return {
+            name: `Card #${resolved.cardid}${resolved.side}`,
+            image: resolved.image,
+            cardid: resolved.cardid,
+            side: resolved.side,
+            variant: normalizeGpkVariant(String(r.variant ?? '')),
+            category: getGpkCategoryForBoxtype(r.boxtype),
+          };
+        }),
       };
 
       setPhase('done'); onComplete(txId, reveal);
@@ -600,7 +612,7 @@ export function PackRevealDialog({
       setCollectError(e instanceof Error ? e.message : 'Transaction failed');
       setPhase('collect');
     }
-  }, [session, unboxingId, pendingRowIds, onComplete, isDemo, onDemoCollect, onOpenChange]);
+  }, [session, unboxingId, pendingRowIds, onComplete, isDemo, onDemoCollect, onOpenChange, packSymbol, packLabel, packImage]);
 
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;

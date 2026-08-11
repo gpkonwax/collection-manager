@@ -428,7 +428,17 @@ export function AtomicPackRevealDialog({
     // For unbox_nft: no blockchain claim needed, just close with a marker
     if (openMode === 'unbox_nft') {
       setPhase('done');
-      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current };
+      const revealPack = { id: packAssetId ?? null, name: packName, image: packImage ?? null };
+      const revealCardSnapshots = newCards.map((c, i) => {
+        const m = revealMatchersRef.current[i];
+        return {
+          id: c.asset_id,
+          name: c.name,
+          image: c.image,
+          templateId: m && m.kind === 'aa-template' ? m.templateId : null,
+        };
+      });
+      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current, pack: revealPack, cards: revealCardSnapshots };
       onComplete('unbox_nft_complete', reveal);
       setTimeout(() => onOpenChange(false), 1500);
       return;
@@ -443,7 +453,17 @@ export function AtomicPackRevealDialog({
           data: { pack_asset_id: parseInt(packAssetId, 10), origin_roll_ids: rollIds } }],
       }, { transactPlugins: getTransactPlugins(session) });
       const txId = result?.resolved?.transaction?.id?.toString() || null;
-      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current };
+      const revealPack = { id: packAssetId ?? null, name: packName, image: packImage ?? null };
+      const revealCardSnapshots = newCards.map((c, i) => {
+        const m = revealMatchersRef.current[i];
+        return {
+          id: c.asset_id,
+          name: c.name,
+          image: c.image,
+          templateId: m && m.kind === 'aa-template' ? m.templateId : null,
+        };
+      });
+      const reveal: RevealResult = { source: 'atomicassets', matchers: revealMatchersRef.current, pack: revealPack, cards: revealCardSnapshots };
       setPhase('done'); onComplete(txId, reveal);
     } catch (e) {
       console.error('[AtomicReveal] claimunboxed failed', e);
@@ -451,7 +471,7 @@ export function AtomicPackRevealDialog({
       setCollectError(e instanceof Error ? e.message : 'Transaction failed');
       setPhase('collect');
     }
-  }, [session, packAssetId, rollIds, unpackContract, onComplete, openMode, onOpenChange, isDemo, onDemoCollect]);
+  }, [session, packAssetId, rollIds, unpackContract, onComplete, openMode, onOpenChange, isDemo, onDemoCollect, newCards, packName, packImage]);
 
   const handleClose = () => { onOpenChange(false); if (phase !== 'done') onComplete(); };
   const allRevealed = revealedCount >= newCards.length && newCards.length > 0;
