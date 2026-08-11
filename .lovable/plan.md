@@ -55,7 +55,7 @@ Backfill is manual (button), not automatic on open, and reports clearly if histo
 - Replay is blocked while a live open or deal animation is in flight.
 
 
-**JSON wiring**: `src/lib/jsonRouter.ts` gains `'packhistory'` in `JsonKind`, a `detectKind` branch for the `gpk-pack-history` envelope, a label, and an apply path that merges into `packOpenHistory`. `JsonMenu.tsx` gains an "Export pack history" item (disabled when empty) and a badge colour for the new kind. `Index.tsx` passes the export handler and bumps `refreshKey` after import, same as the existing kinds.
+**JSON wiring**: file is `gpk-pack-history-<account>-<date>.json` with envelope `{ type: "gpk-pack-history", version: 1, entries: [...] }`. The two dialog buttons are the primary path (download / load). For consistency, `src/lib/jsonRouter.ts` also gains a `'packhistory'` kind (detect branch, label, merge apply) so the file can be dropped into the existing "Import file(s)…" picker and appears in "Recent imports"; `JsonMenu.tsx` gets a matching badge colour and an "Export pack history" item.
 
 **Out of scope**: history for other wallets, automatic cross-device sync, any on-chain writes.
 
