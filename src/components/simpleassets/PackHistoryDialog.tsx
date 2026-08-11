@@ -119,16 +119,50 @@ export function PackHistoryDialog({
     });
   }, [entries, search, sourceFilter]);
 
-  const handleDownload = useCallback(() => {
-    if (entries.length === 0) {
-      toast.info('Nothing to download yet — open a pack, or run the chain export below.');
+  const handleDownload = useCallback(async () => {
+    if (!account) {
+      toast.info('Connect a wallet first.');
       return;
     }
-    downloadPackHistory(account, entries);
+    if (chainBusy) return;
+    setChainBusy(true);
+    setChainProgress({ stage: 'scanning', message: 'Contacting WAX history nodes…', done: 0, total: 0 });
+    let chainAdded = 0;
+    try {
+      const result = await exportPackHistoryFromChain(account, (p) => setChainProgress(p));
+      if (result.entries.length > 0) {
+        const merged = mergePackHistory(result.entries);
+        chainAdded = merged.added;
+      }
+      for (const w of result.warnings) toast.warning(w);
+    } catch (err) {
+      const message =
+        err instanceof HistoryUnavailableError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Chain rebuild failed';
+      toast.warning(`${message} Downloading what's stored on this device instead.`);
+    } finally {
+      setChainBusy(false);
+      setChainProgress(null);
+    }
+
+    const all = getPackHistory(account);
+    reload();
+    onHistoryChanged?.();
+    if (all.length === 0) {
+      toast.info('No pack openings found for this account — nothing to download.');
+      return;
+    }
+    downloadPackHistory(account, all);
     markPackHistoryDownloaded(account);
     setUnsaved(0);
-    toast.success(`Downloaded ${entries.length} opening${entries.length === 1 ? '' : 's'}`);
-  }, [account, entries]);
+    toast.success(
+      `Downloaded ${all.length} opening${all.length === 1 ? '' : 's'}${chainAdded > 0 ? ` (${chainAdded} rebuilt from chain)` : ''}`,
+    );
+  }, [account, chainBusy, reload, onHistoryChanged]);
+
 
   const handleLoadClick = useCallback(() => fileInputRef.current?.click(), []);
 
