@@ -209,6 +209,31 @@ export function PackHistoryDialog({
     if (activeGroup && !groups.has(activeGroup)) setActiveGroup(null);
   }, [activeGroup, groups]);
 
+  // Warm the byte cache for the thumbnails about to be shown so re-opening the
+  // dialog (or drilling into a pack) paints instantly with no network work.
+  useEffect(() => {
+    if (!open || !PRIMARY_MIRROR) return;
+    const urls: string[] = [];
+    for (const g of groupList) if (g.packImage) urls.push(g.packImage);
+    if (active) {
+      for (const entry of active.entries) {
+        if (entry.packImage) urls.push(entry.packImage);
+        for (const card of entry.cards ?? []) if (card.image) urls.push(card.image);
+      }
+    }
+    const hashes = Array.from(
+      new Set(urls.map((u) => extractIpfsHash(u)).filter((h): h is string => !!h)),
+    );
+    if (hashes.length === 0) return;
+    let cancelled = false;
+    const id = setTimeout(() => {
+      if (cancelled) return;
+      void warmThumbs(hashes, (h) => `${PRIMARY_MIRROR}${h}`);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(id); };
+  }, [open, groupList, active]);
+
+
 
   const handleDownload = useCallback(async () => {
     if (!account) {
