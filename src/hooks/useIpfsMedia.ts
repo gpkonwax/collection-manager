@@ -436,10 +436,19 @@ export function useIpfsMedia(
     setIsLoading(false);
     setFailed(false);
     if (hash && !src.startsWith('blob:')) {
-      setCachedGateway(hash, gwIdx);
-      setCachedLoadedUrl(hash, src);
+      if (usingMirrorFirst) {
+        // Mirror served it — remember the exact URL, and record the mirror's slot
+        // in the rotation so a later miss resumes from the public gateways.
+        noteMirrorHit();
+        setCachedLoadedUrl(hash, src);
+        gatewayCache.set(hash, getPublicGatewayCount() % IPFS_GATEWAYS.length);
+      } else {
+        setCachedGateway(hash, gwIdx);
+        setCachedLoadedUrl(hash, src);
+      }
     }
-  }, [hash, gwIdx, src]);
+  }, [hash, gwIdx, src, usingMirrorFirst]);
+
 
   return {
     src,
