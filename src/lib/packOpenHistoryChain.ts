@@ -170,31 +170,43 @@ interface SaMintedCard {
 }
 
 /**
- * One opening per `getcards` action, not per transaction.
+ * One fragment per `getcards` action in a transaction.
+ *
+ * A single pack (`unboxing` id) can be claimed across several transactions, so
+ * fragments are merged by unboxing id later — never per transaction.
  *
  * SimpleAssets logs each minted card twice (`create` + `createlog`); only
  * `createlog` carries the asset id, so it is the single source of truth. The
  * card payload lives in `mdata`, with `idata` kept as a fallback for older
  * assets.
  */
+interface SaClaimFragment {
+  unboxing: string | null;
+  trxId: string;
+  openedAt: number;
+  cards: SaMintedCard[];
+}
+
 async function reconstructSaOpening(
   account: string,
   trxId: string,
   openedAt: number,
-): Promise<PackHistoryEntry[]> {
+): Promise<SaClaimFragment[]> {
   const json = await hyperionGet<TrxActionsResponse>(
     `/v2/history/get_transaction?id=${encodeURIComponent(trxId)}`,
   );
   const actions = json.actions || [];
   const minted: SaMintedCard[] = [];
-  const claimSizes: number[] = [];
+  const claims: { unboxing: string | null; size: number }[] = [];
 
   for (const a of actions) {
     if (a.act?.account === 'gpk.topps' && a.act?.name === 'getcards') {
       const data = (a.act?.data || {}) as Record<string, unknown>;
       if (String(data.from ?? '') !== account) continue;
       const ids = Array.isArray(data.cardids) ? data.cardids.length : 0;
-      if (ids > 0) claimSizes.push(ids);
+      if (ids > 0) {
+        claims.push({ unboxing: data.unboxing != null ? String(data.unboxing) : null, size: ids });
+      }
       continue;
     }
     if (a.act?.account !== 'simpleassets' || a.act?.name !== 'createlog') continue;
@@ -238,35 +250,60 @@ async function reconstructSaOpening(
 
   // Split the minted cards across the claims in this transaction. When the
   // per-claim counts don't add up (partial history), fall back to one group.
-  const totalClaimed = claimSizes.reduce((sum, n) => sum + n, 0);
-  const groups: SaMintedCard[][] = [];
-  if (claimSizes.length > 1 && totalClaimed === minted.length) {
+  const totalClaimed = claims.reduce((sum, c) => sum + c.size, 0);
+  if (claims.length > 1 && totalClaimed === minted.length) {
+    const fragments: SaClaimFragment[] = [];
     let cursor = 0;
-    for (const size of claimSizes) {
-      groups.push(minted.slice(cursor, cursor + size));
-      cursor += size;
+    for (const claim of claims) {
+      fragments.push({
+        unboxing: claim.unboxing,
+        trxId,
+        openedAt,
+        cards: minted.slice(cursor, cursor + claim.size),
+      });
+      cursor += claim.size;
     }
-  } else {
-    groups.push(minted);
+    return fragments;
   }
 
-  return groups.map((group, index) => {
-    const category = group.find((m) => m.category)?.category ?? '';
-    const symbol = guessSaPackSymbol(category, group.length);
-    return {
-      txId: groups.length > 1 ? `${trxId}#${index + 1}` : trxId,
-      account,
-      source: 'simpleassets' as const,
-      packId: symbol,
-      packName: guessSaPackName(category, group.length),
-      packImage: symbol ? packImage(symbol) ?? null : null,
-      openedAt,
-      matchers: group.map((m) => m.matcher).filter((m): m is RevealMatcher => m !== null),
-      cards: group.map((m) => m.card),
-      fromChain: true,
-    };
-  });
+  return [{ unboxing: claims[0]?.unboxing ?? null, trxId, openedAt, cards: minted }];
 }
+
+/** Merge claim fragments that belong to the same pack (`unboxing` id). */
+function mergeSaFragments(account: string, fragments: SaClaimFragment[]): PackHistoryEntry[] {
+  const byPack = new Map<string, SaClaimFragment[]>();
+  fragments.forEach((f, index) => {
+    const key = f.unboxing ? `u:${f.unboxing}` : `t:${f.trxId}#${index}`;
+    const list = byPack.get(key);
+    if (list) list.push(f);
+    else byPack.set(key, [f]);
+  });
+
+  const entries: PackHistoryEntry[] = [];
+  for (const [key, list] of byPack) {
+    // Oldest claim first so cards read in the order they were collected.
+    list.sort((a, b) => a.openedAt - b.openedAt);
+    const merged = list.flatMap((f) => f.cards);
+    if (merged.length === 0) continue;
+    const category = merged.find((m) => m.category)?.category ?? '';
+    const symbol = guessSaPackSymbol(category, merged.length);
+    const unboxing = list[0].unboxing;
+    entries.push({
+      txId: unboxing ? `unboxing:${unboxing}` : key.slice(2),
+      account,
+      source: 'simpleassets',
+      packId: symbol,
+      packName: guessSaPackName(category, merged.length),
+      packImage: symbol ? packImage(symbol) ?? null : null,
+      openedAt: list[0].openedAt,
+      matchers: merged.map((m) => m.matcher).filter((m): m is RevealMatcher => m !== null),
+      cards: merged.map((m) => m.card),
+      fromChain: true,
+    });
+  }
+  return entries;
+}
+
 
 
 // --------------------------------------------------------------- AtomicAssets
