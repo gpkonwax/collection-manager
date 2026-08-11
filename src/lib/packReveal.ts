@@ -68,24 +68,37 @@ export function matchRevealedAssets<A extends { id: string; cardid?: string; sid
   assets: A[],
   preCollectIds: Set<string>,
 ): { matched: A[]; unresolved: RevealMatcher[] } {
-  const matched: A[] = [];
-  const unresolved: RevealMatcher[] = [];
   const used = new Set<string>();
+  const candidates = assets.filter(a => !preCollectIds.has(a.id));
+  const byIndex = new Map<number, A>();
 
-  const candidates = assets.filter(a => !preCollectIds.has(a.id) && !used.has(a.id));
+  const sameSa = (a: A, m: SaRevealMatcher) =>
+    a.source === 'simpleassets' &&
+    (!m.category || normalizeAssetCategory(a.category) === m.category);
 
-  for (const m of matchers) {
+  // Tiers, strongest first. Each pass only looks at matchers still unresolved,
+  // so a loose tier can never steal an asset an exact match needs.
+  const tiers: ((a: A, m: SaRevealMatcher) => boolean)[] = [
+    // exact asset id (chain-reconstructed history knows the minted id)
+    (a, m) => !!m.assetId && a.id === String(m.assetId),
+    // cardid + side + variant
+    (a, m) => sameSa(a, m) && !!m.cardid &&
+      String(a.cardid ?? '') === String(m.cardid) &&
+      String(a.side ?? '').toLowerCase() === String(m.side ?? '').toLowerCase() &&
+      String(a.quality ?? '').toLowerCase() === String(m.variant ?? '').toLowerCase(),
+    // cardid + side
+    (a, m) => sameSa(a, m) && !!m.cardid &&
+      String(a.cardid ?? '') === String(m.cardid) &&
+      String(a.side ?? '').toLowerCase() === String(m.side ?? '').toLowerCase(),
+    // cardid only
+    (a, m) => sameSa(a, m) && !!m.cardid &&
+      String(a.cardid ?? '') === String(m.cardid),
+  ];
+
+  // Non-SA matchers resolve in a single pass.
+  matchers.forEach((m, i) => {
     let hit: A | undefined;
-    if (m.kind === 'sa') {
-      hit = candidates.find(a =>
-        !used.has(a.id) &&
-        a.source === 'simpleassets' &&
-        (!m.category || normalizeAssetCategory(a.category) === m.category) &&
-        String(a.cardid ?? '') === String(m.cardid) &&
-        String(a.side ?? '').toLowerCase() === String(m.side).toLowerCase() &&
-        String(a.quality ?? '').toLowerCase() === String(m.variant).toLowerCase(),
-      );
-    } else if (m.kind === 'aa-asset') {
+    if (m.kind === 'aa-asset') {
       hit = candidates.find(a => !used.has(a.id) && a.id === m.assetId);
     } else if (m.kind === 'aa-template') {
       hit = candidates.find(a =>
@@ -93,14 +106,34 @@ export function matchRevealedAssets<A extends { id: string; cardid?: string; sid
         a.source === 'atomicassets' &&
         String((a.idata as Record<string, unknown> | undefined)?._template_id ?? '') === String(m.templateId),
       );
+    } else {
+      return;
     }
     if (hit) {
-      matched.push(hit);
+      byIndex.set(i, hit);
       used.add(hit.id);
-    } else {
-      unresolved.push(m);
     }
+  });
+
+  for (const test of tiers) {
+    matchers.forEach((m, i) => {
+      if (m.kind !== 'sa' || byIndex.has(i)) return;
+      const hit = candidates.find(a => !used.has(a.id) && test(a, m));
+      if (hit) {
+        byIndex.set(i, hit);
+        used.add(hit.id);
+      }
+    });
   }
 
+  const matched: A[] = [];
+  const unresolved: RevealMatcher[] = [];
+  matchers.forEach((m, i) => {
+    const hit = byIndex.get(i);
+    if (hit) matched.push(hit);
+    else unresolved.push(m);
+  });
+
   return { matched, unresolved };
+
 }
