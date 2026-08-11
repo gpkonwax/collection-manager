@@ -386,8 +386,15 @@ export function useIpfsMedia(
     // Ignore errors once we've already loaded successfully (sticky URL)
     if (hasLoadedRef.current) return;
     if (!enabled) return; // ignore cancellations from being disabled
+    if (mirrorPhase) {
+      // Mirror doesn't have this file — remember and fall back to gateways.
+      leaveMirrorPhase();
+      return;
+    }
     advance();
-  }, [advance, enabled]);
+  }, [advance, enabled, mirrorPhase, leaveMirrorPhase]);
+
+  const usingMirrorFirst = mirrorPhase && enabled && !!hash && !verifiedMirrorUrl && !localMirrorUrl && !cachedLoadedUrl;
 
   let src: string;
   if (verifiedMirrorUrl) {
@@ -404,6 +411,9 @@ export function useIpfsMedia(
     src = '/placeholder.svg';
   } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
+  } else if (usingMirrorFirst && hash) {
+    // Opt-in mirror-first attempt (Pack History thumbnails).
+    src = `${PRIMARY_MIRROR}${hash}`;
   } else if (hash) {
     const base = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
     // Append cache-buster only on retry rounds so browsers refetch
@@ -411,6 +421,7 @@ export function useIpfsMedia(
   } else {
     src = originalUrl;
   }
+
 
   const onLoadFinal = useCallback(() => {
     if (timerRef.current) {
