@@ -350,7 +350,6 @@ export function useIpfsMedia(
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled, mirrorPhase]);
 
 
