@@ -20,14 +20,16 @@ export function PackInfoPopover({ specKey, children }: PackInfoPopoverProps) {
       </HoverCardTrigger>
       <HoverCardContent side="right" align="start" className="w-72 bg-card border-border">
         <p className="font-bold text-foreground theme-bright-text">{spec.packType}</p>
-        <p className="text-sm text-primary">(Originally Priced {spec.price})</p>
+        {spec.price && <p className="text-sm text-primary">(Originally Priced {spec.price})</p>}
         <dl className="mt-2 space-y-1 text-xs">
-          {[
+          {([
             ['Pack', spec.packType],
             ['Series', spec.series],
             ['Release Date', spec.releaseDate],
             ['Contains', spec.contains],
-          ].map(([label, value]) => (
+            ['Print Run', spec.printRun],
+            ['Note', spec.note],
+          ] as const).filter(([, value]) => Boolean(value)).map(([label, value]) => (
             <div key={label} className="flex gap-2">
               <dt className="w-24 shrink-0 font-semibold text-foreground theme-bright-text">{label}:</dt>
               <dd className="text-muted-foreground theme-bright-text-muted">{value}</dd>
