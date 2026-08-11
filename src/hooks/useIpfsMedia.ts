@@ -268,6 +268,32 @@ export function useIpfsMedia(
     return () => { cancelled = true; };
   }, [activeMirror, hash]);
 
+  // Byte-level thumbnail cache (Cache Storage). Opt-in alongside mirrorFirst so
+  // Pack History thumbnails repaint instantly across dialog opens and reloads.
+  const [thumbBlobUrl, setThumbBlobUrl] = useState<string | null>(() =>
+    mirrorFirst ? peekThumb(hash) : null
+  );
+
+  useEffect(() => {
+    if (!mirrorFirst || !hash) {
+      setThumbBlobUrl(null);
+      return;
+    }
+    const immediate = peekThumb(hash);
+    if (immediate) {
+      setThumbBlobUrl(immediate);
+      return;
+    }
+    setThumbBlobUrl(null);
+    if (isKnownThumbMiss(hash)) return;
+    let cancelled = false;
+    getThumb(hash).then((url) => {
+      if (cancelled || !url) return;
+      setThumbBlobUrl(url);
+    });
+    return () => { cancelled = true; };
+  }, [mirrorFirst, hash]);
+
   const cachedLoadedUrl = getCachedLoadedUrl(hash);
   const startIdx = getCachedGatewayIndex(hash);
 
@@ -290,7 +316,8 @@ export function useIpfsMedia(
 
   // Mirror-first phase: true while we're attempting the primary static mirror.
   const canTryMirror = (h: string | null) =>
-    mirrorFirst && !!h && !!PRIMARY_MIRROR && !mirrorDown && !mirrorMissSet.has(h) && !getCachedLoadedUrl(h);
+    mirrorFirst && !!h && !!PRIMARY_MIRROR && !mirrorDown && !mirrorMissSet.has(h)
+    && !getCachedLoadedUrl(h) && !peekThumb(h);
   const [mirrorPhase, setMirrorPhase] = useState(() => canTryMirror(hash));
 
   // Reset state when URL or active mirror changes
