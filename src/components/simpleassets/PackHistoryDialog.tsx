@@ -194,44 +194,6 @@ export function PackHistoryDialog({
     if (bad) toast.error(`${bad} file${bad === 1 ? '' : 's'} were not a pack history JSON`);
   }, [reload, onHistoryChanged]);
 
-  const handleChainExport = useCallback(async () => {
-    if (!account || chainBusy) return;
-    setChainBusy(true);
-    setChainProgress({ stage: 'scanning', message: 'Contacting WAX history nodes…', done: 0, total: 0 });
-    try {
-      const result = await exportPackHistoryFromChain(account, (p) => setChainProgress(p));
-      if (result.entries.length === 0) {
-        toast.info('No past pack openings were found in chain history for this account.');
-        return;
-      }
-      const blob = new Blob(
-        [JSON.stringify(buildPackHistoryEnvelope(account, result.entries), null, 2)],
-        { type: 'application/json' },
-      );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `gpk-pack-history-${account}-from-chain-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(
-        `Exported ${result.entries.length} past opening${result.entries.length === 1 ? '' : 's'} (${result.saOpenings} SimpleAssets, ${result.aaOpenings} AtomicAssets). Load the downloaded file to see them here.`,
-        { duration: 9000 },
-      );
-      for (const w of result.warnings) toast.warning(w);
-    } catch (err) {
-      if (err instanceof HistoryUnavailableError) {
-        toast.error(err.message);
-      } else {
-        toast.error(err instanceof Error ? err.message : 'Chain export failed');
-      }
-    } finally {
-      setChainBusy(false);
-      setChainProgress(null);
-    }
-  }, [account, chainBusy]);
 
   const handleClear = useCallback(() => {
     if (entries.length === 0) return;
