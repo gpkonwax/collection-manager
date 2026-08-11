@@ -25,17 +25,27 @@ const FOOD_FIGHT_TYPES = [
   'Golden Cards',
 ];
 
+const WINTERCON_ODDS = [
+  '59.83% chance at a Base Card',
+  '26.58% chance at a Prism Card',
+  '11.67% chance at a Sketch Card',
+  '1.83% chance at an Artist Signature Card',
+  '0.08% chance at a Golden Card',
+];
+
 function winterConDay(day: number, date: string): PackSpec {
   return {
     packType: `WinterCon Day ${day} Pack`,
+    price: '$9.99 USD',
     series: 'Food Fight! — WinterCon 2021 Exclusive',
     releaseDate: date,
     contains: '3 Cards',
-    printRun: '2,450 packs',
-    note: 'Sold by credit card during Winter Con 2021; price never published',
-    includes: ['3 "b" cards from the Food Fight! digital set', ...FOOD_FIGHT_TYPES],
+    printRun: '2,500 packs (sold out)',
+    note: 'WinterCon 2021 exclusive; 3 "b" cards from the Food Fight! digital set',
+    includes: WINTERCON_ODDS,
   };
 }
+
 
 export const PACK_SPECS: Record<string, PackSpec> = {
   GPKFIVE: {
