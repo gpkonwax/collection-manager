@@ -10,6 +10,69 @@ const loadedUrlCache = new Map<string, string>();
 // Global last-known-good gateway so new hashes skip dead gateways
 let lastGoodGatewayIndex = 0;
 
+// ---- persistence: keep the hash → known-good URL map across reloads --------
+const PERSIST_KEY = 'gpk-ipfs-url-cache-v1';
+const PERSIST_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const PERSIST_MAX = 3000;
+
+interface PersistedCache {
+  savedAt: number;
+  entries: Array<[string, string, number]>; // [hash, url, gatewayIndex]
+}
+
+function hydratePersistedCache() {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as PersistedCache;
+    if (!parsed?.entries || !Array.isArray(parsed.entries)) return;
+    if (!parsed.savedAt || Date.now() - parsed.savedAt > PERSIST_TTL_MS) {
+      localStorage.removeItem(PERSIST_KEY);
+      return;
+    }
+    for (const entry of parsed.entries) {
+      if (!Array.isArray(entry)) continue;
+      const [hash, url, idx] = entry;
+      if (typeof hash !== 'string' || typeof url !== 'string') continue;
+      if (url.startsWith('blob:') || url.startsWith('data:')) continue;
+      loadedUrlCache.set(hash, url);
+      if (typeof idx === 'number' && idx >= 0) gatewayCache.set(hash, idx);
+    }
+  } catch {
+    /* ignore corrupt/unavailable storage */
+  }
+}
+hydratePersistedCache();
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePersist() {
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    try {
+      const entries: Array<[string, string, number]> = [];
+      const all = Array.from(loadedUrlCache.entries());
+      const slice = all.slice(Math.max(0, all.length - PERSIST_MAX));
+      for (const [hash, url] of slice) {
+        if (url.startsWith('blob:') || url.startsWith('data:')) continue;
+        entries.push([hash, url, gatewayCache.get(hash) ?? 0]);
+      }
+      localStorage.setItem(PERSIST_KEY, JSON.stringify({ savedAt: Date.now(), entries } satisfies PersistedCache));
+    } catch {
+      /* quota or unavailable — cache stays in-memory only */
+    }
+  }, 2000);
+}
+
+/** Wipe both the in-memory and persisted known-good URL maps. */
+export function clearIpfsUrlCache() {
+  loadedUrlCache.clear();
+  gatewayCache.clear();
+  lastGoodGatewayIndex = 0;
+  try { localStorage.removeItem(PERSIST_KEY); } catch { /* noop */ }
+}
+
+
 // ---- mirror-first (opt-in) session state -------------------------------
 // Hashes known to be absent/slow on the primary mirror this session.
 const mirrorMissSet = new Set<string>();
