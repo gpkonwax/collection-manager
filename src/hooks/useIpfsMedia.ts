@@ -486,7 +486,7 @@ export function useIpfsMedia(
     advance();
   }, [advance, enabled, mirrorPhase, leaveMirrorPhase]);
 
-  const usingMirrorFirst = mirrorPhase && enabled && !!hash && !verifiedMirrorUrl && !localMirrorUrl && !cachedLoadedUrl;
+  const usingMirrorFirst = mirrorPhase && enabled && !!hash && !verifiedMirrorUrl && !localMirrorUrl && !cachedLoadedUrl && !thumbBlobUrl;
 
   let src: string;
   if (verifiedMirrorUrl) {
@@ -495,6 +495,9 @@ export function useIpfsMedia(
   } else if (localMirrorUrl) {
     // Local ZIP mirror hit — bypass every gateway attempt, fully offline.
     src = localMirrorUrl;
+  } else if (thumbBlobUrl) {
+    // Byte cache hit (Cache Storage) — instant, no network at all.
+    src = thumbBlobUrl;
   } else if (cachedLoadedUrl) {
     // Already successfully loaded once — reuse the exact known-good URL (browser HTTP cache will serve it)
     src = cachedLoadedUrl;
@@ -534,19 +537,23 @@ export function useIpfsMedia(
         noteMirrorHit();
         setCachedLoadedUrl(hash, src);
         gatewayCache.set(hash, getPublicGatewayCount() % IPFS_GATEWAYS.length);
+        // Persist the bytes so later opens/reloads never touch the network.
+        void putThumb(hash, src);
       } else {
         setCachedGateway(hash, gwIdx);
         setCachedLoadedUrl(hash, src);
+        // Only mirrorFirst consumers (Pack History) opt into the byte cache.
+        if (mirrorFirst) void putThumb(hash, src);
       }
     }
-  }, [hash, gwIdx, src, usingMirrorFirst]);
+  }, [hash, gwIdx, src, usingMirrorFirst, mirrorFirst]);
 
 
   return {
     src,
     onError,
     onLoad: onLoadFinal,
-    isLoading: verifiedMirrorUrl || localMirrorUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
-    failed: verifiedMirrorUrl || localMirrorUrl || hasLoadedRef.current ? false : failed,
+    isLoading: verifiedMirrorUrl || localMirrorUrl || thumbBlobUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
+    failed: verifiedMirrorUrl || localMirrorUrl || thumbBlobUrl || hasLoadedRef.current ? false : failed,
   };
 }
