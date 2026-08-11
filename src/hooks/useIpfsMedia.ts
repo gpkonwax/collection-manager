@@ -224,6 +224,11 @@ export function useIpfsMedia(
   // Track whether this hash has ever successfully rendered in this hook instance
   const hasLoadedRef = useRef(!!cachedLoadedUrl);
 
+  // Mirror-first phase: true while we're attempting the primary static mirror.
+  const canTryMirror = (h: string | null) =>
+    mirrorFirst && !!h && !!PRIMARY_MIRROR && !mirrorDown && !mirrorMissSet.has(h) && !getCachedLoadedUrl(h);
+  const [mirrorPhase, setMirrorPhase] = useState(() => canTryMirror(hash));
+
   // Reset state when URL or active mirror changes
   useEffect(() => {
     const newCached = getCachedLoadedUrl(hash);
@@ -235,6 +240,7 @@ export function useIpfsMedia(
     setIsLoading(!newCached);
     setNonce(0);
     setVerifiedMirrorUrl(null);
+    setMirrorPhase(canTryMirror(hash));
     hasLoadedRef.current = !!newCached;
     attemptRef.current += 1;
     if (retryTimerRef.current) {
@@ -245,7 +251,28 @@ export function useIpfsMedia(
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }, [originalUrl, hash, activeMirror]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [originalUrl, hash, activeMirror, mirrorFirst]);
+
+  const leaveMirrorPhase = useCallback(() => {
+    if (hash) noteMirrorMiss(hash);
+    attemptRef.current += 1;
+    setMirrorPhase(false);
+  }, [hash]);
+
+  // Short timeout for the mirror attempt — fall through to gateways quickly.
+  useEffect(() => {
+    if (!mirrorPhase || !enabled || !hash || hasLoadedRef.current) return;
+    const myAttempt = attemptRef.current;
+    const t = setTimeout(() => {
+      if (!mountedRef.current) return;
+      if (myAttempt !== attemptRef.current) return;
+      if (hasLoadedRef.current) return;
+      leaveMirrorPhase();
+    }, MIRROR_FIRST_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [mirrorPhase, enabled, hash, leaveMirrorPhase]);
+
 
   useEffect(() => {
     mountedRef.current = true;
