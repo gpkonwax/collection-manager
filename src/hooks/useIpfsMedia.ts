@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
-import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS } from '@/lib/ipfsGateways';
+import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS, PRIMARY_MIRROR, getPublicGatewayCount } from '@/lib/ipfsGateways';
 import { resolveLocalMirror, subscribeLocalMirror, hasLocalMirror } from '@/lib/localMirror';
 import { fetchVerifiedMirrorFile, getRemoteMirrorState, subscribeRemoteMirror, MIRRORS } from '@/lib/remoteMirror';
 
@@ -10,7 +10,28 @@ const loadedUrlCache = new Map<string, string>();
 // Global last-known-good gateway so new hashes skip dead gateways
 let lastGoodGatewayIndex = 0;
 
+// ---- mirror-first (opt-in) session state -------------------------------
+// Hashes known to be absent/slow on the primary mirror this session.
+const mirrorMissSet = new Set<string>();
+// After this many consecutive mirror failures we assume the mirror is down
+// and skip the mirror attempt entirely for the rest of the session.
+const MIRROR_DOWN_THRESHOLD = 5;
+const MIRROR_FIRST_TIMEOUT_MS = 1500;
+let mirrorConsecutiveFailures = 0;
+let mirrorDown = false;
+
+function noteMirrorMiss(hash: string) {
+  mirrorMissSet.add(hash);
+  mirrorConsecutiveFailures += 1;
+  if (mirrorConsecutiveFailures >= MIRROR_DOWN_THRESHOLD) mirrorDown = true;
+}
+
+function noteMirrorHit() {
+  mirrorConsecutiveFailures = 0;
+}
+
 const MAX_RETRY_ROUNDS = 10;
+
 const LOADED_CACHE_MAX = 2000;
 
 export function getCachedGatewayIndex(hash: string | null): number {
