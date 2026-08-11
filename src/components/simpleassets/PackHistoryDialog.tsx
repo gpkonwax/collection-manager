@@ -286,9 +286,10 @@ export function PackHistoryDialog({
               </p>
               {entries.length === 0 && (
                 <p className="text-xs text-muted-foreground/70 max-w-md mx-auto">
-                  New packs you open are recorded here automatically. To bring in packs you opened in the past, run the chain
-                  export below, then load the file it downloads.
+                  New packs you open are recorded here automatically. To bring in packs you opened in the past, hit
+                  "Download pack history JSON" — it rebuilds them from WAX history and adds them to this list.
                 </p>
+
               )}
             </div>
           ) : (
