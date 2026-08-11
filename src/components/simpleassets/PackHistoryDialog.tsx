@@ -323,9 +323,12 @@ export function PackHistoryDialog({
     if (entries.length === 0) return;
     if (!window.confirm('Clear the pack history stored on this device? Download the JSON first if you want to keep it.')) return;
     clearPackHistory(account);
+    // Also flush cached thumbnail bytes and remembered image URLs.
+    void clearThumbs();
+    clearIpfsUrlCache();
     reload();
     onHistoryChanged?.();
-    toast.success('Pack history cleared on this device');
+    toast.success('Pack history and cached thumbnails cleared on this device');
   }, [account, entries.length, reload, onHistoryChanged]);
 
   return (
