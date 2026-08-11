@@ -9,6 +9,7 @@ import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
 import type { RevealResult } from '@/lib/packReveal';
+import { IpfsMedia } from './IpfsMedia';
 
 const PACKS_PER_PAGE = 10;
 
