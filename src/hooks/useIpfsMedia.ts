@@ -110,7 +110,7 @@ export function getCachedLoadedUrl(hash: string | null): string | null {
 function setCachedGateway(hash: string, idx: number) {
   gatewayCache.set(hash, idx);
   lastGoodGatewayIndex = idx;
-  if (gatewayCache.size > 500) {
+  if (gatewayCache.size > LOADED_CACHE_MAX) {
     const first = gatewayCache.keys().next().value;
     if (first) gatewayCache.delete(first);
   }
@@ -122,6 +122,7 @@ function setCachedLoadedUrl(hash: string, url: string) {
     const first = loadedUrlCache.keys().next().value;
     if (first) loadedUrlCache.delete(first);
   }
+  schedulePersist();
 }
 
 /**
