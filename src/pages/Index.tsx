@@ -880,7 +880,25 @@ export default function SimpleAssetsPage() {
   // dealt into a grid cell, so they're reported instead of animated.
   const handleReplayCollect = useCallback((entry: PackHistoryEntry) => {
     setReplayEntry(null);
-    const { matched } = matchRevealedAssets(entry.matchers ?? [], assetsRef.current, new Set<string>());
+    // Prefer the exact minted asset ids recorded with each card — attribute
+    // matching (cardid/side/variant) is only a fallback for older entries.
+    const cardMatchers: RevealMatcher[] = (entry.cards ?? []).map((c) => {
+      if (entry.source === 'atomicassets') {
+        if (c.id) return { kind: 'aa-asset', assetId: String(c.id) } as RevealMatcher;
+        return { kind: 'aa-template', templateId: String(c.templateId ?? '') } as RevealMatcher;
+      }
+      return {
+        kind: 'sa',
+        assetId: c.id ? String(c.id) : null,
+        cardid: String(c.cardid ?? ''),
+        side: String(c.side ?? '').toLowerCase(),
+        variant: normalizeGpkVariant(String(c.variant ?? '')),
+        category: c.category || null,
+      } as RevealMatcher;
+    }).filter((m) => (m.kind === 'sa' ? !!(m.assetId || m.cardid) : m.kind === 'aa-asset' ? !!m.assetId : !!m.templateId));
+
+    const matchers = cardMatchers.length ? cardMatchers : (entry.matchers ?? []);
+    const { matched } = matchRevealedAssets(matchers, assetsRef.current, new Set<string>());
     if (matched.length === 0) {
       toast.info('None of the cards from this pack are in this wallet any more, so there is nothing to deal.');
       return;
@@ -891,6 +909,7 @@ export default function SimpleAssetsPage() {
       toast.info(`${gone} card${gone === 1 ? '' : 's'} from this pack ${gone === 1 ? 'is' : 'are'} no longer in this wallet — only the cards you still own were dealt.`);
     }
   }, [handleDemoCollect]);
+
 
   const handleExportPackHistory = useCallback(() => {
     if (!accountName) return;
