@@ -350,7 +350,9 @@ export function useIpfsMedia(
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gwIdx, isLoading, failed, hash, baseTimeout, triedCount, enabled, mirrorPhase]);
+
 
   const advance = useCallback(() => {
     // Don't rotate if we've already successfully loaded this hash
