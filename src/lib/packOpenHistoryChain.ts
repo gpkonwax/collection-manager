@@ -219,14 +219,19 @@ async function reconstructSaOpening(
 
     const category = String(data.category ?? '');
     const cardid = pick('cardid') != null ? String(pick('cardid')) : null;
-    const side = pick('side') != null ? String(pick('side')) : null;
-    const rawVariant = pick('variant') ?? pick('quality');
-    const variant = rawVariant != null ? String(rawVariant) : null;
+    // SimpleAssets GPK cards store the card SIDE in `quality` and the print
+    // variant in `variant` — the same mapping the collection reader uses.
+    // `side` is only present on a handful of assets, so it is a fallback.
+    const rawSide = pick('quality') ?? pick('side');
+    const side = rawSide != null ? String(rawSide).toLowerCase() : null;
+    const rawVariant = pick('variant');
+    const variant = rawVariant != null ? normalizeGpkVariant(String(rawVariant)) : null;
+    const assetId = data.assetid != null ? String(data.assetid) : null;
 
     minted.push({
       category,
       card: {
-        id: data.assetid != null ? String(data.assetid) : null,
+        id: assetId,
         name: String(pick('name') ?? (cardid ? `Card #${cardid}${side ?? ''}` : 'Card')),
         image: resolveImage(pick('img') ?? pick('image')),
         cardid,
@@ -234,16 +239,18 @@ async function reconstructSaOpening(
         variant,
         category: category || null,
       },
-      matcher: cardid
+      matcher: cardid || assetId
         ? {
             kind: 'sa',
-            cardid,
-            side: (side ?? '').toLowerCase(),
-            variant: normalizeGpkVariant(String(variant ?? '')),
+            assetId,
+            cardid: cardid ?? '',
+            side: side ?? '',
+            variant: variant ?? '',
             category: category || null,
           }
         : null,
     });
+
   }
 
   if (minted.length === 0) return [];
