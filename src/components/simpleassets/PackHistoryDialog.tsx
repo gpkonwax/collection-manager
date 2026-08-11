@@ -19,6 +19,9 @@ import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, 
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { PRIMARY_MIRROR, extractIpfsHash } from '@/lib/ipfsGateways';
+import { warmThumbs, clearThumbs } from '@/lib/thumbCache';
+import { clearIpfsUrlCache } from '@/hooks/useIpfsMedia';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
 import {
   getPackHistory,
@@ -209,6 +212,31 @@ export function PackHistoryDialog({
     if (activeGroup && !groups.has(activeGroup)) setActiveGroup(null);
   }, [activeGroup, groups]);
 
+  // Warm the byte cache for the thumbnails about to be shown so re-opening the
+  // dialog (or drilling into a pack) paints instantly with no network work.
+  useEffect(() => {
+    if (!open || !PRIMARY_MIRROR) return;
+    const urls: string[] = [];
+    for (const g of groupList) if (g.packImage) urls.push(g.packImage);
+    if (active) {
+      for (const entry of active.entries) {
+        if (entry.packImage) urls.push(entry.packImage);
+        for (const card of entry.cards ?? []) if (card.image) urls.push(card.image);
+      }
+    }
+    const hashes = Array.from(
+      new Set(urls.map((u) => extractIpfsHash(u)).filter((h): h is string => !!h)),
+    );
+    if (hashes.length === 0) return;
+    let cancelled = false;
+    const id = setTimeout(() => {
+      if (cancelled) return;
+      void warmThumbs(hashes, (h) => `${PRIMARY_MIRROR}${h}`);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(id); };
+  }, [open, groupList, active]);
+
+
 
   const handleDownload = useCallback(async () => {
     if (!account) {
@@ -295,9 +323,12 @@ export function PackHistoryDialog({
     if (entries.length === 0) return;
     if (!window.confirm('Clear the pack history stored on this device? Download the JSON first if you want to keep it.')) return;
     clearPackHistory(account);
+    // Also flush cached thumbnail bytes and remembered image URLs.
+    void clearThumbs();
+    clearIpfsUrlCache();
     reload();
     onHistoryChanged?.();
-    toast.success('Pack history cleared on this device');
+    toast.success('Pack history and cached thumbnails cleared on this device');
   }, [account, entries.length, reload, onHistoryChanged]);
 
   return (
