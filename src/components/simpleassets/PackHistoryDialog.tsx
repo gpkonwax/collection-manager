@@ -484,7 +484,8 @@ export function PackHistoryDialog({
                   )}
                 </div>
               </div>
-            ))
+            ))}
+            </>
           )}
         </div>
 
