@@ -14,6 +14,8 @@ import { fetchWithFallback } from './fetchWithFallback';
 import type { PackHistoryCard, PackHistoryEntry } from './packOpenHistory';
 import type { RevealMatcher } from './packReveal';
 import { normalizeGpkVariant } from './gpkVariant';
+import { packLabel, packImage } from './gpkPackMeta';
+
 
 const HYPERION_ENDPOINTS = [
   'https://wax.api.eosnation.io',
@@ -387,13 +389,14 @@ export async function exportPackHistoryFromChain(
       try {
         return await reconstructSaOpening(account, t.trxId, t.openedAt);
       } catch {
-        return null;
+        return [] as PackHistoryEntry[];
       } finally {
         done++;
         report({ stage: 'reconstructing', message: `Rebuilding openings… ${done}/${total}`, done, total });
       }
     })
-  ).filter((e): e is PackHistoryEntry => e !== null);
+  ).flat();
+
 
   // Resolve every distinct AA template once.
   const templateIds = Array.from(new Set(aaGroups.flatMap((g) => g.rows.map((r) => r.templateId)).filter(Boolean)));
