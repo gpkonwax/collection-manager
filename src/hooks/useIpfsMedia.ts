@@ -328,7 +328,9 @@ export function useIpfsMedia(
 
   // Timeout-based fallback — only when enabled and not yet loaded
   useEffect(() => {
+    if (mirrorPhase) return; // the mirror attempt runs its own short timer
     if (!enabled || failed || !isLoading || !hash) return;
+
     // For detail context, defer the serial timer until the parallel race resolves —
     // otherwise it would rotate gwIdx mid-race and waste attempts.
     if (context === 'detail' && !raceDoneRef.current) return;
