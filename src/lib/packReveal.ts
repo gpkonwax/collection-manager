@@ -10,7 +10,10 @@ export type SaRevealMatcher = {
   side: string;   // pendingnft.a.quality (lowercased) — e.g. 'a' | 'b'
   variant: string; // normalizeGpkVariant(pendingnft.a.variant)
   category?: string | null;
+  /** Exact minted asset id when known (chain-reconstructed history). */
+  assetId?: string | null;
 };
+
 
 export type AaAssetMatcher = {
   kind: 'aa-asset';
