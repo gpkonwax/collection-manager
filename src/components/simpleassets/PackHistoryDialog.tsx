@@ -365,15 +365,19 @@ export function PackHistoryDialog({
                 >
                   <div className="w-full flex items-center justify-center">
                     {g.packImage ? (
-                      <img
-                        src={g.packImage}
+                      <IpfsMedia
+                        url={g.packImage}
                         alt={g.packName}
-                        className="w-full h-auto max-h-44 object-contain rounded"
+                        context="detail"
+                        loading="eager"
+                        className="w-full h-44 [&_img]:object-contain [&_video]:object-contain rounded"
+                        mirrorFirst
                       />
                     ) : (
                       <div className="w-full h-44 rounded bg-muted flex items-center justify-center text-4xl">📦</div>
                     )}
                   </div>
+
                   <div className="mt-2 space-y-0.5">
                     <div className="flex items-center gap-1.5">
                       <ProtocolLogo source={g.source} className="h-3.5 w-3.5" />
