@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, Trash2, ChevronUp } from 'lucide-react';
+import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, Trash2, ChevronUp, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
@@ -96,11 +96,13 @@ export function PackHistoryDialog({
   const [sourceFilter, setSourceFilter] = useState<'all' | 'simpleassets' | 'atomicassets'>('all');
   const [chainBusy, setChainBusy] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [chainProgress, setChainProgress] = useState<ChainExportProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
   const reload = useCallback(() => {
+    setActiveGroup(null);
     if (!account) { setEntries([]); setUnsaved(0); return; }
     setEntries(getPackHistory(account));
     setUnsaved(countUnsavedOpenings(account));
@@ -119,6 +121,60 @@ export function PackHistoryDialog({
       return e.cards.some((c) => (c.name || '').toLowerCase().includes(q));
     });
   }, [entries, search, sourceFilter]);
+
+  type PackGroup = {
+    key: string;
+    packName: string;
+    source: PackHistoryEntry['source'];
+    packImage?: string;
+    count: number;
+    latestAt: number;
+    entries: PackHistoryEntry[];
+  };
+
+  const groups = useMemo(() => {
+    const map = new Map<string, PackGroup>();
+    for (const e of filtered) {
+      const key = `${e.source}::${e.packName}`;
+      const g = map.get(key);
+      if (!g) {
+        map.set(key, {
+          key,
+          packName: e.packName,
+          source: e.source,
+          packImage: e.packImage,
+          count: 1,
+          latestAt: e.openedAt,
+          entries: [e],
+        });
+      } else {
+        g.count += 1;
+        g.entries.push(e);
+        if (e.openedAt > g.latestAt) {
+          g.latestAt = e.openedAt;
+          if (e.packImage) g.packImage = e.packImage;
+        }
+        if (!g.packImage && e.packImage) g.packImage = e.packImage;
+      }
+    }
+    for (const g of map.values()) g.entries.sort((a, b) => b.openedAt - a.openedAt);
+    return map;
+  }, [filtered]);
+
+  const groupList = useMemo(
+    () =>
+      Array.from(groups.values()).sort(
+        (a, b) => b.count - a.count || a.packName.localeCompare(b.packName),
+      ),
+    [groups],
+  );
+
+  const active = activeGroup ? groups.get(activeGroup) ?? null : null;
+
+  useEffect(() => {
+    if (activeGroup && !groups.has(activeGroup)) setActiveGroup(null);
+  }, [activeGroup, groups]);
+
 
   const handleDownload = useCallback(async () => {
     if (!account) {
@@ -298,8 +354,53 @@ export function PackHistoryDialog({
 
               )}
             </div>
+          ) : !active ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {groupList.map((g) => (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => setActiveGroup(g.key)}
+                  className="group rounded-lg border border-border bg-background/40 p-3 text-left hover:border-cheese/60 hover:bg-background/70 transition-colors"
+                >
+                  <div className="w-full flex items-center justify-center">
+                    {g.packImage ? (
+                      <img
+                        src={g.packImage}
+                        alt={g.packName}
+                        className="w-full h-auto max-h-44 object-contain rounded"
+                      />
+                    ) : (
+                      <div className="w-full h-44 rounded bg-muted flex items-center justify-center text-4xl">📦</div>
+                    )}
+                  </div>
+                  <div className="mt-2 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <ProtocolLogo source={g.source} className="h-3.5 w-3.5" />
+                      <span className="font-semibold text-sm text-foreground theme-bright-text truncate">
+                        {g.packName}
+                      </span>
+                    </div>
+                    <p className="text-xs text-cheese font-medium">
+                      {g.count} pack{g.count === 1 ? '' : 's'} opened
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Last: {formatWhen(g.latestAt)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           ) : (
-            filtered.map((entry) => (
+            <>
+            <div className="flex items-center gap-2 pb-1">
+              <Button size="sm" variant="outline" onClick={() => setActiveGroup(null)}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back to all packs
+              </Button>
+              <span className="text-xs text-muted-foreground truncate">
+                {active.packName} · {active.count} opening{active.count === 1 ? '' : 's'}
+              </span>
+            </div>
+            {active.entries.map((entry) => (
               <div
                 key={`${entry.account}:${entry.txId}`}
                 className="rounded-lg border border-border bg-background/40 p-3 flex gap-3 items-start"
@@ -383,7 +484,8 @@ export function PackHistoryDialog({
                   )}
                 </div>
               </div>
-            ))
+            ))}
+            </>
           )}
         </div>
 
