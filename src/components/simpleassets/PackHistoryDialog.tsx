@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, Trash2, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
@@ -95,6 +95,7 @@ export function PackHistoryDialog({
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'simpleassets' | 'atomicassets'>('all');
   const [chainBusy, setChainBusy] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [chainProgress, setChainProgress] = useState<ChainExportProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
@@ -325,18 +326,39 @@ export function PackHistoryDialog({
                     {formatWhen(entry.openedAt)} · {entry.cards.length} card{entry.cards.length === 1 ? '' : 's'}
                   </p>
 
-                  <div className="flex gap-1 flex-wrap">
-                    {entry.cards.slice(0, 14).map((card, i) => (
-                      <div key={`${entry.txId}-${i}`} className="w-9 h-9 rounded overflow-hidden bg-muted/40" title={card.name}>
-                        <IpfsMedia url={card.image || ''} alt={card.name} className="w-full h-full" context="card" loading="lazy" mirrorFirst />
+                  {(() => {
+                    const entryKey = `${entry.account}:${entry.txId}`;
+                    const isExpanded = expanded.has(entryKey);
+                    const hidden = entry.cards.length - 14;
+                    const shown = isExpanded ? entry.cards : entry.cards.slice(0, 14);
+                    const toggle = () =>
+                      setExpanded((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(entryKey)) next.delete(entryKey);
+                        else next.add(entryKey);
+                        return next;
+                      });
+                    return (
+                      <div className="flex gap-1 flex-wrap">
+                        {shown.map((card, i) => (
+                          <div key={`${entry.txId}-${i}`} className="w-9 h-9 rounded overflow-hidden bg-muted/40" title={card.name}>
+                            <IpfsMedia url={card.image || ''} alt={card.name} className="w-full h-full" context="card" loading="lazy" mirrorFirst />
+                          </div>
+                        ))}
+                        {hidden > 0 && (
+                          <button
+                            type="button"
+                            onClick={toggle}
+                            aria-expanded={isExpanded}
+                            title={isExpanded ? 'Show fewer cards' : `Show all ${entry.cards.length} cards`}
+                            className="w-9 h-9 rounded bg-muted/40 hover:bg-muted flex items-center justify-center text-[10px] text-muted-foreground hover:text-cheese transition-colors"
+                          >
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : `+${hidden}`}
+                          </button>
+                        )}
                       </div>
-                    ))}
-                    {entry.cards.length > 14 && (
-                      <div className="w-9 h-9 rounded bg-muted/40 flex items-center justify-center text-[10px] text-muted-foreground">
-                        +{entry.cards.length - 14}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
