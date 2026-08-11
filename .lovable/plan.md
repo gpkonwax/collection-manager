@@ -20,4 +20,12 @@ Remove the button and lean on Pack History. "Recover Stuck Cards" stays — that
 
 ## Note on the one gap
 
-The old button worked even with an empty local history. Replay needs an entry. In practice a live open on this device always records one, and anything older can be rebuilt from chain through the existing download flow — so the gap is narrow, but it is the reason to keep the Pack History button prominent in the header.
+"Show Received Cards" does not need a history entry. It scans the chain for the latest unboxing ID, finds which cards from that unboxing are now in your wallet, and jumps the collection view to that pack's category. It works immediately after a fresh open even if Pack History is empty.
+
+Replay, by contrast, needs a Pack History entry. That entry contains the exact list of card names/sides/variants that were revealed, plus the pack name and image, so the animation can re-run. There are two ways to get that entry:
+
+1. Live open on this device — the app already records one automatically when a pack is opened.
+2. Older openings — the "Download pack history JSON" button rebuilds them from WAX history and loads them in.
+
+So the only scenario where Replay cannot replace the old button is: a pack was just opened on this device, the local history entry somehow did not get written, and the user wants to see/filter the received cards without first rebuilding from chain. In practice the live-open recording path is reliable, so this gap is narrow. That is why it is safe to remove the button, but also why the Pack History button should stay prominent in the header as the replacement path.
+
