@@ -112,7 +112,7 @@ export function AtomicPackBrowserDialog({
                       </span>
                     </div>
                     <div className="p-3 pt-2 flex flex-col items-center text-center space-y-2 w-full">
-                    <img src={pack.image} alt={pack.name} className="w-3/4 h-auto rounded mx-auto" />
+                    <IpfsMedia url={pack.image} alt={pack.name} className="w-3/4 aspect-[3/4] rounded mx-auto" />
                     <Button size="sm" variant="outline" className="w-full text-xs"
                       disabled={!session || openingIdx !== null}
                       onClick={() => handleOpen(i)}>
