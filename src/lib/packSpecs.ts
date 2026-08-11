@@ -213,10 +213,10 @@ export const PACK_SPECS: Record<string, PackSpec> = {
     note: 'Free via redemption code from physical 2021 Series 1 boxes',
     includes: ['3 "a" cards from the 11-piece digital set', ...FOOD_FIGHT_TYPES],
   },
-  '59489': winterConDay(1, 'February 25, 2021'),
-  '59490': winterConDay(2, 'February 26, 2021'),
-  '59491': winterConDay(3, 'February 27, 2021'),
-  '59492': winterConDay(4, 'February 28, 2021'),
+  '59489': winterConDay(1, 'February 26, 2021'),
+  '59490': winterConDay(2, 'February 27, 2021'),
+  '59491': winterConDay(3, 'February 28, 2021'),
+  '59492': winterConDay(4, 'March 1, 2021'),
 };
 
 export function getPackSpec(key: string | undefined): PackSpec | undefined {
