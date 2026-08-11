@@ -323,6 +323,32 @@ async function fetchTemplateMeta(templateId: string): Promise<{ name: string; im
   return { name: `Card #${templateId}`, image: null };
 }
 
+/** Resolve a burned/transferred AtomicAssets pack asset to its name + art. */
+async function fetchPackAssetMeta(
+  assetId: string,
+): Promise<{ name: string; image: string | null } | null> {
+  try {
+    const path = `${ATOMIC_API.paths.assets}/${assetId}`;
+    const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
+    const json = await response.json();
+    const data = json?.data;
+    if (!data) return null;
+    if (String(data.collection?.collection_name ?? '') !== 'gpk.topps') return null;
+    if (!String(data.schema?.schema_name ?? '').toLowerCase().includes('pack')) return null;
+    const idata = {
+      ...(data.template?.immutable_data || {}),
+      ...(data.immutable_data || {}),
+    } as Record<string, unknown>;
+    return {
+      name: String(idata.name || 'GPK Pack'),
+      image: resolveImage(idata.img || idata.image),
+    };
+  } catch {
+    return null;
+  }
+}
+
+
 interface AaMintGroup {
   trxId: string;
   openedAt: number;
@@ -445,6 +471,50 @@ export async function exportPackHistoryFromChain(
     templateMeta.set(tid, await fetchTemplateMeta(tid));
   });
 
+  // The pack NFT itself is transferred to the unbox contract shortly before the
+  // cards are minted — use that asset to recover the pack's real name + art.
+  const packMetaByGroup = new Map<string, { name: string; image: string | null }>();
+  if (aaGroups.length > 0) {
+    let transfers: HyperionAction[] = [];
+    try {
+      transfers = await fetchAllActions(account, 'atomicassets:transfer', maxOpenings * 4);
+    } catch {
+      /* pack art is best effort */
+    }
+    const outgoing = transfers
+      .filter((a) => String(((a.act?.data || {}) as Record<string, unknown>).from ?? '') === account)
+      .map((a) => {
+        const data = (a.act?.data || {}) as Record<string, unknown>;
+        const ids = Array.isArray(data.asset_ids) ? data.asset_ids.map((v) => String(v)) : [];
+        return { at: toMs(a), assetIds: ids };
+      })
+      .filter((t) => t.assetIds.length > 0)
+      .sort((a, b) => b.at - a.at);
+
+    const WINDOW_MS = 6 * 60 * 60 * 1000;
+    const used = new Map<number, number>();
+    const candidates: { key: string; assetId: string }[] = [];
+    for (const g of aaGroups) {
+      const index = outgoing.findIndex(
+        (t, i) => t.at <= g.openedAt + 120_000 && t.at >= g.openedAt - WINDOW_MS && (used.get(i) ?? 0) < t.assetIds.length,
+      );
+      if (index === -1) continue;
+      const slot = used.get(index) ?? 0;
+      used.set(index, slot + 1);
+      candidates.push({ key: g.trxId, assetId: outgoing[index].assetIds[slot] });
+    }
+
+    const assetCache = new Map<string, { name: string; image: string | null } | null>();
+    const uniqueAssetIds = Array.from(new Set(candidates.map((c) => c.assetId)));
+    await mapPool(uniqueAssetIds, 6, async (assetId) => {
+      assetCache.set(assetId, await fetchPackAssetMeta(assetId));
+    });
+    for (const c of candidates) {
+      const meta = assetCache.get(c.assetId);
+      if (meta) packMetaByGroup.set(c.key, meta);
+    }
+  }
+
   const aaEntries: PackHistoryEntry[] = aaGroups.map((g) => {
     const cards: PackHistoryCard[] = g.rows.map((r) => {
       const meta = templateMeta.get(r.templateId) || { name: `Card #${r.templateId}`, image: null };
@@ -458,13 +528,15 @@ export async function exportPackHistoryFromChain(
     });
     done++;
     report({ stage: 'reconstructing', message: `Rebuilding openings… ${done}/${total}`, done, total });
+    const packMeta = packMetaByGroup.get(g.trxId);
+    const schema = g.rows[0]?.schema || 'GPK';
     return {
       txId: g.trxId,
       account,
       source: 'atomicassets',
       packId: null,
-      packName: `${g.rows[0]?.schema || 'GPK'} pack (${cards.length} card${cards.length === 1 ? '' : 's'})`,
-      packImage: null,
+      packName: packMeta?.name || `${schema} pack`,
+      packImage: packMeta?.image ?? null,
       openedAt: g.openedAt,
       matchers: g.rows
         .filter((r) => r.assetId)
@@ -473,6 +545,7 @@ export async function exportPackHistoryFromChain(
       fromChain: true,
     };
   });
+
 
   const entries = [...saEntries, ...aaEntries].sort((a, b) => b.openedAt - a.openedAt);
   report({ stage: 'done', message: `Rebuilt ${entries.length} opening${entries.length === 1 ? '' : 's'}.`, done: total, total });
