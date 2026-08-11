@@ -421,18 +421,21 @@ export async function exportPackHistoryFromChain(
   let done = 0;
   report({ stage: 'reconstructing', message: `Rebuilding ${total} opening${total === 1 ? '' : 's'}…`, done, total });
 
-  const saEntries = (
+  const saFragments = (
     await mapPool(saTrxs, 4, async (t) => {
       try {
         return await reconstructSaOpening(account, t.trxId, t.openedAt);
       } catch {
-        return [] as PackHistoryEntry[];
+        return [] as SaClaimFragment[];
       } finally {
         done++;
         report({ stage: 'reconstructing', message: `Rebuilding openings… ${done}/${total}`, done, total });
       }
     })
   ).flat();
+
+  // One pack can be claimed across several transactions — merge by unboxing id.
+  const saEntries = mergeSaFragments(account, saFragments);
 
 
   // Resolve every distinct AA template once.
