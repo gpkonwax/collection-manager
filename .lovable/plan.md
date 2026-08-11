@@ -16,16 +16,23 @@ Give every connected user a personal log of every pack they've opened — when, 
 
 ## How it works (simple version)
 
-The user clicks **Pack History** in the header. The dialog opens with the list plus two buttons: **Download pack history JSON** and **Load pack history JSON**.
+The user clicks **Pack History** in the header. The dialog shows the list plus two buttons: **Download pack history JSON** and **Load pack history JSON**.
 
-- First time for an account, the list is empty, so the dialog offers **Build from chain** — a one-off backfill that queries WAX history, reconstructs past openings, and fills the list. The user then downloads the JSON once and keeps it.
-- From then on, every new pack opened is written straight to local storage as it happens; no chain query needed.
-- If local storage is ever cleared (or the user switches device/browser), they click **Load pack history JSON** and they're back — no need to re-run the chain backfill.
-- A warning line appears in the dialog when there are openings recorded since the last download, prompting a fresh export.
+The list itself is fed by exactly two things:
 
-Everything merges by transaction id, so re-running the backfill or loading an older JSON never creates duplicates and never overwrites a richer locally recorded entry.
+1. Openings recorded locally as they happen (written the moment a reveal completes).
+2. A pack history JSON the user loads.
 
-Backfill is manual (button), not automatic on open, and reports clearly if history nodes are unavailable.
+**Build from chain is export-only.** The dialog has a third, clearly secondary action — *Export my past openings from chain* — that queries WAX history, reconstructs the account's past openings, and immediately hands the user a downloaded JSON file. It does **not** populate the list and does **not** write to local storage. To see that data in the app, the user loads the file they just downloaded. That keeps loading the JSON the normal path instead of hammering chain history on every visit.
+
+So the flow is: run the chain export once → download JSON → load JSON → list is populated → new opens append automatically → re-download whenever the dialog warns the file is out of date.
+
+A warning line appears in the dialog when there are openings recorded since the last download, prompting a fresh export.
+
+Loading merges by transaction id, so loading an older or overlapping JSON never creates duplicates and never overwrites a richer locally recorded entry.
+
+The chain export is manual (button only) and reports clearly if history nodes are unavailable.
+
 
 ## Technical notes
 
