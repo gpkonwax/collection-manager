@@ -132,10 +132,20 @@ export function PackHistoryDialog({
     entries: PackHistoryEntry[];
   };
 
+  const normalizePackName = (name: string) => {
+    const cleaned = (name || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\b(gpk|pack|packs|the|a|nft|garbage|pail|kids)\b/g, ' ')
+      .replace(/\s+/g, '')
+      .trim();
+    return cleaned || (name || '').toLowerCase().trim();
+  };
+
   const groups = useMemo(() => {
     const map = new Map<string, PackGroup>();
     for (const e of filtered) {
-      const key = `${e.source}::${e.packName}`;
+      const key = `${e.source}::${normalizePackName(e.packName)}`;
       const g = map.get(key);
       if (!g) {
         map.set(key, {
@@ -150,16 +160,16 @@ export function PackHistoryDialog({
       } else {
         g.count += 1;
         g.entries.push(e);
-        if (e.openedAt > g.latestAt) {
-          g.latestAt = e.openedAt;
-          if (e.packImage) g.packImage = e.packImage;
-        }
+        // Prefer the richer (longer) display name across variants of the same pack
+        if ((e.packName || '').length > (g.packName || '').length) g.packName = e.packName;
+        if (e.openedAt > g.latestAt) g.latestAt = e.openedAt;
         if (!g.packImage && e.packImage) g.packImage = e.packImage;
       }
     }
     for (const g of map.values()) g.entries.sort((a, b) => b.openedAt - a.openedAt);
     return map;
   }, [filtered]);
+
 
   const groupList = useMemo(
     () =>
