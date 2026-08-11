@@ -170,14 +170,38 @@ export function PackHistoryDialog({
     return map;
   }, [filtered]);
 
+  // Natural pack order, matching the homepage pack grid ("All categories")
+  const packSortOrder = (name: string) => {
+    const n = (name || '').toLowerCase();
+    if (/series\s*1\b|series1/.test(n) && !/exotic|tiger/.test(n)) return 1;
+    if (/mega/.test(n) && !/exotic|tiger/.test(n)) return 2;
+    if (/2a\b/.test(n)) return 3;
+    if (/2b\b/.test(n)) return 4;
+    if (/2c\b/.test(n)) return 5;
+    if (/(exotic|tiger)/.test(n) && /mega/.test(n)) return 7;
+    if (/(exotic|tiger)/.test(n)) return 6;
+    if (/bernventure/.test(n)) return 8;
+    if (/gamestonk|game\s*stonk/.test(n)) return 9;
+    if (/crash\s*gordon|crashgordon/.test(n)) return 10;
+    if (/mitten/.test(n)) return 11;
+    if (/wintercon/.test(n)) {
+      const day = n.match(/day\s*([1-4])/)?.[1];
+      return day ? 12 + Number(day) : 13;
+    }
+    if (/food\s*fight/.test(n)) return 12;
+    return 99;
+  };
 
   const groupList = useMemo(
     () =>
       Array.from(groups.values()).sort(
-        (a, b) => b.count - a.count || a.packName.localeCompare(b.packName),
+        (a, b) =>
+          packSortOrder(a.packName) - packSortOrder(b.packName) ||
+          a.packName.localeCompare(b.packName),
       ),
     [groups],
   );
+
 
   const active = activeGroup ? groups.get(activeGroup) ?? null : null;
 
