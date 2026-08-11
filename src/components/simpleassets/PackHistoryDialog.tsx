@@ -146,11 +146,11 @@ export function PackHistoryDialog({
     }
 
     const local = getPackHistory(account);
-    const seen = new Set(local.map((e) => e.id));
+    const seen = new Set(local.map((e) => e.txId));
     const all = [...local];
     for (const e of chainEntries) {
-      if (seen.has(e.id)) continue;
-      seen.add(e.id);
+      if (seen.has(e.txId)) continue;
+      seen.add(e.txId);
       all.push(e);
     }
     all.sort((a, b) => b.openedAt - a.openedAt);
