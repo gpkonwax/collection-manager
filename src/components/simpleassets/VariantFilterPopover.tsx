@@ -2,7 +2,8 @@ import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { getVariantsForCategory, nextVariantFilter, variantFilterLabel } from '@/lib/gpkCategories';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { getVariantDescription, getVariantsForCategory, nextVariantFilter, variantFilterLabel } from '@/lib/gpkCategories';
 import { cn } from '@/lib/utils';
 
 interface VariantFilterPopoverProps {
@@ -42,12 +43,27 @@ export function VariantFilterPopover({ category, value, onChange, className, siz
           All Variants
         </label>
         <div className="my-1 h-px bg-border" />
-        {variants.map(v => (
-          <label key={v.value} className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
-            <Checkbox checked={isAll || value.includes(v.value)} onCheckedChange={() => toggleVariant(v.value)} />
-            {v.label}
-          </label>
-        ))}
+        {variants.map(v => {
+          const description = getVariantDescription(category, v.value);
+          const row = (
+            <label className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
+              <Checkbox checked={isAll || value.includes(v.value)} onCheckedChange={() => toggleVariant(v.value)} />
+              {v.label}
+            </label>
+          );
+          if (!description) return <div key={v.value}>{row}</div>;
+          return (
+            <HoverCard key={v.value} openDelay={150} closeDelay={80}>
+              <HoverCardTrigger asChild>
+                <div>{row}</div>
+              </HoverCardTrigger>
+              <HoverCardContent side="right" align="start" className="w-64 bg-card border-border">
+                <p className="font-bold text-foreground theme-bright-text">{v.label}</p>
+                <p className="mt-1 text-xs text-muted-foreground theme-bright-text-muted">{description}</p>
+              </HoverCardContent>
+            </HoverCard>
+          );
+        })}
       </PopoverContent>
     </Popover>
   );

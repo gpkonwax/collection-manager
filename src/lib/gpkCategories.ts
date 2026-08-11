@@ -102,6 +102,43 @@ export function variantFilterLabel(current: string[], variants: VariantOption[])
   return `${current.length} Variants`;
 }
 
+/**
+ * Original Topps descriptions for each card variant, keyed by category then variant value.
+ * Shown as a hover popup in the variant dropdown.
+ */
+export const VARIANT_DESCRIPTIONS: Record<string, Record<string, string>> = {
+  series1: {
+    base: 'Standard static cards featuring both the "A" and "B" names of all 41 characters from Original Series 1. Base Cards are included in every pack.',
+    prism: 'Uncommon cards, these cards feature a prismatic sheen effect; "A" and "B" for all 41 characters.',
+    sketch: 'Rare cards that feature an animated transition from original sketches to final art; "A" and "B" for all 41 characters.',
+    collector: "Super rare cards with special animations; 4 characters available in \"A\" and \"B\" name.",
+    golden: 'Golden Cards were cards sent to winners of special promotions.',
+  },
+  series2: {
+    base: 'Standard static cards featuring "A", "B", and "C" names. Base cards are included in all packs.',
+    raw: 'Uncommon cards featuring raw Series 2 art, available in all packs.',
+    returning: 'Uncommon cards with reimagined art of Original Series 2 characters, available in all packs.',
+    sketch: 'Rare cards that feature an animated transition from original sketches to final art, available in all packs.',
+    slime: 'Rare cards that feature an animated slime effect, Standard Pack exclusive.',
+    gum: 'Rare cards that feature an animated gum effect, Mega Pack exclusive.',
+    vhs: 'Super rare cards that feature an animated VHS static effect, Ultimate Pack exclusive.',
+    collector: 'Epic cards with special animations, available in all packs.',
+    golden: 'Golden Cards were cards sent to winners of special promotions.',
+  },
+  exotic: {
+    base: 'Standard static cards featuring both the "A" and "B" names of all 15 characters. Base Cards are included in every pack.',
+    prism: 'Uncommon cards, these cards feature a prismatic sheen effect; "A" and "B" for all 15 characters.',
+    'tiger stripe': 'Rare cards that feature an animated tiger border; "A" and "B" for all 15 characters.',
+    'tiger claw': 'Super rare cards that feature an animated tiger scratch effect; "A" and "B" for all 15 characters.',
+    collector: 'Super rare cards with special animations; 3 characters available in "A" and "B" name.',
+    golden: 'Golden Cards were cards sent to winners of special promotions.',
+  },
+};
+
+export function getVariantDescription(category: string, variant: string): string | undefined {
+  return VARIANT_DESCRIPTIONS[category]?.[variant];
+}
+
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
   exotic: 'exotic',
   five: 'series1',
