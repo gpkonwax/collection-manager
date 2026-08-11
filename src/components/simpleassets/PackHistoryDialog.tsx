@@ -96,11 +96,13 @@ export function PackHistoryDialog({
   const [sourceFilter, setSourceFilter] = useState<'all' | 'simpleassets' | 'atomicassets'>('all');
   const [chainBusy, setChainBusy] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [chainProgress, setChainProgress] = useState<ChainExportProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
   const reload = useCallback(() => {
+    setActiveGroup(null);
     if (!account) { setEntries([]); setUnsaved(0); return; }
     setEntries(getPackHistory(account));
     setUnsaved(countUnsavedOpenings(account));
@@ -119,6 +121,60 @@ export function PackHistoryDialog({
       return e.cards.some((c) => (c.name || '').toLowerCase().includes(q));
     });
   }, [entries, search, sourceFilter]);
+
+  type PackGroup = {
+    key: string;
+    packName: string;
+    source: PackHistoryEntry['source'];
+    packImage?: string;
+    count: number;
+    latestAt: number;
+    entries: PackHistoryEntry[];
+  };
+
+  const groups = useMemo(() => {
+    const map = new Map<string, PackGroup>();
+    for (const e of filtered) {
+      const key = `${e.source}::${e.packName}`;
+      const g = map.get(key);
+      if (!g) {
+        map.set(key, {
+          key,
+          packName: e.packName,
+          source: e.source,
+          packImage: e.packImage,
+          count: 1,
+          latestAt: e.openedAt,
+          entries: [e],
+        });
+      } else {
+        g.count += 1;
+        g.entries.push(e);
+        if (e.openedAt > g.latestAt) {
+          g.latestAt = e.openedAt;
+          if (e.packImage) g.packImage = e.packImage;
+        }
+        if (!g.packImage && e.packImage) g.packImage = e.packImage;
+      }
+    }
+    for (const g of map.values()) g.entries.sort((a, b) => b.openedAt - a.openedAt);
+    return map;
+  }, [filtered]);
+
+  const groupList = useMemo(
+    () =>
+      Array.from(groups.values()).sort(
+        (a, b) => b.count - a.count || a.packName.localeCompare(b.packName),
+      ),
+    [groups],
+  );
+
+  const active = activeGroup ? groups.get(activeGroup) ?? null : null;
+
+  useEffect(() => {
+    if (activeGroup && !groups.has(activeGroup)) setActiveGroup(null);
+  }, [activeGroup, groups]);
+
 
   const handleDownload = useCallback(async () => {
     if (!account) {
