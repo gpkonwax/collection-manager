@@ -323,6 +323,32 @@ async function fetchTemplateMeta(templateId: string): Promise<{ name: string; im
   return { name: `Card #${templateId}`, image: null };
 }
 
+/** Resolve a burned/transferred AtomicAssets pack asset to its name + art. */
+async function fetchPackAssetMeta(
+  assetId: string,
+): Promise<{ name: string; image: string | null } | null> {
+  try {
+    const path = `${ATOMIC_API.paths.assets}/${assetId}`;
+    const response = await fetchWithFallback(ATOMIC_API.baseUrls, path, undefined, 10000);
+    const json = await response.json();
+    const data = json?.data;
+    if (!data) return null;
+    if (String(data.collection?.collection_name ?? '') !== 'gpk.topps') return null;
+    if (!String(data.schema?.schema_name ?? '').toLowerCase().includes('pack')) return null;
+    const idata = {
+      ...(data.template?.immutable_data || {}),
+      ...(data.immutable_data || {}),
+    } as Record<string, unknown>;
+    return {
+      name: String(idata.name || 'GPK Pack'),
+      image: resolveImage(idata.img || idata.image),
+    };
+  } catch {
+    return null;
+  }
+}
+
+
 interface AaMintGroup {
   trxId: string;
   openedAt: number;
