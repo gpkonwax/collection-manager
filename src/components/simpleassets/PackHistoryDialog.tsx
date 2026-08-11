@@ -19,6 +19,9 @@ import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, 
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { PRIMARY_MIRROR, extractIpfsHash } from '@/lib/ipfsGateways';
+import { warmThumbs, clearThumbs } from '@/lib/thumbCache';
+import { clearIpfsUrlCache } from '@/hooks/useIpfsMedia';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
 import {
   getPackHistory,
