@@ -129,6 +129,11 @@ interface UseIpfsMediaOptions {
   context?: 'card' | 'detail';
   /** When false, skip all loading/gateway rotation until enabled */
   enabled?: boolean;
+  /**
+   * Opt-in: try the primary static mirror first (short timeout) before falling
+   * back to the normal public-gateway rotation. Used by Pack History thumbnails.
+   */
+  mirrorFirst?: boolean;
 }
 
 interface UseIpfsMediaResult {
@@ -143,8 +148,9 @@ export function useIpfsMedia(
   originalUrl: string | undefined,
   options: UseIpfsMediaOptions = {}
 ): UseIpfsMediaResult {
-  const { context = 'card', enabled = true } = options;
+  const { context = 'card', enabled = true, mirrorFirst = false } = options;
   const baseTimeout = context === 'detail' ? IMAGE_LOAD_TIMEOUT.detail : IMAGE_LOAD_TIMEOUT.card;
+
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
 
