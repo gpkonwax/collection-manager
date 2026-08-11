@@ -14,30 +14,24 @@ Give every connected user a personal log of every pack they've opened — when, 
 - Cards still owned are shown from the live collection. Cards no longer in the wallet (traded, burned, transferred) render as a blank placeholder tile in the same slot, so the pack's shape is preserved.
 - Privacy: history is only shown for the connected account. When viewing someone else's wallet, the button is hidden.
 
-## How history is collected
+## How it works (simple version)
 
-Three sources, merged and de-duplicated by transaction id:
+The user clicks **Pack History** in the header. The dialog opens with the list plus two buttons: **Download pack history JSON** and **Load pack history JSON**.
 
-1. **Recorded going forward** — every successful open is written to local device storage the moment the reveal completes. Instant and complete (exact card identities, images, variants).
-2. **Backfilled from the chain** — for openings before this feature (or on another device), query WAX history for the account's claim actions and reconstruct each opening. Chain rows give pack type, timestamp, transaction and card identifiers; artwork resolves through the existing card-image tables.
-3. **Imported from a JSON backup** — see below.
+- First time for an account, the list is empty, so the dialog offers **Build from chain** — a one-off backfill that queries WAX history, reconstructs past openings, and fills the list. The user then downloads the JSON once and keeps it.
+- From then on, every new pack opened is written straight to local storage as it happens; no chain query needed.
+- If local storage is ever cleared (or the user switches device/browser), they click **Load pack history JSON** and they're back — no need to re-run the chain backfill.
+- A warning line appears in the dialog when there are openings recorded since the last download, prompting a fresh export.
 
-Backfill runs once per account on first open of the dialog, with a manual "Refresh from chain" action. If history nodes are unavailable, locally recorded entries still display with a note that chain backfill failed.
+Everything merges by transaction id, so re-running the backfill or loading an older JSON never creates duplicates and never overwrites a richer locally recorded entry.
 
-## Durability: export / import as JSON
-
-Local storage alone is fragile (cache clear, private mode, new device), the same problem the saved-layout and alerts JSONs solve. Pack history reuses that exact pattern:
-
-- **Export pack history** — a new entry in the existing JSON menu writes `gpk-pack-history-<account>-<date>.json` containing all recorded openings for that account. Also available as a button inside the Pack History dialog.
-- **Import** — dropping that file into the same "Import file(s)…" picker restores it. The JSON router gains a `packhistory` kind, detected by its `{ type: "gpk-pack-history", version: 1, entries: [...] }` envelope, and it shows in "Recent imports" with its own badge colour like alerts/layout/puzzle.
-- **Merge, never clobber** — importing merges by `txId` into whatever is already stored, keeping the richer entry (locally recorded ones beat chain-reconstructed ones). Importing another account's file is allowed; entries stay tagged by `account` and only the connected account's rows are shown.
-- **Nudge** — the Pack History dialog shows a one-line reminder to export a backup when there are unexported entries since the last export.
-
-So the answer to "download as JSON then load it?" is yes — identical flow to the saved layout backups, just a new file kind.
+Backfill is manual (button), not automatic on open, and reports clearly if history nodes are unavailable.
 
 ## Technical notes
 
-**Storage module** `src/lib/packOpenHistory.ts`, mirroring `stuckPackStorage.ts` (safe read/write JSON, capped list, per-account filter). Key `gpk:packHistory:v1`, cap ~300 entries. Entry shape:
+**Storage module** `src/lib/packOpenHistory.ts`, mirroring `stuckPackStorage.ts` (safe read/write JSON, capped list, per-account filter). Key `gpk:packHistory:v1`, cap 500 entries per account. Entry shape:
+
+
 
 
 ```text
