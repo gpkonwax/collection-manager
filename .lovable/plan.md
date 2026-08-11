@@ -1,31 +1,18 @@
-# Mirror-first thumbnails
+# Mirror-first thumbnails — Pack History only
 
-## What changes
-
-Card thumbnails currently ask public IPFS gateways first and only touch the backup mirrors as a last resort. The mirrors are plain static hosting (GitHub Pages, Netlify, Cloudflare Pages) with CDN caching and no rate limits, so they are consistently faster and steadier than the gateways.
-
-Every card thumbnail across the app — collection grid, binder, pack reveal strips, trade pickers, puzzle builder, pack history — will try the primary mirror first and fall back to the normal gateway rotation only when the mirror doesn't have the file.
-
-Detail-view (full-size) images keep the existing parallel gateway race, with the mirror added as a first-choice candidate so nothing there gets slower.
+Speed up the card thumbnails inside the Pack History dialog by loading them from our own backup mirror first, instead of racing public IPFS gateways. Nothing outside Pack History changes.
 
 ## Behaviour
 
-```text
-thumbnail request
-  -> already loaded this session?      -> reuse cached URL
-  -> primary mirror (fast, CDN)        -> done
-  -> mirror 404 / error / slow (~1.5s) -> normal gateway rotation
-  -> remember the miss for the session -> that image skips the mirror next time
-```
+- Card thumbnails in Pack History try the primary mirror (GitHub Pages snapshot) first, with a short ~1.5s timeout.
+- If the mirror doesn't have the file (404) or is slow, the thumbnail silently falls back to the existing gateway rotation — same look, no error shown.
+- Misses are remembered for the session: once a file is known missing on the mirror, later renders of that file skip the mirror straight away. If the mirror itself looks down (repeated network failures), the mirror step is skipped for the rest of the session.
+- Grid, binder, detail view, trade pickers, pack reveal and every other surface keep their current loading behaviour untouched.
+- A manually selected backup mirror (Netlify / Cloudflare) still wins over everything, as today.
 
-- A mirror miss is recorded for the session so the same image never pays the mirror penalty twice.
-- If the primary mirror itself is unreachable (not just missing one file), it is skipped app-wide for the rest of the session and everything falls straight through to gateways.
-- Manually selecting a mirror in the backup panel keeps working exactly as today, including hash verification.
-- Nothing changes about which images exist; this only changes the order they are fetched in.
+## Technical notes
 
-## Technical details
-
-- `src/lib/ipfsGateways.ts`: add a thumbnail-oriented candidate builder that puts `PRIMARY_MIRROR` ahead of `PUBLIC_IPFS_GATEWAYS`, plus a short mirror-probe timeout constant (~1500ms).
-- `src/hooks/useIpfsMedia.ts`: when no mirror is manually selected and the context is `card`, start at the mirror URL instead of the cached gateway index; on error/timeout advance into the existing gateway rotation. Add a module-level `mirrorMissCache` (hash set) and a `mirrorDown` flag, both session-scoped, consulted before choosing the mirror. Existing gateway/loaded-URL caches, the sticky "already loaded" behaviour, and the detail-context race are left intact.
-- `prefetchIpfsImage` gets the same mirror-first ordering so prefetched thumbnails warm the same URLs the render will use.
-- No component-level changes needed — `IpfsMedia` already routes every thumbnail through this hook.
+- `src/hooks/useIpfsMedia.ts`: add an opt-in `mirrorFirst?: boolean` option. When true and no manual mirror is selected, the first attempted URL is `PRIMARY_MIRROR + hash` with a 1.5s timeout; on error/timeout the hook advances into the normal gateway rotation from its cached index. Add module-level session caches: `mirrorMissSet: Set<hash>` and a `mirrorDown` flag (set after a small number of consecutive mirror failures) that both short-circuit the mirror attempt.
+- `src/components/simpleassets/IpfsMedia.tsx`: accept and forward a `mirrorFirst` prop to the hook; default false so all existing call sites are unchanged.
+- `src/components/simpleassets/PackHistoryDialog.tsx`: pass `mirrorFirst` on the card thumbnail `IpfsMedia` (line ~331). Pack artwork there is a plain `<img>` from `gpkPackMeta` and stays as-is.
+- Existing gateway-index caching and the loaded-URL cache stay intact, so a successful mirror load is remembered per hash the same way a gateway load is.
