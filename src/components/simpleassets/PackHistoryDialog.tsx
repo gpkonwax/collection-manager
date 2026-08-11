@@ -220,14 +220,21 @@ export function PackHistoryDialog({
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground" onClick={handleDownload}>
-            <Download className="h-4 w-4 mr-1.5" />
-            Download pack history JSON
+          <Button
+            size="sm"
+            className="bg-cheese hover:bg-cheese/90 text-cheese-foreground"
+            onClick={handleDownload}
+            disabled={chainBusy || !account}
+            title="Rebuilds your past openings from WAX history, adds them to the list, and downloads one combined file"
+          >
+            {chainBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+            {chainBusy ? 'Building…' : 'Download pack history JSON'}
           </Button>
           <Button size="sm" variant="outline" onClick={handleLoadClick}>
             <Upload className="h-4 w-4 mr-1.5" />
             Load pack history JSON
           </Button>
+
           <input
             ref={fileInputRef}
             type="file"
