@@ -127,13 +127,10 @@ export function PackHistoryDialog({
     if (chainBusy) return;
     setChainBusy(true);
     setChainProgress({ stage: 'scanning', message: 'Contacting WAX history nodes…', done: 0, total: 0 });
-    let chainAdded = 0;
+    let chainEntries: PackHistoryEntry[] = [];
     try {
       const result = await exportPackHistoryFromChain(account, (p) => setChainProgress(p));
-      if (result.entries.length > 0) {
-        const merged = mergePackHistory(result.entries);
-        chainAdded = merged.added;
-      }
+      chainEntries = result.entries;
       for (const w of result.warnings) toast.warning(w);
     } catch (err) {
       const message =
@@ -148,9 +145,15 @@ export function PackHistoryDialog({
       setChainProgress(null);
     }
 
-    const all = getPackHistory(account);
-    reload();
-    onHistoryChanged?.();
+    const local = getPackHistory(account);
+    const seen = new Set(local.map((e) => e.id));
+    const all = [...local];
+    for (const e of chainEntries) {
+      if (seen.has(e.id)) continue;
+      seen.add(e.id);
+      all.push(e);
+    }
+    all.sort((a, b) => b.openedAt - a.openedAt);
     if (all.length === 0) {
       toast.info('No pack openings found for this account — nothing to download.');
       return;
@@ -158,10 +161,12 @@ export function PackHistoryDialog({
     downloadPackHistory(account, all);
     markPackHistoryDownloaded(account);
     setUnsaved(0);
+    const chainOnly = all.length - local.length;
     toast.success(
-      `Downloaded ${all.length} opening${all.length === 1 ? '' : 's'}${chainAdded > 0 ? ` (${chainAdded} rebuilt from chain)` : ''}`,
+      `Downloaded ${all.length} opening${all.length === 1 ? '' : 's'}${chainOnly > 0 ? ` (${chainOnly} rebuilt from chain)` : ''}`,
     );
-  }, [account, chainBusy, reload, onHistoryChanged]);
+  }, [account, chainBusy]);
+
 
 
   const handleLoadClick = useCallback(() => fileInputRef.current?.click(), []);
