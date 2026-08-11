@@ -25,17 +25,27 @@ const FOOD_FIGHT_TYPES = [
   'Golden Cards',
 ];
 
+const WINTERCON_ODDS = [
+  '59.83% chance at a Base Card',
+  '26.58% chance at a Prism Card',
+  '11.67% chance at a Sketch Card',
+  '1.83% chance at an Artist Signature Card',
+  '0.08% chance at a Golden Card',
+];
+
 function winterConDay(day: number, date: string): PackSpec {
   return {
     packType: `WinterCon Day ${day} Pack`,
+    price: '$9.99 USD',
     series: 'Food Fight! — WinterCon 2021 Exclusive',
     releaseDate: date,
     contains: '3 Cards',
-    printRun: '2,450 packs',
-    note: 'Sold by credit card during Winter Con 2021; price never published',
-    includes: ['3 "b" cards from the Food Fight! digital set', ...FOOD_FIGHT_TYPES],
+    printRun: '2,500 packs (sold out)',
+    note: 'WinterCon 2021 exclusive; 3 "b" cards from the Food Fight! digital set',
+    includes: WINTERCON_ODDS,
   };
 }
+
 
 export const PACK_SPECS: Record<string, PackSpec> = {
   GPKFIVE: {
@@ -203,10 +213,10 @@ export const PACK_SPECS: Record<string, PackSpec> = {
     note: 'Free via redemption code from physical 2021 Series 1 boxes',
     includes: ['3 "a" cards from the 11-piece digital set', ...FOOD_FIGHT_TYPES],
   },
-  '59489': winterConDay(1, 'February 25, 2021'),
-  '59490': winterConDay(2, 'February 26, 2021'),
-  '59491': winterConDay(3, 'February 27, 2021'),
-  '59492': winterConDay(4, 'February 28, 2021'),
+  '59489': winterConDay(1, 'February 26, 2021'),
+  '59490': winterConDay(2, 'February 27, 2021'),
+  '59491': winterConDay(3, 'February 28, 2021'),
+  '59492': winterConDay(4, 'March 1, 2021'),
 };
 
 export function getPackSpec(key: string | undefined): PackSpec | undefined {
