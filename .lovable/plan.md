@@ -58,6 +58,8 @@ So the answer to "download as JSON then load it?" is yes — identical flow to t
 - New `src/components/simpleassets/PackHistoryDialog.tsx` (list, pack/date filters) plus a resolver hook mapping a history entry to `{ live: SimpleAsset[], missing: placeholder[] }`.
 - `PackRevealDialog` / `AtomicPackRevealDialog` gain a `replayCards` prop: when supplied they skip chain polling, the claim transaction and the collect button, and drive the existing reveal phases straight from the supplied cards (same timing, audio, animations). Reuses the components rather than forking them.
 - On replay finish, feed the resolved list into the existing `dealingCards` / `gridCellRefs` / `CardDealAnimation` path exactly as a live open does. Missing cards deal as `MissingCardPlaceholder` tiles landing in a temporary slot rather than a grid cell.
+- Replay is blocked while a live open or deal animation is in flight.
+
 
 **JSON wiring**: `src/lib/jsonRouter.ts` gains `'packhistory'` in `JsonKind`, a `detectKind` branch for the `gpk-pack-history` envelope, a label, and an apply path that merges into `packOpenHistory`. `JsonMenu.tsx` gains an "Export pack history" item (disabled when empty) and a badge colour for the new kind. `Index.tsx` passes the export handler and bumps `refreshKey` after import, same as the existing kinds.
 
