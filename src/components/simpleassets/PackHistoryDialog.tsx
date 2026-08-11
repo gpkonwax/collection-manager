@@ -36,7 +36,7 @@ import {
   HistoryUnavailableError,
   type ChainExportProgress,
 } from '@/lib/packOpenHistoryChain';
-import { buildPackHistoryEnvelope } from '@/lib/packOpenHistory';
+
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 
@@ -119,16 +119,50 @@ export function PackHistoryDialog({
     });
   }, [entries, search, sourceFilter]);
 
-  const handleDownload = useCallback(() => {
-    if (entries.length === 0) {
-      toast.info('Nothing to download yet — open a pack, or run the chain export below.');
+  const handleDownload = useCallback(async () => {
+    if (!account) {
+      toast.info('Connect a wallet first.');
       return;
     }
-    downloadPackHistory(account, entries);
+    if (chainBusy) return;
+    setChainBusy(true);
+    setChainProgress({ stage: 'scanning', message: 'Contacting WAX history nodes…', done: 0, total: 0 });
+    let chainAdded = 0;
+    try {
+      const result = await exportPackHistoryFromChain(account, (p) => setChainProgress(p));
+      if (result.entries.length > 0) {
+        const merged = mergePackHistory(result.entries);
+        chainAdded = merged.added;
+      }
+      for (const w of result.warnings) toast.warning(w);
+    } catch (err) {
+      const message =
+        err instanceof HistoryUnavailableError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Chain rebuild failed';
+      toast.warning(`${message} Downloading what's stored on this device instead.`);
+    } finally {
+      setChainBusy(false);
+      setChainProgress(null);
+    }
+
+    const all = getPackHistory(account);
+    reload();
+    onHistoryChanged?.();
+    if (all.length === 0) {
+      toast.info('No pack openings found for this account — nothing to download.');
+      return;
+    }
+    downloadPackHistory(account, all);
     markPackHistoryDownloaded(account);
     setUnsaved(0);
-    toast.success(`Downloaded ${entries.length} opening${entries.length === 1 ? '' : 's'}`);
-  }, [account, entries]);
+    toast.success(
+      `Downloaded ${all.length} opening${all.length === 1 ? '' : 's'}${chainAdded > 0 ? ` (${chainAdded} rebuilt from chain)` : ''}`,
+    );
+  }, [account, chainBusy, reload, onHistoryChanged]);
+
 
   const handleLoadClick = useCallback(() => fileInputRef.current?.click(), []);
 
@@ -160,44 +194,6 @@ export function PackHistoryDialog({
     if (bad) toast.error(`${bad} file${bad === 1 ? '' : 's'} were not a pack history JSON`);
   }, [reload, onHistoryChanged]);
 
-  const handleChainExport = useCallback(async () => {
-    if (!account || chainBusy) return;
-    setChainBusy(true);
-    setChainProgress({ stage: 'scanning', message: 'Contacting WAX history nodes…', done: 0, total: 0 });
-    try {
-      const result = await exportPackHistoryFromChain(account, (p) => setChainProgress(p));
-      if (result.entries.length === 0) {
-        toast.info('No past pack openings were found in chain history for this account.');
-        return;
-      }
-      const blob = new Blob(
-        [JSON.stringify(buildPackHistoryEnvelope(account, result.entries), null, 2)],
-        { type: 'application/json' },
-      );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `gpk-pack-history-${account}-from-chain-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(
-        `Exported ${result.entries.length} past opening${result.entries.length === 1 ? '' : 's'} (${result.saOpenings} SimpleAssets, ${result.aaOpenings} AtomicAssets). Load the downloaded file to see them here.`,
-        { duration: 9000 },
-      );
-      for (const w of result.warnings) toast.warning(w);
-    } catch (err) {
-      if (err instanceof HistoryUnavailableError) {
-        toast.error(err.message);
-      } else {
-        toast.error(err instanceof Error ? err.message : 'Chain export failed');
-      }
-    } finally {
-      setChainBusy(false);
-      setChainProgress(null);
-    }
-  }, [account, chainBusy]);
 
   const handleClear = useCallback(() => {
     if (entries.length === 0) return;
@@ -224,14 +220,21 @@ export function PackHistoryDialog({
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-cheese-foreground" onClick={handleDownload}>
-            <Download className="h-4 w-4 mr-1.5" />
-            Download pack history JSON
+          <Button
+            size="sm"
+            className="bg-cheese hover:bg-cheese/90 text-cheese-foreground"
+            onClick={handleDownload}
+            disabled={chainBusy || !account}
+            title="Rebuilds your past openings from WAX history, adds them to the list, and downloads one combined file"
+          >
+            {chainBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+            {chainBusy ? 'Building…' : 'Download pack history JSON'}
           </Button>
           <Button size="sm" variant="outline" onClick={handleLoadClick}>
             <Upload className="h-4 w-4 mr-1.5" />
             Load pack history JSON
           </Button>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -258,6 +261,11 @@ export function PackHistoryDialog({
           </div>
         </div>
 
+        {chainProgress && (
+          <p className="text-[11px] text-cheese">{chainProgress.message}</p>
+        )}
+
+
         {unsaved > 0 && (
           <div className="flex items-start gap-2 rounded-md border border-cheese/40 bg-cheese/10 px-3 py-2 text-xs text-foreground">
             <AlertTriangle className="h-4 w-4 text-cheese shrink-0 mt-0.5" />
@@ -278,9 +286,10 @@ export function PackHistoryDialog({
               </p>
               {entries.length === 0 && (
                 <p className="text-xs text-muted-foreground/70 max-w-md mx-auto">
-                  New packs you open are recorded here automatically. To bring in packs you opened in the past, run the chain
-                  export below, then load the file it downloads.
+                  New packs you open are recorded here automatically. To bring in packs you opened in the past, hit
+                  "Download pack history JSON" — it rebuilds them from WAX history and adds them to this list.
                 </p>
+
               )}
             </div>
           ) : (
@@ -353,10 +362,6 @@ export function PackHistoryDialog({
 
         <div className="border-t border-border pt-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleChainExport} disabled={chainBusy || !account}>
-              {chainBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
-              Export my past openings from chain
-            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -371,14 +376,8 @@ export function PackHistoryDialog({
               {entries.length}/{PACK_HISTORY_CAP} stored
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground/80">
-            The chain export only downloads a file — it does not fill the list above. Load the downloaded JSON to see those
-            openings here. Pack names for chain-rebuilt openings are best-effort.
-          </p>
-          {chainProgress && (
-            <p className="text-[11px] text-cheese">{chainProgress.message}</p>
-          )}
         </div>
+
       </DialogContent>
       <ExternalLinkWarningDialog url={pendingUrl} onConfirm={confirm} onCancel={cancel} />
     </Dialog>
