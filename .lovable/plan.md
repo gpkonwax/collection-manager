@@ -52,7 +52,7 @@ The chain export is manual (button only) and reports clearly if history nodes ar
 
 **Write point**: `handlePackOpened` in `src/pages/Index.tsx` (around the `setDealingCards` call at line ~780, plus the second path at ~937) — pack metadata, txId and matched assets are in scope there. Also write a partial entry when matchers time out, so nothing is lost.
 
-**Chain backfill** `src/lib/packOpenHistoryChain.ts`: a shared Hyperion helper (generalising the endpoint-fallback + AbortController pattern duplicated in `saOffers.ts` and `stuckPackDetect.ts`) querying `v2/history/get_actions` filtered on claim actions — `gpk.topps` claim/getcards for SimpleAssets and the AtomicAssets unpack/claim actions per `packOpenActions.ts`. SA rows resolve card identity through the same `resolvePendingGpkCard` path used by the reveal dialog; AA rows resolve template ids via `templateCache`/`templateDataCache`. Results merge into the local store by txId, never overwriting a richer local entry.
+**Chain export** `src/lib/packOpenHistoryChain.ts`: a shared Hyperion helper (generalising the endpoint-fallback + AbortController pattern duplicated in `saOffers.ts` and `stuckPackDetect.ts`) querying `v2/history/get_actions` filtered on claim actions — `gpk.topps` claim/getcards for SimpleAssets and the AtomicAssets unpack/claim actions per `packOpenActions.ts`. SA rows resolve card identity through the same `resolvePendingGpkCard` path used by the reveal dialog; AA rows resolve template ids via `templateCache`/`templateDataCache`. The result is serialised straight to a downloaded file — it never touches the local store or the dialog list.
 
 **Replay wiring**:
 
