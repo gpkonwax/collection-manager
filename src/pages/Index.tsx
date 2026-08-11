@@ -29,7 +29,7 @@ import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts, fetchPendingNftsDetailed, PackRevealDialog, type RevealCard } from '@/components/simpleassets/PackRevealDialog';
 import { AtomicPackRevealDialog } from '@/components/simpleassets/AtomicPackRevealDialog';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
-import { matchRevealedAssets, type RevealResult } from '@/lib/packReveal';
+import { matchRevealedAssets, type RevealResult, type RevealMatcher } from '@/lib/packReveal';
 import { getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardImages';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { preloadRevealImage } from '@/lib/revealImageSources';
