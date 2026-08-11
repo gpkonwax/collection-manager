@@ -349,10 +349,6 @@ export function PackHistoryDialog({
 
         <div className="border-t border-border pt-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleChainExport} disabled={chainBusy || !account}>
-              {chainBusy ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
-              Export my past openings from chain
-            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -367,14 +363,8 @@ export function PackHistoryDialog({
               {entries.length}/{PACK_HISTORY_CAP} stored
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground/80">
-            The chain export only downloads a file — it does not fill the list above. Load the downloaded JSON to see those
-            openings here. Pack names for chain-rebuilt openings are best-effort.
-          </p>
-          {chainProgress && (
-            <p className="text-[11px] text-cheese">{chainProgress.message}</p>
-          )}
         </div>
+
       </DialogContent>
       <ExternalLinkWarningDialog url={pendingUrl} onConfirm={confirm} onCancel={cancel} />
     </Dialog>
