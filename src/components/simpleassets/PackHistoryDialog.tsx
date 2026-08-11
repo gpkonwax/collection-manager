@@ -411,11 +411,19 @@ export function PackHistoryDialog({
               >
                 <div className="w-16 shrink-0">
                   {entry.packImage ? (
-                    <img src={entry.packImage} alt={entry.packName} className="w-16 h-auto rounded" />
+                    <IpfsMedia
+                      url={entry.packImage}
+                      alt={entry.packName}
+                      context="detail"
+                      loading="lazy"
+                      className="w-16 h-20 [&_img]:object-contain [&_video]:object-contain rounded"
+                      mirrorFirst
+                    />
                   ) : (
                     <div className="w-16 h-20 rounded bg-muted flex items-center justify-center text-2xl">📦</div>
                   )}
                 </div>
+
 
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
