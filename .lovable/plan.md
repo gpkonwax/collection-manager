@@ -16,16 +16,29 @@ Give every connected user a personal log of every pack they've opened — when, 
 
 ## How history is collected
 
-Two sources, merged and de-duplicated by transaction id:
+Three sources, merged and de-duplicated by transaction id:
 
 1. **Recorded going forward** — every successful open is written to local device storage the moment the reveal completes. Instant and complete (exact card identities, images, variants).
 2. **Backfilled from the chain** — for openings before this feature (or on another device), query WAX history for the account's claim actions and reconstruct each opening. Chain rows give pack type, timestamp, transaction and card identifiers; artwork resolves through the existing card-image tables.
+3. **Imported from a JSON backup** — see below.
 
 Backfill runs once per account on first open of the dialog, with a manual "Refresh from chain" action. If history nodes are unavailable, locally recorded entries still display with a note that chain backfill failed.
+
+## Durability: export / import as JSON
+
+Local storage alone is fragile (cache clear, private mode, new device), the same problem the saved-layout and alerts JSONs solve. Pack history reuses that exact pattern:
+
+- **Export pack history** — a new entry in the existing JSON menu writes `gpk-pack-history-<account>-<date>.json` containing all recorded openings for that account. Also available as a button inside the Pack History dialog.
+- **Import** — dropping that file into the same "Import file(s)…" picker restores it. The JSON router gains a `packhistory` kind, detected by its `{ type: "gpk-pack-history", version: 1, entries: [...] }` envelope, and it shows in "Recent imports" with its own badge colour like alerts/layout/puzzle.
+- **Merge, never clobber** — importing merges by `txId` into whatever is already stored, keeping the richer entry (locally recorded ones beat chain-reconstructed ones). Importing another account's file is allowed; entries stay tagged by `account` and only the connected account's rows are shown.
+- **Nudge** — the Pack History dialog shows a one-line reminder to export a backup when there are unexported entries since the last export.
+
+So the answer to "download as JSON then load it?" is yes — identical flow to the saved layout backups, just a new file kind.
 
 ## Technical notes
 
 **Storage module** `src/lib/packOpenHistory.ts`, mirroring `stuckPackStorage.ts` (safe read/write JSON, capped list, per-account filter). Key `gpk:packHistory:v1`, cap ~300 entries. Entry shape:
+
 
 ```text
 { txId, account, source: 'simpleassets' | 'atomicassets',
@@ -47,4 +60,8 @@ Backfill runs once per account on first open of the dialog, with a manual "Refre
 - On replay finish, feed the resolved list into the existing `dealingCards` / `gridCellRefs` / `CardDealAnimation` path exactly as a live open does. Missing cards deal as `MissingCardPlaceholder` tiles landing in a temporary slot rather than a grid cell.
 - Replay is blocked while a live open or deal animation is in flight.
 
-**Out of scope**: history for other wallets, cross-device sync, any on-chain writes.
+
+**JSON wiring**: `src/lib/jsonRouter.ts` gains `'packhistory'` in `JsonKind`, a `detectKind` branch for the `gpk-pack-history` envelope, a label, and an apply path that merges into `packOpenHistory`. `JsonMenu.tsx` gains an "Export pack history" item (disabled when empty) and a badge colour for the new kind. `Index.tsx` passes the export handler and bumps `refreshKey` after import, same as the existing kinds.
+
+**Out of scope**: history for other wallets, automatic cross-device sync, any on-chain writes.
+
