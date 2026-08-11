@@ -1,13 +1,40 @@
-// Original Topps shop spec sheets for GPK packs (topps.wdny.io FAQ + /shop).
+// Original Topps shop spec sheets for GPK packs (topps.wdny.io FAQ + /shop),
+// plus researched details for the Exotic and AtomicAssets packs
+// (GPKNews.com launch articles, geepeekay.com WAX timeline, on-chain templates).
 // Used for the hover info popup on pack tiles.
 
 export interface PackSpec {
   packType: string;
-  price: string;
+  /** Original sale price, when one was ever published. */
+  price?: string;
   series: string;
   releaseDate: string;
   contains: string;
+  /** Total packs minted / made available. */
+  printRun?: string;
+  /** How the pack was obtained, when it wasn't a plain storefront sale. */
+  note?: string;
   includes: string[];
+}
+
+const FOOD_FIGHT_TYPES = [
+  'Base Cards',
+  'Prism Cards',
+  'Sketch Cards',
+  'Artist Autograph Cards',
+  'Golden Cards',
+];
+
+function winterConDay(day: number, date: string): PackSpec {
+  return {
+    packType: `WinterCon Day ${day} Pack`,
+    series: 'Food Fight! — WinterCon 2021 Exclusive',
+    releaseDate: date,
+    contains: '3 Cards',
+    printRun: '2,450 packs',
+    note: 'Sold by credit card during Winter Con 2021; price never published',
+    includes: ['3 "b" cards from the Food Fight! digital set', ...FOOD_FIGHT_TYPES],
+  };
 }
 
 export const PACK_SPECS: Record<string, PackSpec> = {
@@ -82,6 +109,104 @@ export const PACK_SPECS: Record<string, PackSpec> = {
       "10% chance at a Collector's Edition",
     ],
   },
+
+  // --- Exotic (SimpleAssets) ---
+  EXOFIVE: {
+    packType: 'Standard Pack',
+    price: '$4.99',
+    series: 'GPK Goes Exotic',
+    releaseDate: 'July 14, 2020',
+    contains: '5 Cards',
+    printRun: '13,000 packs',
+    includes: [
+      '~0.6 "B" Name Prism per pack',
+      '~0.4 "A" Name Prism per pack',
+      '10% chance at a Tiger Stripe',
+      '1% chance at a Tiger Claw',
+      "1% chance at a Collector's Edition",
+    ],
+  },
+  EXOMEGA: {
+    packType: 'Mega Pack',
+    price: '$19.99',
+    series: 'GPK Goes Exotic',
+    releaseDate: 'July 14, 2020',
+    contains: '25 Cards',
+    printRun: '7,000 packs',
+    includes: [
+      '4 "B" Name Prism Cards',
+      '3 "A" Name Prism Cards',
+      '50% chance at a Tiger Stripe',
+      '5% chance at a Tiger Claw',
+      "5% chance at a Collector's Edition",
+    ],
+  },
+
+  // --- AtomicAssets packs (keyed by template id) ---
+  '13778': {
+    packType: 'Crash Gordon Pack',
+    series: 'Crash Gordon',
+    releaseDate: 'August 28, 2020',
+    contains: '5 Cards',
+    printRun: '5,000 packs',
+    note: 'No original sale price was ever published',
+    includes: ['5 digital cards from the Crash Gordon series'],
+  },
+  '48479': {
+    packType: 'Bernventures Pack',
+    price: '$5 in WAX',
+    series: 'Bernventures',
+    releaseDate: 'January 26, 2021',
+    contains: '2 Cards',
+    printRun: '8,976 packs',
+    includes: [
+      'Base "a" and Base "b" Cards',
+      '10.5% chance at an Artist Sketch',
+      '3% chance at an Artist Raw',
+      '0.5% chance at an Artist Signature',
+    ],
+  },
+  '51437': {
+    packType: 'Mitten Pack',
+    series: 'Bern 4 Golden Mittens Event',
+    releaseDate: 'February 4, 2021',
+    contains: '5 Cards',
+    note: 'Not sold — earned by burning 5 points of Bernventures cards',
+    includes: [
+      'Base Mitten Cards',
+      'Chance at Golden Mitten Cards',
+      'Chance at rare Animation Cards',
+    ],
+  },
+  '53187': {
+    packType: 'GameStonk! Pack',
+    price: '$10 in WAX',
+    series: 'GameStonk!',
+    releaseDate: 'February 9, 2021',
+    contains: '3 Cards',
+    printRun: '5,000 packs (sold out in 17 minutes)',
+    note: 'No numeric pull rates were ever published',
+    includes: [
+      'Base — "B" Common / "A" Uncommon',
+      'Prismatic — "B" Rare / "A" Epic',
+      'Sketch — "B" Rare / "A" Epic',
+      'Raw — Epic',
+      'Gold — Legendary',
+      'Signature — Legendary',
+    ],
+  },
+  '59072': {
+    packType: 'Food Fight! Pack',
+    series: 'Food Fight! Series 1',
+    releaseDate: 'February 23, 2021',
+    contains: '3 Cards',
+    note: 'Free via redemption code from physical 2021 Series 1 boxes',
+    includes: ['3 "a" cards from the 11-piece digital set', ...FOOD_FIGHT_TYPES],
+  },
+  '59489': winterConDay(1, 'February 25, 2021'),
+  '59490': winterConDay(2, 'February 26, 2021'),
+  '59491': winterConDay(3, 'February 27, 2021'),
+  '59492': winterConDay(4, 'February 28, 2021'),
 };
 
 export function getPackSpec(key: string | undefined): PackSpec | undefined {
