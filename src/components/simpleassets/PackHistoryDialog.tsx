@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, Trash2, ChevronUp } from 'lucide-react';
+import { Download, Upload, History, Play, ExternalLink, Loader2, AlertTriangle, Trash2, ChevronUp, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
