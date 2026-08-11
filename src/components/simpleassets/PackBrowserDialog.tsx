@@ -89,7 +89,7 @@ export function PackBrowserDialog({
               return (
                 <Card key={globalIdx} className="bg-card border-border hover:border-primary/40 transition-colors">
                   <CardContent className="p-3 flex flex-col items-center text-center space-y-2">
-                    {packImage ? <img src={packImage} alt={pack.label} className="w-full aspect-square object-contain rounded mx-auto" /> : <span className="text-3xl">📦</span>}
+                    {packImage ? <img src={packImage} alt={pack.label} className="w-3/4 h-auto rounded mx-auto" /> : <span className="text-3xl">📦</span>}
                     <p className="text-xs text-muted-foreground">#{globalIdx + 1}</p>
                     <Button size="sm" variant="outline" className="w-full text-xs" disabled={!session || openingIdx !== null || !unboxType} onClick={() => handleOpen(globalIdx)}>
                       {isThis ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : 'Open'}
