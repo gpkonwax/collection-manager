@@ -36,7 +36,7 @@ import {
   HistoryUnavailableError,
   type ChainExportProgress,
 } from '@/lib/packOpenHistoryChain';
-import { buildPackHistoryEnvelope } from '@/lib/packOpenHistory';
+
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 
