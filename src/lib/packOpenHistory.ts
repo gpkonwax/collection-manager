@@ -221,25 +221,25 @@ function persist(): void {
     savedIds[account] = set ? ids.filter((id) => set.has(id)) : [];
   }
 
-  let ok = false;
+  // Best-effort secondary copy. Quota failures here are not fatal.
+  let lsOk = false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+    localStorage.setItem(SAVED_KEY, JSON.stringify(savedIds));
+    lsOk = true;
+  } catch {
+    /* IndexedDB is the durable path */
+  }
+
   void (async () => {
     try {
       await idbSet(IDB_HISTORY_KEY, cache);
       await idbSet(IDB_SAVED_KEY, savedIds);
       if (saveFailed) { saveFailed = false; notify(); }
     } catch {
-      if (!ok) { saveFailed = true; notify(); }
+      if (!lsOk && !saveFailed) { saveFailed = true; notify(); }
     }
   })();
-
-  // Best-effort secondary copy. Quota failures here are not fatal.
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
-    localStorage.setItem(SAVED_KEY, JSON.stringify(savedIds));
-    ok = true;
-  } catch {
-    /* IndexedDB is the durable path */
-  }
 }
 
 /** Keep at most PACK_HISTORY_CAP entries per account, newest first. */
