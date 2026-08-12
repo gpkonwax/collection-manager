@@ -530,6 +530,7 @@ export default function SimpleAssetsPage() {
   const [showPackHistory, setShowPackHistory] = useState(false);
   const [packHistoryRefresh, setPackHistoryRefresh] = useState(0);
   const [replayEntry, setReplayEntry] = useState<PackHistoryEntry | null>(null);
+  const [replayShuffleKey, setReplayShuffleKey] = useState(0);
   const [packHistoryCount, setPackHistoryCount] = useState(0);
 
   // NOTE: visibleCount is grown to cover dealing cards in an effect further
@@ -858,14 +859,25 @@ export default function SimpleAssetsPage() {
 
   const replayRevealCards = useMemo<RevealCard[]>(() => {
     if (!replayEntry) return [];
-    return replayEntry.cards.map((c, i) => ({
-      asset_id: `replay-${replayEntry.txId}-${i}`,
-      name: c.name,
-      image: c.image,
-      originalImage: c.image,
-      rarity: c.variant || '',
-    }));
-  }, [replayEntry]);
+    // Shuffle the reveal order so each replay of the same pack feels fresh.
+    // Keys stay tied to the card's original index so they remain unique.
+    const indices = replayEntry.cards.map((_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    return indices.map((idx) => {
+      const c = replayEntry.cards[idx];
+      return {
+        asset_id: `replay-${replayEntry.txId}-${idx}`,
+        name: c.name,
+        image: c.image,
+        originalImage: c.image,
+        rarity: c.variant || '',
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayEntry, replayShuffleKey]);
 
   const handleReplayRequest = useCallback((entry: PackHistoryEntry) => {
     if (replayBusy) {
@@ -873,6 +885,7 @@ export default function SimpleAssetsPage() {
       return;
     }
     setShowPackHistory(false);
+    setReplayShuffleKey((k) => k + 1);
     setReplayEntry(entry);
   }, [replayBusy]);
 
