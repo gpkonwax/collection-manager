@@ -107,6 +107,7 @@ import {
   markPackHistoryDownloaded,
   type PackHistoryEntry,
 } from '@/lib/packOpenHistory';
+import { storablePackImage, resolvePackArt } from '@/lib/gpkPackMeta';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { JsonMenu } from '@/components/JsonMenu';
 import { ViewWalletControl } from '@/components/ViewWalletControl';
@@ -721,7 +722,7 @@ export default function SimpleAssetsPage() {
           source: reveal.source,
           packId: reveal.pack?.id ?? null,
           packName: reveal.pack?.name || 'Pack',
-          packImage: reveal.pack?.image ?? null,
+          packImage: storablePackImage(reveal.source, reveal.pack?.id, reveal.pack?.name, reveal.pack?.image),
           openedAt: Date.now(),
           matchers: reveal.matchers,
           cards: reveal.cards ?? [],
@@ -919,7 +920,7 @@ export default function SimpleAssetsPage() {
       return;
     }
     downloadPackHistory(accountName, entries);
-    markPackHistoryDownloaded(accountName);
+    markPackHistoryDownloaded(accountName, entries);
     setPackHistoryRefresh((n) => n + 1);
     toast.success(`Downloaded ${entries.length} opening${entries.length === 1 ? '' : 's'}`);
   }, [accountName]);
@@ -3268,7 +3269,7 @@ export default function SimpleAssetsPage() {
           onOpenChange={(o) => { if (!o) setReplayEntry(null); }}
           packSymbol={replayEntry.packId || ''}
           packLabel={replayEntry.packName}
-          packImage={replayEntry.packImage || undefined}
+          packImage={resolvePackArt(replayEntry.source, replayEntry.packId, replayEntry.packName, replayEntry.packImage)}
           accountName={accountName || ''}
           preOpenUnboxingIds={new Set<number>()}
           onComplete={() => {}}
@@ -3282,7 +3283,7 @@ export default function SimpleAssetsPage() {
           open
           onOpenChange={(o) => { if (!o) setReplayEntry(null); }}
           packName={replayEntry.packName}
-          packImage={replayEntry.packImage || ''}
+          packImage={resolvePackArt(replayEntry.source, replayEntry.packId, replayEntry.packName, replayEntry.packImage) || ''}
           packAssetId={null}
           unpackContract=""
           expectedCards={replayEntry.cards.length}

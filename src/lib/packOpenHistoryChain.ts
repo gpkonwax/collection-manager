@@ -14,7 +14,7 @@ import { fetchWithFallback } from './fetchWithFallback';
 import type { PackHistoryCard, PackHistoryEntry } from './packOpenHistory';
 import type { RevealMatcher } from './packReveal';
 import { normalizeGpkVariant } from './gpkVariant';
-import { packLabel, packImage } from './gpkPackMeta';
+import { packLabel } from './gpkPackMeta';
 
 
 const HYPERION_ENDPOINTS = [
@@ -301,7 +301,8 @@ function mergeSaFragments(account: string, fragments: SaClaimFragment[]): PackHi
       source: 'simpleassets',
       packId: symbol,
       packName: guessSaPackName(category, merged.length),
-      packImage: symbol ? packImage(symbol) ?? null : null,
+      // Bundled SA artwork is resolved from the symbol at render time — never persisted.
+      packImage: null,
       openedAt: list[0].openedAt,
       matchers: merged.map((m) => m.matcher).filter((m): m is RevealMatcher => m !== null),
       cards: merged.map((m) => m.card),
