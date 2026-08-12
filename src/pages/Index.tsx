@@ -3269,7 +3269,7 @@ export default function SimpleAssetsPage() {
           onOpenChange={(o) => { if (!o) setReplayEntry(null); }}
           packSymbol={replayEntry.packId || ''}
           packLabel={replayEntry.packName}
-          packImage={replayEntry.packImage || undefined}
+          packImage={resolvePackArt(replayEntry.source, replayEntry.packId, replayEntry.packName, replayEntry.packImage)}
           accountName={accountName || ''}
           preOpenUnboxingIds={new Set<number>()}
           onComplete={() => {}}
@@ -3283,7 +3283,7 @@ export default function SimpleAssetsPage() {
           open
           onOpenChange={(o) => { if (!o) setReplayEntry(null); }}
           packName={replayEntry.packName}
-          packImage={replayEntry.packImage || ''}
+          packImage={resolvePackArt(replayEntry.source, replayEntry.packId, replayEntry.packName, replayEntry.packImage) || ''}
           packAssetId={null}
           unpackContract=""
           expectedCards={replayEntry.cards.length}

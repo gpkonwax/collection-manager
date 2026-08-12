@@ -29,6 +29,9 @@ import {
   downloadPackHistory,
   markPackHistoryDownloaded,
   countUnsavedOpenings,
+  ensurePackHistoryLoaded,
+  subscribePackHistory,
+  getPackHistorySaveFailed,
   parsePackHistoryEnvelope,
   clearPackHistory,
   PACK_HISTORY_CAP,
@@ -40,6 +43,7 @@ import {
   type ChainExportProgress,
 } from '@/lib/packOpenHistoryChain';
 
+import { resolvePackArt } from '@/lib/gpkPackMeta';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 
@@ -98,22 +102,33 @@ export function PackHistoryDialog({
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'simpleassets' | 'atomicassets'>('all');
   const [chainBusy, setChainBusy] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [chainProgress, setChainProgress] = useState<ChainExportProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
-  const reload = useCallback(() => {
-    setActiveGroup(null);
+  const refresh = useCallback(() => {
     if (!account) { setEntries([]); setUnsaved(0); return; }
     setEntries(getPackHistory(account));
     setUnsaved(countUnsavedOpenings(account));
+    setSaveFailed(getPackHistorySaveFailed());
   }, [account]);
 
+  const reload = useCallback(() => {
+    setActiveGroup(null);
+    refresh();
+  }, [refresh]);
+
   useEffect(() => {
-    if (open) reload();
-  }, [open, refreshKey, reload]);
+    if (!open) return;
+    reload();
+    // The store hydrates from IndexedDB asynchronously — refresh once it lands,
+    // and again whenever anything writes to it.
+    void ensurePackHistoryLoaded().then(refresh);
+    return subscribePackHistory(refresh);
+  }, [open, refreshKey, reload, refresh]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -155,7 +170,7 @@ export function PackHistoryDialog({
           key,
           packName: e.packName,
           source: e.source,
-          packImage: e.packImage,
+          packImage: resolvePackArt(e.source, e.packId, e.packName, e.packImage),
           count: 1,
           latestAt: e.openedAt,
           entries: [e],
@@ -166,7 +181,7 @@ export function PackHistoryDialog({
         // Prefer the richer (longer) display name across variants of the same pack
         if ((e.packName || '').length > (g.packName || '').length) g.packName = e.packName;
         if (e.openedAt > g.latestAt) g.latestAt = e.openedAt;
-        if (!g.packImage && e.packImage) g.packImage = e.packImage;
+        if (!g.packImage) g.packImage = resolvePackArt(e.source, e.packId, e.packName, e.packImage);
       }
     }
     for (const g of map.values()) g.entries.sort((a, b) => b.openedAt - a.openedAt);
@@ -278,7 +293,7 @@ export function PackHistoryDialog({
       return;
     }
     downloadPackHistory(account, all);
-    markPackHistoryDownloaded(account);
+    markPackHistoryDownloaded(account, all);
     setUnsaved(0);
     const chainOnly = all.length - local.length;
     toast.success(
@@ -393,6 +408,16 @@ export function PackHistoryDialog({
         )}
 
 
+        {saveFailed && (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-foreground">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+            <span>
+              This browser refused to save your pack history to its local storage. Download the JSON now — new openings
+              may not survive a reload.
+            </span>
+          </div>
+        )}
+
         {unsaved > 0 && (
           <div className="flex items-start gap-2 rounded-md border border-cheese/40 bg-cheese/10 px-3 py-2 text-xs text-foreground">
             <AlertTriangle className="h-4 w-4 text-cheese shrink-0 mt-0.5" />
@@ -475,9 +500,9 @@ export function PackHistoryDialog({
                 className="rounded-lg border border-border bg-background/40 p-3 flex gap-3 items-start"
               >
                 <div className="w-16 shrink-0">
-                  {entry.packImage ? (
+                  {resolvePackArt(entry.source, entry.packId, entry.packName, entry.packImage) ? (
                     <IpfsMedia
-                      url={entry.packImage}
+                      url={resolvePackArt(entry.source, entry.packId, entry.packName, entry.packImage)}
                       alt={entry.packName}
                       context="detail"
                       loading="lazy"
