@@ -530,6 +530,7 @@ export default function SimpleAssetsPage() {
   const [showPackHistory, setShowPackHistory] = useState(false);
   const [packHistoryRefresh, setPackHistoryRefresh] = useState(0);
   const [replayEntry, setReplayEntry] = useState<PackHistoryEntry | null>(null);
+  const [replayShuffleKey, setReplayShuffleKey] = useState(0);
   const [packHistoryCount, setPackHistoryCount] = useState(0);
 
   // NOTE: visibleCount is grown to cover dealing cards in an effect further
