@@ -1,31 +1,37 @@
-# Retire the "Show Received Cards" header button
+# Fix three Pack History problems
 
-## What the button actually does today
+## 1. History disappears and has to be re-loaded
 
-Verified in `src/pages/Index.tsx`: the button is not a recovery tool. It is enabled only when the last pack audit (`packAudit`, built by `reconstructLatestPackOpen`) has matched assets, and clicking it just calls `focusCollectionView(category)` — switch to Classic view, clear search/filters, set the category to the last opened pack's category, and scroll to top. It shows no cards of its own and performs no chain work.
+Today the whole history (and the "last downloaded" marker) lives in `localStorage`, and every write is wrapped in a `try {} catch {}` that swallows failures silently. If the browser refuses or evicts that storage — quota pressure from the other caches on the same origin, or the browser clearing site data — the history vanishes with no signal to you, which matches what you saw overnight.
 
-So yes: after a failed or half-drawn open, Pack History → Replay covers the same ground and more. Replay re-runs the reveal and the deal animation, and `handleReplayCollect` matches each recorded card back to assets you still own, so the cards land in the collection view. The one thing Replay needs that the button doesn't is a history entry — either recorded on this device or rebuilt via "Download pack history JSON" and loaded back in.
+Fix:
+- Move the pack history store to IndexedDB (already used elsewhere in the app via `idb-keyval`), which has far more room and is not evicted the same way. Keep an in-memory copy so reads stay instant.
+- Migrate anything currently in `localStorage` into IndexedDB on first load, then clean up the old key.
+- Stop failing silently: if a save genuinely fails, show a visible warning telling you to download the JSON now.
 
-## Recommendation
+Note: the exact reason your storage was wiped is not confirmed — it may also be a browser-level site-data clear, which no code can prevent. The IndexedDB move plus the loud save-failure warning removes the silent-failure case and makes the durable path much stronger.
 
-Remove the button and lean on Pack History. "Recover Stuck Cards" stays — that one does real work (claims unclaimed `pendingnft.a` rows) and is not replaceable by replay.
+## 2. SimpleAssets pack art broken in Pack History
 
-## Changes
+Confirmed cause: SimpleAssets pack art is a bundled app image (`src/assets/gpk_pack_*.jpg`), so its URL contains a build hash. That hashed URL gets written into the history entry and into the exported JSON. After any redeploy the hash changes and the stored URL 404s — which is why only the SimpleAssets tiles are broken while the AtomicAssets (IPFS) art still loads. The main pages are fine because they resolve the image from the pack symbol at render time.
 
-1. `src/pages/Index.tsx`
-   - Delete the `Show Received Cards` `<Button>` from the header.
-   - Delete the now-unused `receivedCardsCount`, `hasReceivedCardsToShow`, `receivedCardsCategory`, and `handleShowReceivedCards`.
-2. Keep everything else untouched: `packAudit`, `reconstructLatestPackOpen`, `collectionSyncNotice`, `focusCollectionView`, and the pack-audit summary panel are all still used by the live open flow and the recovery path.
-3. Optional nicety (say the word and it goes in): after a live pack open finishes, if the opening was recorded to history, surface a small "Replay in Pack History" hint in the audit panel so the fallback is discoverable at the moment it matters.
+Fix:
+- At render time in Pack History, resolve SimpleAssets pack art from the stored pack symbol (`packId`) through the same `gpkPackMeta` lookup the homepage uses, and only fall back to the stored URL when no symbol matches.
+- Extend the symbol lookup so the extra SimpleAssets packs (Crash Gordon, Bernventures, Gamestonk, Mittens, Food Fight/WinterCon, Tiger King) resolve to their existing artwork the same way the homepage grid does.
+- Stop writing build-hashed local URLs into new history entries and exports; store the symbol instead so old files self-heal on load.
 
-## Note on the one gap
+## 3. "16 openings since your last download" after re-loading the JSON
 
-"Show Received Cards" does not need a history entry. It scans the chain for the latest unboxing ID, finds which cards from that unboxing are now in your wallet, and jumps the collection view to that pack's category. It works immediately after a fresh open even if Pack History is empty.
+Confirmed cause: the warning compares each opening's timestamp against a `lastDownloadedAt` value kept in a *separate* localStorage key. When storage was wiped, that key went with it, so after re-importing the file the code sees "never downloaded" and reports every entry as unsaved.
 
-Replay, by contrast, needs a Pack History entry. That entry contains the exact list of card names/sides/variants that were revealed, plus the pack name and image, so the animation can re-run. There are two ways to get that entry:
+Fix:
+- Replace the timestamp comparison with an exact record of which openings are already in a downloaded file: keep a per-account set of saved transaction ids, written on download.
+- On import, mark every opening in the loaded file as saved (they are, by definition, already in a file). Re-loading your JSON will then show no warning.
+- The warning then only appears for openings recorded after the last download — which is what it was meant to say.
 
-1. Live open on this device — the app already records one automatically when a pack is opened.
-2. Older openings — the "Download pack history JSON" button rebuilds them from WAX history and loads them in.
+## Technical notes
 
-So the only scenario where Replay cannot replace the old button is: a pack was just opened on this device, the local history entry somehow did not get written, and the user wants to see/filter the received cards without first rebuilding from chain. In practice the live-open recording path is reliable, so this gap is narrow. That is why it is safe to remove the button, but also why the Pack History button should stay prominent in the header as the replacement path.
-
+- `src/lib/packOpenHistory.ts`: swap `localStorage` for `idb-keyval` with a synchronous in-memory mirror plus a one-time migration of `gpk:packHistory:v1`; replace `gpk:packHistoryDownloaded:v1` (timestamp map) with a saved-txId set per account; `countUnsavedOpenings` becomes a set difference; `mergePackHistory` marks imported txIds as saved; expose a save-failure flag.
+- `src/lib/gpkPackMeta.ts`: add symbol → artwork entries for the remaining SimpleAssets packs.
+- `src/lib/packOpenHistoryChain.ts` and the live recorder in `src/pages/Index.tsx`: persist `packId` (symbol) and skip persisting bundled asset URLs for SimpleAssets.
+- `src/components/simpleassets/PackHistoryDialog.tsx`: resolve pack art via symbol first for both the gallery tiles and the drill-down rows; render the save-failure warning; awaits for the now-async store load.
