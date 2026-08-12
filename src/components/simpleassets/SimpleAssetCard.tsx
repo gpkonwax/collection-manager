@@ -80,14 +80,23 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   // Bridged AA schemas — their `bridge_mint` is the bridging order, not a real mint.
   const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
-  // Real on-chain mint: future `mintNumber` field wins; for native AA sets the
-  // `bridge_mint` value is actually the true template mint, so use it there.
+  // Real on-chain mint: explicit `mintNumber` wins; otherwise the resolved
+  // SimpleAssets mint stored in `idata.mint` (the bridge order lives separately
+  // under `idata.bridge_mint`); for native AA sets the template mint is real.
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
+  const resolvedMint = asset.idata?.mint as string | number | undefined;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
-  const effectiveMint = realMint ?? nativeAAMint;
+  const effectiveMint = realMint ?? resolvedMint ?? nativeAAMint;
+  const mintTotal = asset.idata?.maxsupply as string | number | undefined;
   const realMintDisplay = effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
     ? `#${effectiveMint}`
     : '#--';
+  const mintTooltip = realMintDisplay === '#--'
+    ? 'Mint number (placeholder — real mint will populate when available)'
+    : isAtomic && !isBridgedAA
+      ? `Template mint ${realMintDisplay}${mintTotal ? ` of ${mintTotal}` : ''}`
+      : `Original SimpleAssets mint ${realMintDisplay}${mintTotal ? ` of ${mintTotal}` : ''}`;
+
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
@@ -179,10 +188,10 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           Trade
         </button>
       )}
-      {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
+      {/* Mint-number ribbon — sits in its own row above the artwork so it never overlaps the image */}
       <div
         className="w-full flex justify-center py-1 mt-2"
-        title="Mint number (placeholder — real mint will populate when available)"
+        title={mintTooltip}
       >
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
           {realMintDisplay}
