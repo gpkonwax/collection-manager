@@ -217,6 +217,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       ? nextPuzzle.pieces.map(p => ({ key: p.key, label: p.label }))
       : puzzleAssets.map(a => ({ key: a.id, label: '' }));
     setActiveId(nextId);
+    setScrambled(false);
     setPieces(saved ?? buildDefaultLayout(nextPieces, frameFor(nextId)));
   }, [activeId, puzzleAssets]);
 
