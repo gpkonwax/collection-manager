@@ -321,7 +321,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro }: Pr
   const isAtomic = asset.source === 'atomicassets';
   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
-    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
+    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', 'sa_mint', 'sa_total', 'sa_burned', '_template_id'].includes(key)
   );
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
