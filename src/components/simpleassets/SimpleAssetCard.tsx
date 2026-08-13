@@ -6,6 +6,7 @@ import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RETRO_CLASS } from '@/lib/retroMode';
+import { formatSaMint } from '@/lib/saMintResolver';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
 import type { BinderTemplate } from '@/hooks/useBinderTemplates';
