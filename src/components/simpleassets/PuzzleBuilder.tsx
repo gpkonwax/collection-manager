@@ -351,6 +351,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   const handleClearJson = useCallback(() => {
     const next = buildDefaultLayout(canvasPieces, frameFor(activeId));
     setPieces(next);
+    setScrambled(false);
     notifyParent(next);
     setLoadedFileName(null);
   }, [canvasPieces, activeId, notifyParent]);
