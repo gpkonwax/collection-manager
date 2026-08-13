@@ -8,7 +8,6 @@ import { useCardTilt } from '@/hooks/useCardTilt';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { RETRO_CLASS, isRetroEligible } from '@/lib/retroMode';
-import { formatSaMint } from '@/lib/saMintResolver';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
@@ -54,17 +53,10 @@ function getRealMintDisplay(asset: SimpleAsset): string {
   const isAtomic = asset.source === 'atomicassets';
   const category = String(asset.category || '').toLowerCase();
   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(category);
-  const combined = { ...asset.idata, ...asset.mdata };
-  // Bridged AA cards: prefer the true original SimpleAssets mint resolved from
-  // AtomicHub. Absent until resolved, in which case we fall through to `#--`
-  // rather than showing the bridging-order number as if it were a real mint.
-  if (isBridgedAA) {
-    const resolved = formatSaMint(combined.sa_mint, combined.sa_total);
-    if (resolved) return resolved;
-  }
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
   const effectiveMint = realMint ?? nativeAAMint;
+  const combined = { ...asset.idata, ...asset.mdata };
   const total =
     combined.bridge_total ??
     combined.maxsupply ??
@@ -321,7 +313,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro }: Pr
   const isAtomic = asset.source === 'atomicassets';
   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
-    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', 'sa_mint', 'sa_total', 'sa_burned', '_template_id'].includes(key)
+    ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
