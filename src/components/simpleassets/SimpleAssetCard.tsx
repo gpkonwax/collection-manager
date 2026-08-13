@@ -301,6 +301,8 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.idata?.mint === next.asset.idata?.mint &&
     prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
+    prev.asset.idata?.sa_mint === next.asset.idata?.sa_mint &&
+    prev.asset.idata?.sa_total === next.asset.idata?.sa_total &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
     prev.draggable === next.draggable &&
