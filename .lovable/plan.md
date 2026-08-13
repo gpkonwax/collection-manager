@@ -52,8 +52,8 @@ The genuinely effortful parts are elsewhere: funding RAM for ~40k mints, and get
 
 ## Revised plan
 
-### Step 0 — Account audit (blocking)
-Confirm whether he controls `blenderizerx`, `neftyblocksd`, or `blend.nefty`. Determines Path A vs Path B above. Everything else waits on this.
+### Step 0 — Minter setup decision (non-blocking, but do early)
+Since he controls the `cryptotwerpz` author account, decide the minting model: authorize a dedicated bridge account as a collection minter (recommended for a live service — the contract mints autonomously on transfer), or have the contract act with the author's permission inline. Either is supported; this choice only affects the contract's `mintasset` authorization path and the deploy guide.
 
 ### Step 1 — Complete the card census
 `scripts/twerpz-census.mjs`: walk the full `simpleassets::create` history for `cryptotwerpz` using **month-sized time windows** (the history API caps any single query at 10,000 rows, so windowing is required to get past 40k). Output `twerpz-cards.json` — every distinct card with number, variant, rarity, name, artist, image hash, and observed mint count.
