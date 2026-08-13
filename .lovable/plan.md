@@ -79,3 +79,45 @@ Rule: display the fraction only when `mint <= total`. Otherwise show the mint al
 ## Verification
 
 Load a wallet holding bridged cards and confirm: ribbon starts at `#--`, then populates with the real mint once the resolver returns; the "Bridge Mint" badge still shows the different bridging number; no card renders a fraction where the mint exceeds the total.
+
+---
+
+# Puzzle Builder: lock pieces until Scramble is pressed
+
+## Goal
+
+When a puzzle is opened, all pieces are locked in their default neat grid and cannot be dragged or rotated until the user presses **Scramble** at least once. A yellow notice sits between/over the pieces telling them to press Scramble to start. Pressing Scramble scatters the pieces (existing behaviour) and the notice disappears, unlocking them.
+
+## What changes
+
+In `src/components/simpleassets/PuzzleBuilder.tsx`:
+
+### 1. New `scrambled` state
+Add `const [scrambled, setScrambled] = useState(false)`. It starts `false` for every puzzle. Reset it to `false` inside `handleSelectPuzzle` (when switching puzzles) so each puzzle shows the notice and re-locks until scrambled. Also reset to `false` when `initialPieceState` import fires and when `handleFileChange` / `handleClearJson` run, so a freshly-loaded layout is again locked-and-noticed until the user scrambles.
+
+### 2. Lock interactions while `!scrambled`
+- In `handlePointerDown`, early-return (no-op) when `!scrambled` so pieces can't be dragged.
+- In `rotate`, early-return when `!scrambled` so the rotation buttons do nothing.
+- The rotation buttons can stay visible but become inert; optionally add `pointer-events-none opacity-40` to the button group when `!scrambled` to signal they're disabled.
+
+### 3. Unlock on Scramble
+In `scramble`, call `setScrambled(true)` alongside the existing scatter logic. Once true, dragging and rotation work normally for the rest of the session on that puzzle.
+
+### 4. The yellow start notice
+Render a notice element inside the canvas `<div>` (the `canvasRef` container), centered, only when `!scrambled`:
+
+```text
+Press the Scramble button to start the puzzle
+```
+
+Styling: bright cheese-yellow text, `bg-background/70 backdrop-blur-sm` chip, `z-40`, centered with absolute positioning, `pointer-events-none` so it doesn't block the canvas. It sits *over* the neat grid of pieces (between them visually) so it's unmissable. It vanishes as soon as `scrambled` becomes true.
+
+## Technical notes
+
+- Single file: `src/components/simpleassets/PuzzleBuilder.tsx`.
+- The default neat grid (from `buildDefaultLayout`) already renders before scramble — the notice overlays it; no layout change needed.
+- The existing timer still only starts on Scramble; coupling the lock to the same trigger keeps the two behaviours in sync.
+- No effect on JSON export/import of layouts — those operate on positions, not the lock flag.
+
+## Verification
+Open the Puzzle Builder, confirm pieces can't be dragged/rotated and the yellow notice shows; press Scramble and confirm the notice disappears and pieces become draggable/rotatable; switch to another puzzle and confirm it re-locks and re-notices until Scramble is pressed.
