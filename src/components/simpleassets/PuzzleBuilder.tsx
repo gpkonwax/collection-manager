@@ -262,6 +262,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   const getState = (id: string): PieceState => pieces.get(id) ?? { x: 0, y: 0, rotation: 0 };
 
   const rotate = useCallback((id: string, dir: 'cw' | 'ccw') => {
+    if (!scrambled) return;
     setPieces(prev => {
       const next = new Map(prev);
       const s = next.get(id) ?? { x: 0, y: 0, rotation: 0 };
