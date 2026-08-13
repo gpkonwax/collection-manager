@@ -273,12 +273,13 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   }, [notifyParent, scrambled]);
 
   const handlePointerDown = useCallback((id: string, e: RPointerEvent<HTMLDivElement>) => {
+    if (!scrambled) return;
     e.preventDefault();
     const s = pieces.get(id) ?? { x: 0, y: 0, rotation: 0 };
     dragging.current = { id, startX: e.clientX, startY: e.clientY, origX: s.x, origY: s.y };
     setSelectedId(id);
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  }, [pieces]);
+  }, [pieces, scrambled]);
 
   const handlePointerMove = useCallback((e: RPointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
