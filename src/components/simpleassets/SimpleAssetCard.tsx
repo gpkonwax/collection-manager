@@ -84,14 +84,21 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   // `bridge_mint` value is actually the true template mint, so use it there.
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
+  // Bridged AA cards get their true original SimpleAssets mint from AtomicHub,
+  // resolved asynchronously into `sa_mint`/`sa_total`. Absent until resolved.
+  const bridgedSaMint = isBridgedAA
+    ? formatSaMint(asset.idata?.sa_mint, asset.idata?.sa_total)
+    : null;
   const effectiveMint = realMint ?? nativeAAMint;
   // SimpleAssets cards carry their real mint in idata/mdata — surface it in the top
   // ribbon (and drop the small green badge below the artwork).
   const saMintDisplay = !isAtomic && mintInfo ? (mintInfo.startsWith('#') ? mintInfo : `#${mintInfo}`) : null;
   const realMintDisplay = saMintDisplay
+    ?? bridgedSaMint
     ?? (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
       ? `#${effectiveMint}`
       : '#--');
+  const hasRealMint = Boolean(saMintDisplay || bridgedSaMint);
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
