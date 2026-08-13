@@ -6,6 +6,7 @@ import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RETRO_CLASS } from '@/lib/retroMode';
+import { formatSaMint } from '@/lib/saMintResolver';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
 import type { BinderTemplate } from '@/hooks/useBinderTemplates';
@@ -84,14 +85,21 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   // `bridge_mint` value is actually the true template mint, so use it there.
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
+  // Bridged AA cards get their true original SimpleAssets mint from AtomicHub,
+  // resolved asynchronously into `sa_mint`/`sa_total`. Absent until resolved.
+  const bridgedSaMint = isBridgedAA
+    ? formatSaMint(asset.idata?.sa_mint, asset.idata?.sa_total)
+    : null;
   const effectiveMint = realMint ?? nativeAAMint;
   // SimpleAssets cards carry their real mint in idata/mdata — surface it in the top
   // ribbon (and drop the small green badge below the artwork).
   const saMintDisplay = !isAtomic && mintInfo ? (mintInfo.startsWith('#') ? mintInfo : `#${mintInfo}`) : null;
   const realMintDisplay = saMintDisplay
+    ?? bridgedSaMint
     ?? (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
       ? `#${effectiveMint}`
       : '#--');
+  const hasRealMint = Boolean(saMintDisplay || bridgedSaMint);
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
@@ -183,10 +191,16 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           Trade
         </button>
       )}
-      {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
+      {/* Mint-number ribbon — sits in its own row above the artwork so it never overlaps the image */}
       <div
         className="w-full flex justify-center py-1 mt-2"
-        title={saMintDisplay ? 'On-chain mint number' : 'Mint number (placeholder — real mint will populate when available)'}
+        title={
+          bridgedSaMint
+            ? 'Original SimpleAssets mint number'
+            : hasRealMint
+              ? 'On-chain mint number'
+              : 'Mint number (placeholder — real mint will populate when available)'
+        }
       >
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
           {realMintDisplay}
@@ -287,6 +301,8 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.idata?.mint === next.asset.idata?.mint &&
     prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
+    prev.asset.idata?.sa_mint === next.asset.idata?.sa_mint &&
+    prev.asset.idata?.sa_total === next.asset.idata?.sa_total &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
     prev.draggable === next.draggable &&
