@@ -24,6 +24,34 @@ export interface SaMintInfo {
 
 interface CacheEntry { ts: number; data: SaMintInfo }
 
+/**
+ * Format a resolved SimpleAssets mint for display.
+ *
+ * AtomicHub's `total` nets out burns inconsistently, so some rows come back
+ * with a mint greater than the total, e.g.
+ *   { asset_id: 100000007398709, mint: 1427, total: 1335, burned: 209 }
+ * Rendering that verbatim produces nonsense like "#1427 / 1335". The mint
+ * itself is reliable — only the denominator is suspect — so we drop the
+ * fraction whenever it would be self-contradictory and show the mint alone.
+ */
+export function formatSaMint(
+  mint: unknown,
+  total?: unknown,
+): string | null {
+  const mintStr = mint === undefined || mint === null ? '' : String(mint).trim();
+  if (mintStr === '') return null;
+  const mintNum = Number(mintStr);
+  const totalStr = total === undefined || total === null ? '' : String(total).trim();
+  const totalNum = Number(totalStr);
+  const showFraction =
+    totalStr !== '' &&
+    Number.isFinite(mintNum) &&
+    Number.isFinite(totalNum) &&
+    totalNum > 0 &&
+    mintNum <= totalNum;
+  return showFraction ? `#${mintStr} / ${totalStr}` : `#${mintStr}`;
+}
+
 const memory = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<SaMintInfo | null>>();
 
