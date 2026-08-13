@@ -194,6 +194,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         const next = applyImportedState(nftPieces, initialPieceState, p => nftCardIdByKey.get(p.key) ?? p.key, PORTRAIT_FRAME);
         layoutsRef.current.set(NFT_PUZZLE_ID, next);
         setActiveId(NFT_PUZZLE_ID);
+        setScrambled(false);
         setPieces(next);
         const result: PuzzlePieceMap = {};
         for (const [key, state] of next) {
