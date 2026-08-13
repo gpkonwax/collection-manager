@@ -131,8 +131,10 @@ export function useGpkAtomicAssets(account: string | null) {
       setAssets(parsed);
 
       // Upgrade bridged assets with the true original SimpleAssets mint/total
-      // from AtomicHub's live endpoint. Keeps the bridge mint under
-      // idata.bridge_mint/bridge_total so the UI can display both.
+      // from AtomicHub's live endpoint. These land in dedicated `sa_*` keys so
+      // "resolved" is unambiguous: while `sa_mint` is absent the real mint is
+      // genuinely unknown and the UI keeps showing `#--` rather than briefly
+      // rendering the (wrong) bridging-order number as if it were a real mint.
       const bridged = allAssets
         .map((a) => ({
           assetId: a.asset_id,
@@ -150,8 +152,9 @@ export function useGpkAtomicAssets(account: string | null) {
                 ...asset,
                 idata: {
                   ...asset.idata,
-                  mint: String(info.mint),
-                  maxsupply: String(info.total),
+                  sa_mint: String(info.mint),
+                  sa_total: String(info.total),
+                  sa_burned: String(info.burned),
                 },
               };
             }),
