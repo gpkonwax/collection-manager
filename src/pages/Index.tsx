@@ -2325,7 +2325,7 @@ export default function SimpleAssetsPage() {
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50 theme-bright-header">
         <div className="container flex flex-col">
           {/* Line 1: backup/recovery (left) + status/theme/account (right) */}
-          <div className="flex h-12 items-center justify-between">
+          <div className="flex h-12 items-center justify-center gap-2 flex-wrap">
             {/* Left: offline backup trigger + recovery buttons */}
             <div className="flex items-center gap-2">
               <BackupPanel />
@@ -2358,7 +2358,7 @@ export default function SimpleAssetsPage() {
             </div>
 
             {/* Right: Image source status + Info button + wallet controls */}
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2">
               <ImageSourceIndicator />
               <Button
                 variant="default"
