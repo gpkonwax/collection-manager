@@ -1,36 +1,46 @@
-# Separate data mirror for the holders manifest
+# New Netlify "data mirror" — holders manifest + geepeekay artwork
 
-Confirmed: `manifests/gpk-topps-holders.json` currently returns 404 on all three image mirrors (GitHub Pages, Netlify, Cloudflare Pages), so the View Wallet holders dropdown has nothing to load from.
+Confirmed current state:
+- `manifests/gpk-topps-holders.json` returns 404 on all three image mirrors (GitHub Pages, Netlify, Cloudflare), so the View Wallet holders dropdown has nothing to load.
+- Puzzle artwork in `src/lib/extraPuzzles.ts` is hotlinked live from `https://geepeekay.com/gallery/...` — roughly 135 card-back scans (OS2 x2 printings, OS3 a/b, OS4, OS5 a/b) plus the completed-puzzle reference sheets. If geepeekay.com disappears, every extra puzzle breaks.
+- Pack artwork (`gpk_pack_series_*_geepeekay.jpg`) is already bundled inside the app, so it survives regardless — but it will be mirrored too so the offline/local build and any future pack art has a hosted copy.
 
-Yes — a brand new, tiny Netlify site is the right move. It holds only small JSON manifests, so you never touch or re-upload the multi-GB image mirror.
+One small new Netlify site solves all of it, and you never touch the multi-GB image mirror.
 
-## What you do on Netlify (one time, ~3 minutes)
+## What you do on Netlify (one time)
 
-1. Make a folder on your computer, e.g. `gpk-data`.
-2. Inside it create a folder `manifests` and drop `gpk-topps-holders.json` in there.
-3. Inside `gpk-data` (top level, next to `manifests`) create a plain text file named `_headers` with:
+1. I generate a ready-to-upload folder for you (see below) containing:
    ```text
-   /*
-     Access-Control-Allow-Origin: *
-     Cache-Control: public, max-age=300
+   gpk-data/
+     _headers
+     manifests/gpk-topps-holders.json
+     packs/            (pack artwork jpgs)
+     puzzles/          (geepeekay card-back scans + reference sheets)
    ```
-   (This is the same CORS fix we used for the image mirror — without it the browser blocks the fetch.)
-4. Netlify dashboard > Add new site > Deploy manually > drag the whole `gpk-data` folder in.
-5. Rename the site to something memorable (Site settings > Change site name), then send me the final URL.
+2. Netlify dashboard > Add new site > Deploy manually > drag the whole `gpk-data` folder in.
+3. Site settings > Change site name — pick something memorable, then send me the URL.
 
-Future updates are a re-drag of the same folder — seconds, not gigabytes.
+Total size is small (a few hundred MB at most, likely far less), so re-uploads take seconds.
 
-## What I change in the app
+## What I build
 
-- Add a `DATA_MIRRORS` list in `src/lib/ipfsGateways.ts` / `src/lib/remoteMirror.ts`: the new Netlify data site first, then the existing three image mirrors as fallbacks (so if you ever do add the file to the big mirror, it still works).
-- Update `src/lib/gpkHolders.ts` to race `DATA_MIRRORS` instead of `MIRRORS`, keeping the existing `not-published` vs `network` error distinction.
-- Update the Backup panel's mirror status section to also probe the data mirror, labelled "Data mirror (manifests)", so you can see at a glance whether the holders snapshot is live.
-- Update `scripts/README.md` / `build-holders-manifest.mjs` header comment to describe the new publish target.
+1. **`scripts/build-data-mirror.mjs`** — one command that assembles the `gpk-data` folder:
+   - runs/reuses the holders manifest output,
+   - downloads every geepeekay puzzle URL listed in `extraPuzzles.ts` (plus the Series 2 NFT reference sheet) into `puzzles/`, with retries and a skip-if-already-downloaded cache,
+   - copies the bundled pack artwork into `packs/`,
+   - writes `_headers` with permissive CORS,
+   - writes `manifests/data-mirror-index.json` listing every file with its SHA-256 and byte size, so the audit script can verify the upload.
+2. **`src/lib/dataMirror.ts`** — resolves a data-mirror path against the new Netlify site, falling back to the three existing mirrors, then to the original geepeekay URL as a last resort. Same timeout/racing style as the existing mirror-first helpers.
+3. **`src/lib/extraPuzzles.ts`** — pieces keep a stable relative path (`puzzles/os3/os3back_85a.JPG`) plus the original geepeekay URL; the builder resolves through `dataMirror` so mirrored copies are preferred and geepeekay becomes the fallback rather than the only source.
+4. **`src/lib/gpkHolders.ts`** — fetch the holders manifest from the data mirror list instead of the image-mirror list, keeping the existing `not-published` vs `network` error distinction.
+5. **`src/components/BackupPanel.tsx`** — add a "Data mirror (manifests + artwork)" row to the mirror status list so you can see at a glance whether it is live.
+6. **`scripts/audit-mirrors.mjs`** — extend it to verify the data mirror against `data-mirror-index.json` (missing files, size/hash mismatches).
 
 ## Technical notes
 
-- Data mirror is manifest-only (JSON), no hash pinning needed — holders data is public, non-critical, and re-derivable from chain.
-- Fetch keeps `cache: 'no-store'` plus the 8s timeout; Netlify's 5-minute cache header handles repeat loads.
-- No change to the image mirror pipeline, the pinned manifest, or the offline ZIP bundles.
+- Filenames are normalised to lowercase on disk and in code (geepeekay mixes `.JPG` and `.jpg`, which breaks on case-sensitive hosts).
+- No hash pinning enforcement at runtime for these files — they are public artwork; the index exists for auditing, not trust.
+- The image mirror, its pinned manifest, and the offline ZIP bundles are untouched.
+- Downloads are rate-limited and polite (small concurrency, backoff) so we don't hammer geepeekay.com.
 
-Once you give me the Netlify site URL I'll wire it in.
+Once you confirm, I'll build the script and the app wiring; you then run one command, drag the folder to Netlify, and send me the URL so I can pin it in the config.
