@@ -80,7 +80,6 @@ AtomicAssets charges the collection ~151 bytes per mint plus 112 bytes per new o
 ## Honest caveats
 
 - This is a clean-room build. The pink.gg AtomicBridge is **not** open source — there is no `bridge` repo under `pinknetworkx` and GitHub search returns zero results. Only the AtomicAssets/AtomicMarket/AtomicPacks contracts are public (MIT).
-- Under Path B, bridged cards will not carry the original collection's identity. Be clear with him before he spends on RAM.
 - The 310 distinct-card figure is a floor measured from 10,000 of 40,286 mints; Step 1 replaces it with an exact number.
 - Escrowing real holder value warrants a security review of the C++ contract before launch.
 
