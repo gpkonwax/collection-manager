@@ -580,6 +580,15 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
+        {!scrambled && (
+          <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
+            <div className="rounded-lg bg-background/70 backdrop-blur-sm border border-cheese/40 px-5 py-3 text-center">
+              <span className="text-cheese font-semibold text-base sm:text-lg drop-shadow">
+                Press the Scramble button to start the puzzle
+              </span>
+            </div>
+          </div>
+        )}
         {canvasPieces.map(piece => {
           const s = getState(piece.key);
           const isSelected = selectedId === piece.key;
