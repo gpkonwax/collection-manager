@@ -1,88 +1,81 @@
-# Cryptotwerpz SA→AA Bridge: Findings + Mapping Plan
+# Show real SimpleAssets mint numbers on bridged GPK cards
 
-## What I found on-chain
+## The situation
 
-**The SimpleAssets collection exists and is well-structured.**
+The mint data is already being fetched successfully. I confirmed AtomicHub's endpoint returns live, correct values for all three bridged schemas:
 
-| Fact | Value |
-|---|---|
-| SA author account | `cryptotwerpz` |
-| Category | `serieszero` (only one seen) |
-| Total mints ever | **40,286** |
-| Distinct cards (from 10,000 most recent mints) | **310** |
-| Distinct character names | 83 |
-| Variants | `x`, `y`, `z` |
-| Rarity tiers | 6 |
+| Schema | Example `sassets_id` | Real mint | Total |
+|---|---|---|---|
+| series1 | 100000004451204 | 153 | 218 |
+| series2 | 100000004892973 | 42 | 146 |
+| exotic | 100000004695981 | 874 | 1164 |
 
-Rarity breakdown (of the 10,000 sampled): Common 6,694 · Simple Re-Fracture 2,559 · Black Death Re-Fracture 658 · Nuclear Re-Fracture 62 · Twerp-O-Mation 15 · Tripped-Out-Twerp 12.
+`useGpkAtomicAssets.ts` already calls this and writes the result into `idata.mint` / `idata.maxsupply`. The cards still show `#--` because of a wiring gap, not missing data.
 
-The card data is **clean and perfectly regular** — every asset looks like:
+## Why the ribbon shows `#--`
+
+In `SimpleAssetCard.tsx` the ribbon value is built from:
 
 ```text
-idata: {"name":"Baggy Eilish","cardnumber":"22","variant":"y","Rarity":"Common"}
-mdata: {"artist":"Mugen","site":"https://...","img":"Qmdx...1sz"}
+realMint      = asset.mintNumber        -> undefined (field never set on AA assets)
+nativeAAMint  = idata.bridge_mint       -> only when NOT a bridged schema
+effectiveMint = realMint ?? nativeAAMint -> undefined for bridged cards
 ```
 
-That regularity is the single best news here: mapping can be **fully automated**, not hand-typed.
+So for `series1` / `series2` / `exotic` the ribbon always falls through to `#--`. The resolved value sitting in `idata.mint` is simply never read on that path.
 
-## The authorization question — RESOLVED
+There is a second, subtler problem blocking a naive fix. The hook **pre-fills** `idata.mint` with the bridge mint at line 105 so cards render instantly, then overwrites it with the real mint when the resolver returns. If the card just read `idata.mint`, it would show the *wrong* bridge number on first paint and silently flip to the correct one a moment later — worse than showing `#--`, because a wrong mint looks authoritative.
 
-The existing AtomicAssets collection `cryptotwerpz` (created Jan 2021) is the *real, recognised* collection. Its author is `cryptotwerpz`, and you've confirmed your friend **controls the keys to that author account**.
+## What changes
 
-That is the best possible outcome. As author he can do everything directly, with no dependency on any other account:
+### 1. Keep resolved mints in their own fields
 
-- Create the new `serieszero` schema.
-- Create one template per distinct card.
-- **Authorize the bridge contract as a minter** on the collection — so the contract itself can mint bridged cards into the authentic collection, no proxy account needed.
-- Grant or revoke any other authorizations later.
+In `src/hooks/useGpkAtomicAssets.ts`, stop overwriting the ambiguous `mint` / `maxsupply` keys. On resolver success, write to dedicated keys instead:
 
-Bridged cards therefore land in the *real* `cryptotwerpz` AA collection under a proper `serieszero` schema. No unofficial "ctwerpzbrdg" fallback, no recognition/market-value penalty. The Path B caveat no longer applies.
+- `sa_mint` — the true original SimpleAssets mint
+- `sa_total` — the true total
+- `sa_burned` — burn count (already returned by the endpoint, currently discarded)
 
-The one thing still worth confirming before writing code (Step 0 below): whether he wants the bridge contract to mint under its own authorized-minter account, or to mint by signing as the `cryptotwerpz` author directly. Both work; the first is cleaner for a live service.
+`bridge_mint` / `bridge_total` stay exactly as they are. This makes "resolved" unambiguous: if `sa_mint` is absent the real mint genuinely isn't known yet, so `#--` remains correct and no wrong number is ever shown.
 
-## Is the mapping population difficult? No — it's the easy part
+### 2. Read the real mint in the ribbon
 
-I expected this to be the painful step. It isn't, because the data is machine-readable.
+In `src/components/simpleassets/SimpleAssetCard.tsx`, extend the mint resolution so bridged AA cards prefer `idata.sa_mint`:
 
-- **Volume is modest.** ~310 confirmed distinct cards; because the distinct-count curve was still creeping up ~6 per 1,000 mints when the history API capped out at 10,000 rows, the realistic full total is **roughly 350–450 templates**. That is a normal-sized collection, not a mega one.
-- **No manual data entry.** Card name, number, variant, rarity, artist and image hash all come straight out of `idata`/`mdata`. A script enumerates every distinct `(cardnumber, variant, Rarity, img)` tuple and emits the template list directly.
-- **Template creation is scriptable.** ~400 `createtempl` actions, batched ~50 per transaction, is roughly 8 transactions. Minutes of work, not weeks.
+```text
+saMintDisplay  (SimpleAssets cards, unchanged)
+  ?? idata.sa_mint        (bridged AA - NEW)
+  ?? nativeAAMint         (native AA, unchanged)
+  ?? '#--'
+```
 
-The genuinely effortful parts are elsewhere: funding RAM for ~40k mints, and getting holders to actually use the bridge.
+Update the tooltip so a resolved value reads "Original SimpleAssets mint number" rather than the current placeholder wording. Add `sa_mint` to the `React.memo` comparator at line 288 so the card actually re-renders when the resolver lands.
 
-## Revised plan
+The existing "Bridge Mint #N" badge below the artwork stays — it's genuinely different information (bridging order), and keeping both makes the distinction visible rather than confusing.
 
-### Step 0 — Minter setup decision (non-blocking, but do early)
-Since he controls the `cryptotwerpz` author account, decide the minting model: authorize a dedicated bridge account as a collection minter (recommended for a live service — the contract mints autonomously on transfer), or have the contract act with the author's permission inline. Either is supported; this choice only affects the contract's `mintasset` authorization path and the deploy guide.
+### 3. Same treatment in the detail dialog
 
-### Step 1 — Complete the card census
-`scripts/twerpz-census.mjs`: walk the full `simpleassets::create` history for `cryptotwerpz` using **month-sized time windows** (the history API caps any single query at 10,000 rows, so windowing is required to get past 40k). Output `twerpz-cards.json` — every distinct card with number, variant, rarity, name, artist, image hash, and observed mint count.
+`SimpleAssetDetailDialog.tsx` has the identical `realMint ?? nativeAAMint` pattern at lines 56-62. Apply the same `sa_mint` / `sa_total` preference there so the ribbon and the detail view never disagree. Add `sa_mint`, `sa_total`, `sa_burned` to the hidden-keys list at line 316 so they don't also appear as raw attribute rows.
 
-Also produce a live-supply count by rarity, since some of the 40,286 minted assets have since been burned and only existing assets can be bridged.
+### 4. Handle the `mint > total` anomaly
 
-### Step 2 — Build the AA target
-`scripts/twerpz-create-templates.mjs`: from the census, create the `serieszero` schema (fields: name, cardnumber, variant, rarity, artist, img, plus `sa_mint` to preserve original mint numbers) and batch-create one template per distinct card. Writes back `twerpz-mapping.json` pairing each SA card key to its new `template_id`.
+Real data from the endpoint includes rows like:
 
-### Step 3 — The bridge contract
-`bridge-contract/src/sabridge.cpp`, as previously planned, with the mapping keyed on `(category, cardnumber, variant, rarity)`:
+```text
+{ asset_id: 100000007398709, mint: 1427, total: 1335, burned: 209 }
+```
 
-- `on_notify("simpleassets::transfer")` — validates sender is `simpleassets` and `to == _self`, looks up the mapping, and mints the AA equivalent to the original sender via `atomicassets::mintasset`, carrying the original SA mint number into immutable data.
-- Unmapped card → transaction reverts, so nobody can lose a card to a missing template.
-- Escrow-reversible by default: SA originals are held, never burned, and `swapback` returns them.
-- Guard rails and admin actions as previously specified.
+AtomicHub's `total` nets out burns inconsistently, so a plain `#mint / total` render produces nonsense such as "1427 of 1335" on a visible subset of series2 cards.
 
-### Step 4 — RAM budget
-AtomicAssets charges the collection ~151 bytes per mint plus 112 bytes per new owner scope. For ~40k assets that is a real, quantifiable WAX cost that must be funded up front on the bridge account. Step 1's census gives the exact number to budget against, and this should be priced before committing.
+Rule: display the fraction only when `mint <= total`. Otherwise show the mint alone (`#1427`), since the mint number is reliable and only the denominator is suspect. This is a small guard in the shared display helper, applied in both the card and the dialog.
 
-### Step 5 — Deploy guide
-`bridge-contract/README.md` — first-timer walkthrough covering account setup, eosio.cdt build, contract deploy, collection/schema/template creation, mapping load, a reversible end-to-end test on a single cheap card, and the holder-facing instructions.
+## Technical notes
 
-## Honest caveats
+- Files touched: `src/hooks/useGpkAtomicAssets.ts`, `src/components/simpleassets/SimpleAssetCard.tsx`, `src/components/simpleassets/SimpleAssetDetailDialog.tsx`.
+- No change to `src/lib/saMintResolver.ts` — it already returns `{ mint, total, burned }` and caches per session. Only `burned` needs to be passed through instead of dropped.
+- No backend, network, or schema changes. Purely reading data the app already fetches.
+- Native (non-bridged) AA sets and pure SimpleAssets cards keep their current behaviour exactly.
 
-- This is a clean-room build. The pink.gg AtomicBridge is **not** open source — there is no `bridge` repo under `pinknetworkx` and GitHub search returns zero results. Only the AtomicAssets/AtomicMarket/AtomicPacks contracts are public (MIT).
-- The 310 distinct-card figure is a floor measured from 10,000 of 40,286 mints; Step 1 replaces it with an exact number.
-- Escrowing real holder value warrants a security review of the C++ contract before launch.
+## Verification
 
-## Scope
-
-`bridge-contract/` and `scripts/twerpz-*.mjs` are standalone. No changes to the React app.
+Load a wallet holding bridged cards and confirm: ribbon starts at `#--`, then populates with the real mint once the resolver returns; the "Bridge Mint" badge still shows the different bridging number; no card renders a fraction where the mint exceeds the total.
