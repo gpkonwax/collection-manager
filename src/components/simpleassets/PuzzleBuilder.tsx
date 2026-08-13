@@ -233,6 +233,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerStart = useRef<number>(0);
+
+  // Pieces stay locked (no drag/rotate) until Scramble is pressed at least once
+  const [scrambled, setScrambled] = useState(false);
+
   
 
   useEffect(() => {
