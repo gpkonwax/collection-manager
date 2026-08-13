@@ -25,23 +25,20 @@ mdata: {"artist":"Mugen","site":"https://...","img":"Qmdx...1sz"}
 
 That regularity is the single best news here: mapping can be **fully automated**, not hand-typed.
 
-## The blocker I found — read this first
+## The authorization question — RESOLVED
 
-**An AtomicAssets collection named `cryptotwerpz` already exists**, created Jan 2021:
+The existing AtomicAssets collection `cryptotwerpz` (created Jan 2021) is the *real, recognised* collection. Its author is `cryptotwerpz`, and you've confirmed your friend **controls the keys to that author account**.
 
-- Author: **`cryptotwerpz`** — the account your friend no longer controls
-- Authorized accounts: `cryptotwerpz`, **`blenderizerx`**, `neftyblocksd`, `blend.nefty`
-- Schemas: `promo`, `stickers`, `various`, `badge` — **no `serieszero`**, 38 templates total
+That is the best possible outcome. As author he can do everything directly, with no dependency on any other account:
 
-So Series Zero was never bridged. Two very different paths follow, and which one applies decides everything:
+- Create the new `serieszero` schema.
+- Create one template per distinct card.
+- **Authorize the bridge contract as a minter** on the collection — so the contract itself can mint bridged cards into the authentic collection, no proxy account needed.
+- Grant or revoke any other authorizations later.
 
-**Path A — he controls `blenderizerx` (or any authorized account).**
-Authorized accounts on an AA collection can create schemas, create templates, and mint. He would **not** need the author account at all. He can add a `serieszero` schema and templates to the *real* `cryptotwerpz` collection, and bridged cards land in the authentic, recognised collection. This is by far the best outcome.
+Bridged cards therefore land in the *real* `cryptotwerpz` AA collection under a proper `serieszero` schema. No unofficial "ctwerpzbrdg" fallback, no recognition/market-value penalty. The Path B caveat no longer applies.
 
-**Path B — he controls none of the four authorized accounts.**
-The existing `cryptotwerpz` AA collection is permanently out of reach — only the author can grant new authorizations. He must create a **new collection under a different name** (e.g. `ctwerpzbrdg`). Cards bridge fine, but they live in an unofficial collection, which hurts recognition and market value. Worth being upfront with him about that tradeoff before he spends anything.
-
-**First action before any code gets written: confirm which accounts he controls.**
+The one thing still worth confirming before writing code (Step 0 below): whether he wants the bridge contract to mint under its own authorized-minter account, or to mint by signing as the `cryptotwerpz` author directly. Both work; the first is cleaner for a live service.
 
 ## Is the mapping population difficult? No — it's the easy part
 
