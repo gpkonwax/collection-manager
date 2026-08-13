@@ -270,7 +270,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       notifyParent(next);
       return next;
     });
-  }, [notifyParent]);
+  }, [notifyParent, scrambled]);
 
   const handlePointerDown = useCallback((id: string, e: RPointerEvent<HTMLDivElement>) => {
     e.preventDefault();
