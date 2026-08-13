@@ -8,6 +8,7 @@ import { useCardTilt } from '@/hooks/useCardTilt';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { RETRO_CLASS, isRetroEligible } from '@/lib/retroMode';
+import { formatSaMint } from '@/lib/saMintResolver';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
