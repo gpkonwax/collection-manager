@@ -194,6 +194,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         const next = applyImportedState(nftPieces, initialPieceState, p => nftCardIdByKey.get(p.key) ?? p.key, PORTRAIT_FRAME);
         layoutsRef.current.set(NFT_PUZZLE_ID, next);
         setActiveId(NFT_PUZZLE_ID);
+        setScrambled(false);
         setPieces(next);
         const result: PuzzlePieceMap = {};
         for (const [key, state] of next) {
@@ -217,6 +218,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       ? nextPuzzle.pieces.map(p => ({ key: p.key, label: p.label }))
       : puzzleAssets.map(a => ({ key: a.id, label: '' }));
     setActiveId(nextId);
+    setScrambled(false);
     setPieces(saved ?? buildDefaultLayout(nextPieces, frameFor(nextId)));
   }, [activeId, puzzleAssets]);
 
@@ -233,6 +235,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerStart = useRef<number>(0);
+
+  // Pieces stay locked (no drag/rotate) until Scramble is pressed at least once
+  const [scrambled, setScrambled] = useState(false);
+
   
 
   useEffect(() => {
@@ -258,6 +264,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   const getState = (id: string): PieceState => pieces.get(id) ?? { x: 0, y: 0, rotation: 0 };
 
   const rotate = useCallback((id: string, dir: 'cw' | 'ccw') => {
+    if (!scrambled) return;
     setPieces(prev => {
       const next = new Map(prev);
       const s = next.get(id) ?? { x: 0, y: 0, rotation: 0 };
@@ -265,15 +272,16 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       notifyParent(next);
       return next;
     });
-  }, [notifyParent]);
+  }, [notifyParent, scrambled]);
 
   const handlePointerDown = useCallback((id: string, e: RPointerEvent<HTMLDivElement>) => {
+    if (!scrambled) return;
     e.preventDefault();
     const s = pieces.get(id) ?? { x: 0, y: 0, rotation: 0 };
     dragging.current = { id, startX: e.clientX, startY: e.clientY, origX: s.x, origY: s.y };
     setSelectedId(id);
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  }, [pieces]);
+  }, [pieces, scrambled]);
 
   const handlePointerMove = useCallback((e: RPointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
@@ -326,6 +334,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         const data = JSON.parse(reader.result as string) as PuzzlePieceMap;
         const next = applyImportedState(canvasPieces, data, activeId === NFT_PUZZLE_ID ? keyToCardId : (p) => p.key, frameFor(activeId));
         setPieces(next);
+        setScrambled(false);
         notifyParent(next);
         setLoadedFileName(file.name);
       } catch {
@@ -342,6 +351,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   const handleClearJson = useCallback(() => {
     const next = buildDefaultLayout(canvasPieces, frameFor(activeId));
     setPieces(next);
+    setScrambled(false);
     notifyParent(next);
     setLoadedFileName(null);
   }, [canvasPieces, activeId, notifyParent]);
@@ -364,6 +374,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       notifyParent(next);
       return next;
     });
+    setScrambled(true);
     if (timerEnabled) {
       timerStart.current = Date.now();
       setElapsedMs(0);
@@ -569,6 +580,15 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
+        {!scrambled && (
+          <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
+            <div className="rounded-lg bg-background/70 backdrop-blur-sm border border-cheese/40 px-5 py-3 text-center">
+              <span className="text-cheese font-semibold text-base sm:text-lg drop-shadow">
+                Press the Scramble button to start the puzzle
+              </span>
+            </div>
+          </div>
+        )}
         {canvasPieces.map(piece => {
           const s = getState(piece.key);
           const isSelected = selectedId === piece.key;
@@ -587,7 +607,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               onClick={() => setSelectedId(piece.key)}
             >
               <div
-                className="absolute inset-0 cursor-grab active:cursor-grabbing"
+                className={`absolute inset-0 ${scrambled ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}`}
                 style={{
                   transform: `rotate(${s.rotation}deg)`,
                   transformOrigin: 'center center',
@@ -619,7 +639,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               </div>
 
               <div
-                className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 z-30 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 z-30 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${scrambled ? '' : 'pointer-events-none opacity-40'}`}
               >
                 <Button
                   size="icon"
