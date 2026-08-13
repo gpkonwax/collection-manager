@@ -53,10 +53,17 @@ function getRealMintDisplay(asset: SimpleAsset): string {
   const isAtomic = asset.source === 'atomicassets';
   const category = String(asset.category || '').toLowerCase();
   const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(category);
+  const combined = { ...asset.idata, ...asset.mdata };
+  // Bridged AA cards: prefer the true original SimpleAssets mint resolved from
+  // AtomicHub. Absent until resolved, in which case we fall through to `#--`
+  // rather than showing the bridging-order number as if it were a real mint.
+  if (isBridgedAA) {
+    const resolved = formatSaMint(combined.sa_mint, combined.sa_total);
+    if (resolved) return resolved;
+  }
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
   const effectiveMint = realMint ?? nativeAAMint;
-  const combined = { ...asset.idata, ...asset.mdata };
   const total =
     combined.bridge_total ??
     combined.maxsupply ??
