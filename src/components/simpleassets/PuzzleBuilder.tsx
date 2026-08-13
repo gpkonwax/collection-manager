@@ -607,7 +607,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               onClick={() => setSelectedId(piece.key)}
             >
               <div
-                className="absolute inset-0 cursor-grab active:cursor-grabbing"
+                className={`absolute inset-0 ${scrambled ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed'}`}
                 style={{
                   transform: `rotate(${s.rotation}deg)`,
                   transformOrigin: 'center center',
