@@ -573,6 +573,16 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         </div>
       </div>
 
+      {!scrambled && (
+        <div className="w-full flex items-center justify-center py-3">
+          <div className="rounded-lg bg-cheese/10 border border-cheese/40 px-5 py-2.5 text-center">
+            <span className="text-cheese font-semibold text-base sm:text-lg">
+              Press the Scramble button to start the puzzle
+            </span>
+          </div>
+        </div>
+      )}
+
       <div
         ref={canvasRef}
         className="relative border border-border rounded-lg bg-muted/20 overflow-auto"
@@ -580,15 +590,6 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        {!scrambled && (
-          <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-            <div className="rounded-lg bg-background/70 backdrop-blur-sm border border-cheese/40 px-5 py-3 text-center">
-              <span className="text-cheese font-semibold text-base sm:text-lg drop-shadow">
-                Press the Scramble button to start the puzzle
-              </span>
-            </div>
-          </div>
-        )}
         {canvasPieces.map(piece => {
           const s = getState(piece.key);
           const isSelected = selectedId === piece.key;
