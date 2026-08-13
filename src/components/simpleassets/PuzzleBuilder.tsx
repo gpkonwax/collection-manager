@@ -370,6 +370,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
       notifyParent(next);
       return next;
     });
+    setScrambled(true);
     if (timerEnabled) {
       timerStart.current = Date.now();
       setElapsedMs(0);
