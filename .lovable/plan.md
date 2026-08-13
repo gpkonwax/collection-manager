@@ -25,23 +25,20 @@ mdata: {"artist":"Mugen","site":"https://...","img":"Qmdx...1sz"}
 
 That regularity is the single best news here: mapping can be **fully automated**, not hand-typed.
 
-## The blocker I found — read this first
+## The authorization question — RESOLVED
 
-**An AtomicAssets collection named `cryptotwerpz` already exists**, created Jan 2021:
+The existing AtomicAssets collection `cryptotwerpz` (created Jan 2021) is the *real, recognised* collection. Its author is `cryptotwerpz`, and you've confirmed your friend **controls the keys to that author account**.
 
-- Author: **`cryptotwerpz`** — the account your friend no longer controls
-- Authorized accounts: `cryptotwerpz`, **`blenderizerx`**, `neftyblocksd`, `blend.nefty`
-- Schemas: `promo`, `stickers`, `various`, `badge` — **no `serieszero`**, 38 templates total
+That is the best possible outcome. As author he can do everything directly, with no dependency on any other account:
 
-So Series Zero was never bridged. Two very different paths follow, and which one applies decides everything:
+- Create the new `serieszero` schema.
+- Create one template per distinct card.
+- **Authorize the bridge contract as a minter** on the collection — so the contract itself can mint bridged cards into the authentic collection, no proxy account needed.
+- Grant or revoke any other authorizations later.
 
-**Path A — he controls `blenderizerx` (or any authorized account).**
-Authorized accounts on an AA collection can create schemas, create templates, and mint. He would **not** need the author account at all. He can add a `serieszero` schema and templates to the *real* `cryptotwerpz` collection, and bridged cards land in the authentic, recognised collection. This is by far the best outcome.
+Bridged cards therefore land in the *real* `cryptotwerpz` AA collection under a proper `serieszero` schema. No unofficial "ctwerpzbrdg" fallback, no recognition/market-value penalty. The Path B caveat no longer applies.
 
-**Path B — he controls none of the four authorized accounts.**
-The existing `cryptotwerpz` AA collection is permanently out of reach — only the author can grant new authorizations. He must create a **new collection under a different name** (e.g. `ctwerpzbrdg`). Cards bridge fine, but they live in an unofficial collection, which hurts recognition and market value. Worth being upfront with him about that tradeoff before he spends anything.
-
-**First action before any code gets written: confirm which accounts he controls.**
+The one thing still worth confirming before writing code (Step 0 below): whether he wants the bridge contract to mint under its own authorized-minter account, or to mint by signing as the `cryptotwerpz` author directly. Both work; the first is cleaner for a live service.
 
 ## Is the mapping population difficult? No — it's the easy part
 
@@ -55,8 +52,8 @@ The genuinely effortful parts are elsewhere: funding RAM for ~40k mints, and get
 
 ## Revised plan
 
-### Step 0 — Account audit (blocking)
-Confirm whether he controls `blenderizerx`, `neftyblocksd`, or `blend.nefty`. Determines Path A vs Path B above. Everything else waits on this.
+### Step 0 — Minter setup decision (non-blocking, but do early)
+Since he controls the `cryptotwerpz` author account, decide the minting model: authorize a dedicated bridge account as a collection minter (recommended for a live service — the contract mints autonomously on transfer), or have the contract act with the author's permission inline. Either is supported; this choice only affects the contract's `mintasset` authorization path and the deploy guide.
 
 ### Step 1 — Complete the card census
 `scripts/twerpz-census.mjs`: walk the full `simpleassets::create` history for `cryptotwerpz` using **month-sized time windows** (the history API caps any single query at 10,000 rows, so windowing is required to get past 40k). Output `twerpz-cards.json` — every distinct card with number, variant, rarity, name, artist, image hash, and observed mint count.
@@ -83,7 +80,6 @@ AtomicAssets charges the collection ~151 bytes per mint plus 112 bytes per new o
 ## Honest caveats
 
 - This is a clean-room build. The pink.gg AtomicBridge is **not** open source — there is no `bridge` repo under `pinknetworkx` and GitHub search returns zero results. Only the AtomicAssets/AtomicMarket/AtomicPacks contracts are public (MIT).
-- Under Path B, bridged cards will not carry the original collection's identity. Be clear with him before he spends on RAM.
 - The 310 distinct-card figure is a floor measured from 10,000 of 40,286 mints; Step 1 replaces it with an exact number.
 - Escrowing real holder value warrants a security review of the C++ contract before launch.
 
