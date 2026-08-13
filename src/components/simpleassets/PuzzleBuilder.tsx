@@ -394,9 +394,9 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           src={referenceUrl}
           alt="Completed puzzle reference"
           loading="lazy"
-          className="h-8 w-8 rounded object-cover"
+          className="w-[224px] h-auto rounded object-contain"
         />
-        <span className="text-xs font-medium text-cheese flex items-center gap-1">
+        <span className="text-xs font-medium text-cheese flex items-center gap-1 whitespace-nowrap">
           <ImageIcon className="h-3 w-3" /> Reference
         </span>
       </button>
