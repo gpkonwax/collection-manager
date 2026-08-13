@@ -85,9 +85,13 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
   const effectiveMint = realMint ?? nativeAAMint;
-  const realMintDisplay = effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
-    ? `#${effectiveMint}`
-    : '#--';
+  // SimpleAssets cards carry their real mint in idata/mdata — surface it in the top
+  // ribbon (and drop the small green badge below the artwork).
+  const saMintDisplay = !isAtomic && mintInfo ? (mintInfo.startsWith('#') ? mintInfo : `#${mintInfo}`) : null;
+  const realMintDisplay = saMintDisplay
+    ?? (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
+      ? `#${effectiveMint}`
+      : '#--');
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
