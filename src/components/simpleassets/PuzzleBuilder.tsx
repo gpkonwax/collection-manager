@@ -639,7 +639,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
               </div>
 
               <div
-                className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 z-30 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                className={`absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1 z-30 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${scrambled ? '' : 'pointer-events-none opacity-40'}`}
               >
                 <Button
                   size="icon"
