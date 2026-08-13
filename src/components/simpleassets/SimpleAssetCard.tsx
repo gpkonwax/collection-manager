@@ -85,9 +85,13 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
   const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
   const effectiveMint = realMint ?? nativeAAMint;
-  const realMintDisplay = effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
-    ? `#${effectiveMint}`
-    : '#--';
+  // SimpleAssets cards carry their real mint in idata/mdata — surface it in the top
+  // ribbon (and drop the small green badge below the artwork).
+  const saMintDisplay = !isAtomic && mintInfo ? (mintInfo.startsWith('#') ? mintInfo : `#${mintInfo}`) : null;
+  const realMintDisplay = saMintDisplay
+    ?? (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
+      ? `#${effectiveMint}`
+      : '#--');
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
@@ -182,7 +186,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
       {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
       <div
         className="w-full flex justify-center py-1 mt-2"
-        title="Mint number (placeholder — real mint will populate when available)"
+        title={saMintDisplay ? 'On-chain mint number' : 'Mint number (placeholder — real mint will populate when available)'}
       >
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
           {realMintDisplay}
@@ -247,11 +251,8 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {((mintInfo && !isAtomic) || (isBridgedAA && asset.idata?.bridge_mint) || hasContained) && (
+        {((isBridgedAA && asset.idata?.bridge_mint) || hasContained) && (
           <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-            {mintInfo && !isAtomic && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">{mintInfo}</span>
-            )}
             {isBridgedAA && asset.idata?.bridge_mint ? (
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium"
