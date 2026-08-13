@@ -1,77 +1,92 @@
-# Standalone SA→AA Bridge: Open-Source Contract + Deployment Guide
+# Cryptotwerpz SA→AA Bridge: Findings + Mapping Plan
 
-## Goal
-Deliver a self-contained, open-source SimpleAssets→AtomicAssets bridge that your friend can deploy on **his own WAX account** to migrate his existing SA collection into a new AtomicAssets collection he controls. The original SA creator account is **not required**.
+## What I found on-chain
 
-Deliverable lives in a new `bridge-contract/` folder (no changes to the React app):
+**The SimpleAssets collection exists and is well-structured.**
 
+| Fact | Value |
+|---|---|
+| SA author account | `cryptotwerpz` |
+| Category | `serieszero` (only one seen) |
+| Total mints ever | **40,286** |
+| Distinct cards (from 10,000 most recent mints) | **310** |
+| Distinct character names | 83 |
+| Variants | `x`, `y`, `z` |
+| Rarity tiers | 6 |
+
+Rarity breakdown (of the 10,000 sampled): Common 6,694 · Simple Re-Fracture 2,559 · Black Death Re-Fracture 658 · Nuclear Re-Fracture 62 · Twerp-O-Mation 15 · Tripped-Out-Twerp 12.
+
+The card data is **clean and perfectly regular** — every asset looks like:
+
+```text
+idata: {"name":"Baggy Eilish","cardnumber":"22","variant":"y","Rarity":"Common"}
+mdata: {"artist":"Mugen","site":"https://...","img":"Qmdx...1sz"}
 ```
-bridge-contract/
-  src/sabridge.cpp        # the eosio C++ contract
-  src/sabridge.hpp        # tables + actions
-  README.md               # step-by-step deploy guide for a first-timer
-  mapping-template.csv    # SA asset -> AA template import format
-  scripts/build-mapping.mjs  # generate the mapping table rows from his SA collection
-```
 
-## Why the creator account isn't needed (verified)
-- SimpleAssets `transfer` is authorized by the **asset owner**, not the author/creator. Our codebase confirms: `simpleassets::transfer(from, to, assetids)` with `authorization: from`. So every holder can move their own cards into the bridge escrow.
-- The AA side is a **brand-new collection** his new account creates → his new account is the collection author and adds itself to `authorized_accounts`. The old SA creator is never touched.
-- The only thing lost without the old creator account is the ability to **mint new SA assets** / edit SA metadata — irrelevant to migrating assets that already exist.
+That regularity is the single best news here: mapping can be **fully automated**, not hand-typed.
 
-## Contract design (`sabridge.cpp`)
+## The blocker I found — read this first
 
-Tables:
-- `mapping` (i64, scope by SA author): `sacategory` (name), `assetid_or_cardid` (uint64), `aa_template_id` (int64), `aa_schema` (name). Lookup key = SA author + category + card id.
-- `config`: `aacollection` (name), `ram_payer` (name), `mode` (uint8: 0=escrow-reversible, 1=burn-one-way), `bridge_account` (name = self).
-- `escrowed` (i64, scope by owner): `sa_assetid` (uint64), `aa_assetid` (uint64), `owner` (name), `sa_author` (name). Tracks reversible swaps for swap-back.
+**An AtomicAssets collection named `cryptotwerpz` already exists**, created Jan 2021:
 
-Actions:
-- `init(aacollection, mode)`: set config. Admin only (self/active).
-- `addmapping(sacategory, cardid, aa_schema, aa_template_id)`: admin. One row per card variant. Bulk variant supported via `addmaps` taking a vector.
-- `ontransfer` (`[[eosio::on_notify("simpleassets::transfer")]]`): when an SA asset lands in the bridge account:
-  1. Read the incoming `assetids` + `from` (the new owner).
-  2. For each, read SA asset row (`author`, `category`, `id` via `require_find` on `simpleassets`'s `assets` table scoped by author).
-  3. Look up `mapping` by (author, category, cardid). If no mapping → fail the transfer (revert) so users don't lose cards to an unmapped variant.
-  4. Inline action `atomicassets::mintasset(permission_level{_self,"active"}, _self, aacollection, aa_schema, aa_template_id, from, immutable_data, mutable_data, {})`.
-     - `immutable_data`: carry the original SA mint number so the AA card keeps its provenance (read SA `idata`/`mdata` mint).
-  5. If `mode==0` (reversible): insert `escrowed` row (sa_assetid, aa_assetid, owner=from, sa_author). SA card stays in bridge account = escrowed.
-  6. If `mode==1` (one-way): inline `simpleassets::burn` is **not** bridge-authorizable (burn needs owner). So one-way mode instead keeps cards escrowed but disables swap-back — document this honestly. (True burn-one-way would require holders to burn themselves first then claim an AA mint via a separate `claim` action; offer that as `mode==2` if desired.)
-- `swapback(aa_assetid)`: user transfers their AA asset to the bridge account first (so bridge owns it), then calls `swapback`. Bridge: `atomicassets::burnasset(_self, aa_assetid)` (bridge is now owner → authorized), looks up `escrowed`, `simpleassets::transfer(_self, owner, [sa_assetid])` to return the SA original, delete escrow row. RAM refunded to bridge.
-- `setmode(mode)`, `setcol(aacollection)`: admin.
-- `cleanup`/`withdraw` for admin to recover misrouted SA assets in edge cases (documented, audited use only).
+- Author: **`cryptotwerpz`** — the account your friend no longer controls
+- Authorized accounts: `cryptotwerpz`, **`blenderizerx`**, `neftyblocksd`, `blend.nefty`
+- Schemas: `promo`, `stickers`, `various`, `badge` — **no `serieszero`**, 38 templates total
 
-Security:
-- `on_notify` strictly checks `get_first_receiver()==simpleassets` and `to==_self` to prevent fake-transfer spoofing.
-- All `mintasset`/`burnasset`/`transfer` inline actions use `permission_level{_self,"active"}` only.
-- The bridge account must be the **only** signer on its own `active` permission (no giving keys to a frontend).
+So Series Zero was never bridged. Two very different paths follow, and which one applies decides everything:
 
-## Mapping population (the real work for the friend)
-The friend must produce one `mapping` row per distinct card variant in his SA collection:
-`scripts/build-mapping.mjs` reads his SA collection (via AtomicAssets API / Hyperion) → lists every distinct `(category, cardid, side, variant)` → outputs a CSV. He then:
-1. Creates the AA collection + schema whose templates mirror exactly those variants.
-2. Creates one AA template per variant (image, name, cardid, side, variant in immutable data).
-3. Pastes template_ids back into the CSV → runs a bulk `addmaps` action.
+**Path A — he controls `blenderizerx` (or any authorized account).**
+Authorized accounts on an AA collection can create schemas, create templates, and mint. He would **not** need the author account at all. He can add a `serieszero` schema and templates to the *real* `cryptotwerpz` collection, and bridged cards land in the authentic, recognised collection. This is by far the best outcome.
 
-`mapping-template.csv` columns: `sa_author, sacategory, cardid, aa_schema, aa_template_id`.
+**Path B — he controls none of the four authorized accounts.**
+The existing `cryptotwerpz` AA collection is permanently out of reach — only the author can grant new authorizations. He must create a **new collection under a different name** (e.g. `ctwerpzbrdg`). Cards bridge fine, but they live in an unofficial collection, which hurts recognition and market value. Worth being upfront with him about that tradeoff before he spends anything.
 
-## Deployment guide (README.md, first-timer friendly)
-1. Create a new WAX account for the bridge (e.g. `friendbridge`), fund it with WAX + ~RAM for AA minting (estimate bytes per mint).
-2. Install eosio.cdt v3.0+ / use a Docker build image; `eosio-cpp src/sabridge.cpp -o sabridge.wasm`.
-3. Set contract: `cleos set contract friendbridge bridge-contract/ -p friendbridge@active`.
-4. Create the AA collection on his **owner** account (`createcol`), add `friendbridge` to `authorized_accounts`, set `notify_accounts` to include the bridge.
-5. Create schemas + templates mirroring the SA variants (use AtomicHub UI or `createschema`/`createtempl`).
-6. `init(aacollection, mode=0)` then bulk `addmaps` from the CSV.
-7. Test: bridge a cheap/test SA card to itself, confirm AA mint lands, then `swapback` to confirm reversibility.
-8. Open the flow to holders: they just `simpleassets::transfer` their cards to `friendbridge`; the AA equivalent mints automatically to them.
+**First action before any code gets written: confirm which accounts he controls.**
 
-## Caveats to state in the guide
-- This is **not** the pink.gg bridge; pink.gg's contract is closed-source. This is a clean-room reimplementation against the open AtomicAssets standard.
-- Reversible escrow (mode 0) is the default and recommended — mirrors pink.gg's trust model. The bridge holds the SA originals; swap-back is always available to the holder.
-- RAM for AA minting is paid by the bridge account. Budget for it.
-- Only **existing** SA assets can be migrated. If a holder wants new SA cards minted, that needs the old creator account (which is lost) — out of scope.
-- Before going live, the friend should verify no SA-side attribute lock blocks transfers for any holder.
-- A security audit of the C++ contract is recommended before escrowing real value.
+## Is the mapping population difficult? No — it's the easy part
 
-## What this does NOT change
-- No edits to the React app or existing hooks. `bridge-contract/` is fully standalone and can be its own repo later.
+I expected this to be the painful step. It isn't, because the data is machine-readable.
+
+- **Volume is modest.** ~310 confirmed distinct cards; because the distinct-count curve was still creeping up ~6 per 1,000 mints when the history API capped out at 10,000 rows, the realistic full total is **roughly 350–450 templates**. That is a normal-sized collection, not a mega one.
+- **No manual data entry.** Card name, number, variant, rarity, artist and image hash all come straight out of `idata`/`mdata`. A script enumerates every distinct `(cardnumber, variant, Rarity, img)` tuple and emits the template list directly.
+- **Template creation is scriptable.** ~400 `createtempl` actions, batched ~50 per transaction, is roughly 8 transactions. Minutes of work, not weeks.
+
+The genuinely effortful parts are elsewhere: funding RAM for ~40k mints, and getting holders to actually use the bridge.
+
+## Revised plan
+
+### Step 0 — Account audit (blocking)
+Confirm whether he controls `blenderizerx`, `neftyblocksd`, or `blend.nefty`. Determines Path A vs Path B above. Everything else waits on this.
+
+### Step 1 — Complete the card census
+`scripts/twerpz-census.mjs`: walk the full `simpleassets::create` history for `cryptotwerpz` using **month-sized time windows** (the history API caps any single query at 10,000 rows, so windowing is required to get past 40k). Output `twerpz-cards.json` — every distinct card with number, variant, rarity, name, artist, image hash, and observed mint count.
+
+Also produce a live-supply count by rarity, since some of the 40,286 minted assets have since been burned and only existing assets can be bridged.
+
+### Step 2 — Build the AA target
+`scripts/twerpz-create-templates.mjs`: from the census, create the `serieszero` schema (fields: name, cardnumber, variant, rarity, artist, img, plus `sa_mint` to preserve original mint numbers) and batch-create one template per distinct card. Writes back `twerpz-mapping.json` pairing each SA card key to its new `template_id`.
+
+### Step 3 — The bridge contract
+`bridge-contract/src/sabridge.cpp`, as previously planned, with the mapping keyed on `(category, cardnumber, variant, rarity)`:
+
+- `on_notify("simpleassets::transfer")` — validates sender is `simpleassets` and `to == _self`, looks up the mapping, and mints the AA equivalent to the original sender via `atomicassets::mintasset`, carrying the original SA mint number into immutable data.
+- Unmapped card → transaction reverts, so nobody can lose a card to a missing template.
+- Escrow-reversible by default: SA originals are held, never burned, and `swapback` returns them.
+- Guard rails and admin actions as previously specified.
+
+### Step 4 — RAM budget
+AtomicAssets charges the collection ~151 bytes per mint plus 112 bytes per new owner scope. For ~40k assets that is a real, quantifiable WAX cost that must be funded up front on the bridge account. Step 1's census gives the exact number to budget against, and this should be priced before committing.
+
+### Step 5 — Deploy guide
+`bridge-contract/README.md` — first-timer walkthrough covering account setup, eosio.cdt build, contract deploy, collection/schema/template creation, mapping load, a reversible end-to-end test on a single cheap card, and the holder-facing instructions.
+
+## Honest caveats
+
+- This is a clean-room build. The pink.gg AtomicBridge is **not** open source — there is no `bridge` repo under `pinknetworkx` and GitHub search returns zero results. Only the AtomicAssets/AtomicMarket/AtomicPacks contracts are public (MIT).
+- Under Path B, bridged cards will not carry the original collection's identity. Be clear with him before he spends on RAM.
+- The 310 distinct-card figure is a floor measured from 10,000 of 40,286 mints; Step 1 replaces it with an exact number.
+- Escrowing real holder value warrants a security review of the C++ contract before launch.
+
+## Scope
+
+`bridge-contract/` and `scripts/twerpz-*.mjs` are standalone. No changes to the React app.
