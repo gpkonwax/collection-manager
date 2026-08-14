@@ -357,7 +357,7 @@ export function BackupPanel({ triggerClassName }: Props) {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold flex-shrink-0">
                   D
                 </span>
-                <p className="font-medium truncate">Data mirror</p>
+                <p className="font-medium truncate">Data mirror (Cloudflare)</p>
               </div>
               {(() => {
                 const configured = isDataMirrorConfigured();
