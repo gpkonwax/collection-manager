@@ -8,6 +8,7 @@
  *   aa = AtomicAssets collection_name == 'gpk.topps'
  */
 import { MIRRORS } from './remoteMirror';
+import { DATA_MIRROR_URL } from './dataMirror';
 
 export interface Holder {
   account: string;
