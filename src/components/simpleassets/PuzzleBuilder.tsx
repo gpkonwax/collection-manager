@@ -150,7 +150,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
 
   const canvasPieces: CanvasPiece[] = useMemo(() => {
     if (activePuzzle) {
-      return activePuzzle.pieces.map(p => ({ key: p.key, label: p.label, imageUrl: resolvePuzzleImage(p.url).src, imageFallback: resolvePuzzleImage(p.url).fallback }));
+      return activePuzzle.pieces.map(p => {
+        const r = resolvePuzzleImage(p.url);
+        return { key: p.key, label: p.label, imageUrl: r.src, imageFallback: r.fallback };
+      });
     }
     return puzzleAssets.map(a => {
       const cardid = getCardId(a);
