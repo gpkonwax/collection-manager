@@ -87,9 +87,16 @@ function os5Pieces(side: 'a' | 'b'): RawPiece[] {
   }));
 }
 
-const RAW_PUZZLES: Array<Omit<ExtraPuzzle, 'mirrorPath' | 'referenceMirrorPath'> & {
-  pieces: Array<Omit<ExtraPuzzlePiece, 'mirrorPath'>>;
-}> = [
+interface RawPuzzle {
+  id: string;
+  name: string;
+  series: string;
+  subtitle: string;
+  referenceUrl: string;
+  pieces: RawPiece[];
+}
+
+const RAW_PUZZLES: RawPuzzle[] = [
   {
     id: 'os2lm',
     name: 'Live Mike / Jolted Joel',
