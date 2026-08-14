@@ -46,6 +46,7 @@ import {
   type ZipManifestInfo,
 } from '@/lib/remoteMirror';
 import { isOfflineBundle } from '@/lib/offlineBundle';
+import { DATA_MIRROR_URL, isDataMirrorConfigured } from '@/lib/dataMirror';
 
 function formatBytes(n: number): string {
   if (!n) return '0 B';
