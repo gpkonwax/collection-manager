@@ -260,6 +260,76 @@ function fmtBytes(n) {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GiB`;
 }
 
+/**
+ * Audit the dedicated data mirror against its own index (manifests/
+ * data-mirror-index.json). Verifies every file the index lists is present and
+ * size-matches; optionally sha256-samples. Skipped when DATA_MIRROR_BASE unset.
+ */
+async function auditDataMirror(opts) {
+  const lines = [];
+  if (!DATA_MIRROR_BASE) {
+    lines.push('## Data mirror');
+    lines.push('  (skipped — DATA_MIRROR_URL not set)');
+    lines.push('');
+    return { lines, clean: true, skipped: true };
+  }
+  const indexUrl = `${DATA_MIRROR_BASE}manifests/data-mirror-index.json`;
+  console.log(`\nAuditing data mirror: ${DATA_MIRROR_BASE}`);
+  let index;
+  try {
+    const res = await fetch(indexUrl, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    index = await res.json();
+  } catch (e) {
+    lines.push('## Data mirror');
+    lines.push(`  base:   ${DATA_MIRROR_BASE}`);
+    lines.push(`  index:  ${indexUrl}`);
+    lines.push(`  verdict: UNREACHABLE (${e.message})`);
+    lines.push('');
+    return { lines, clean: false, skipped: false };
+  }
+  const files = index.files || {};
+  const entries = Object.entries(files);
+  let ok = 0;
+  const missing = [];
+  const wrongSize = [];
+  for (const [rel, meta] of entries) {
+    const url = `${DATA_MIRROR_BASE}${rel}`;
+    try {
+      const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+      if (!res.ok) { missing.push({ rel, status: res.status, url }); continue; }
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (typeof meta.bytes === 'number' && buf.length !== meta.bytes) {
+        wrongSize.push({ rel, expected: meta.bytes, actual: buf.length, url });
+      } else {
+        ok++;
+      }
+    } catch (e) {
+      missing.push({ rel, status: 'net', url, error: e.message });
+    }
+  }
+  const clean = missing.length === 0 && wrongSize.length === 0;
+  lines.push('## Data mirror');
+  lines.push(`  base:        ${DATA_MIRROR_BASE}`);
+  lines.push(`  index:       ${indexUrl}`);
+  lines.push(`  indexed at:  ${index.generatedAt || '-'}`);
+  lines.push(`  checked:     ${entries.length}`);
+  lines.push(`  ok:          ${ok}`);
+  lines.push(`  missing:     ${missing.length}`);
+  lines.push(`  wrong size:  ${wrongSize.length}`);
+  lines.push(`  verdict:     ${clean ? 'COMPLETE' : `GAPS (missing=${missing.length}, wrongSize=${wrongSize.length})`}`);
+  lines.push('');
+  if (missing.length) {
+    await fs.writeFile(path.join(OUT_DIR, 'missing-data-mirror.txt'),
+      missing.map((m) => `${m.rel}\t${m.status || 'net'}\t${m.url}${m.error ? `\t${m.error}` : ''}`).join('\n') + '\n');
+  }
+  if (wrongSize.length) {
+    await fs.writeFile(path.join(OUT_DIR, 'wrongsize-data-mirror.txt'),
+      wrongSize.map((m) => `${m.rel}\texpected=${m.expected}\tactual=${m.actual}\t${m.url}`).join('\n') + '\n');
+  }
+  return { lines, clean, skipped: false };
+}
+
 async function main() {
   const opts = parseArgs(process.argv);
   const targets = opts.only ? MIRRORS.filter((m) => m.key === opts.only) : MIRRORS;
