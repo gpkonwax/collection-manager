@@ -1,6 +1,6 @@
 /**
  * Data mirror — small JSON manifests + static artwork (puzzle card-back scans,
- * pack artwork) hosted on a dedicated Netlify site.
+ * pack artwork) hosted on a dedicated Cloudflare Pages site.
  *
  * Why a separate site: the main image mirror is multi-gigabyte and painful to
  * re-upload. Manifests and puzzle artwork are tiny and change independently,
@@ -20,9 +20,10 @@
 import { MIRRORS } from './remoteMirror';
 
 /**
- * Base URL of the dedicated data mirror (Netlify). MUST end with a trailing `/`.
- * Leave empty until the Netlify site is created; lookups then fall back to the
- * image mirrors / original source URLs.
+ * Base URL of the dedicated data mirror (Cloudflare Pages, e.g.
+ * https://gpk-data.pages.dev/). MUST end with a trailing `/`.
+ * Leave empty until the Cloudflare Pages site is created; lookups then fall
+ * back to the image mirrors / original source URLs.
  */
 export const DATA_MIRROR_URL: string = '';
 

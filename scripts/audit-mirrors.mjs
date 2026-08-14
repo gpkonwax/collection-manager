@@ -46,10 +46,19 @@ const MIRRORS = [
   },
 ];
 
-// Dedicated data mirror (Netlify) — hosts manifests/ + puzzles/ + packs/.
-// Set via env var or hardcode here once the site is live. Left blank until then;
-// the data-mirror audit step is skipped when unconfigured.
-const DATA_MIRROR_BASE = process.env.DATA_MIRROR_URL || '';
+// Dedicated data mirror (Cloudflare Pages) — hosts manifests/ + puzzles/ + packs/.
+// Read from the DATA_MIRROR_URL env var, otherwise from the app source of truth
+// (src/lib/dataMirror.ts). The data-mirror audit step is skipped when unset.
+function readAppDataMirrorUrl() {
+  try {
+    const src = readFileSync(path.join(ROOT, 'src', 'lib', 'dataMirror.ts'), 'utf8');
+    const m = src.match(/export const DATA_MIRROR_URL:\s*string\s*=\s*'([^']*)'/);
+    return m ? m[1] : '';
+  } catch {
+    return '';
+  }
+}
+const DATA_MIRROR_BASE = process.env.DATA_MIRROR_URL || readAppDataMirrorUrl();
 
 
 /**
@@ -269,7 +278,7 @@ async function auditDataMirror(opts) {
   const lines = [];
   if (!DATA_MIRROR_BASE) {
     lines.push('## Data mirror');
-    lines.push('  (skipped — DATA_MIRROR_URL not set)');
+    lines.push('  (skipped — data mirror URL not configured)');
     lines.push('');
     return { lines, clean: true, skipped: true };
   }
