@@ -629,6 +629,11 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                       alt={`Puzzle piece ${piece.label}`}
                       loading="lazy"
                       draggable={false}
+                      onError={(e) => {
+                        if (piece.imageFallback && e.currentTarget.src !== piece.imageFallback) {
+                          e.currentTarget.src = piece.imageFallback;
+                        }
+                      }}
                       className={`w-full h-full pointer-events-none ${frame.contain ? 'object-fill' : 'object-cover'}`}
 
                     />
