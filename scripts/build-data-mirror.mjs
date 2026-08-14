@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
  * build-data-mirror.mjs — assembles a small `gpk-data` folder for a dedicated
- * Netlify site. Contains only tiny files (no multi-gigabyte image mirror):
+ * Cloudflare Pages site. Contains only tiny files (no multi-gigabyte image mirror):
  *
  *   gpk-data/
- *     _headers                          (CORS so the browser may fetch it)
+ *     _headers                          (CORS so the browser may fetch it —
+                                       Cloudflare Pages reads this the same
+                                       way Netlify does)
  *     manifests/
  *       gpk-topps-holders.json           (View Wallet holder list)
  *       data-mirror-index.json         (sha256 + size of every file, for audit)
@@ -17,7 +19,8 @@
  *   node scripts/build-data-mirror.mjs
  *
  * It is resumable: puzzle images already on disk are skipped. The holders
- * manifest is copied from mirror-output/ if present, otherwise regenerated.
+ * manifest is copied from the first location found (see findHoldersManifest);
+ * it is never regenerated here — that is a separate 30+ minute scan.
  *
  * The puzzle URL set below mirrors src/lib/extraPuzzles.ts. If that file
  * changes, update the arrays here to match.
@@ -99,8 +102,10 @@ const PACK_ASSETS = [
   'gpk_pack_exotic_mega.jpeg',
 ];
 
+// Cloudflare Pages (and Netlify) both read a top-level `_headers` file.
 const HEADERS = `/*
   Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
   Cache-Control: public, max-age=300
 `;
 
@@ -175,17 +180,31 @@ function sha256Hex(buf) {
  * Returns null when absent so the caller can skip it with a clear warning.
  */
 async function findHoldersManifest() {
-  const staged = path.join(ROOT, 'scripts', 'mirror-output', 'manifests', 'gpk-topps-holders.json');
-  try {
-    await fs.access(staged);
-    return staged;
-  } catch {
-    return null;
+  const candidates = [
+    path.join(ROOT, 'scripts', 'mirror-output', 'manifests', 'gpk-topps-holders.json'),
+    path.join(ROOT, 'manifests', 'gpk-topps-holders.json'),
+    path.join(OUT_ROOT, 'incoming', 'gpk-topps-holders.json'),
+    path.join(ROOT, 'public', 'manifests', 'gpk-topps-holders.json'),
+    path.join(OUT, 'manifests', 'gpk-topps-holders.json'),
+  ];
+  for (const c of candidates) {
+    try {
+      await fs.access(c);
+      return c;
+    } catch { /* keep looking */ }
   }
+  return null;
 }
 
 async function main() {
   log(`output: ${OUT}`);
+
+  // Preserve a holders manifest that only exists inside OUT before we wipe it.
+  let preservedHolders = null;
+  try {
+    preservedHolders = await fs.readFile(path.join(OUT, 'manifests', 'gpk-topps-holders.json'));
+  } catch { /* none staged */ }
+
   await fs.rm(OUT, { recursive: true, force: true });
   await fs.mkdir(path.join(OUT, 'manifests'), { recursive: true });
   await fs.mkdir(path.join(OUT, 'packs'), { recursive: true });
@@ -193,13 +212,17 @@ async function main() {
   // _headers (Netlify CORS)
   await fs.writeFile(path.join(OUT, '_headers'), HEADERS, 'utf8');
 
-  // Holders manifest (must be pre-built via build-holders-manifest.mjs)
+  // Holders manifest (must be pre-built via build-holders-manifest.mjs, or
+  // dropped into manifests/gpk-topps-holders.json at the project root)
   const holdersSrc = await findHoldersManifest();
   if (holdersSrc) {
     await fs.copyFile(holdersSrc, path.join(OUT, 'manifests', 'gpk-topps-holders.json'));
-    log('copied holders manifest');
+    log(`copied holders manifest from ${path.relative(ROOT, holdersSrc)}`);
+  } else if (preservedHolders) {
+    await fs.writeFile(path.join(OUT, 'manifests', 'gpk-topps-holders.json'), preservedHolders);
+    log('re-staged previously copied holders manifest');
   } else {
-    log('WARNING: holders manifest not found — run `node scripts/build-holders-manifest.mjs` first, then re-run this script. Skipping holders manifest.');
+    log('WARNING: holders manifest not found. Drop it at manifests/gpk-topps-holders.json (project root) or run `node scripts/build-holders-manifest.mjs`, then re-run this script. Skipping holders manifest.');
   }
 
   // Puzzle artwork
