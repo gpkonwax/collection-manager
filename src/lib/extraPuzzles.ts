@@ -85,7 +85,9 @@ function os5Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
   }));
 }
 
-export const EXTRA_PUZZLES: ExtraPuzzle[] = [
+const RAW_PUZZLES: Array<Omit<ExtraPuzzle, 'mirrorPath' | 'referenceMirrorPath'> & {
+  pieces: Array<Omit<ExtraPuzzlePiece, 'mirrorPath'>>;
+}> = [
   {
     id: 'os2lm',
     name: 'Live Mike / Jolted Joel',
@@ -135,6 +137,19 @@ export const EXTRA_PUZZLES: ExtraPuzzle[] = [
     pieces: os5Pieces('b'),
   },
 ];
+
+/**
+ * Attach the mirrored relative path to every piece + reference sheet so the
+ * builder can prefer the data mirror (with geepeekay as last-resort fallback).
+ */
+export const EXTRA_PUZZLES: ExtraPuzzle[] = RAW_PUZZLES.map((p) => ({
+  ...p,
+  referenceMirrorPath: geepeekayToMirrorPath(p.referenceUrl) ?? p.referenceUrl,
+  pieces: p.pieces.map((piece) => ({
+    ...piece,
+    mirrorPath: geepeekayToMirrorPath(piece.url) ?? piece.url,
+  })),
+}));
 
 export function getExtraPuzzle(id: string): ExtraPuzzle | undefined {
   return EXTRA_PUZZLES.find(p => p.id === id);
