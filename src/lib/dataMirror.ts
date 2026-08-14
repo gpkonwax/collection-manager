@@ -25,7 +25,7 @@ import { MIRRORS } from './remoteMirror';
  * Leave empty until the Cloudflare Pages site is created; lookups then fall
  * back to the image mirrors / original source URLs.
  */
-export const DATA_MIRROR_URL: string = '';
+export const DATA_MIRROR_URL: string = 'https://gpk-data.pages.dev/';
 
 /** Manifest + artwork are served from this relative path on every mirror. */
 export const DATA_MIRROR_INDEX_PATH = 'manifests/data-mirror-index.json';
