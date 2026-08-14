@@ -285,7 +285,7 @@ async function main() {
   );
 
   log(`done. ${fileCount(indexFile)} files indexed.`);
-  log(`Drag this folder to Netlify:  ${OUT}`);
+  log(`Drag the CONTENTS of this folder into Cloudflare Pages (Upload assets):  ${OUT}`);
 }
 
 function fileCount(index) { return index.fileCount; }
