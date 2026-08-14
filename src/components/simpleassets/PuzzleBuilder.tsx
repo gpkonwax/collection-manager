@@ -421,6 +421,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           <img
             src={referenceUrl}
             alt="Completed puzzle reference sheet"
+            onError={(e) => { if (referenceResolved.fallback && e.currentTarget.src !== referenceResolved.fallback) e.currentTarget.src = referenceResolved.fallback; }}
             className="w-full max-h-[75vh] object-contain rounded-md"
           />
         </DialogContent>
