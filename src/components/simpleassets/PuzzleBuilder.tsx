@@ -401,6 +401,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           src={referenceUrl}
           alt="Completed puzzle reference"
           loading="lazy"
+          onError={(e) => { if (referenceResolved.fallback && e.currentTarget.src !== referenceResolved.fallback) e.currentTarget.src = referenceResolved.fallback; }}
           className="w-[224px] h-auto rounded object-contain"
         />
         <span className="text-xs font-medium text-cheese flex items-center gap-1 whitespace-nowrap">
