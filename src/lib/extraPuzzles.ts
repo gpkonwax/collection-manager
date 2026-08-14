@@ -6,11 +6,16 @@
  * (all 18 pieces owned), and behave exactly like the NFT puzzle in the builder.
  */
 
+import { geepeekayToMirrorPath } from './dataMirror';
+
 export interface ExtraPuzzlePiece {
   /** Stable key used for layout persistence/export */
   key: string;
   /** Full image URL for the piece (card back scan) */
   url: string;
+  /** Mirrored relative path (e.g. puzzles/os3/backs/os3back_85a.jpg) — resolved
+   *  through the data mirror at render time, with `url` as last-resort fallback. */
+  mirrorPath: string;
   /** Short label, e.g. "85a" */
   label: string;
 }
@@ -22,6 +27,8 @@ export interface ExtraPuzzle {
   subtitle: string;
   /** Completed-puzzle reference sheet (also lists required card numbers) */
   referenceUrl: string;
+  /** Mirrored relative path for the reference sheet. */
+  referenceMirrorPath: string;
   pieces: ExtraPuzzlePiece[];
 }
 
