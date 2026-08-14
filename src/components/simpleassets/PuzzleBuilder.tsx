@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import { EXTRA_PUZZLES, NFT_SERIES2_REFERENCE_URL, getExtraPuzzle } from '@/lib/extraPuzzles';
+import { resolvePuzzleImage } from '@/lib/dataMirror';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
