@@ -169,17 +169,18 @@ function sha256Hex(buf) {
   return createHash('sha256').update(buf).digest('hex');
 }
 
-async function ensureHoldersManifest() {
+/**
+ * Locate the pre-built holders manifest. Does NOT regenerate it — that is a
+ * 30+ minute scan the user runs deliberately via `build-holders-manifest.mjs`.
+ * Returns null when absent so the caller can skip it with a clear warning.
+ */
+async function findHoldersManifest() {
   const staged = path.join(ROOT, 'scripts', 'mirror-output', 'manifests', 'gpk-topps-holders.json');
   try {
     await fs.access(staged);
     return staged;
   } catch {
-    // Regenerate it (15–45 min). Respect the user's choice if it fails.
-    log('holders manifest missing — running build-holders-manifest.mjs…');
-    const r = spawnSync('node', ['scripts/build-holders-manifest.mjs'], { cwd: ROOT, stdio: 'inherit' });
-    if (r.status !== 0) throw new Error('build-holders-manifest.mjs failed');
-    return staged;
+    return null;
   }
 }
 
