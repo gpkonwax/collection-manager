@@ -193,10 +193,14 @@ async function main() {
   // _headers (Netlify CORS)
   await fs.writeFile(path.join(OUT, '_headers'), HEADERS, 'utf8');
 
-  // Holders manifest
-  const holdersSrc = await ensureHoldersManifest();
-  await fs.copyFile(holdersSrc, path.join(OUT, 'manifests', 'gpk-topps-holders.json'));
-  log('copied holders manifest');
+  // Holders manifest (must be pre-built via build-holders-manifest.mjs)
+  const holdersSrc = await findHoldersManifest();
+  if (holdersSrc) {
+    await fs.copyFile(holdersSrc, path.join(OUT, 'manifests', 'gpk-topps-holders.json'));
+    log('copied holders manifest');
+  } else {
+    log('WARNING: holders manifest not found — run `node scripts/build-holders-manifest.mjs` first, then re-run this script. Skipping holders manifest.');
+  }
 
   // Puzzle artwork
   log(`downloading ${PUZZLE_URLS.length} puzzle images from geepeekay.com…`);
