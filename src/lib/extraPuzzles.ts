@@ -50,7 +50,9 @@ const OS5_PIECES: Array<{ num: number; variant?: boolean }> = [
   { num: 199 }, { num: 200 }, { num: 203 }, { num: 205 },
 ];
 
-function os2Pieces(printing: 'll' | 'lm'): ExtraPuzzlePiece[] {
+type RawPiece = Omit<ExtraPuzzlePiece, 'mirrorPath'>;
+
+function os2Pieces(printing: 'll' | 'lm'): RawPiece[] {
   return OS2_NUMBERS.map(n => ({
     key: `${n}${printing}`,
     label: `${n}ab`,
@@ -58,7 +60,7 @@ function os2Pieces(printing: 'll' | 'lm'): ExtraPuzzlePiece[] {
   }));
 }
 
-function os3Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
+function os3Pieces(side: 'a' | 'b'): RawPiece[] {
   return OS3_NUMBERS.map(n => ({
     key: `${n}${side}`,
     label: `${n}${side}`,
@@ -66,7 +68,7 @@ function os3Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
   }));
 }
 
-function os4Pieces(): ExtraPuzzlePiece[] {
+function os4Pieces(): RawPiece[] {
   return Array.from({ length: 21 }, (_, i) => {
     const n = String(i + 1).padStart(2, '0');
     return {
@@ -77,7 +79,7 @@ function os4Pieces(): ExtraPuzzlePiece[] {
   });
 }
 
-function os5Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
+function os5Pieces(side: 'a' | 'b'): RawPiece[] {
   return OS5_PIECES.map(({ num, variant }) => ({
     key: `${num}${side}${variant ? 'v' : ''}`,
     label: `${num}${side.toUpperCase()}${variant ? ' (V)' : ''}`,
