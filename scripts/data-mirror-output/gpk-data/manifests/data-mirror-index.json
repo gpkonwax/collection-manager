@@ -1,0 +1,530 @@
+{
+  "generatedAt": "2026-08-14T08:10:20.132Z",
+  "fileCount": 131,
+  "files": {
+    "packs/gpk_pack_exotic.jpeg": {
+      "sha256": "96a736fe2a065ff9c6312b03e26000bc90916b62a668995408da618a8c75115b",
+      "bytes": 51380
+    },
+    "packs/gpk_pack_exotic_mega.jpeg": {
+      "sha256": "ffccc0d547e0ddb92cfbff56638bf828d9283297d7ffe2278a95d31fe50d3bf1",
+      "bytes": 44758
+    },
+    "packs/gpk_pack_series_1_geepeekay.jpg": {
+      "sha256": "9caa72e2c3138c34ebc08cffac0d6e0889d13d2f00a408cb62448361eb1b595e",
+      "bytes": 48738
+    },
+    "packs/gpk_pack_series_1_mega_geepeekay.jpg": {
+      "sha256": "22a5625995ccbf45545e3a35f0d1d42690f124f177e08580f28b3ffe4e76b71e",
+      "bytes": 41114
+    },
+    "packs/gpk_pack_series_2a_geepeekay.jpg": {
+      "sha256": "f10b6d2d8a8e7548c175578d24ff968c6d00729380cd4e904e8f414afb25efc4",
+      "bytes": 50867
+    },
+    "packs/gpk_pack_series_2b_geepeekay.jpg": {
+      "sha256": "2ed2e1d76e86cf1a46bec6624004e9a9f7c31b78c3b4d4a39385e50841602b3c",
+      "bytes": 47422
+    },
+    "packs/gpk_pack_series_2c_geepeekay.jpg": {
+      "sha256": "0eb2f67f0b319998b85c22cde66465b8fec30c50e1608a720544a633b603f47c",
+      "bytes": 47982
+    },
+    "puzzles/os2/backs/os2_back_55lm.jpg": {
+      "sha256": "13e98b238ad9aacb9429a5c3bdfd40dee4884ed5ed2122d285fe133158685cb9",
+      "bytes": 53096
+    },
+    "puzzles/os2/backs/os2_back_56lm.jpg": {
+      "sha256": "8c9695261d8c50b2dee63236af5abcdf3642e95acdd5423453a7c2489127922c",
+      "bytes": 72586
+    },
+    "puzzles/os2/backs/os2_back_57lm.jpg": {
+      "sha256": "fa5355e4569071de78ea640fcbb7818e562b2aed66fb47cf37fcb9f2b48c6c58",
+      "bytes": 67630
+    },
+    "puzzles/os2/backs/os2_back_58lm.jpg": {
+      "sha256": "bf6c88dc917d5bc802bb71cc0850c66b7832e2c24786b04f4f430400205e9de7",
+      "bytes": 74492
+    },
+    "puzzles/os2/backs/os2_back_59lm.jpg": {
+      "sha256": "1c3316f1784d5aa0001c30eef61cc7c10302fbca207a92f9cb80164953ad0b67",
+      "bytes": 86215
+    },
+    "puzzles/os2/backs/os2_back_60lm.jpg": {
+      "sha256": "db3fa011b1f48c683195aaa7fbe9247d6fe1a1e05f63fffcaeb5b223337b2f23",
+      "bytes": 84658
+    },
+    "puzzles/os2/backs/os2_back_66lm.jpg": {
+      "sha256": "465cde999924c4bada4832b86474655ed9a4e59ffaacdd1470f7b84fe796a85c",
+      "bytes": 66119
+    },
+    "puzzles/os2/backs/os2_back_67lm.jpg": {
+      "sha256": "8c1394dad006944cac52463259e46c55a4c6aa7abaeef7b541485a572b6ccb19",
+      "bytes": 76279
+    },
+    "puzzles/os2/backs/os2_back_68lm.jpg": {
+      "sha256": "1e5552ba005da0643de3c1de089593ae5f54d0d2aef4f03aed0639155be385c4",
+      "bytes": 80986
+    },
+    "puzzles/os2/backs/os2_back_69lm.jpg": {
+      "sha256": "8848dc244dc30678394a21d0f76e7f9ea459ed63f0508d2bc059e9fac366c1f7",
+      "bytes": 87180
+    },
+    "puzzles/os2/backs/os2_back_70lm.jpg": {
+      "sha256": "b6794f67c3e0f06ce591c6d53db22671447810a3fbe7fefa59b0ae64e3bc858d",
+      "bytes": 82102
+    },
+    "puzzles/os2/backs/os2_back_71lm.jpg": {
+      "sha256": "7b183a0786bea393c4ffb390b0cb8bab7beb1b4202d55268aa1b2c3e8e007189",
+      "bytes": 82543
+    },
+    "puzzles/os2/backs/os2_back_75lm.jpg": {
+      "sha256": "af8828eb346c806abefff0b65cadf2f3f504ef76e887d0ca22b65f2f51d63a3b",
+      "bytes": 56112
+    },
+    "puzzles/os2/backs/os2_back_76lm.jpg": {
+      "sha256": "f72c980f134b82890a0f3b483031901e6b4729c7438b459c79f82ef1cb3e798c",
+      "bytes": 75562
+    },
+    "puzzles/os2/backs/os2_back_77lm.jpg": {
+      "sha256": "fa25a84e2d400c13e19b2c07919b00bd43fcb284457d1ec4971fa1048668e716",
+      "bytes": 72593
+    },
+    "puzzles/os2/backs/os2_back_78lm.jpg": {
+      "sha256": "cb1de3d8b0841ed08747947ae0073d09a43cbe899d83bd980b8fc09bc5060573",
+      "bytes": 78909
+    },
+    "puzzles/os2/backs/os2_back_79lm.jpg": {
+      "sha256": "becb841cb978e284d7f192f043e211a07c0241948e7f422d7861f529a5f45544",
+      "bytes": 83253
+    },
+    "puzzles/os2/backs/os2_back_80lm.jpg": {
+      "sha256": "1681a4bdfb701bdb8e9dae1953cc877df14364c5dca452fd25ba129a4054b80b",
+      "bytes": 81519
+    },
+    "puzzles/os2/puzzleback_18numbers_os2ll.jpg": {
+      "sha256": "b00282ec3a90818a8a15da326a265b195cc4a373ef5bcbbcbbf7628d37fa9b3d",
+      "bytes": 285932
+    },
+    "puzzles/os2/puzzleback_18numbers_os2lm.jpg": {
+      "sha256": "66d8e56650fb85a7bdce7c4a755d54d1505a28be11f12a2caee5dfe7f9637424",
+      "bytes": 295632
+    },
+    "puzzles/os3/backs/os3back_101a.jpg": {
+      "sha256": "0d31bdd781fad705513387cd250b5623e6a08d27385b4551dec5d04b330de723",
+      "bytes": 30815
+    },
+    "puzzles/os3/backs/os3back_101b.jpg": {
+      "sha256": "13d2f7bec78e5cc3444fe87945ccef863a8fffb2479aa9bab9d71eacd5d68882",
+      "bytes": 25638
+    },
+    "puzzles/os3/backs/os3back_103a.jpg": {
+      "sha256": "d8fd9b99454081d09ec7ba819fe563572ae0bce598c412c92755eff2c6e46f5e",
+      "bytes": 23547
+    },
+    "puzzles/os3/backs/os3back_103b.jpg": {
+      "sha256": "154a51121b9c38285c45a96de1ef6d41a9ba46270524f272a46befac4efccfa7",
+      "bytes": 27510
+    },
+    "puzzles/os3/backs/os3back_107a.jpg": {
+      "sha256": "31a1c3d900a6b9bcb5cad19da676935595248b4dc09528fe0bcb927f08160b12",
+      "bytes": 19567
+    },
+    "puzzles/os3/backs/os3back_107b.jpg": {
+      "sha256": "9fd149e85b9e56c4f9667c34b64261742335f93b7fbdc172eae9654b2af7a683",
+      "bytes": 22564
+    },
+    "puzzles/os3/backs/os3back_112a.jpg": {
+      "sha256": "246cc3eca175f505070237ad7fc44d482163ca1b3b75c98637541c1e12cbfe8b",
+      "bytes": 15967
+    },
+    "puzzles/os3/backs/os3back_112b.jpg": {
+      "sha256": "1c14331b6e987f523babcb848790fb77376db2092a89ed89ed124eed27cb88be",
+      "bytes": 22312
+    },
+    "puzzles/os3/backs/os3back_114a.jpg": {
+      "sha256": "5d44483500bd1a993d845133e672a6837fd7e160e4dec21ccc85507f9eff68e0",
+      "bytes": 20965
+    },
+    "puzzles/os3/backs/os3back_114b.jpg": {
+      "sha256": "e52e649c82ac82fc742d24ed30d9ec92856c74da48c5df2f25685b2f217426ad",
+      "bytes": 19817
+    },
+    "puzzles/os3/backs/os3back_115a.jpg": {
+      "sha256": "81c6d2d1fd621a10080321fa8d37c5da38399babf140eefa5885fb8e2caa45ab",
+      "bytes": 24982
+    },
+    "puzzles/os3/backs/os3back_115b.jpg": {
+      "sha256": "69a60c186306b2b79e4a45b302528539c0d8b730a0d15723ac1ac22dee732e01",
+      "bytes": 24454
+    },
+    "puzzles/os3/backs/os3back_121a.jpg": {
+      "sha256": "70b87ce7e1eeb3b752d92c5bc9246e0bdeaf85e80ad065ce81a58ea763bd228f",
+      "bytes": 32357
+    },
+    "puzzles/os3/backs/os3back_121b.jpg": {
+      "sha256": "db072ceba27720dc051854f17af548a132aa6ccba079fa4b198aeb86245e0bdb",
+      "bytes": 28463
+    },
+    "puzzles/os3/backs/os3back_122a.jpg": {
+      "sha256": "fbd184e1e2aea3ea4af6be33defa162e8aa1a632dd496f3fddec3bdf4e730a1c",
+      "bytes": 24030
+    },
+    "puzzles/os3/backs/os3back_122b.jpg": {
+      "sha256": "d4ec63ab3d00d48206afd2ae49b51abe25428e32d7d0af1cd42e2625b3da5d1c",
+      "bytes": 28227
+    },
+    "puzzles/os3/backs/os3back_123a.jpg": {
+      "sha256": "ccbcb83d9eb5d9d96494e17d25bc30534b3777f4d11235604344716d5f027700",
+      "bytes": 24504
+    },
+    "puzzles/os3/backs/os3back_123b.jpg": {
+      "sha256": "16d082010177fb3c3501ccb1a3ccca42e7441228531d27e66bf8f1bec1e4ceca",
+      "bytes": 26318
+    },
+    "puzzles/os3/backs/os3back_124a.jpg": {
+      "sha256": "2e86366799e71206bc7a0f1d5a0c326eeda18b2ebf7ae054ff5ae2fad6c9d2f4",
+      "bytes": 20702
+    },
+    "puzzles/os3/backs/os3back_124b.jpg": {
+      "sha256": "371f386194ce8d8516789a6544e748a335cadc37f497b05e2a5e6e29e1c7cc06",
+      "bytes": 24528
+    },
+    "puzzles/os3/backs/os3back_85a.jpg": {
+      "sha256": "205729ac3aa93720ad52a52ca6888d89957557f331ca699cd61d76b6ad0927a1",
+      "bytes": 23689
+    },
+    "puzzles/os3/backs/os3back_85b.jpg": {
+      "sha256": "8f76fea81c722794f25c87ece91fbc37b63feca0db6bdb19a5298b817ee31448",
+      "bytes": 19165
+    },
+    "puzzles/os3/backs/os3back_88a.jpg": {
+      "sha256": "a9548c362ab4eb45503dfefe3aae8c6a1914cdfad02799e63540bf54ca445ed0",
+      "bytes": 27326
+    },
+    "puzzles/os3/backs/os3back_88b.jpg": {
+      "sha256": "067e43a5d666416232161e05777356d1af6e0ac26e76713863d138124e78480d",
+      "bytes": 28046
+    },
+    "puzzles/os3/backs/os3back_89a.jpg": {
+      "sha256": "8746cba37dc628d22e7d220837825258ecafeb11a85b0c5b759277d0fcc025cc",
+      "bytes": 22760
+    },
+    "puzzles/os3/backs/os3back_89b.jpg": {
+      "sha256": "475123d4505890b988ba32cd82d577045b7d37cf4c21d118e7a76e4f5c8224fe",
+      "bytes": 21612
+    },
+    "puzzles/os3/backs/os3back_90a.jpg": {
+      "sha256": "84977ca6feba2783ea51e773da8a0b1b4433a115b8efe181b436b7e7da66043f",
+      "bytes": 25218
+    },
+    "puzzles/os3/backs/os3back_90b.jpg": {
+      "sha256": "884de33d896d58cef8f940d5c6b8593c40e6269260c97406a9e9a304a86dcc57",
+      "bytes": 28177
+    },
+    "puzzles/os3/backs/os3back_92a.jpg": {
+      "sha256": "c139d21111b486828e8711a8566a2f27af54446f8a1844c97f6f6b4b25b45bd3",
+      "bytes": 24779
+    },
+    "puzzles/os3/backs/os3back_92b.jpg": {
+      "sha256": "5d0b618ca01e9f51b87566e23aa126814297c85c5a34dff0ba2261254620e8ad",
+      "bytes": 23568
+    },
+    "puzzles/os3/backs/os3back_93a.jpg": {
+      "sha256": "c05c929362cd8a511a4a974c1647dbfe5b56c82a19ef7c4800cef1c98c7eadab",
+      "bytes": 23009
+    },
+    "puzzles/os3/backs/os3back_93b.jpg": {
+      "sha256": "0db4f6cf24372495eae42d0190a78d1cb64e2d1099e5eb9fd11a233ef92e8aa1",
+      "bytes": 26946
+    },
+    "puzzles/os3/backs/os3back_94a.jpg": {
+      "sha256": "7bf8f9716f2d4f7b8bf631a559c6e0e64039bf5f14e4f4e830a9b811ff999852",
+      "bytes": 22798
+    },
+    "puzzles/os3/backs/os3back_94b.jpg": {
+      "sha256": "e7499efbb19d98a9698de35b66e8ee3f106a0493b53348ddab42735cdea96d8c",
+      "bytes": 17139
+    },
+    "puzzles/os3/backs/os3back_95a.jpg": {
+      "sha256": "fcbfa8b880c488c8806fc5a6627da59710937b8619bf9a57d81e8ade7268fbdc",
+      "bytes": 19528
+    },
+    "puzzles/os3/backs/os3back_95b.jpg": {
+      "sha256": "55149c2f8e5b41cad3e92987f69f6da303e5909e3e66496d315459e4a087ff48",
+      "bytes": 28398
+    },
+    "puzzles/os3/puzzleback_18numbers_os3mm.jpg": {
+      "sha256": "265633de73509680dda69156ff039cd938c2d01b868e236610c0370f1177ee0a",
+      "bytes": 157217
+    },
+    "puzzles/os3/puzzleback_18numbers_os3ss.jpg": {
+      "sha256": "757fda464012eba30811e8efda558275f6aa5f3ce6426848ddeea83af67b4fc2",
+      "bytes": 143902
+    },
+    "puzzles/os4/backs/os4_back_green_01.jpg": {
+      "sha256": "5e99be04bc2a1e13679db30ae7ee1166b6ca6884c445cc24e70cc23b2f55baca",
+      "bytes": 63328
+    },
+    "puzzles/os4/backs/os4_back_green_02.jpg": {
+      "sha256": "4d214cd3c58ffa0d7a47b59019f7c8d739c7f40e71eac213edc8bce8127840bf",
+      "bytes": 67541
+    },
+    "puzzles/os4/backs/os4_back_green_03.jpg": {
+      "sha256": "e3472e11c66e046a881f781671b124c1d2eeb4a90e14c2bca6ba50bcc497acdc",
+      "bytes": 65826
+    },
+    "puzzles/os4/backs/os4_back_green_04.jpg": {
+      "sha256": "bbfe098312ef1739db18a703799d68d878616a99694a87e2bec17d861cebb6de",
+      "bytes": 75774
+    },
+    "puzzles/os4/backs/os4_back_green_05.jpg": {
+      "sha256": "7d1db4ddac98d6aaef673d59469c192341c9d158ebad38d5d10fbf6a9631be03",
+      "bytes": 77918
+    },
+    "puzzles/os4/backs/os4_back_green_06.jpg": {
+      "sha256": "5fa7b3d547932e64b971b2ecda311bf6f411f7a5c23d4b8ecc220fdf31fba096",
+      "bytes": 74428
+    },
+    "puzzles/os4/backs/os4_back_green_07.jpg": {
+      "sha256": "e49b9cf813da3eb26c09f11fb0fc7da1d0b5e71bf8d455f44a792280f15b0865",
+      "bytes": 75508
+    },
+    "puzzles/os4/backs/os4_back_green_08.jpg": {
+      "sha256": "715eafc5f00994e0245fdbe509a2d8a0831600004b46b9ff60d303549af5cf81",
+      "bytes": 64006
+    },
+    "puzzles/os4/backs/os4_back_green_09.jpg": {
+      "sha256": "c74f9477eaca37b922388e0adc25597f1efe3d75fbfdc2d394fabe5a772597ac",
+      "bytes": 74504
+    },
+    "puzzles/os4/backs/os4_back_green_10.jpg": {
+      "sha256": "f42a8a2d6057fadd1ba3c02235db0605ff27c5f089039eb43e99cb4f8f9c4383",
+      "bytes": 76835
+    },
+    "puzzles/os4/backs/os4_back_green_11.jpg": {
+      "sha256": "f296a4486e88258ab362e0668e830962fddd05f5f8c256368a127b1b3f62c441",
+      "bytes": 80589
+    },
+    "puzzles/os4/backs/os4_back_green_12.jpg": {
+      "sha256": "982e32b6a0390483e87e9bb3337f01466f8706707d86b31a1e6164028e7934c9",
+      "bytes": 74513
+    },
+    "puzzles/os4/backs/os4_back_green_13.jpg": {
+      "sha256": "aade78338e8c0e44b1733f46539e4d72a1a94e7cc337a396fa6e009759185986",
+      "bytes": 69626
+    },
+    "puzzles/os4/backs/os4_back_green_14.jpg": {
+      "sha256": "b7fb7db73b0e7c9d0f7f8cdd84279328ec211cf5b6aa9091b68235f5b15f49e5",
+      "bytes": 69017
+    },
+    "puzzles/os4/backs/os4_back_green_15.jpg": {
+      "sha256": "54a95c7d8ca0762af52f8a52eaa130a34b6731f996215ce2fe19708ee170f2a3",
+      "bytes": 70351
+    },
+    "puzzles/os4/backs/os4_back_green_16.jpg": {
+      "sha256": "792b659021adecc8cf32cc82a82bad690e5830ae47f116afa44049acf365dae1",
+      "bytes": 67550
+    },
+    "puzzles/os4/backs/os4_back_green_17.jpg": {
+      "sha256": "c11d3144cc8be3b1fbd016dd582093c9884ed8c60d5267169c809913314dfefa",
+      "bytes": 76562
+    },
+    "puzzles/os4/backs/os4_back_green_18.jpg": {
+      "sha256": "573f4c6be6ecae3c880440cb4fc28f2c052c449602afb6671d380dbbbf52e106",
+      "bytes": 63688
+    },
+    "puzzles/os4/backs/os4_back_green_19.jpg": {
+      "sha256": "0693c7f50a47bf71845e336ac173cefb6e5549e2c6a1bba59c0d2be8d03f6b4f",
+      "bytes": 63758
+    },
+    "puzzles/os4/backs/os4_back_green_20.jpg": {
+      "sha256": "dd26dcaec34c7dcf4f33979633b53954cb90eb67ded7a11bfb01ffd9b0556912",
+      "bytes": 72105
+    },
+    "puzzles/os4/backs/os4_back_green_21.jpg": {
+      "sha256": "6f266fc59f29b8a7f49ad0803c81e64f8c20ea303482663f273ff0336fd6c6b5",
+      "bytes": 53396
+    },
+    "puzzles/os4/backs/puzzleback_os4.png": {
+      "sha256": "995873e03b668d5517eca7fefd75e355a088db31f3b4031f85bbf06ab9ae1dc6",
+      "bytes": 198513
+    },
+    "puzzles/os5/backs/os5_back_168a.jpg": {
+      "sha256": "46e97a8c6d2c60184f92f9d0e5dbf3740a81543abc4f1dc5891bd396ce53bcba",
+      "bytes": 67568
+    },
+    "puzzles/os5/backs/os5_back_168av.jpg": {
+      "sha256": "92739e3f319ef0c54f8f7207946051e98c8af775d872e5c0a97a3c2283a178cc",
+      "bytes": 68498
+    },
+    "puzzles/os5/backs/os5_back_168b.jpg": {
+      "sha256": "5367662595cd97a4afb72094217897b854a03172e38d90fe886e88898351fe0a",
+      "bytes": 70037
+    },
+    "puzzles/os5/backs/os5_back_168bv.jpg": {
+      "sha256": "d2e2dd596e573865c3b1de474d844c02d923459c4d5bf6da3a0cc466fba82d0e",
+      "bytes": 64238
+    },
+    "puzzles/os5/backs/os5_back_169a.jpg": {
+      "sha256": "d32513403484e826c2e92c95626c93f28663a0a1acd497ffab4ccaf718aac5bf",
+      "bytes": 52404
+    },
+    "puzzles/os5/backs/os5_back_169av.jpg": {
+      "sha256": "4903fa88eda459e0b402007cb0c20bf1ffdfaeca0bb7a580059da394637459d0",
+      "bytes": 61023
+    },
+    "puzzles/os5/backs/os5_back_169b.jpg": {
+      "sha256": "1c9e3d0d7aa22b356b1d0d6687f6442d8748056ae6c40d0facdb22516ecf90bc",
+      "bytes": 76188
+    },
+    "puzzles/os5/backs/os5_back_169bv.jpg": {
+      "sha256": "14ac9abaa5efccf41ea3c94df43cf7eaaae57059a0569b0982fc7f7ec289859f",
+      "bytes": 76164
+    },
+    "puzzles/os5/backs/os5_back_171a.jpg": {
+      "sha256": "9538d82e562ffe12090d3c0aea2ad43733b5805a89f24f49fb005961028567c7",
+      "bytes": 65512
+    },
+    "puzzles/os5/backs/os5_back_171b.jpg": {
+      "sha256": "7dc5634538d91a7c2a554edec7040a717b7eacb28eb8c224d8e9fe3da28db168",
+      "bytes": 78373
+    },
+    "puzzles/os5/backs/os5_back_175a.jpg": {
+      "sha256": "ef718f1843c10711c432fedd2fb4c36cc5172438967d2052f15dffff83bf7c50",
+      "bytes": 61671
+    },
+    "puzzles/os5/backs/os5_back_175av.jpg": {
+      "sha256": "e4c67120c242e19f650fc20a835fad87ab5ffc61c472f028f46f1193f7941da5",
+      "bytes": 61938
+    },
+    "puzzles/os5/backs/os5_back_175b.jpg": {
+      "sha256": "1c05a7eb83266c4ed47f5320e9e38795e4e247c1176b2c292ef3714455db8786",
+      "bytes": 76123
+    },
+    "puzzles/os5/backs/os5_back_175bv.jpg": {
+      "sha256": "d706ffb1dbbcc39ea08d0a380b1265f7b02ddd52971cebaea342a83b67eeaeb8",
+      "bytes": 65042
+    },
+    "puzzles/os5/backs/os5_back_176a.jpg": {
+      "sha256": "ff10cdbfc4d233649d3f55e562e78f94d48fd27982a53f3cd32d9868aa34de74",
+      "bytes": 65258
+    },
+    "puzzles/os5/backs/os5_back_176b.jpg": {
+      "sha256": "97922ba68aa498eb25db541f8a927c8a0f3f3a3a9aabb8d6c04c00e1fbb3675b",
+      "bytes": 70076
+    },
+    "puzzles/os5/backs/os5_back_178a.jpg": {
+      "sha256": "f0e1dc7f2b64b3c0d8202266f689f03a21deac0c9859d0d1db6e86ed3ae56d64",
+      "bytes": 70315
+    },
+    "puzzles/os5/backs/os5_back_178b.jpg": {
+      "sha256": "bdef9d69b37d865c72116865aaade1c4788f6f15062454dbebd7a6fa7dfbfef5",
+      "bytes": 77376
+    },
+    "puzzles/os5/backs/os5_back_183a.jpg": {
+      "sha256": "9aef1d81272de205996ef8cea3ad8675dcd1b45040a80f681b5c811a459ccc40",
+      "bytes": 65493
+    },
+    "puzzles/os5/backs/os5_back_183b.jpg": {
+      "sha256": "22848ad0746e60ed03b23f91d0b283bafc21960f9657ac90c9370f812969f1d1",
+      "bytes": 67678
+    },
+    "puzzles/os5/backs/os5_back_186a.jpg": {
+      "sha256": "a2a8f3aa9caa2a6584f0c73155e4278bdf93744b9516def1154e428b10c45e32",
+      "bytes": 66935
+    },
+    "puzzles/os5/backs/os5_back_186b.jpg": {
+      "sha256": "072166125e40214dba4bce306895a53a0976fc1369991afd11b3f15977e1b1c8",
+      "bytes": 67931
+    },
+    "puzzles/os5/backs/os5_back_187a.jpg": {
+      "sha256": "faf32ff9ef6e34703f7e24596d6f04fee86fc3dc76f1a8ddc854c454b8615868",
+      "bytes": 74674
+    },
+    "puzzles/os5/backs/os5_back_187b.jpg": {
+      "sha256": "a39f964b78f372027dd121dc2f784e0c924f11b65c1365c46bfb1c348c791237",
+      "bytes": 73660
+    },
+    "puzzles/os5/backs/os5_back_188a.jpg": {
+      "sha256": "54285adfd27f5ce156406744710436f3ba438461e55f60eb5c498341df17e976",
+      "bytes": 68057
+    },
+    "puzzles/os5/backs/os5_back_188b.jpg": {
+      "sha256": "9aab7e3bd2e561a3b8400df5960b4020fd38b6cc921e7cdbbe572a8701f0da86",
+      "bytes": 73333
+    },
+    "puzzles/os5/backs/os5_back_192a.jpg": {
+      "sha256": "4f3f0e296ab4bfe03671dfce6fc13c963ed8a9d4cb74976239d491298038282b",
+      "bytes": 64434
+    },
+    "puzzles/os5/backs/os5_back_192b.jpg": {
+      "sha256": "522d7a5e1baf2dd2369c62a90ccc954f302ca514a63b95a96fe8c914914717bf",
+      "bytes": 66989
+    },
+    "puzzles/os5/backs/os5_back_194a.jpg": {
+      "sha256": "37fa6a4dee9e48400c5fef7f54bf2f5d31c2a207ae526c5aac61d9fca6e3da0c",
+      "bytes": 74386
+    },
+    "puzzles/os5/backs/os5_back_194b.jpg": {
+      "sha256": "f0b8ce283223ad5a087f9e69144239279d4bd1675a94ec841bc9639c46f61efd",
+      "bytes": 66075
+    },
+    "puzzles/os5/backs/os5_back_197a.jpg": {
+      "sha256": "37587d22bc8992d33308b7cddadff04abb670cc33f4b86690c6faea8f2cbdb3c",
+      "bytes": 63240
+    },
+    "puzzles/os5/backs/os5_back_197b.jpg": {
+      "sha256": "330dc5c7453b402459d35011d8948198464dfb7f94cc1841348ab4e0f2ebc0d9",
+      "bytes": 75145
+    },
+    "puzzles/os5/backs/os5_back_198a.jpg": {
+      "sha256": "8bc1b53fee5fefd5b00bdf392c2f2f34dfa75a2d42d4b9d309aa4902047a03e1",
+      "bytes": 64623
+    },
+    "puzzles/os5/backs/os5_back_198b.jpg": {
+      "sha256": "d08ddd08eca22e3d75c36702d4f4a4d443fe94408c239bf6dc508903ea08a2d1",
+      "bytes": 70807
+    },
+    "puzzles/os5/backs/os5_back_199a.jpg": {
+      "sha256": "4571f814b847f6b916b591111064ed00a747b374d088f7e17ee08475cb71f989",
+      "bytes": 66720
+    },
+    "puzzles/os5/backs/os5_back_199b.jpg": {
+      "sha256": "3cdade7f1847490dd1e69d1df30fb2f77e0c49599a1f8e93a48c5be5ff3b6e3c",
+      "bytes": 71415
+    },
+    "puzzles/os5/backs/os5_back_200a.jpg": {
+      "sha256": "9d311de52f097d69878606f8a9990956b49c0a1c2536d5e151deb9f11281bb50",
+      "bytes": 66996
+    },
+    "puzzles/os5/backs/os5_back_200b.jpg": {
+      "sha256": "26ebc97bac5e55d88c4709b544c0976f3be3e2f6d0e3f0e44e2bc070b85aa0cf",
+      "bytes": 68056
+    },
+    "puzzles/os5/backs/os5_back_203a.jpg": {
+      "sha256": "4672e941f378b5fb768f2fa4aedbbdfb32471194f972632a478e1ef8152bd874",
+      "bytes": 64552
+    },
+    "puzzles/os5/backs/os5_back_203b.jpg": {
+      "sha256": "cdf5bd9e25f6f6f9d78e29d412ceec3879a398fb7fcc15322dfddbb5d5371de6",
+      "bytes": 62015
+    },
+    "puzzles/os5/backs/os5_back_205a.jpg": {
+      "sha256": "f3d5417f45f952f730ff773d85c38841f4289de30028c84c61d70d0db2eeca8b",
+      "bytes": 60590
+    },
+    "puzzles/os5/backs/os5_back_205b.jpg": {
+      "sha256": "cf42c854c65558ca51c8a121603afa609d115d14fa81ae04d07581654b158928",
+      "bytes": 76031
+    },
+    "puzzles/os5/backs/os5_orangepuzzle.png": {
+      "sha256": "dd3ed7aa44ffbeb6a13ff62dc7277eb6f89ec32a6b73b21a62debe143ee5d67c",
+      "bytes": 456189
+    },
+    "puzzles/os5/backs/os5_purplepuzzle.png": {
+      "sha256": "5fc5d009c47df7cd57e979601c7bfcae6339d25dde2e4296b4fbe7dc2ee1707c",
+      "bytes": 452676
+    }
+  }
+}

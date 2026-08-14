@@ -6,11 +6,16 @@
  * (all 18 pieces owned), and behave exactly like the NFT puzzle in the builder.
  */
 
+import { geepeekayToMirrorPath } from './dataMirror';
+
 export interface ExtraPuzzlePiece {
   /** Stable key used for layout persistence/export */
   key: string;
   /** Full image URL for the piece (card back scan) */
   url: string;
+  /** Mirrored relative path (e.g. puzzles/os3/backs/os3back_85a.jpg) — resolved
+   *  through the data mirror at render time, with `url` as last-resort fallback. */
+  mirrorPath: string;
   /** Short label, e.g. "85a" */
   label: string;
 }
@@ -22,6 +27,8 @@ export interface ExtraPuzzle {
   subtitle: string;
   /** Completed-puzzle reference sheet (also lists required card numbers) */
   referenceUrl: string;
+  /** Mirrored relative path for the reference sheet. */
+  referenceMirrorPath: string;
   pieces: ExtraPuzzlePiece[];
 }
 
@@ -43,7 +50,9 @@ const OS5_PIECES: Array<{ num: number; variant?: boolean }> = [
   { num: 199 }, { num: 200 }, { num: 203 }, { num: 205 },
 ];
 
-function os2Pieces(printing: 'll' | 'lm'): ExtraPuzzlePiece[] {
+type RawPiece = Omit<ExtraPuzzlePiece, 'mirrorPath'>;
+
+function os2Pieces(printing: 'll' | 'lm'): RawPiece[] {
   return OS2_NUMBERS.map(n => ({
     key: `${n}${printing}`,
     label: `${n}ab`,
@@ -51,7 +60,7 @@ function os2Pieces(printing: 'll' | 'lm'): ExtraPuzzlePiece[] {
   }));
 }
 
-function os3Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
+function os3Pieces(side: 'a' | 'b'): RawPiece[] {
   return OS3_NUMBERS.map(n => ({
     key: `${n}${side}`,
     label: `${n}${side}`,
@@ -59,7 +68,7 @@ function os3Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
   }));
 }
 
-function os4Pieces(): ExtraPuzzlePiece[] {
+function os4Pieces(): RawPiece[] {
   return Array.from({ length: 21 }, (_, i) => {
     const n = String(i + 1).padStart(2, '0');
     return {
@@ -70,7 +79,7 @@ function os4Pieces(): ExtraPuzzlePiece[] {
   });
 }
 
-function os5Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
+function os5Pieces(side: 'a' | 'b'): RawPiece[] {
   return OS5_PIECES.map(({ num, variant }) => ({
     key: `${num}${side}${variant ? 'v' : ''}`,
     label: `${num}${side.toUpperCase()}${variant ? ' (V)' : ''}`,
@@ -78,7 +87,16 @@ function os5Pieces(side: 'a' | 'b'): ExtraPuzzlePiece[] {
   }));
 }
 
-export const EXTRA_PUZZLES: ExtraPuzzle[] = [
+interface RawPuzzle {
+  id: string;
+  name: string;
+  series: string;
+  subtitle: string;
+  referenceUrl: string;
+  pieces: RawPiece[];
+}
+
+const RAW_PUZZLES: RawPuzzle[] = [
   {
     id: 'os2lm',
     name: 'Live Mike / Jolted Joel',
@@ -128,6 +146,19 @@ export const EXTRA_PUZZLES: ExtraPuzzle[] = [
     pieces: os5Pieces('b'),
   },
 ];
+
+/**
+ * Attach the mirrored relative path to every piece + reference sheet so the
+ * builder can prefer the data mirror (with geepeekay as last-resort fallback).
+ */
+export const EXTRA_PUZZLES: ExtraPuzzle[] = RAW_PUZZLES.map((p) => ({
+  ...p,
+  referenceMirrorPath: geepeekayToMirrorPath(p.referenceUrl) ?? p.referenceUrl,
+  pieces: p.pieces.map((piece) => ({
+    ...piece,
+    mirrorPath: geepeekayToMirrorPath(piece.url) ?? piece.url,
+  })),
+}));
 
 export function getExtraPuzzle(id: string): ExtraPuzzle | undefined {
   return EXTRA_PUZZLES.find(p => p.id === id);

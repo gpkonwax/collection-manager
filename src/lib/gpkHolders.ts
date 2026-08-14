@@ -8,6 +8,7 @@
  *   aa = AtomicAssets collection_name == 'gpk.topps'
  */
 import { MIRRORS } from './remoteMirror';
+import { DATA_MIRROR_URL } from './dataMirror';
 
 export interface Holder {
   account: string;
@@ -82,9 +83,11 @@ export async function fetchTopGpkHolders(opts: {
   const limit = opts.limit ?? 500;
 
   // One attempt per mirror — first successful manifest wins.
-  const attempts = MIRRORS.filter((m) => m.url && /^https:\/\//i.test(m.url)).map((m) =>
-    fetchManifestFrom(m.url, signal),
+  // The dedicated data mirror is tried first (it's tiny and always current).
+  const baseUrls = [DATA_MIRROR_URL, ...MIRRORS.map((m) => m.url)].filter(
+    (u): u is string => !!u && /^https:\/\//i.test(u),
   );
+  const attempts = baseUrls.map((u) => fetchManifestFrom(u, signal));
   if (attempts.length === 0) {
     throw new HoldersManifestError('network', 'No mirrors configured');
   }

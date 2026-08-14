@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { buildGpkCardBackUrl } from '@/lib/gpkCardImages';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import { EXTRA_PUZZLES, NFT_SERIES2_REFERENCE_URL, getExtraPuzzle } from '@/lib/extraPuzzles';
+import { resolvePuzzleImage } from '@/lib/dataMirror';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
@@ -47,6 +48,8 @@ interface CanvasPiece {
   ipfsUrl?: string | null;
   /** Plain https url (extra puzzles) */
   imageUrl?: string;
+  /** Last-resort fallback URL (original geepeekay) for extra-puzzle pieces. */
+  imageFallback?: string;
 }
 
 function isPuzzlePiece(asset: SimpleAsset): boolean {
@@ -147,7 +150,10 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
 
   const canvasPieces: CanvasPiece[] = useMemo(() => {
     if (activePuzzle) {
-      return activePuzzle.pieces.map(p => ({ key: p.key, label: p.label, imageUrl: p.url }));
+      return activePuzzle.pieces.map(p => {
+        const r = resolvePuzzleImage(p.url);
+        return { key: p.key, label: p.label, imageUrl: r.src, imageFallback: r.fallback };
+      });
     }
     return puzzleAssets.map(a => {
       const cardid = getCardId(a);
@@ -170,7 +176,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   /** Per-puzzle layout memory so switching back and forth keeps progress */
   const layoutsRef = useRef<Map<string, Map<string, PieceState>>>(new Map());
 
-  const referenceUrl = activePuzzle ? activePuzzle.referenceUrl : NFT_SERIES2_REFERENCE_URL;
+  const referenceResolved = activePuzzle ? resolvePuzzleImage(activePuzzle.referenceUrl) : resolvePuzzleImage(NFT_SERIES2_REFERENCE_URL);
+  const referenceUrl = referenceResolved.src;
   const [referenceOpen, setReferenceOpen] = useState(false);
 
   // Report changes to parent (export only tracks the NFT puzzle)
@@ -394,6 +401,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           src={referenceUrl}
           alt="Completed puzzle reference"
           loading="lazy"
+          onError={(e) => { if (referenceResolved.fallback && e.currentTarget.src !== referenceResolved.fallback) e.currentTarget.src = referenceResolved.fallback; }}
           className="w-[224px] h-auto rounded object-contain"
         />
         <span className="text-xs font-medium text-cheese flex items-center gap-1 whitespace-nowrap">
@@ -413,6 +421,7 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
           <img
             src={referenceUrl}
             alt="Completed puzzle reference sheet"
+            onError={(e) => { if (referenceResolved.fallback && e.currentTarget.src !== referenceResolved.fallback) e.currentTarget.src = referenceResolved.fallback; }}
             className="w-full max-h-[75vh] object-contain rounded-md"
           />
         </DialogContent>
@@ -622,6 +631,11 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
                       alt={`Puzzle piece ${piece.label}`}
                       loading="lazy"
                       draggable={false}
+                      onError={(e) => {
+                        if (piece.imageFallback && e.currentTarget.src !== piece.imageFallback) {
+                          e.currentTarget.src = piece.imageFallback;
+                        }
+                      }}
                       className={`w-full h-full pointer-events-none ${frame.contain ? 'object-fill' : 'object-cover'}`}
 
                     />

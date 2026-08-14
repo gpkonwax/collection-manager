@@ -46,6 +46,7 @@ import {
   type ZipManifestInfo,
 } from '@/lib/remoteMirror';
 import { isOfflineBundle } from '@/lib/offlineBundle';
+import { DATA_MIRROR_URL, isDataMirrorConfigured } from '@/lib/dataMirror';
 
 function formatBytes(n: number): string {
   if (!n) return '0 B';
@@ -94,7 +95,30 @@ export function BackupPanel({ triggerClassName }: Props) {
   }, []);
   const [busy, setBusy] = useState(false);
   const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
+  const [dataStatus, setDataStatus] = useState<'idle' | 'checking' | 'ok' | 'failed'>('idle');
+  const [dataFileCount, setDataFileCount] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Health-check the dedicated data mirror when the panel opens.
+  useEffect(() => {
+    if (!open) return;
+    if (!isDataMirrorConfigured()) { setDataStatus('failed'); return; }
+    let cancelled = false;
+    setDataStatus('checking');
+    (async () => {
+      try {
+        const res = await fetch(`${DATA_MIRROR_URL}manifests/data-mirror-index.json`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (typeof data?.fileCount === 'number') setDataFileCount(data.fileCount);
+        setDataStatus('ok');
+      } catch {
+        if (!cancelled) setDataStatus('failed');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -324,6 +348,56 @@ export function BackupPanel({ triggerClassName }: Props) {
                 Reset to automatic (primary mirror)
               </Button>
             )}
+          </section>
+
+          {/* Data mirror: dedicated small site for manifests + puzzle artwork */}
+          <section className="space-y-2 rounded-lg border border-border p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold flex-shrink-0">
+                  D
+                </span>
+                <p className="font-medium truncate">Data mirror</p>
+              </div>
+              {(() => {
+                const configured = isDataMirrorConfigured();
+                const label = !configured
+                  ? 'Not configured'
+                  : dataStatus === 'ok'
+                    ? dataFileCount != null ? `${dataFileCount} files` : 'Reachable'
+                    : dataStatus === 'checking'
+                      ? 'Checking…'
+                      : dataStatus === 'failed'
+                        ? 'Unreachable'
+                        : 'Ready';
+                const className = !configured
+                  ? NOT_CONFIGURED_CLASS
+                  : dataStatus === 'ok'
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : dataStatus === 'checking'
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : dataStatus === 'failed'
+                        ? 'bg-destructive/20 text-destructive'
+                        : NOT_CONFIGURED_CLASS;
+                return (
+                  <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${className}`}>
+                    {dataStatus === 'checking' && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {dataStatus === 'ok' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                    {dataStatus === 'failed' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
+                    {label}
+                  </span>
+                );
+              })()}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Tiny dedicated site hosting the holders list and puzzle card-back scans. Hosts
+              <code className="mx-1 text-[10px] bg-muted/60 px-1 rounded">gpk-topps-holders.json</code>
+              and ~120 puzzle images, separate from the big image mirror.
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground break-all">
+              <Server className="w-3.5 h-3.5 flex-shrink-0" />
+              {DATA_MIRROR_URL || 'Not configured'}
+            </div>
           </section>
 
           {/* Step 3: load ZIP */}
