@@ -27,12 +27,9 @@ The app uses this as the primary source for puzzle pieces and holders data, fall
 3. You'll see `gpk-data.zip` (8.4 MB). Right-click it and choose **Download** (or click the download icon).
 4. Save it somewhere easy to find, like your **Desktop** or **Downloads** folder.
 
-### Step 2 — Unzip the file on your computer
+### Step 2 — Do NOT unzip (upload the ZIP directly)
 
-1. Find `gpk-data.zip` where you saved it (Desktop or Downloads).
-2. **Double-click** it to unzip (Windows) or right-click → **Extract All** (macOS: double-click).
-3. This creates a folder called `gpk-data`.
-4. Open that folder — you should see `_headers`, `manifests/`, `packs/`, and `puzzles/` at the top level. **If you see a nested `gpk-data/gpk-data/` folder, open the inner one** — you want `_headers` at the top level.
+The `gpk-data.zip` already has the correct structure: `_headers`, `manifests/`, `packs/`, and `puzzles/` are at the top level of the ZIP (no wrapping `gpk-data/` folder inside it). Cloudflare's upload box only accepts **one** item — a single folder OR a single zip file — so you do **not** unzip it. Just upload the ZIP file as-is.
 
 ### Step 3 — Go to Cloudflare and create a new Pages project
 
@@ -46,13 +43,13 @@ The app uses this as the primary source for puzzle pieces and holders data, fall
    - If that name is taken, Cloudflare will add a random suffix — that's fine, just tell me the actual URL later.
 7. Click **Create project**.
 
-### Step 4 — Upload the files
+### Step 4 — Upload the ZIP file
 
 1. You'll see a "Drop your files here" area.
-2. **Drag the CONTENTS of the `gpk-data` folder** (not the folder itself) into this area.
-   - You should be dragging `_headers`, `manifests/`, `packs/`, and `puzzles/`.
-   - **Important**: `_headers` must be at the root (top level), NOT inside a subfolder.
-3. Wait for all files to upload (134 files, ~8.4 MB — should take a few seconds).
+2. **Drag the `gpk-data.zip` file directly into this area** — the whole ZIP, not its contents.
+   - Cloudflare only accepts one item (a single folder or a single zip). Dragging the ZIP is the simplest path.
+   - Do not unzip it first. The ZIP's internal structure is already correct (`_headers` at the root, not nested in a folder).
+3. Wait for it to upload and process (8.4 MB — a few seconds).
 4. Click **Deploy site** or **Save and Deploy**.
 
 ### Step 5 — Confirm the deployment
