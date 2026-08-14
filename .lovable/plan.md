@@ -76,6 +76,6 @@ Once you give me the `gpk-data.pages.dev` URL, I will:
 
 ## What NOT to do
 
-- Do **not** drag the entire `gpk-data` **folder** into Cloudflare — drag its **contents**. If `_headers` ends up at `gpk-data/_headers` instead of `/_headers`, CORS won't work and the app will fail to fetch.
+- Do **not** unzip the ZIP and then drag multiple files/folders into Cloudflare — it only accepts one item and will throw "only supports uploading a single folder or a single zip file." Upload the ZIP directly.
 - Do **not** delete or touch the existing `gpkonwaxbackup.pages.dev` project — that's the image mirror and is completely separate.
 - Do **not** rename the files or folders inside the zip — the app expects exact paths like `manifests/gpk-topps-holders.json` and `puzzles/os2/piece-01.png`.
