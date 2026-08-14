@@ -1,7 +1,11 @@
 {
-  "generatedAt": "2026-08-14T08:24:31.052Z",
-  "fileCount": 131,
+  "generatedAt": "2026-08-14T08:31:37.288Z",
+  "fileCount": 132,
   "files": {
+    "manifests/gpk-topps-holders.json": {
+      "sha256": "313129ae29114f93204f26808aac786499088d6ba79fdd63765d573fe7614cb1",
+      "bytes": 1296079
+    },
     "packs/gpk_pack_exotic.jpeg": {
       "sha256": "96a736fe2a065ff9c6312b03e26000bc90916b62a668995408da618a8c75115b",
       "bytes": 51380
