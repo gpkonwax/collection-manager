@@ -11,8 +11,12 @@
  *   node scripts/audit-mirrors.mjs --only cloudflare
  */
 import { createHash } from 'node:crypto';
-import { promises as fs } from 'node:fs';
+import { promises as fs, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+
 
 // Bump these whenever this script changes, so a stale local copy is obvious
 // the moment it runs.
