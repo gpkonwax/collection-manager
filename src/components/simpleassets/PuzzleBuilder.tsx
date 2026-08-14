@@ -48,6 +48,8 @@ interface CanvasPiece {
   ipfsUrl?: string | null;
   /** Plain https url (extra puzzles) */
   imageUrl?: string;
+  /** Last-resort fallback URL (original geepeekay) for extra-puzzle pieces. */
+  imageFallback?: string;
 }
 
 function isPuzzlePiece(asset: SimpleAsset): boolean {
