@@ -46,6 +46,11 @@ const MIRRORS = [
   },
 ];
 
+// Dedicated data mirror (Netlify) — hosts manifests/ + puzzles/ + packs/.
+// Set via env var or hardcode here once the site is live. Left blank until then;
+// the data-mirror audit step is skipped when unconfigured.
+const DATA_MIRROR_BASE = process.env.DATA_MIRROR_URL || '';
+
 
 /**
  * Resolve the URL for a manifest entry on a given mirror. Manifest entries may
