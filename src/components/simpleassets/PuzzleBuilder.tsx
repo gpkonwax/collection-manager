@@ -176,7 +176,8 @@ export function PuzzleBuilder({ assets, initialPieceState, onPiecesChange, onSwi
   /** Per-puzzle layout memory so switching back and forth keeps progress */
   const layoutsRef = useRef<Map<string, Map<string, PieceState>>>(new Map());
 
-  const referenceUrl = activePuzzle ? activePuzzle.referenceUrl : NFT_SERIES2_REFERENCE_URL;
+  const referenceResolved = activePuzzle ? resolvePuzzleImage(activePuzzle.referenceUrl) : resolvePuzzleImage(NFT_SERIES2_REFERENCE_URL);
+  const referenceUrl = referenceResolved.src;
   const [referenceOpen, setReferenceOpen] = useState(false);
 
   // Report changes to parent (export only tracks the NFT puzzle)
