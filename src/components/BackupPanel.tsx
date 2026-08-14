@@ -95,7 +95,30 @@ export function BackupPanel({ triggerClassName }: Props) {
   }, []);
   const [busy, setBusy] = useState(false);
   const [zipInfo, setZipInfo] = useState<ZipManifestInfo | null>(null);
+  const [dataStatus, setDataStatus] = useState<'idle' | 'checking' | 'ok' | 'failed'>('idle');
+  const [dataFileCount, setDataFileCount] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Health-check the dedicated data mirror when the panel opens.
+  useEffect(() => {
+    if (!open) return;
+    if (!isDataMirrorConfigured()) { setDataStatus('failed'); return; }
+    let cancelled = false;
+    setDataStatus('checking');
+    (async () => {
+      try {
+        const res = await fetch(`${DATA_MIRROR_URL}manifests/data-mirror-index.json`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (typeof data?.fileCount === 'number') setDataFileCount(data.fileCount);
+        setDataStatus('ok');
+      } catch {
+        if (!cancelled) setDataStatus('failed');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
