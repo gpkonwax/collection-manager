@@ -414,6 +414,10 @@ async function main() {
 
     lines.push('');
   }
+  // Data mirror audit (small dedicated site; skipped if not configured).
+  const dm = await auditDataMirror(opts);
+  lines.push(...dm.lines);
+
   lines.push(`Detailed lists written to ${OUT_DIR}/`);
   const summary = lines.join('\n');
   await fs.writeFile(path.join(OUT_DIR, 'summary.txt'), summary + '\n');
