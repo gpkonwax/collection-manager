@@ -6,6 +6,16 @@
 // estimates, because cards were minted on pack-open rather than up front.
 
 import bonyJoanieMega from '@/assets/gpk-mega-bony-joanie.png';
+import promoSeries2Banner from '@/assets/promo-37.png.asset.json';
+import promoFoodFight1 from '@/assets/promo-38.png.asset.json';
+import promoFoodFight2 from '@/assets/promo-39.png.asset.json';
+import promoGameStonk from '@/assets/promo-40.png.asset.json';
+import promoBernventures from '@/assets/promo-41.png.asset.json';
+import promoSeries2Soon from '@/assets/promo-42.png.asset.json';
+import promoExoticNow from '@/assets/promo-43.png.asset.json';
+import promoExoticJettin from '@/assets/promo-44.png.asset.json';
+import promoExoticSoon from '@/assets/promo-45.png.asset.json';
+import promoSeries1Now from '@/assets/promo-46.png.asset.json';
 
 
 
@@ -96,6 +106,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
         caption:
           'The alternate Series 1 Mega Pack wrapper as it appears in the Topps launch promo video (around 0:26) — Bony Joanie on the front, "25 DIGITAL CARDS • NO GUM". The shipped Mega Pack used different art and 30 cards.',
       },
+      {
+        src: promoSeries1Now.url,
+        caption: 'Topps x WAX "Available Now!" promotional art for Series 1.',
+      },
     ],
     video: {
       title: 'Topps Garbage Pail Kids NFTs are now available on the WAX Blockchain!',
@@ -132,6 +146,20 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Parallels: Prism, Tiger Stripe and Tiger Claw versions of all 30 cards.',
       'Six rare Collector Edition cards were randomly seeded through packs.',
       'Print-run figures were published as estimates because cards minted on pack-open — everyone from the first pack to the last had the same odds.',
+    ],
+    images: [
+      {
+        src: promoExoticNow.url,
+        caption: 'GPK Goes Exotic "Available Now!" promotional art.',
+      },
+      {
+        src: promoExoticSoon.url,
+        caption: 'The "Coming Soon!" teaser banner released ahead of the Exotic drop.',
+      },
+      {
+        src: promoExoticJettin.url,
+        caption: 'Jettin\' James single-card promotional art from the Exotic campaign.',
+      },
     ],
     links: [
       { label: 'Press release: sold out in 67 minutes', url: 'https://www.globenewswire.com/news-release/2020/07/16/2062972/0/en/Topps-GPK-Goes-Exotic-Digital-Trading-Cards-Makes-Blockchain-History-on-WAX-Selling-Out-in-67-Minutes.html', kind: 'official' },
@@ -180,6 +208,16 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Returning cards brought subjects back from earlier sets; Collector\'s Edition odds scaled with pack size (1% / 4% / 10%).',
       
     ],
+    images: [
+      {
+        src: promoSeries2Banner.url,
+        caption: 'Topps x WAX Series 2 promotional banner.',
+      },
+      {
+        src: promoSeries2Soon.url,
+        caption: 'The "Coming Soon!" teaser banner released ahead of the Series 2 drop.',
+      },
+    ],
     links: [
       { label: 'Initial details on the OS2 digital release', url: 'https://gpknews.com/initial-details-on-gpk-x-wax-os-2-digital-release/', kind: 'coverage' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-launches-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
@@ -203,6 +241,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'The real hook was the burn event: Base b = 1 point, Base a = 2, Sketch = 5, Raw = 20, Signature = 150. Burning ran until February 1, 2021.',
       'Points earned in the burn event were exchanged for Mitten packs — see the Mittens collection.',
       'Sold in WAX tokens only, on the AtomicAssets standard.',
+    ],
+    images: [
+      {
+        src: promoBernventures.url,
+        caption: 'Bernventures promotional art from gpkbernventures.com.',
+      },
     ],
     links: [
       { label: 'gpkbernventures.com — the original sale site', url: 'https://gpkbernventures.com/', kind: 'official' },
@@ -249,6 +293,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Rarities: Base (B Common / A Uncommon), Prismatic (B Rare / A Epic), Sketch (B Rare / A Epic), Raw (Epic), Gold (Legendary) and Signature (Legendary, only on the two new pieces).',
       'No numeric pull rates were ever published.',
     ],
+    images: [
+      {
+        src: promoGameStonk.url,
+        caption: 'GameStonk! promotional banner from the February 2021 AtomicHub drop.',
+      },
+    ],
     links: [
       { label: 'Topps drop page on AtomicHub', url: 'https://topps.atomichub.io/drops/gpk.topps', kind: 'official' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-digital-launching-garbage-pail-kids-gamestonk-on-wax/', kind: 'coverage' },
@@ -273,6 +323,16 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Five rarities: Base, Prism, Sketch, Artist Autograph and Golden.',
       'WinterCon odds: 59.83% Base, 26.58% Prism, 11.67% Sketch, 1.83% Artist Signature, 0.08% Golden.',
       'The digital checklist is completely different art from the physical Food Fight cards.',
+    ],
+    images: [
+      {
+        src: promoFoodFight1.url,
+        caption: 'Topps Digital "Available February 24th!" promo art for GPK Food Fight.',
+      },
+      {
+        src: promoFoodFight2.url,
+        caption: 'A second Food Fight promotional frame showing Bobby Wasabi and friends.',
+      },
     ],
     links: [
       { label: 'Official site: toppsgpk.io', url: 'https://toppsgpk.io/', kind: 'official' },
