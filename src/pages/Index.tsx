@@ -119,6 +119,8 @@ import { CATEGORY_LABELS, deriveVariantOptions, hasVariants } from '@/lib/gpkCat
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import { useRetroMode } from '@/hooks/useRetroMode';
 import { isRetroEligible } from '@/lib/retroMode';
+import { getCollectionHistory } from '@/lib/collectionHistory';
+import { CollectionHistoryDialog } from '@/components/simpleassets/CollectionHistoryDialog';
 
 
 const HEADER_BTN_CLASS = 'whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text';
@@ -292,6 +294,7 @@ export default function SimpleAssetsPage() {
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
+  const [collectionHistoryOpen, setCollectionHistoryOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState('all');
   const [variantFilter, setVariantFilter] = useState<string[]>(['all']);
   type SortMode = 'natural' | 'name' | 'variant' | 'newest';
@@ -3482,6 +3485,12 @@ export default function SimpleAssetsPage() {
           refetchAa();
           setSuccessDialog({ open: true, title: 'Transfer Complete!', description: `Successfully transferred ${selectedAssets.length} NFT(s).`, txId });
         }}
+      />
+      <CollectionHistoryDialog
+        categoryKey={categoryFilter}
+        categoryLabel={CATEGORY_LABELS[categoryFilter] || categoryFilter}
+        open={collectionHistoryOpen}
+        onOpenChange={setCollectionHistoryOpen}
       />
       <BurnDialog
         open={burnDialogOpen}
