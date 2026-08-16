@@ -2584,7 +2584,7 @@ export default function SimpleAssetsPage() {
                   <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
                 </ul>
                 <p className="text-foreground mt-2"><strong>You cannot</strong> see their saved layout, Puzzle Builder, or completion percentage.</p>
-<p className="text-foreground mt-2">This same read-only browse powers the <strong>trading</strong> flow below — you find the wallet you want to trade with, then propose a swap from there.</p>
+                <p className="text-foreground mt-2">This same read-only browse powers the <strong>trading</strong> flow below — you find the wallet you want to trade with, then propose a swap from there.</p>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔄</span> Card &amp; Pack Trading (P2P)</h4>
