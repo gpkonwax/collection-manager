@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import {
-  CATEGORY_LABELS, PACKS_CATEGORY, deriveVariantOptions, getVariantsForCategory, variantDisplayLabel,
+  CATEGORY_LABELS, PACKS_CATEGORY, deriveVariantOptions, getVariantsForCategory, hasVariants, variantDisplayLabel,
   isPacksCategory, normalizeAssetCategory,
 } from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
@@ -190,7 +190,7 @@ function AssetPicker({
     return deriveVariantOptions(category, values);
   }, [assets, category]);
 
-  const showVariants = variantOptions.length > 1;
+  const showVariants = hasVariants(category) || variantOptions.length > 1;
   const filtersActive = query.trim() !== '' || category !== 'all' || !variants.includes('all');
   /** SimpleAssets packs are token balances, so they get a quantity picker. */
   const showPackQuantities = category === PACKS_CATEGORY && packOptions.length > 0;

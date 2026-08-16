@@ -115,7 +115,7 @@ import { ViewingBanner } from '@/components/ViewingBanner';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { useTheme } from '@/hooks/useTheme';
-import { CATEGORY_LABELS, deriveVariantOptions } from '@/lib/gpkCategories';
+import { CATEGORY_LABELS, deriveVariantOptions, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import { useRetroMode } from '@/hooks/useRetroMode';
 import { isRetroEligible } from '@/lib/retroMode';
@@ -1274,7 +1274,7 @@ export default function SimpleAssetsPage() {
     return deriveVariantOptions(categoryFilter, values);
   }, [assets, categoryFilter, sourceFilter]);
 
-  const variantFilterActive = categoryVariantOptions.length > 1;
+  const variantFilterActive = hasVariants(categoryFilter) || categoryVariantOptions.length > 1;
 
   const filtered = useMemo(() => {
     return assets.filter((a) => {
