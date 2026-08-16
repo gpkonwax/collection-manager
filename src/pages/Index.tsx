@@ -2393,8 +2393,53 @@ export default function SimpleAssetsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    ...
+                    {allSessions.length > 0 && (
+                      <>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="cursor-pointer">
+                            <span className="mr-2 text-sm leading-none">👥</span>
+                            Switch Account
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent className="w-56">
+                              <DropdownMenuItem disabled className="opacity-100">
+                                <Check className="mr-2 h-4 w-4 text-cheese" />
+                                <span className="font-medium">{accountName}</span>
+                                <span className="ml-auto text-xs text-muted-foreground">(active)</span>
+                              </DropdownMenuItem>
+                              {allSessions.filter(s => String(s.actor) !== accountName).map((s) => (
+                                <DropdownMenuItem
+                                  key={`${String(s.actor)}-${s.permission}`}
+                                  className="cursor-pointer group"
+                                  onClick={() => switchAccount(s)}
+                                >
+                                  <div className="w-4 mr-2" />
+                                  <span>{String(s.actor)}</span>
+                                  <button
+                                    className="ml-auto opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity p-1"
+                                    onClick={(e) => { e.stopPropagation(); removeAccount(s); }}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={addAccount} className="cursor-pointer">
+                                <span className="mr-2 text-sm leading-none">➕</span>
+                                Add Account
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                      <span className="mr-2 text-sm leading-none">🔌</span>
+                      Disconnect
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
+
                 </DropdownMenu>
               ) : (
                 <Button onClick={login} size="sm" className={HEADER_BTN_CLASS}>
