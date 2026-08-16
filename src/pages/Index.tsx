@@ -2547,8 +2547,7 @@ export default function SimpleAssetsPage() {
                   <li>Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold, and more.</li>
                   <li>Multiple sort options: natural order, name, variant rarity, and recently received.</li>
                   <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
-                  <li><strong>Holders dropdown</strong> — the View Wallet box lists every GPK holder, largest to smallest, so you can browse any collection without typing an account name.</li>
-                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme matching geepeekay.com — switch any time from the header.</li>
+                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme inspired by geepeekay.com — switch any time from the header.</li>
                 </ul>
               </div>
               <div>
@@ -2582,6 +2581,7 @@ export default function SimpleAssetsPage() {
                   <li>View the Classic card grid, Collector Binder view, card detail dialogs, and pack holdings.</li>
                   <li>See both SimpleAssets and AtomicAssets items together.</li>
                   <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
+                  <li><strong>Holders dropdown</strong> — the View Wallet box lists every GPK holder, largest to smallest, so you can browse any collection without typing an account name — perfect for finding accounts to trade with.</li>
                 </ul>
                 <p className="text-foreground mt-2"><strong>You cannot</strong> see their saved layout, Puzzle Builder, or completion percentage.</p>
                 <p className="text-foreground mt-2">This same read-only browse powers the <strong>trading</strong> flow below — you find the wallet you want to trade with, then propose a swap from there.</p>
