@@ -32,6 +32,15 @@ export interface CollectionHistoryVideo {
   note?: string;
 }
 
+export interface CollectionHistoryLink {
+  /** Short human-readable title of the page. */
+  label: string;
+  /** Absolute URL. */
+  url: string;
+  /** Official = Topps/WAX-owned or an official press release. Coverage = hobby/news press. */
+  kind: 'official' | 'coverage';
+}
+
 export interface CollectionHistory {
   /** One-line description of the set. */
   tagline: string;
