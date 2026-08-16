@@ -191,19 +191,21 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     tagline:
       'A small, strange Flash Gordon parody set that started life as a 7-day online-only physical release.',
     released:
-      'August 28, 2020 on WAX, as the third Topps x WAX GPK drop. The physical version had been sold on Topps.com as a 7-day timed set ($19.99 a set, $179.99 for ten) with the print run only revealed after the sale closed.',
+      'August 2020 on WAX — a surprise launch announced live during the Topps DigiCon Twitch broadcast. 500 packs were given away free at 1:00 PM EST (one per account), then 3,000 packs went on sale at 3:00 PM EST on Atomic Hub for 220 WAX each (about $10), WAX-only, with another 1,500 released later. The physical version had been sold on Topps.com as a 7-day timed set ($19.99 a set, $179.99 for ten) with the print run only revealed after the sale closed.',
     dropSize:
-      '5,000 packs of 5 cards. The set is 10 cards — 5 subjects with a/b versions — celebrating the 40th anniversary of Flash Gordon.',
+      '5,000 packs of 5 cards — 25,000 cards in total. The set is 10 cards — 5 subjects with a/b versions — celebrating the 40th anniversary of Flash Gordon.',
     sellOut:
-      'No original sale price was ever published for the WAX packs, and Topps never released detailed sell-out numbers. With only 5,000 packs it is one of the scarcer digital GPK sets.',
+      'Very fast for a surprise drop: the first batch of 3,000 packs sold out in 3 minutes 18 seconds, and the follow-up batch of 1,200 went in 31 seconds.',
     reception:
       'A quiet, surprise-style launch rather than a headline event. Collectors treated it as a curiosity at first; the tiny checklist and small pack count have made it steadily harder to complete over time.',
     notes: [
       'Checklist: Crash Gordon, Flying Flash, Flush Gordon, Dethroned Ming, Merciless Ming, Noah Mercy, Revolting Vultan, Hawkman Hank, Doctoring Zarkov, Handy Hans.',
+      'Only three card types — Base, Prism and Gold. Odds: 50% "b" Base, 25% "a" Prism, 10% "b" Prism, 1% "a" Gold, 0.5% "b" Gold.',
       'One of the first GPK sets to appear on the AtomicAssets standard rather than SimpleAssets.',
     ],
     links: [
       { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },
+      { label: 'WAX archive on GPKNews', url: 'https://gpknews.com/category/wax/page/2/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
