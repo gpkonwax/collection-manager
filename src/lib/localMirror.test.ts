@@ -20,6 +20,16 @@ let blobCounter = 0;
 beforeEach(() => {
   __resetLocalMirrorForTests();
   blobCounter = 0;
+  if (!Blob.prototype.arrayBuffer) {
+    Blob.prototype.arrayBuffer = function arrayBuffer() {
+      return new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error);
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.readAsArrayBuffer(this);
+      });
+    };
+  }
   URL.createObjectURL = vi.fn(() => `blob:mock/${++blobCounter}`) as typeof URL.createObjectURL;
   URL.revokeObjectURL = vi.fn();
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
