@@ -150,16 +150,18 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     tagline:
       'GPK Goes Exotic — the Tiger King parody set, riding the biggest streaming phenomenon of 2020.',
     released:
-      'July 14, 2020 at toppsgpk.io. Standard packs $4.99 (5 cards), Mega packs $19.99 (25 cards), credit/debit only.',
+      'July 14, 2020, 12:00 PM EST at toppsgpk.io. Standard packs $4.99 (5 cards), Mega packs $19.99 (25 cards), credit/debit only. It was originally scheduled for July 8 at 12:00 PM EST, but WAX announced a delay on Twitter with no reason given; it was later put down to a technical problem with a third-party shopping-cart provider, with a promise of 24 hours\' notice before the new date.',
     dropSize:
       '13,000 Standard and 7,000 Mega packs — around 240,000 cards, more than double the Series 1 run. 30 pieces of art (15 subjects with a/b versions), all drawn by GPK artist David Gross, carried over from the three online physical Exotic sets released earlier that year.',
     sellOut:
-      'A much bigger run with no purchase limits, so it did not vanish the way Series 1 did — but demand was solid, helped by Series 1 secondary prices climbing steadily in the two months since May.',
+      'Gone in just over an hour. All 7,000 Mega packs sold in 24 minutes through an early-access window opened at 11:30 EST for Telegram trading-group members with a password, and all 13,000 Standard packs were gone by 12:37 EST.',
     reception:
-      'Warmly received. Collectors who missed Series 1 finally got a shot at packs, and the Tiger King tie-in pulled in buyers from well outside the usual GPK crowd. Telegram trading-group members were given early access to buy.',
+      'Warmly received, but the checkout was a mess: credit and debit cards were declined en masse, payments took up to 30 minutes to process, and the backlog caused oversells so some orders were cancelled and refunded after the fact — which means the true sell-out was probably earlier than the 1:07 PM figure shown at the time. The Tiger King tie-in still pulled in buyers from well outside the usual GPK crowd.',
     notes: [
       'Parallels: Prism, Tiger Stripe and Tiger Claw versions of all 30 cards.',
       'Six rare Collector Edition cards were randomly seeded through packs.',
+      'Estimated per-card counts: Prism "b" 2,386 each, Prism "a" 1,746 each, Tiger Stripe 160 each, Tiger Claw 16 each and Collector Edition 80 each.',
+      'A burn event was announced that would let collectors burn Tiger King base "a" cards for rare sketch cards. It was pushed back to Q1 2021 alongside a new website and never ran.',
       'Print-run figures were published as estimates because cards minted on pack-open — everyone from the first pack to the last had the same odds.',
     ],
     images: [
