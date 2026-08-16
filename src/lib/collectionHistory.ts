@@ -5,6 +5,10 @@
 // Figures are best-effort community records — card totals in particular are
 // estimates, because cards were minted on pack-open rather than up front.
 
+import bonyJoanieMega from '@/assets/gpk-mega-bony-joanie.png';
+
+
+
 export interface CollectionHistoryImage {
   /** Imported image URL. */
   src: string;
