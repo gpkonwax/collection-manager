@@ -23,7 +23,7 @@ import { toast } from '@/hooks/use-toast';
 import {
   clearLocalMirror,
   getLocalMirrorStatus,
-  ingestMirrorZip,
+  ingestMirrorZipBatch,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
 
@@ -139,16 +139,10 @@ export function BackupPanel({ triggerClassName }: Props) {
     if (files.length === 0) return;
     setBusy(true);
     try {
-      let added = 0;
-      let bytes = 0;
-      for (const file of files) {
-        const result = await ingestMirrorZip(file);
-        added += result.added;
-        bytes += result.bytes;
-      }
+      const { added, bytes } = await ingestMirrorZipBatch(files);
       toast({
         title: 'Backup loaded',
-        description: `${added.toLocaleString()} images (${formatBytes(bytes)}) loaded from ${files.length} ZIP ${files.length === 1 ? 'file' : 'parts'}.`,
+        description: `${added.toLocaleString()} images (${formatBytes(bytes)}) indexed from ${files.length} ZIP ${files.length === 1 ? 'file' : 'parts'}.`,
       });
     } catch (err) {
       console.error('[BackupPanel] ingest failed', err);
@@ -432,6 +426,26 @@ export function BackupPanel({ triggerClassName }: Props) {
                 {busy ? 'Reading ZIP…' : 'Load ZIP part(s)'}
               </Button>
             </div>
+            {status.fileCount > 0 && (
+              <div className={cn(
+                'rounded-md border px-2.5 py-2 text-xs',
+                status.coverage === 'complete'
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                  : status.coverage === 'checking'
+                    ? 'border-border bg-muted/40 text-muted-foreground'
+                    : 'border-destructive/30 bg-destructive/10 text-destructive',
+              )}>
+                {status.coverage === 'complete' && 'Complete — safe to use fully offline'}
+                {status.coverage === 'checking' && 'Checking loaded backup coverage…'}
+                {status.coverage === 'incomplete' && `Incomplete — ${status.missingFiles.toLocaleString()} expected image entries missing`}
+                {status.coverage === 'corrupt' && `Corrupt entry detected — ${status.corruptFiles.toLocaleString()} image(s)`}
+                {status.coverage === 'unverified' && 'Loaded, but coverage could not be verified'}
+                <div className="mt-1 text-[10px] opacity-80">
+                  {status.parts.map((part) => `${part.name}: ${part.fileCount.toLocaleString()} files`).join(' · ')}
+                  {status.expectedFiles != null ? ` · ${status.fileCount.toLocaleString()}/${status.expectedFiles.toLocaleString()} expected` : ''}
+                </div>
+              </div>
+            )}
             <p className="text-[10px] text-muted-foreground">
               If the backup is split into parts, select all part ZIP files at once.
             </p>
@@ -444,7 +458,7 @@ export function BackupPanel({ triggerClassName }: Props) {
               onChange={onFileChange}
             />
             <p className="text-[10px] text-muted-foreground">
-              ZIPs stay loaded for this browser session. Reload the page to clear them.
+              ZIPs stay loaded for this browser session. Images are read from the ZIP only when visible, keeping memory use stable.
             </p>
 
           </section>

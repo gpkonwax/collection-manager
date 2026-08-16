@@ -168,7 +168,9 @@ export async function acquireLocalMirror(key: string | null | undefined): Promis
       cachedStatus = { ...cachedStatus, coverage: 'corrupt', corruptFiles: corrupt.size };
       generation += 1;
       emit();
-      throw new Error(`Local backup entry could not be verified: ${indexed.storedPath}`, { cause: error });
+      const failure = new Error(`Local backup entry could not be verified: ${indexed.storedPath}`);
+      (failure as Error & { cause?: unknown }).cause = error;
+      throw failure;
     } finally {
       inFlight.delete(canonical);
     }
