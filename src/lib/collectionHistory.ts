@@ -223,9 +223,13 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Mixed. Demand was strong, but the launch was marred by errors — the first 10 minutes were unbuyable due to a credit-card processor failure, and plenty of collectors reported problems actually opening their packs afterwards. The set itself is well liked; the launch day is remembered as a mess.',
     notes: [
       'Each pack tier had an exclusive parallel: Slime (Standard), Gum (Mega), VHS (Ultimate).',
+      'The release is an 84-card base set plus Chrome OS 2 "Returning Cards" (26) and Chrome "c" name variations (20). Parallels: Raw, Slime, Gum, VHS and Sketch, alongside new Animation and Relic cards and original-art pieces.',
+      'New artists came on board — Nik Castaneda, Chenduz and Brent Scotchmer — with some cards animated and carrying digital autographs.',
+      'Estimated per-card counts: Base a/b/c 2,454 each (104 cards), Returning "a" 2,211 and "b" 1,826, Raw 1,428, Slime 238, Gum 238, VHS 119, Sketch 255 and Collector\'s Edition 31 each across 24 cards.',
       'Topps slipped in unannounced "error" cards, including a badly miscut Spilt Kit and a censored, black-barred Schizo Fran.',
+      'Ahead of launch, Tobin Lent said Topps had "tucked some surprises into the set" and revealed he had asked original GPK artist John Pound to do digital autographs — Pound declined, staying retired.',
       'Returning cards brought subjects back from earlier sets; Collector\'s Edition odds scaled with pack size (1% / 4% / 10%).',
-      
+      'A follow-up Burn 4 Gold event ran December 4–9, 2020: burning OS 2 base cards and opening packs put collectors in line for 80 OS 2 Gold cards across four tiers (40 / 25 / 10 / 5 golds, needing 5 / 10 / 30 / 100 cards burned).',
     ],
     images: [
       {
@@ -236,10 +240,17 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
         src: promoSeries2Soon.url,
         caption: 'The "Coming Soon!" teaser banner released ahead of the Series 2 drop.',
       },
+      {
+        src: promoSeries2Phone.url,
+        caption: 'Topps app promo showing Leaky Lindsay 45a with the Trade and Sell buttons.',
+      },
     ],
     links: [
       { label: 'Initial details on the OS2 digital release', url: 'https://gpknews.com/initial-details-on-gpk-x-wax-os-2-digital-release/', kind: 'coverage' },
+      { label: 'New art a highlight in the OS 2 set', url: 'https://gpknews.com/new-art-a-highlight-in-upcoming-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-launches-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
+      { label: 'Burn for Gold event announced', url: 'https://gpknews.com/topps-announces-burn-for-gold-wax-digital-event/', kind: 'coverage' },
+      { label: 'Topps readies Burn4Gold', url: 'https://gpknews.com/topps-readies-burn4gold-digital-garbage-pail-kids-wax-event/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
