@@ -2828,9 +2828,14 @@ export default function SimpleAssetsPage() {
                   description="Click any card to open a full-detail view with front/back both visible. A magnifying lens follows your cursor on hover, zooming in so you can see every line, every detail, every variant difference up close."
                 />
                 <FeatureCard
-                  icon={<span className="text-2xl">🎛️</span>}
-                  title="Filter by Series & Variant"
-                  description="Filter by Series 1, Series 2, and all other collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more. Available in all 3 view options."
+                  icon={<span className="text-2xl">🧩</span>}
+                  title="Series 2 Puzzle Builder"
+                  description="Series 2 cards contain hidden puzzle pieces on their backs. Auto-populate your collected pieces onto a free-form canvas — drag, rotate, and arrange them. Collect all 18 pieces of the Messy Tessie puzzle to unlock the full set of classic GPK puzzles."
+                />
+                <FeatureCard
+                  icon={<span className="text-2xl">✏️</span>}
+                  title="Draw & Write on Cards"
+                  description="Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family with the 'Spaz Award' — then press erase or close the modal and your cards are as good as new."
                 />
                 <FeatureCard
                   icon={<span className="text-2xl">🔗</span>}
@@ -2838,24 +2843,19 @@ export default function SimpleAssetsPage() {
                   description="Full support for both NFT standards on WAX. Your entire GPK collection in one unified view regardless of which contract holds them."
                 />
                 <FeatureCard
-                  icon={<span className="text-2xl">🔔</span>}
-                  title="Price Alerts"
-                  description="Set up to 5 price alerts across your entire collection on any missing card. Get pinged the moment a listing drops below your target — never miss a deal on that one card you've been hunting."
-                />
-                <FeatureCard
-                  icon={<span className="text-2xl">🧩</span>}
-                  title="Series 2 Puzzle Builder"
-                  description="Series 2 cards contain hidden puzzle pieces on their backs. Auto-populate your collected pieces onto a free-form canvas — drag, rotate, and arrange them. Collect all 18 pieces of the Messy Tessie puzzle to unlock the full set of classic GPK puzzles."
-                />
-                <FeatureCard
                   icon={<span className="text-2xl">🔥</span>}
                   title="Transfer & Burn"
                   description="Select multiple NFTs and transfer them to any WAX account or burn them permanently — all in a single transaction. Supports both SimpleAssets and AtomicAssets contracts simultaneously."
                 />
                 <FeatureCard
-                  icon={<span className="text-2xl">✏️</span>}
-                  title="Draw & Write on Cards"
-                  description="Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family with the 'Spaz Award' — then press erase or close the modal and your cards are as good as new."
+                  icon={<span className="text-2xl">🎛️</span>}
+                  title="Filter by Series & Variant"
+                  description="Filter by Series 1, Series 2, and all other collections. Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold and more. Available in all 3 view options."
+                />
+                <FeatureCard
+                  icon={<span className="text-2xl">🔔</span>}
+                  title="Price Alerts"
+                  description="Set up to 5 price alerts across your entire collection on any missing card. Get pinged the moment a listing drops below your target — never miss a deal on that one card you've been hunting."
                 />
                 <div className="sm:col-span-2 flex justify-center">
                   <div className="w-full max-w-lg">
