@@ -19,6 +19,8 @@ import promoSeries1Now from '@/assets/promo-46.png.asset.json';
 import promoSeries1Poster from '@/assets/promo-47.png.asset.json';
 import promoSeries1Banner from '@/assets/promo-48.png.asset.json';
 import promoSeries2Phone from '@/assets/promo-49.png.asset.json';
+import promoDigicon from '@/assets/promo-51.png.asset.json';
+
 
 
 
@@ -69,6 +71,9 @@ export interface CollectionHistory {
   notes: string[];
   /** Optional supporting images shown with the notes, enlargeable on click. */
   images?: CollectionHistoryImage[];
+  /** Index into `images` shown enlarged at the top of the story. Defaults to 0. */
+  heroImageIndex?: number;
+
   /** Optional supporting video, playable inline or on YouTube. */
   video?: CollectionHistoryVideo;
   /** WAX/Topps-specific pages for this collection, shown at the bottom of the story. */
@@ -107,7 +112,9 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'This set set the template every later WAX GPK drop followed: a storefront sale, pack odds published up front, and cards living on the SimpleAssets standard.',
       'An alternate Mega Pack wrapper turns up in the original Topps launch promo video: it shows Bony Joanie on the front and reads "25 DIGITAL CARDS • NO GUM" instead of the 30 the Mega Pack actually shipped with. In the same clip, the shop panel beside it lists the Mega Pack as 30 cards. No official explanation was ever published, and this wrapper never appeared in the store; the shipped Mega art and every GPKNews/Topps listing say 30 cards for $24.99.',
     ],
+    heroImageIndex: 1,
     images: [
+
       {
         src: bonyJoanieMega,
         caption:
@@ -206,7 +213,14 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Only 3,000 of the 5,000 packs went on sale at launch; the remaining 1,500 were scheduled to be minted later with no announced date.',
       'One of the first GPK sets to appear on the AtomicAssets standard rather than SimpleAssets.',
     ],
+    images: [
+      {
+        src: promoDigicon.url,
+        caption: 'Topps Digital DigiCon 2020 logo — Crash Gordon was announced live during the DigiCon Twitch broadcast.',
+      },
+    ],
     links: [
+
       { label: 'Topps announces Crash Gordon digital set', url: 'https://gpknews.com/topps-announces-wax-x-garbage-pail-kids-crash-gordon-digital-set/', kind: 'coverage' },
       { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },
       { label: 'WAX archive on GPKNews', url: 'https://gpknews.com/category/wax/page/2/', kind: 'coverage' },
