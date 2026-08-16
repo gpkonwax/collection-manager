@@ -2539,6 +2539,19 @@ export default function SimpleAssetsPage() {
                 <p className="text-foreground mt-2">All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Switch seamlessly between them using a simple tab interface for unprecedented control over how you manage and view your collection.</p>
               </div>
               <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🎛️</span> Flexibility</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Unified view for <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> — your entire GPK collection in one place regardless of which contract holds them.</li>
+                  <li>Multi-account support: add multiple WAX accounts and switch between them instantly.</li>
+                  <li>Filter by any GPK sub-collection (Series 1, Series 2, Crash Gordon, Tiger King, etc.).</li>
+                  <li>Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold, and more.</li>
+                  <li>Multiple sort options: natural order, name, variant rarity, and recently received.</li>
+                  <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
+                  <li><strong>Holders dropdown</strong> — the View Wallet box lists every GPK holder, largest to smallest, so you can browse any collection without typing an account name.</li>
+                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme matching geepeekay.com — switch any time from the header.</li>
+                </ul>
+              </div>
+              <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📦</span> Pack Openings</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>All the Topps pack types — Series 1, Series 2, Tiger King (Exotic), Food Fight, Crash Gordon, Bernventures, Mittens, GameStonk, and the Mega / token-based packs.</li>
@@ -2563,17 +2576,15 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🎛️</span> Flexibility</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> View Any Wallet (Read-Only)</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Unified view for <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> — your entire GPK collection in one place regardless of which contract holds them.</li>
-                  <li>Multi-account support: add multiple WAX accounts and switch between them instantly.</li>
-                  <li>Filter by any GPK sub-collection (Series 1, Series 2, Crash Gordon, Tiger King, etc.).</li>
-                  <li>Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold, and more.</li>
-                  <li>Multiple sort options: natural order, name, variant rarity, and recently received.</li>
-                  <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
-                  <li><strong>Holders dropdown</strong> — the View Wallet box lists every GPK holder, largest to smallest, so you can browse any collection without typing an account name.</li>
-                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme matching geepeekay.com — switch any time from the header.</li>
+                  <li>Enter any valid WAX account name and browse that wallet's collection without logging in.</li>
+                  <li>View the Classic card grid, Collector Binder view, card detail dialogs, and pack holdings.</li>
+                  <li>See both SimpleAssets and AtomicAssets items together.</li>
+                  <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
                 </ul>
+                <p className="text-foreground mt-2"><strong>You cannot</strong> see their saved layout, Puzzle Builder, or completion percentage.</p>
+                <p className="text-foreground mt-2">This same read-only browse powers the <strong>trading</strong> flow below — you find the wallet you want to trade with, then propose a swap from there.</p>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔄</span> Card &amp; Pack Trading (P2P)</h4>
@@ -2586,16 +2597,6 @@ export default function SimpleAssetsPage() {
                   <li>The Trades dialog merges both protocols into <strong>Received</strong> and <strong>Sent</strong> tabs, with protocol badges, stale-offer flags, and accept / decline / cancel / counter.</li>
                   <li>A green number badge on the Trades button counts unread incoming offers from both protocols; opening the dialog clears it.</li>
                 </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> View Any Wallet (Read-Only)</h4>
-                <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Enter any valid WAX account name and browse that wallet's collection without logging in.</li>
-                  <li>View the Classic card grid, Collector Binder view, card detail dialogs, and pack holdings.</li>
-                  <li>See both SimpleAssets and AtomicAssets items together.</li>
-                  <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
-                </ul>
-                <p className="text-foreground mt-2"><strong>You cannot</strong> see their saved layout, Puzzle Builder, or completion percentage.</p>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🧩</span> Puzzle Builder</h4>
