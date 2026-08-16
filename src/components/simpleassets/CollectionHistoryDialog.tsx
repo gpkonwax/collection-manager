@@ -45,7 +45,20 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
     return () => window.removeEventListener('keydown', onKey, true);
   }, [zoomed]);
 
-  useEffect(() => { if (!open) { setZoomed(null); setPlaying(false); } }, [open]);
+  useEffect(() => {
+    if (!open) { setZoomed(null); setPlaying(false); setPlayerLoaded(false); setPlayerBlocked(false); }
+  }, [open]);
+
+  // If the embed never loads (blocker / restrictive frame policy), surface a link out.
+  useEffect(() => {
+    if (!playing) return;
+    setPlayerLoaded(false);
+    setPlayerBlocked(false);
+    const t = window.setTimeout(() => {
+      setPlayerLoaded((loaded) => { if (!loaded) setPlayerBlocked(true); return loaded; });
+    }, 6000);
+    return () => window.clearTimeout(t);
+  }, [playing]);
 
   if (!history) return null;
 
