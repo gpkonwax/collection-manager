@@ -201,14 +201,17 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     notes: [
       'Checklist: Crash Gordon, Flying Flash, Flush Gordon, Dethroned Ming, Merciless Ming, Noah Mercy, Revolting Vultan, Hawkman Hank, Doctoring Zarkov, Handy Hans.',
       'Only three card types — Base, Prism and Gold. Published pack odds: 50% "B" Name Base, 25% "A" Name Prism, 10% "B" Name Prism, 1% "A" Name Gold, 0.5% "B" Name Gold.',
-      'The pack wrapper read "5 DIGITAL CARDS • NO GUM", and the store listing announced the packs would unlock at 3pm EST / 9pm CEST.',
+      'The pack wrapper read "5 DIGITAL CARDS • NO GUM", and the store listing announced the packs would unlock at 3pm EST / 9pm CEST — no pack, including the 500 free ones, could be opened before then.',
+      'First WAX GPK drop sold on Atomic Hub rather than a Topps storefront, and the first payable only in WAX (220 WAX a pack, roughly $10) — collectors had to top up their WAX wallet to buy in.',
+      'Only 3,000 of the 5,000 packs went on sale at launch; the remaining 1,500 were scheduled to be minted later with no announced date.',
       'One of the first GPK sets to appear on the AtomicAssets standard rather than SimpleAssets.',
-
     ],
     links: [
+      { label: 'Topps announces Crash Gordon digital set', url: 'https://gpknews.com/topps-announces-wax-x-garbage-pail-kids-crash-gordon-digital-set/', kind: 'coverage' },
       { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },
       { label: 'WAX archive on GPKNews', url: 'https://gpknews.com/category/wax/page/2/', kind: 'coverage' },
     ],
+
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
 
