@@ -28,6 +28,8 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
   const history = getCollectionHistory(categoryKey);
   const [zoomed, setZoomed] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [playerLoaded, setPlayerLoaded] = useState(false);
+  const [playerBlocked, setPlayerBlocked] = useState(false);
   const images = history?.images ?? [];
 
   // Close the enlarged view on Escape without closing the dialog itself.
