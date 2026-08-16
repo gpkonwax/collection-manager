@@ -1357,9 +1357,10 @@ export default function SimpleAssetsPage() {
     }
 
     let filteredTemplates = binderTemplates;
-    if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && !variantFilter.includes('all')) {
+    if (variantFilterActive && !variantFilter.includes('all')) {
       filteredTemplates = binderTemplates.filter(t => variantFilter.includes(t.variant.toLowerCase()));
     }
+
 
     return filteredTemplates.map(template => {
       const byTid = ownedByTemplateId.get(template.templateId);
@@ -1377,7 +1378,7 @@ export default function SimpleAssetsPage() {
       const owned = merged.length ? merged : null;
       return { template, owned };
     });
-  }, [viewMode, binderTemplates, filtered, categoryFilter, variantFilter]);
+  }, [viewMode, binderTemplates, filtered, variantFilter, variantFilterActive]);
 
   const savedGridSlots = useMemo(() => {
     if (savedOrder === null) return [];
