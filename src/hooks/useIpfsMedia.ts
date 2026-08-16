@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS, PRIMARY_MIRROR, getPublicGatewayCount } from '@/lib/ipfsGateways';
-import { resolveLocalMirror, subscribeLocalMirror, hasLocalMirror } from '@/lib/localMirror';
+import {
+  acquireLocalMirror,
+  getLocalMirrorGeneration,
+  hasLocalMirrorEntry,
+  releaseLocalMirror,
+  resolveLocalMirror,
+  subscribeLocalMirror,
+} from '@/lib/localMirror';
 import { fetchVerifiedMirrorFile, getRemoteMirrorState, subscribeRemoteMirror, MIRRORS } from '@/lib/remoteMirror';
 import { peekThumb, getThumb, putThumb, isKnownThumbMiss } from '@/lib/thumbCache';
 
@@ -240,10 +247,48 @@ export function useIpfsMedia(
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
 
-  // Subscribe to local mirror so newly-ingested ZIPs cause mounted images
-  // to re-render and pick up their blob: URL without needing a page reload.
-  useSyncExternalStore(subscribeLocalMirror, () => (hasLocalMirror() ? 1 : 0), () => 0);
-  const localMirrorUrl = hash ? resolveLocalMirror(hash) : null;
+  // Every completed ZIP batch increments this generation. Unlike the old 0/1
+  // snapshot, parts loaded after the first one always wake previously-failed cards.
+  const localGeneration = useSyncExternalStore(subscribeLocalMirror, getLocalMirrorGeneration, () => 0);
+  const cachedLocalUrl = hash ? resolveLocalMirror(hash) : null;
+  const localEntryPresent = hasLocalMirrorEntry(hash);
+  const [extractedLocalUrl, setExtractedLocalUrl] = useState<string | null>(cachedLocalUrl);
+  const [localPending, setLocalPending] = useState(localEntryPresent && !cachedLocalUrl);
+  const [localExtractFailed, setLocalExtractFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let acquired = false;
+    setLocalExtractFailed(false);
+    const immediate = hash ? resolveLocalMirror(hash) : null;
+    setExtractedLocalUrl(immediate);
+    if (!hash || !hasLocalMirrorEntry(hash) || !enabled) {
+      setLocalPending(false);
+      return;
+    }
+    setLocalPending(!immediate);
+    acquireLocalMirror(hash).then((url) => {
+      acquired = !!url;
+      if (cancelled) {
+        if (acquired) releaseLocalMirror(hash);
+        return;
+      }
+      setExtractedLocalUrl(url);
+      setLocalPending(false);
+    }).catch((error) => {
+      console.error('[useIpfsMedia] local ZIP extraction failed', error);
+      if (!cancelled) {
+        setLocalExtractFailed(true);
+        setLocalPending(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+      if (acquired) releaseLocalMirror(hash);
+    };
+  }, [hash, localGeneration, enabled]);
+
+  const localMirrorUrl = extractedLocalUrl ?? cachedLocalUrl;
 
   // Subscribe to the manually-selected remote mirror. If a backup mirror is active,
   // fetch and verify the file from that mirror before falling back to gateways.
@@ -502,6 +547,14 @@ export function useIpfsMedia(
   } else if (cachedLoadedUrl) {
     // Already successfully loaded once — reuse the exact known-good URL (browser HTTP cache will serve it)
     src = cachedLoadedUrl;
+  } else if (localPending) {
+    // The ZIP index has this exact image. Wait for local extraction and never
+    // leak into network fallbacks while the fully-offline source is pending.
+    src = '/placeholder.svg';
+  } else if (localExtractFailed) {
+    // A known local entry failed CRC/decompression. Keep the failure local and
+    // visible rather than disguising it as an IPFS outage.
+    src = '/placeholder.svg';
   } else if (!enabled) {
     // Not visible yet — return placeholder, don't trigger any loading
     src = '/placeholder.svg';
@@ -554,7 +607,7 @@ export function useIpfsMedia(
     src,
     onError,
     onLoad: onLoadFinal,
-    isLoading: verifiedMirrorUrl || localMirrorUrl || thumbBlobUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true),
-    failed: verifiedMirrorUrl || localMirrorUrl || thumbBlobUrl || hasLoadedRef.current ? false : failed,
+    isLoading: localPending ? true : (verifiedMirrorUrl || localMirrorUrl || thumbBlobUrl || cachedLoadedUrl || hasLoadedRef.current ? false : (enabled ? isLoading : true)),
+    failed: localExtractFailed || (verifiedMirrorUrl || localMirrorUrl || thumbBlobUrl || hasLoadedRef.current ? false : failed),
   };
 }

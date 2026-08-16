@@ -1,11 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Download, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  getLocalMirrorStatus,
-  getPersistPreference,
-  subscribeLocalMirror,
-} from '@/lib/localMirror';
+import { getLocalMirrorStatus, subscribeLocalMirror } from '@/lib/localMirror';
 
 const DISMISS_KEY = 'gpk-backup-nudge-dismissed-v1';
 
@@ -34,8 +30,7 @@ export function BackupNudgeBanner() {
     setDismissed(isDismissed());
   }, []);
 
-  const protectedOnDevice =
-    status.fileCount > 0 && (status.persisted || getPersistPreference());
+  const protectedOnDevice = status.coverage === 'complete';
 
   if (dismissed || protectedOnDevice) return null;
 

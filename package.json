@@ -52,6 +52,7 @@
     "@wharfkit/wallet-plugin-anchor": "^1.6.1",
     "@wharfkit/wallet-plugin-cloudwallet": "^1.5.1",
     "@wharfkit/web-renderer": "^1.4.3",
+    "@zip.js/zip.js": "^2.8.51",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

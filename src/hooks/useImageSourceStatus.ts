@@ -138,7 +138,7 @@ async function checkBackupB(): Promise<boolean> {
 
 
 function checkLocal(): boolean {
-  return getLocalMirrorStatus().fileCount > 0;
+  return getLocalMirrorStatus().coverage === 'complete';
 }
 
 let inFlight: Promise<void> | null = null;
