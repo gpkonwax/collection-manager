@@ -71,6 +71,9 @@ export interface CollectionHistory {
   notes: string[];
   /** Optional supporting images shown with the notes, enlargeable on click. */
   images?: CollectionHistoryImage[];
+  /** Index into `images` shown enlarged at the top of the story. Defaults to 0. */
+  heroImageIndex?: number;
+
   /** Optional supporting video, playable inline or on YouTube. */
   video?: CollectionHistoryVideo;
   /** WAX/Topps-specific pages for this collection, shown at the bottom of the story. */
