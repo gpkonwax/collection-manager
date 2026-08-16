@@ -70,7 +70,23 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-4">
           <div className="space-y-5">
+            {heroImage && (
+              <button
+                type="button"
+                onClick={() => setZoomed(heroIndex)}
+                className="block w-full overflow-hidden rounded-lg border border-border hover:border-cheese transition-colors"
+                aria-label="Enlarge promotional image"
+              >
+                <img
+                  src={heroImage.src}
+                  alt={heroImage.caption}
+                  className="w-full h-auto max-h-64 object-contain bg-black/20"
+                />
+              </button>
+            )}
+
             <p className="text-sm italic text-muted-foreground theme-bright-text-muted">{history.tagline}</p>
+
 
             <Section title="📅 Released">{history.released}</Section>
             <Section title="📦 Size of the drop">{history.dropSize}</Section>
