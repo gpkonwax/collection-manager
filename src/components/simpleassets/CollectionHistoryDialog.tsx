@@ -31,6 +31,9 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
   const [playerLoaded, setPlayerLoaded] = useState(false);
   const [playerBlocked, setPlayerBlocked] = useState(false);
   const images = history?.images ?? [];
+  const heroIndex = Math.min(history?.heroImageIndex ?? 0, Math.max(images.length - 1, 0));
+  const heroImage = images[heroIndex];
+
 
   // Close the enlarged view on Escape without closing the dialog itself.
   useEffect(() => {
