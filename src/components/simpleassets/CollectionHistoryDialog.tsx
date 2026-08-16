@@ -27,6 +27,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOpenChange }: CollectionHistoryDialogProps) {
   const history = getCollectionHistory(categoryKey);
   const [zoomed, setZoomed] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
   const images = history?.images ?? [];
 
   // Close the enlarged view on Escape without closing the dialog itself.
