@@ -602,50 +602,41 @@ function RecommendedZipCard({
             {activeParts.map((part) => {
               const started = startedPartSet.has(part.fileName);
               return (
-                <li key={part.fileName} className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold flex-shrink-0',
-                        started
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : 'bg-muted text-muted-foreground',
-                      )}
+                <li key={part.fileName} className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold flex-shrink-0',
+                      started
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {started ? '✓' : part.index}
+                  </span>
+                  <span className={cn('text-[11px]', started ? 'text-emerald-400' : 'text-muted-foreground')}>
+                    Part {part.index} — {formatBytes(part.bytes)}
+                    {started ? ' (started)' : ''}
+                  </span>
+                  <Button asChild size="sm" className="h-7 text-xs ml-auto">
+                    <a
+                      href={part.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={part.fileName}
+                      onClick={() => markPartStarted(part.fileName)}
                     >
-                      {started ? '✓' : part.index}
-                    </span>
-                    <span className={cn('text-[11px]', started ? 'text-emerald-400' : 'text-muted-foreground')}>
-                      Part {part.index} — {formatBytes(part.bytes)}
-                    </span>
-                    <Button asChild size="sm" className="h-7 text-xs ml-auto">
-                      <a
-                        href={part.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download={part.fileName}
-                        onClick={() => markPartStarted(part.fileName)}
-                      >
-                        <Download className="w-3.5 h-3.5 mr-1.5" />
-                        {started ? 'Download again' : 'Download'}
-                      </a>
-                    </Button>
-                  </div>
-                  {started && (
-                    <p className="pl-6 text-[10px] text-emerald-400">
-                      Downloading — check your browser's downloads for progress. Finished when the file
-                      reaches {formatBytes(part.bytes)}.
-                    </p>
-                  )}
+                      <Download className="w-3.5 h-3.5 mr-1.5" />
+                      Download
+                    </a>
+                  </Button>
                 </li>
               );
             })}
           </ul>
 
           <p className="text-[10px] text-muted-foreground">
-            Your browser handles these downloads, so its own downloads list is where the live progress
-            appears. Start them one at a time if several large files at once cause trouble.
+            Each part downloads separately — start them one at a time if your browser struggles with several large files at once.
           </p>
-
 
           {!nextPart && (
             <p className="text-xs text-emerald-400">
