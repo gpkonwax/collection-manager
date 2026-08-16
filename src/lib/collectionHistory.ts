@@ -197,6 +197,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Points earned in the burn event were exchanged for Mitten packs — see the Mittens collection.',
       'Sold in WAX tokens only, on the AtomicAssets standard.',
     ],
+    links: [
+      { label: 'gpkbernventures.com — the original sale site', url: 'https://gpkbernventures.com/', kind: 'official' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-digital-launches-garbage-pail-kids-bernventures-digital-wax-set/', kind: 'coverage' },
+      { label: 'Bernie mitten memes become NFTs', url: 'https://cointelegraph.com/news/bernie-sanders-mitten-memes-immortalized-in-new-nft-collection', kind: 'coverage' },
+      { label: 'The art behind Bernventures', url: 'https://ecency.com/@kommienezuspadt/bernie-as-a-garbage-pail-kid-the-art-behind-bernventures', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
 
