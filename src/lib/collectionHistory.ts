@@ -133,6 +133,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Six rare Collector Edition cards were randomly seeded through packs.',
       'Print-run figures were published as estimates because cards minted on pack-open — everyone from the first pack to the last had the same odds.',
     ],
+    links: [
+      { label: 'Press release: sold out in 67 minutes', url: 'https://www.globenewswire.com/news-release/2020/07/16/2062972/0/en/Topps-GPK-Goes-Exotic-Digital-Trading-Cards-Makes-Blockchain-History-on-WAX-Selling-Out-in-67-Minutes.html', kind: 'official' },
+      { label: 'WAX.io announcement', url: 'https://medium.com/wax-io/topps-gpk-goes-exotic-trading-cards-are-now-on-the-wax-blockchain-e77f1356c627', kind: 'official' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-x-wax-launch-gpk-goes-exotic-digital-set/', kind: 'coverage' },
+      { label: 'Sell-out coverage', url: 'https://gpknews.com/topps-x-wax-gpk-goes-exotic-sells-out/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
 
