@@ -23,6 +23,8 @@ export interface CollectionHistoryVideo {
   embedUrl: string;
   /** Canonical watch URL for the "open on YouTube" link. */
   watchUrl: string;
+  /** Poster frame shown before the player loads. */
+  thumbnailUrl?: string;
   /** Where the video was found, shown as a source link. */
   sourceLabel: string;
   sourceUrl: string;
