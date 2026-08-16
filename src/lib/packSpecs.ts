@@ -156,10 +156,12 @@ export const PACK_SPECS: Record<string, PackSpec> = {
   '13778': {
     packType: 'Crash Gordon Pack',
     series: 'Crash Gordon',
+    price: '220 WAX (~$10)',
     releaseDate: 'August 28, 2020',
     contains: '5 Cards',
-    printRun: '5,000 packs',
-    note: 'Unlocked at 3pm EST / 9pm CEST. No original sale price was ever published',
+    printRun: '5,000 packs (500 free, 3,000 on sale, 1,500 minted later)',
+    note: 'WAX-only purchase on Atomic Hub. Packs unlocked and could not be opened until 3pm EST / 9pm CEST',
+
     includes: [
       '50% "B" Name Base',
       '25% "A" Name Prism',
