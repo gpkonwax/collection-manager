@@ -529,26 +529,12 @@ function RecommendedZipCard({
     if (key === selectedSourceKey) return;
     setSelectedSourceKey(key);
     setStartedPartNames([]);
-    setShowDownloadLauncher(false);
   };
 
   const markPartStarted = (fileName: string) => {
     setStartedPartNames((current) => current.includes(fileName) ? current : [...current, fileName]);
   };
 
-  const startNextPartDownload = () => {
-    if (!nextPart) return;
-    const partToDownload = nextPart;
-    const link = document.createElement('a');
-    link.href = partToDownload.url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.download = partToDownload.fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    markPartStarted(partToDownload.fileName);
-  };
 
   return (
     <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-3">
