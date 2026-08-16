@@ -2520,10 +2520,34 @@ export default function SimpleAssetsPage() {
                   <li><strong>Public IPFS gateway rotation</strong> — multiple public gateways are raced in parallel; the fastest healthy one wins. Strict timeouts (cards ~6s, detail view ~3.5s, max 8s) prevent dead gateways from hanging the UI.</li>
                   <li><strong>Primary mirror</strong> — a frozen snapshot of every card/pack/puzzle image is hosted on GitHub Pages. It mirrors IPFS paths exactly, so the same image URL resolves identically and is used automatically when public gateways fail.</li>
                   <li><strong>Backup mirrors</strong> — Backup A is Netlify; Backup B is Cloudflare Pages. You can manually switch to a backup mirror from the Offline backup panel.</li>
+                  <li><strong>Data mirror</strong> — a separate Cloudflare-hosted backup of the puzzle scans, pack artwork and the holders manifest. These load from the mirror first, with geepeekay.com only as a fallback, so the Puzzle Builder and wallet dropdown keep working even if the original host disappears.</li>
                   <li><strong>Hash verification</strong> — every mirrored file is recorded in a pinned manifest with its SHA-256 hash. The app verifies bytes before using them, so you don't have to trust the host — only the math.</li>
                   <li><strong>Local ZIP / fully offline backup</strong> — download split ZIP parts from the GitHub Release and load them into the browser on demand for a fully local session with no reliance on IPFS or mirrors. ZIPs stay loaded for the browser session.</li>
                   <li><strong>Live image-source indicator</strong> — the header pill shows which layer is currently healthy: IPFS → Primary mirror → Backup A → Local ZIP → None. Background canary checks run every 60 seconds and on tab focus.</li>
-                  <li><strong>Offline app bundle (coming soon)</strong> — the manager itself will be downloadable as a ZIP, runnable locally via <span className="font-mono">open-me.html</span>. Wallet/live features will still need internet, but image viewing and collection management will keep working without any hosted site or mirror.</li>
+                  <li><strong>Offline app bundle</strong> — the manager itself is downloadable as a ZIP and runs locally via <span className="font-mono">open-me.html</span>. Wallet and live chain features still need internet, but image viewing and collection management keep working without any hosted site or mirror.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔄</span> Card &amp; Pack Trading (P2P)</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Propose card-for-card or pack-for-pack trades directly with any WAX account — no marketplace, no fees.</li>
+                  <li><strong>Protocol-locked:</strong> AtomicAssets trades AtomicAssets, SimpleAssets trades SimpleAssets — never mixed.</li>
+                  <li>AtomicAssets uses the official atomicassets offer system. SimpleAssets uses an <span className="font-mono">eosio.msig</span> multisig swap, so both sides execute in one atomic transaction — no escrow, no custom contract, and nobody can take a card and walk away.</li>
+                  <li>Consistent wording throughout: the left side is <strong>You send</strong>, the right side is <strong>They send back</strong>.</li>
+                  <li>The trade composer has the same filtering as the homepage — series, variant (including <strong>Packs</strong>), sort and search — and every card shows its mint-number ribbon, card ID, variant and series.</li>
+                  <li>The Trades dialog merges both protocols into <strong>Received</strong> and <strong>Sent</strong> tabs, with protocol badges, stale-offer flags, and accept / decline / cancel / counter.</li>
+                  <li>A green number badge on the Trades button counts unread incoming offers from both protocols; opening the dialog clears it.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🕰️</span> Pack Opening History &amp; Replay</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Rebuild every pack you have ever opened straight from the WAX chain — pack type, date, transaction and full contents.</li>
+                  <li>The gallery overview groups openings by pack type in the same natural order as the homepage; click a pack to drill into every individual opening.</li>
+                  <li>Download your history as a JSON file and load it back any time; a Clear button removes stale files.</li>
+                  <li>History is stored in IndexedDB, and a warning tells you when new openings have been recorded since your last download.</li>
+                  <li><strong>Replay</strong> any opening through the full reveal and card-deal animation — the reveal order is shuffled so it feels different every time.</li>
+                  <li>Thumbnails are cached locally and served mirror-first, so reopening the history is instant.</li>
                 </ul>
               </div>
               <div>
@@ -2532,17 +2556,21 @@ export default function SimpleAssetsPage() {
                   <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection as it is. Supports pagination for large collections and instant search across all card names.</li>
                   <li><strong>Collector Binder</strong> — Template-based completionist view with real-time completion percentage tracking. Owned cards appear in full color with checkmarks; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need. Duplicate cards are stacked and accessible via a stack dialog showing all copies. Completion stats update live as you open packs or receive transfers.</li>
                   <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards into any order you like, insert empty spacer slots for custom layouts, and build the perfect display of your collection. Layouts persist across sessions via localStorage, and can be exported as JSON to back up or share with other collectors. Import layouts to restore previous arrangements instantly.</li>
+                  <li><strong>Retro (1985 scan) view</strong> — a toggle that colour-grades Series 1 and Series 2 cards to match the saturated, slightly faded look of the original printed cards.</li>
+                  <li>Series 2 SimpleAssets cards now show their real <strong>mint number</strong> in the top ribbon instead of a blank placeholder.</li>
                 </ul>
                 <p className="text-foreground mt-2">All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Switch seamlessly between them using a simple tab interface for unprecedented control over how you manage and view your collection.</p>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📦</span> Pack Openings</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic), Food Fight, Crash Gordon and Bernventures — with Mittens, GameStonk and more likely soon</li>
+                  <li>All the Topps pack types — Series 1, Series 2, Tiger King (Exotic), Food Fight, Crash Gordon, Bernventures, Mittens, GameStonk, and the Mega / token-based packs.</li>
                   <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                   <li>Card-by-card reveal animation</li>
                   <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions with an option to skip animation</li>
-<li>Immersive sound design — packs shake, packs rip, and card reveal noises synchronized to the animations. When the cards are dealt listen to your new cards fuse to your collection</li>
+                  <li>Immersive sound design — packs shake, packs rip, and card reveal noises synchronized to the animations. When the cards are dealt listen to your new cards fuse to your collection</li>
+                  <li><strong>Pack info popups</strong> — hover any pack to see the original Topps spec sheet: release date, original price, contents, print run and the published odds for each hit.</li>
+                  <li>Variant descriptions appear in the filter dropdown, so you always know what a Prism, Sketch, VHS or Slime card actually is.</li>
                   <li>View your SimpleAssets packs using the original placeholder artwork.</li>
                 </ul>
               </div>
@@ -2553,8 +2581,10 @@ export default function SimpleAssetsPage() {
                   <li>Multi-account support: add multiple WAX accounts and switch between them instantly.</li>
                   <li>Filter by any GPK sub-collection (Series 1, Series 2, Crash Gordon, Tiger King, etc.).</li>
                   <li>Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold, and more.</li>
-                  <li>Multiple sort options: natural order, name, variant rarity.</li>
+                  <li>Multiple sort options: natural order, name, variant rarity, and recently received.</li>
                   <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
+                  <li><strong>Holders dropdown</strong> — the View Wallet box lists every GPK holder, largest to smallest, so you can browse any collection without typing an account name.</li>
+                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme matching geepeekay.com — switch any time from the header.</li>
                 </ul>
               </div>
               <div>
@@ -2568,26 +2598,27 @@ export default function SimpleAssetsPage() {
                 <p className="text-foreground mt-2"><strong>You cannot</strong> see their saved layout, Puzzle Builder, or completion percentage.</p>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🧩</span> Series 2 Puzzle Builder</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🧩</span> Puzzle Builder</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Series 2 cards contain hidden puzzle pieces on their backs.</li>
+                  <li>GPK cards hide puzzle pieces on their backs — assemble them here.</li>
+                  <li>Covers the classic Series 2 puzzle plus the Series 2 second and third printings, both Series 3 puzzles, Series 4, and both Series 5 puzzles.</li>
                   <li>Free-form canvas to drag, rotate, and arrange your puzzle pieces.</li>
+                  <li>The completed-picture reference stays visible beside the canvas at all times; click it for the full-size view.</li>
+                  <li>Pieces stay locked until you press <strong>Scramble</strong> — a notice on the canvas tells you where to start.</li>
                   <li>Save and load your puzzle progress as JSON.</li>
-                  <li>Scramble pieces to start fresh or fine-tune placements.</li>
                   <li><strong>Timer Race Mode</strong> — race the clock to assemble the puzzle.</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔍</span> Inspection & Magnification</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔍</span> Inspection &amp; Magnification</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Click any card to open a full-detail view with front/back both visible.</li>
-                  <li>Magnifying lens follows your cursor on hover, zooming into every line and detail.</li>
-                  <li>Interactive 3D tilt effect on card hover — cards respond to your mouse with realistic depth and perspective.</li>
-                  <li>IPFS-sourced high-resolution images with automatic gateway fallback.</li>
+                  <li>Cards respond to your cursor with a realistic 3D tilt by default; switch to the magnifying lens to zoom into every line and detail.</li>
+                  <li>IPFS-sourced high-resolution images with automatic gateway and mirror fallback.</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-sm">✏️</span> Draw & Write on Cards</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-sm">✏️</span> Draw &amp; Write on Cards</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Switch to pen mode on any card to doodle, scribble or write.</li>
                   <li>Reward your friends and family members with the <strong>'Spaz Award'</strong>, permit them the right to stay up late and watch the <strong>Late Late Late Show</strong>.</li>
@@ -2596,7 +2627,7 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔥</span> Transfer & Burn</h4>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔥</span> Transfer &amp; Burn</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Transfer NFTs between WAX accounts — supports both SimpleAssets and AtomicAssets in one transaction.</li>
                   <li>Bulk selection mode for transferring or burning multiple cards at once.</li>
@@ -2616,7 +2647,7 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📂</span> Import / Export &amp; Multi-File Load</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Save your Saved Collection layouts, Puzzle Builder progress, and Price Alerts as JSON files.</li>
+                  <li>Save your Saved Collection layouts, Puzzle Builder progress, Price Alerts, and <strong>Pack Opening History</strong> as JSON files.</li>
                   <li><strong>Multi-file import:</strong> drop or select multiple JSON files at once — load every saved category layout, your price alerts, and your puzzle formation in one easy step.</li>
                   <li>Each file is auto-routed to the correct category, alert store, or puzzle layout — no manual sorting required.</li>
                   <li>Recent imports are remembered for quick re-apply, and the unified JSON menu is available in both the main collection view and the Puzzle Builder.</li>
@@ -2628,8 +2659,10 @@ export default function SimpleAssetsPage() {
                   <li>Completely free to use — no fees, no sign-ups.</li>
                   <li>Built by <span className="text-cheese font-semibold">$CHEESE</span>, the first project ever launched on the WAX blockchain.</li>
                   <li>Banner ad slots available via CheeseHub for community projects.</li>
+                  <li>If the manager is useful to you, the <strong>Donate</strong> link in the footer accepts WAX, $CHEESE or spare packs — entirely optional.</li>
                 </ul>
               </div>
+
             </div>
           </ScrollArea>
         </DialogContent>
