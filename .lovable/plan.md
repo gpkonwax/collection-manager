@@ -20,9 +20,10 @@ Add a new `FeatureCard` in the "More Features" grid (icon 🕰️) summarising:
 
 ### 3. Add a "Card & Pack Trading (P2P)" feature card
 Add a new `FeatureCard` in the "More Features" grid (icon 🔄) summarising:
+- **Start from the View Any Wallet feature above** — find the collector you want to trade with, then open the trade composer to propose a swap.
 - Propose card-for-card or pack-for-pack trades with any WAX account — no marketplace, no fees.
 - AtomicAssets uses the official offer system; SimpleAssets uses an `eosio.msig` multisig swap so both sides execute in one atomic transaction.
-- A green badge on the Trades button counts incoming offers from both protocols.
+- A green badge on the Trades button counts incoming offers from both protocols; accept, decline, cancel or counter from the Trades dialog.
 
 ### 4. Light touch-ups to existing cards
 - **View Any Wallet** card: append a sentence that the holders dropdown lists every GPK holder largest-to-smallest, perfect for finding accounts to trade with.
