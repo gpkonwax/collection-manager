@@ -19,6 +19,8 @@ import promoSeries1Now from '@/assets/promo-46.png.asset.json';
 import promoSeries1Poster from '@/assets/promo-47.png.asset.json';
 import promoSeries1Banner from '@/assets/promo-48.png.asset.json';
 import promoSeries2Phone from '@/assets/promo-49.png.asset.json';
+import promoDigicon from '@/assets/promo-51.png.asset.json';
+
 
 
 
