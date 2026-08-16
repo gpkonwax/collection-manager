@@ -344,7 +344,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     dropSize:
       '11 all-new pieces of art by Nik Castaneda. Redemption packs held 3 "a" cards; the first 10,000 redemption packs were pre-minted, with anything beyond that minted on demand. WinterCon sold 3-card "b" name packs at $9.99, 2,500 packs per day across four days — all four days sold out.',
     sellOut:
-      'Redemption supply was tied to physical box sales rather than a fixed run. The WinterCon daily packs, capped at 2,500 each, sold out for all four days of the convention.',
+      'Redemption supply was tied to physical box sales rather than a fixed run. The WinterCon daily packs, capped at 2,500 each, sold out for all four days of the convention — the first day\'s allocation went in about 17 minutes.',
     reception:
       'Seen as a genuine step forward — Topps finally gave physical collectors a low-friction on-ramp to the blockchain, including account creation at the redemption site. The two-part split ("a" names from redemptions, "b" names only from WinterCon) was the sticking point: completing the set meant taking part in both.',
     notes: [
