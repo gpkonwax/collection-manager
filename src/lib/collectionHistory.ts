@@ -106,6 +106,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
         caption:
           'The alternate Series 1 Mega Pack wrapper as it appears in the Topps launch promo video (around 0:26) — Bony Joanie on the front, "25 DIGITAL CARDS • NO GUM". The shipped Mega Pack used different art and 30 cards.',
       },
+      {
+        src: promoSeries1Now.url,
+        caption: 'Topps x WAX "Available Now!" promotional art for Series 1.',
+      },
     ],
     video: {
       title: 'Topps Garbage Pail Kids NFTs are now available on the WAX Blockchain!',
