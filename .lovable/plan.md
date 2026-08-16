@@ -1,47 +1,94 @@
-# Tiger King cards blank with the ZIPs loaded — diagnose, then fix
+# Make the ZIP backup genuinely reliable offline
 
-## What I checked (and what it rules out)
+## Confirmed diagnosis
 
-- Pulled all 1,385 `gpk.topps` AtomicAssets templates from the chain API and diffed every `img` / `backimg` path against `public/gpk-manifest.json`: **zero missing**. All 312 Tiger King (schema `exotic`) images are in the snapshot, including the 30 "golden" cards, which live under a separate CID (`QmeLsJK...`) from the main exotic CID (`QmYkMDkB...`).
-- The mirror audit (`scripts/mirror-output/audit-report/summary.txt`) reports COMPLETE on the hosted mirrors.
-- Probed IPFS directly: the exotic CID genuinely has only 15 cards × 2 sides, and `sketch` / `relic` / `originalart` don't exist there — so those absences are correct, not gaps.
+The images are present. Seeing a different, smaller set fail after loading the same ZIPs points to the browser loader rather than missing archive data, and the current implementation confirms two weaknesses:
 
-So this is **not** a coverage problem in the backup. The images are in the manifest, and therefore should be in the ZIPs. Which means the blanks come from one of:
+1. **The entire backup is expanded into memory.** `ingestMirrorZip()` reads a whole ZIP into an `ArrayBuffer`, `fflate.unzip()` expands every file at once, then copies every image again into another `Uint8Array`, a `Blob`, and a `blob:` URL. With multi-gigabyte ZIP parts, transient ZIP buffers, uncompressed bytes, Blobs, and decoded GIF/JPEG data can occupy several times the archive size. Browser memory pressure and image-decoder failures can therefore affect different cards on different runs even though their bytes are in the ZIP.
+2. **Only the first ZIP part reliably notifies mounted cards.** The hook subscribes to a snapshot that returns only `0` or `1` (`hasLocalMirror() ? 1 : 0`). After part 1 changes it to `1`, loading parts 2 and 3 keeps it at `1`, so React sees no new snapshot and card hooks that previously missed do not necessarily re-resolve. Those cards continue trying network gateways, which explains why some blanks remain despite being present locally.
 
-1. The ZIP contents didn't fully land in the browser's in-memory mirror (a part failed to ingest, or one part wasn't loaded), and the cards fall through to public IPFS gateways which are currently failing — the console already shows repeated `Failed to fetch` against gateways.
-2. The lookup key computed at render time doesn't match the key the ZIP was stored under, so a present file is never found.
+There is also a deterministic path mismatch: image paths containing encoded spaces can be requested as `%20` while ZIP entries use literal spaces. That affects specific variants and must be normalized.
 
-Both are real risks in the current code, and I can't tell them apart from outside the browser — the 4 GB ZIPs only exist on your machine. So step 1 is a diagnostic you can run with the ZIPs loaded; steps 2–4 fix the key-matching weaknesses I did find while reading the code.
+The reliable solution is not more retries. It is to stop holding the whole image library in RAM and treat the ZIPs as a read-only local image drive.
 
-## Step 1 — Coverage self-check in the Offline Backup panel
+## 1. Replace eager extraction with an indexed, on-demand ZIP reader
 
-Add a "Check loaded backup" button next to the ZIP parts. It loads `gpk-manifest.json`, looks up every manifest entry against the in-memory mirror exactly the way the card grid does, and reports:
+- Use a browser ZIP reader that can read each selected `File` by random access.
+- On load, read only each archive's central directory and build a lightweight index of entry names; do **not** decompress every image.
+- Keep the selected browser `File` objects as the backing store for the session.
+- When a visible card requests an image, locate its indexed ZIP entry and decompress only that image.
+- Return the resulting `blob:` URL to the existing media hook, ahead of every online source.
 
-- files expected vs. files actually resolvable
-- a per-series / per-variant breakdown of what's unresolvable (e.g. "Tiger King golden: 30 of 30 missing")
-- a "copy report" button so you can paste the result back to me
+This makes memory usage proportional to the visible cards, not the entire multi-gigabyte archive.
 
-This turns "a bunch of cards are blank" into a precise list, and it stays useful every time the snapshot is refreshed.
+## 2. Add a bounded image cache with safe cleanup
 
-## Step 2 — Make the local-mirror lookup forgiving
+- Cache recently extracted local images so scrolling back does not repeatedly unzip them.
+- Set a byte-based memory ceiling and evict least-recently-used entries that are no longer mounted.
+- Revoke evicted `blob:` URLs only after their card consumer releases them.
+- Deduplicate simultaneous requests for the same entry so stacked copies extract once.
+- Clear all readers, indexes, requests, and Blob URLs when “Clear loaded backup” is pressed.
 
-Card URLs are percent-encoded when built (`src/lib/gpkCardImages.ts:135` runs `encodeURIComponent` on the variant folder and file name), while the mirror scripts store the raw folder name. Any variant whose name contains a space — Series 2's `tiger stripe` and `tiger claw` — therefore produces the key `CID/tiger%20stripe/1a.gif`, which can never match the stored `CID/tiger stripe/1a.gif`. Fix in `src/lib/localMirror.ts`:
+## 3. Make multi-part loading atomic and observable
 
-- index each ingested entry under both its raw path and its percent-decoded path
-- try the key as-is, then decoded, then encoded, before giving up
-- index atomic entries under both the bare `CID/file` form and the stored `atomic/CID/file` form
+- Index all selected parts first, then publish one new monotonically increasing mirror generation after the complete batch is ready.
+- Replace the current `0/1` subscription snapshot with this generation, so every successful batch causes mounted cards—including prior failures—to retry local resolution.
+- Do not show “You're protected” merely because at least one file exists.
+- Track every selected part by name, file count, and readiness, and clearly report a failed or incomplete part.
 
-## Step 3 — Show why a card is blank
+## 4. Normalize every lookup path
 
-When a card fails after every source, surface the reason in the existing image-source indicator: "local mirror miss → gateways failed". Right now a blank tile is silent, which is why this took a manifest diff to investigate.
+Use one canonical key function for both ZIP indexing and card requests:
 
-## Step 4 — Re-verify
+- strip `mirror/` and map `atomic/` paths to the same bare IPFS key used by card metadata
+- safely decode `%20` and other URL-encoded path segments
+- normalize slashes and remove query/hash suffixes
+- support AtomicAssets bare CIDs whose stored file has a detected extension
+- preserve aliases for both raw and encoded forms where needed
 
-With the ZIPs loaded, run the Step 1 check and confirm Tiger King reports full coverage and the tiles render offline.
+## 5. Prove archive coverage before claiming protection
 
-## Technical notes
+After indexing, compare the loaded entries with the pinned `gpk-manifest.json`:
 
-- `src/lib/localMirror.ts:73-83` (`resolveLocalMirror`) is a plain `Map.get` with a single atomic fallback; `indexAtomicPath` (`:106-121`) only special-cases a bare CID that gained an extension. Key normalization goes here.
-- `src/hooks/useIpfsMedia.ts:246` computes `localMirrorUrl` and `:496` uses it as the winning `src`; no change needed beyond it receiving a hit.
-- Manifest shape: keys are the bare IPFS path (`QmeLsJK.../1b.gif`) with a `path` field pointing at the ZIP-relative location (`atomic/QmeLsJK.../1b.gif`) — the self-check must compare against `path` as ingested, not the key.
-- The coverage check runs entirely client-side against already-loaded blobs; no network beyond the manifest fetch.
+- expected files vs. indexed files
+- all required ZIP parts loaded
+- missing and duplicate entry counts
+- coverage by major series, including Tiger King
+
+The Offline Backup panel will show one of:
+
+- **Complete — safe to use fully offline**
+- **Incomplete — part(s) or image entries missing**
+- **Corrupt entry detected**
+
+Provide a compact downloadable/copyable report for any mismatch. ZIP CRC validation will run when an individual entry is extracted; an entry that fails CRC will be marked corrupt rather than silently falling back online.
+
+## 6. Enforce offline-first behavior
+
+- A local ZIP hit must never time out into a public gateway while extraction is still pending.
+- If the ZIP index says the image exists but extraction fails, show a specific local-backup error and allow retry; do not disguise it as an IPFS failure.
+- Only use mirrors/gateways when the loaded ZIP index definitively does not contain the requested key.
+- Previously failed cards must recover automatically when a complete ZIP batch is loaded.
+
+## 7. Validation
+
+Add focused tests for:
+
+- three ZIP parts loaded as one batch, including a card from the final part
+- reloading a batch after a previous failed card request
+- encoded-space paths
+- AtomicAssets bare-CID and extension mapping
+- concurrent duplicate requests
+- LRU eviction without revoking an in-use image
+- incomplete part detection and bad-entry/CRC handling
+- fully offline rendering with all network image requests blocked
+
+The final acceptance check is: load all parts, receive **Complete — safe to use fully offline**, block every IPFS and mirror host, browse Tiger King and other series, and confirm every indexed card resolves only from local ZIP entries.
+
+## Technical scope
+
+- Refactor `src/lib/localMirror.ts` from an eager in-memory store into an indexed asynchronous local source with acquisition/release semantics.
+- Adapt `useIpfsMedia` to await local resolution and treat “indexed/pending” differently from “not present.”
+- Update `BackupPanel.tsx` with batch progress, part status, coverage verification, and honest complete/incomplete status.
+- Extend `localMirror.test.ts` and media-source tests around the new async behavior.
+- Keep the existing online mirror and gateway fallback behavior unchanged when no ZIP is loaded or an image is absent from the backup.
