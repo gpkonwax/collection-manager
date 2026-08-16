@@ -190,7 +190,7 @@ function AssetPicker({
     return deriveVariantOptions(category, values);
   }, [assets, category]);
 
-  const showVariants = variantOptions.length > 1;
+  const showVariants = hasVariants(category) || variantOptions.length > 1;
   const filtersActive = query.trim() !== '' || category !== 'all' || !variants.includes('all');
   /** SimpleAssets packs are token balances, so they get a quantity picker. */
   const showPackQuantities = category === PACKS_CATEGORY && packOptions.length > 0;
