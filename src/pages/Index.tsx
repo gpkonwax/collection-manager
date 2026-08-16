@@ -2841,11 +2841,6 @@ export default function SimpleAssetsPage() {
                   title="Card & Pack Trading (P2P)"
                   description="Start from the View Any Wallet feature above — find the collector you want to trade with, then open the trade composer to propose a card-for-card or pack-for-pack swap. No marketplace, no fees. AtomicAssets uses the official offer system; SimpleAssets uses an eosio.msig multisig swap so both sides execute in one atomic transaction. A green badge on the Trades button counts incoming offers from both protocols; accept, decline, cancel or counter from the Trades dialog."
                 />
-                <FeatureCard
-                  icon={<span className="text-2xl">🎨</span>}
-                  title="Two Skins"
-                  description="Switch any time from the header between the original Dark Cheese theme and a Bright bubblegum theme inspired by geepeekay.com."
-                />
                 <div className="sm:col-span-2 flex justify-center">
                   <div className="w-full max-w-lg">
                     <FeatureCard
