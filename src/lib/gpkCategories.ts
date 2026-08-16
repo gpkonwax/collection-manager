@@ -1,3 +1,5 @@
+import { GPK_VARIANT_ORDER, getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
+
 export const CATEGORY_LABELS: Record<string, string> = {
   series1: 'Series 1', series2: 'Series 2', crashgordon: 'Crash Gordon',
   exotic: 'Tiger King', bernventures: 'Bernventures', mittens: 'Mittens',
@@ -79,6 +81,49 @@ export function getVariantsForCategory(category: string): VariantOption[] {
     default: return [];
   }
 }
+
+/** Human label for a variant value that has no curated entry. */
+export function variantDisplayLabel(value: string): string {
+  const special: Record<string, string> = {
+    artistssignature: "Artist's Signature",
+    originalart: 'Original Art',
+    vhs: 'VHS',
+    collector: 'Collectors',
+  };
+  if (special[value]) return special[value];
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/**
+ * Build the variant option list for a category: the curated list (when one exists)
+ * merged with any variants actually present in the supplied data, ordered by
+ * rarity rank with unknown variants alphabetical at the end.
+ */
+export function deriveVariantOptions(category: string, variantValues: Iterable<string>): VariantOption[] {
+  const curated = getVariantsForCategory(category);
+  const seen = new Set(curated.map(v => v.value));
+  const extra: VariantOption[] = [];
+  for (const raw of variantValues) {
+    const value = normalizeGpkVariant(raw);
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    extra.push({ value, label: variantDisplayLabel(value) });
+  }
+  if (curated.length > 0) {
+    extra.sort((a, b) => a.label.localeCompare(b.label));
+    return [...curated, ...extra];
+  }
+  const known = extra.filter(v => getGpkVariantRank(v.value) < GPK_VARIANT_ORDER.length)
+    .sort((a, b) => getGpkVariantRank(a.value) - getGpkVariantRank(b.value));
+  const unknown = extra.filter(v => getGpkVariantRank(v.value) >= GPK_VARIANT_ORDER.length)
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [...known, ...unknown];
+}
+
 
 /**
  * Shared toggle logic for the variant multi-select. Returns the next filter value.

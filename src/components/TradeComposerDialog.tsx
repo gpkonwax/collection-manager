@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import {
-  CATEGORY_LABELS, PACKS_CATEGORY, getVariantsForCategory, hasVariants,
+  CATEGORY_LABELS, PACKS_CATEGORY, deriveVariantOptions, getVariantsForCategory, variantDisplayLabel,
   isPacksCategory, normalizeAssetCategory,
 } from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
@@ -97,7 +97,7 @@ function variantLabelFor(category: string, quality: string): string {
   if (!raw) return '';
   const cat = normalizeAssetCategory((category || '').toLowerCase());
   return getVariantsForCategory(cat).find((v) => v.value === raw)?.label
-    ?? raw.replace(/\b\w/g, (c) => c.toUpperCase());
+    ?? variantDisplayLabel(raw);
 }
 
 /** Protocol logo used in the grid, sized up for the trade header. */
@@ -178,7 +178,19 @@ function AssetPicker({
       (CATEGORY_LABELS[x] || x).localeCompare(CATEGORY_LABELS[y] || y));
   }, [assets, packOptions.length]);
 
-  const showVariants = hasVariants(category);
+  /** Variants actually present in this picker for the selected category. */
+  const variantOptions = useMemo(() => {
+    if (category === 'all' || category === PACKS_CATEGORY) return [];
+    const values = new Set<string>();
+    for (const a of assets) {
+      if (normalizeAssetCategory(a.category) !== category) continue;
+      const v = (a.quality || '').toLowerCase();
+      if (v) values.add(v);
+    }
+    return deriveVariantOptions(category, values);
+  }, [assets, category]);
+
+  const showVariants = variantOptions.length > 1;
   const filtersActive = query.trim() !== '' || category !== 'all' || !variants.includes('all');
   /** SimpleAssets packs are token balances, so they get a quantity picker. */
   const showPackQuantities = category === PACKS_CATEGORY && packOptions.length > 0;
@@ -191,7 +203,7 @@ function AssetPicker({
       // Packs stay out of the way until the Packs category is picked.
       if (category === 'all' && isPacksCategory(a.category)) return false;
       if (category !== 'all' && normalizeAssetCategory(a.category) !== category) return false;
-      if (hasVariants(category) && !variants.includes('all')
+      if (showVariants && !variants.includes('all')
         && !variants.includes((a.quality || '').toLowerCase())) return false;
       if (!q) return true;
       return (
@@ -243,7 +255,7 @@ function AssetPicker({
         className="h-8 text-xs border-cheese/40 theme-bright-border theme-bright-fill"
       />
       <div className="flex flex-wrap gap-1.5">
-        <Select value={category} onValueChange={(v) => { setCategory(v); if (!hasVariants(v)) setVariants(['all']); }}>
+        <Select value={category} onValueChange={(v) => { setCategory(v); setVariants(['all']); }}>
           <SelectTrigger className="h-8 text-xs flex-1 min-w-[120px] border-cheese/40 text-cheese theme-bright-border theme-bright-text theme-bright-fill">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
@@ -257,6 +269,7 @@ function AssetPicker({
         {showVariants && (
           <VariantFilterPopover
             category={category}
+            variants={variantOptions}
             value={variants}
             onChange={setVariants}
             className="h-8 text-xs flex-1 min-w-[120px]"

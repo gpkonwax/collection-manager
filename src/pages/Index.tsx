@@ -115,7 +115,7 @@ import { ViewingBanner } from '@/components/ViewingBanner';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { useTheme } from '@/hooks/useTheme';
-import { CATEGORY_LABELS, hasVariants } from '@/lib/gpkCategories';
+import { CATEGORY_LABELS, deriveVariantOptions } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import { useRetroMode } from '@/hooks/useRetroMode';
 import { isRetroEligible } from '@/lib/retroMode';
@@ -1259,6 +1259,23 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, packs, atomicPacks]);
 
+  /** Variants present in the currently selected category (before variant filtering). */
+  const categoryVariantOptions = useMemo(() => {
+    if (categoryFilter === 'all') return [];
+    const values = new Set<string>();
+    for (const a of assets) {
+      if (a.category === 'packs') continue;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      if (effectiveCategory !== categoryFilter) continue;
+      if (sourceFilter !== 'all' && a.source !== sourceFilter) continue;
+      const v = (a.quality || '').toLowerCase();
+      if (v) values.add(v);
+    }
+    return deriveVariantOptions(categoryFilter, values);
+  }, [assets, categoryFilter, sourceFilter]);
+
+  const variantFilterActive = categoryVariantOptions.length > 1;
+
   const filtered = useMemo(() => {
     return assets.filter((a) => {
       if (a.category === 'packs') return false;
@@ -1266,10 +1283,11 @@ export default function SimpleAssetsPage() {
       const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
       if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
+      if (variantFilterActive && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
       return true;
     });
-  }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
+  }, [assets, search, categoryFilter, sourceFilter, variantFilter, variantFilterActive]);
+
 
   const sortedFiltered = useMemo(() => {
     if (sortMode === 'natural') return filtered;
@@ -1339,9 +1357,10 @@ export default function SimpleAssetsPage() {
     }
 
     let filteredTemplates = binderTemplates;
-    if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && !variantFilter.includes('all')) {
+    if (variantFilterActive && !variantFilter.includes('all')) {
       filteredTemplates = binderTemplates.filter(t => variantFilter.includes(t.variant.toLowerCase()));
     }
+
 
     return filteredTemplates.map(template => {
       const byTid = ownedByTemplateId.get(template.templateId);
@@ -1359,7 +1378,7 @@ export default function SimpleAssetsPage() {
       const owned = merged.length ? merged : null;
       return { template, owned };
     });
-  }, [viewMode, binderTemplates, filtered, categoryFilter, variantFilter]);
+  }, [viewMode, binderTemplates, filtered, variantFilter, variantFilterActive]);
 
   const savedGridSlots = useMemo(() => {
     if (savedOrder === null) return [];
@@ -3038,7 +3057,7 @@ export default function SimpleAssetsPage() {
                   </SelectContent>
                 </Select>
               )}
-              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2' && v !== 'exotic' && v !== 'foodfightb') setVariantFilter(['all']); }}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setVariantFilter(['all']); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent className="max-h-none overflow-visible">
                   <SelectItem value="all">All Categories</SelectItem>
@@ -3060,9 +3079,10 @@ export default function SimpleAssetsPage() {
               >
                 <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading || packsLoading || atomicPacksLoading) ? 'animate-spin' : ''}`} />
               </Button>
-              {hasVariants(categoryFilter) && (
+              {variantFilterActive && (
                 <VariantFilterPopover
                   category={categoryFilter}
+                  variants={categoryVariantOptions}
                   value={variantFilter}
                   onChange={setVariantFilter}
                   className="w-full sm:w-[180px]"
