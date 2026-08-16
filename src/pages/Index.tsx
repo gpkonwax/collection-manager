@@ -3064,6 +3064,18 @@ export default function SimpleAssetsPage() {
                   {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {getCollectionHistory(categoryFilter) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setCollectionHistoryOpen(true)}
+                  className="text-cheese hover:text-cheese/80 theme-bright-text theme-bright-hover-text"
+                  title={`About ${CATEGORY_LABELS[categoryFilter] || categoryFilter}`}
+                  aria-label={`About ${CATEGORY_LABELS[categoryFilter] || categoryFilter}`}
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
