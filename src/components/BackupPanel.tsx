@@ -220,7 +220,7 @@ export function BackupPanel({ triggerClassName }: Props) {
         {/* Recommended: proactive ZIP download — pinned in the fixed header */}
         <div className="px-6 pt-4 text-sm">
           <RecommendedZipCard
-            protectedOnDevice={status.fileCount > 0}
+            protectedOnDevice={status.coverage === 'complete'}
             fileCount={status.fileCount}
             totalBytes={status.totalBytes}
             zipInfo={zipInfo}
@@ -514,7 +514,7 @@ function RecommendedZipCard({
       <section className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
         <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium">
           <ShieldCheck className="w-4 h-4" />
-          You're protected — offline backup loaded ({fileCount.toLocaleString()} files,{' '}
+          Complete — safe to use fully offline ({fileCount.toLocaleString()} files,{' '}
           {formatBytes(totalBytes)}).
         </div>
       </section>

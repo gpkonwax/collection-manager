@@ -14,7 +14,7 @@ import {
   PUBLIC_IPFS_GATEWAYS,
   extractIpfsHash,
 } from './ipfsGateways';
-import { resolveLocalMirror } from './localMirror';
+import { acquireLocalMirror, releaseLocalMirror, resolveLocalMirror } from './localMirror';
 import type { loadPinnedManifest } from './remoteMirror';
 
 export type PinnedManifestLike = Awaited<ReturnType<typeof loadPinnedManifest>>;
@@ -217,6 +217,15 @@ export async function preloadRevealImage(
   onStatus?: (status: string) => void,
 ): Promise<PreloadResult> {
   const startedAt = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
+  let acquiredLocal = false;
+  if (hash && !resolveLocalMirror(hash)) {
+    try {
+      acquiredLocal = !!(await acquireLocalMirror(hash));
+    } catch {
+      acquiredLocal = false;
+    }
+  }
   const candidates = buildRevealCandidates(originalUrl, null, manifest);
   const local = candidates.filter((c) => c.tier === 'local' || c.tier === 'preferred');
   const mirrors = candidates.filter((c) => c.tier === 'mirror');
@@ -236,10 +245,12 @@ export async function preloadRevealImage(
     const winner = await raceCandidateGroup(group.candidates, group.timeout, signal);
     if (winner) {
       const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      if (acquiredLocal) releaseLocalMirror(hash);
       return { url: winner.url, label: winner.label, elapsedMs: now - startedAt };
     }
   }
 
   const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  if (acquiredLocal) releaseLocalMirror(hash);
   return { url: null, label: null, elapsedMs: now - startedAt };
 }

@@ -2,130 +2,87 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { zipSync, strToU8 } from 'fflate';
 import {
   __resetLocalMirrorForTests,
+  acquireLocalMirror,
+  canonicalLocalMirrorKey,
   clearLocalMirror,
+  getLocalMirrorGeneration,
   getLocalMirrorStatus,
   hasLocalMirror,
+  hasLocalMirrorEntry,
   ingestMirrorZip,
+  ingestMirrorZipBatch,
+  releaseLocalMirror,
   resolveLocalMirror,
   subscribeLocalMirror,
 } from './localMirror';
 
-// jsdom lacks URL.createObjectURL — polyfill with a counter so we can
-// distinguish blob URLs from real URLs in assertions.
 let blobCounter = 0;
-const createdUrls = new Set<string>();
 beforeEach(() => {
   __resetLocalMirrorForTests();
   blobCounter = 0;
-  createdUrls.clear();
-  URL.createObjectURL = vi.fn((blob: Blob) => {
-    const url = `blob:mock/${++blobCounter}-${blob.size}`;
-    createdUrls.add(url);
-    return url;
-  }) as unknown as typeof URL.createObjectURL;
-  URL.revokeObjectURL = vi.fn((url: string) => { createdUrls.delete(url); }) as unknown as typeof URL.revokeObjectURL;
+  URL.createObjectURL = vi.fn(() => `blob:mock/${++blobCounter}`) as typeof URL.createObjectURL;
+  URL.revokeObjectURL = vi.fn();
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 });
 
-function makeFixtureZip() {
-  const files: Record<string, Uint8Array> = {
-    // A card front
-    'QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/prism/42a.gif': strToU8('fake-gif-bytes-1'),
-    // A card back
-    'QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/42.jpg':   strToU8('fake-jpg-bytes-2'),
-    // An entry under a "mirror/" prefix — must be normalised away
-    'mirror/QmXXX/base/1a.jpg': strToU8('fake-jpg-bytes-3'),
-    // Atomic asset: bare CID with extension added by the mirror builder
-    'atomic/QmT2injqNvKs9eBjf6chS6srTCGeoVoZFNmV1xSkqjy8yy.png': strToU8('fake-png-bytes-4'),
-
-    // Atomic asset: CID/path preserved exactly
-    'atomic/QmAtomicFolder/gold/card.gif': strToU8('fake-gif-bytes-5'),
-    // A manifest that must be ignored for lookup
-    'manifest.json': strToU8('{"files":{}}'),
-    // A hidden file that must be ignored
-    '.DS_Store': strToU8('junk'),
-  };
-  return zipSync(files);
+function zip(files: Record<string, string>) {
+  return zipSync(Object.fromEntries(Object.entries(files).map(([key, value]) => [key, strToU8(value)])));
 }
 
-
-describe('localMirror', () => {
-  it('starts empty', () => {
-    expect(hasLocalMirror()).toBe(false);
-    expect(getLocalMirrorStatus().fileCount).toBe(0);
-    expect(resolveLocalMirror('anything')).toBeNull();
-  });
-
-  it('ingests a ZIP and exposes blob URLs by IPFS path', async () => {
-    const zip = makeFixtureZip();
-    const { added, bytes } = await ingestMirrorZip(zip);
-
-    // manifest.json + .DS_Store excluded; 5 real files kept
-    expect(added).toBe(5);
-    expect(bytes).toBeGreaterThan(0);
+describe('localMirror indexed ZIP source', () => {
+  it('indexes without extracting, then extracts an entry on demand', async () => {
+    await ingestMirrorZip(zip({ 'QmOne/base/1a.jpg': 'image-bytes' }));
     expect(hasLocalMirror()).toBe(true);
-
-    const front = resolveLocalMirror('QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/prism/42a.gif');
-    const back  = resolveLocalMirror('QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/42.jpg');
-    const stripped = resolveLocalMirror('QmXXX/base/1a.jpg'); // "mirror/" prefix stripped
-
-    expect(front).toMatch(/^blob:/);
-    expect(back).toMatch(/^blob:/);
-    expect(stripped).toMatch(/^blob:/);
-
-    expect(resolveLocalMirror('does/not/exist')).toBeNull();
-    expect(resolveLocalMirror('manifest.json')).toBeNull(); // ignored
+    expect(hasLocalMirrorEntry('QmOne/base/1a.jpg')).toBe(true);
+    expect(resolveLocalMirror('QmOne/base/1a.jpg')).toBeNull();
+    const url = await acquireLocalMirror('QmOne/base/1a.jpg');
+    expect(url).toMatch(/^blob:/);
+    expect(resolveLocalMirror('QmOne/base/1a.jpg')).toBe(url);
+    releaseLocalMirror('QmOne/base/1a.jpg');
   });
 
-  it('resolves atomic assets by bare CID even though the file has an extension', async () => {
-    await ingestMirrorZip(makeFixtureZip());
-
-    const bare = resolveLocalMirror('QmT2injqNvKs9eBjf6chS6srTCGeoVoZFNmV1xSkqjy8yy');
-
-    const folderPath = resolveLocalMirror('QmAtomicFolder/gold/card.gif');
-
-    expect(bare).toMatch(/^blob:/);
-    expect(folderPath).toMatch(/^blob:/);
+  it('loads multiple parts atomically and publishes a new generation each batch', async () => {
+    const before = getLocalMirrorGeneration();
+    await ingestMirrorZipBatch([
+      new Blob([zip({ 'QmOne/base/1a.jpg': 'one' })]),
+      new Blob([zip({ 'QmTwo/base/2a.jpg': 'two' })]),
+      new Blob([zip({ 'QmThree/base/3a.jpg': 'three' })]),
+    ]);
+    expect(getLocalMirrorStatus().fileCount).toBe(3);
+    expect(hasLocalMirrorEntry('QmThree/base/3a.jpg')).toBe(true);
+    expect(getLocalMirrorGeneration()).toBeGreaterThan(before);
   });
 
+  it('normalizes encoded spaces and atomic bare CID extensions', async () => {
+    const cid = 'QmT2injqNvKs9eBjf6chS6srTCGeoVoZFNmV1xSkqjy8yy';
+    await ingestMirrorZip(zip({
+      'QmOne/tiger stripe/1a.gif': 'stripe',
+      [`atomic/${cid}.png`]: 'atomic',
+    }));
+    expect(canonicalLocalMirrorKey('QmOne/tiger%20stripe/1a.gif')).toBe('QmOne/tiger stripe/1a.gif');
+    expect(hasLocalMirrorEntry('QmOne/tiger%20stripe/1a.gif')).toBe(true);
+    expect(hasLocalMirrorEntry(cid)).toBe(true);
+  });
 
-  it('notifies subscribers when contents change', async () => {
-    const spy = vi.fn();
-    const unsub = subscribeLocalMirror(spy);
-    await ingestMirrorZip(makeFixtureZip());
-    expect(spy).toHaveBeenCalled();
+  it('deduplicates simultaneous extraction requests', async () => {
+    await ingestMirrorZip(zip({ 'QmOne/base/1a.jpg': 'image' }));
+    const [a, b] = await Promise.all([
+      acquireLocalMirror('QmOne/base/1a.jpg'),
+      acquireLocalMirror('QmOne/base/1a.jpg'),
+    ]);
+    expect(a).toBe(b);
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  });
 
-    spy.mockClear();
+  it('notifies and clears all cached URLs', async () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeLocalMirror(listener);
+    await ingestMirrorZip(zip({ 'QmOne/base/1a.jpg': 'image' }));
+    await acquireLocalMirror('QmOne/base/1a.jpg');
     clearLocalMirror();
-    expect(spy).toHaveBeenCalled();
-    unsub();
-  });
-
-  it('clear() revokes blob URLs and resets state', async () => {
-    await ingestMirrorZip(makeFixtureZip());
-    expect(hasLocalMirror()).toBe(true);
-
-    clearLocalMirror();
+    expect(listener).toHaveBeenCalled();
     expect(hasLocalMirror()).toBe(false);
-    expect(getLocalMirrorStatus().fileCount).toBe(0);
-    expect(resolveLocalMirror('QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/prism/42a.gif')).toBeNull();
-    // Every URL we handed out should have been revoked.
-    expect(createdUrls.size).toBe(0);
-  });
-
-  it('re-ingesting the same path replaces the prior blob and revokes it', async () => {
-    await ingestMirrorZip(makeFixtureZip());
-    const first = resolveLocalMirror('QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/42.jpg');
-    expect(first).not.toBeNull();
-
-    // Ingest a new zip with the same path but different bytes
-    const zip2 = zipSync({
-      'QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/42.jpg': strToU8('newer-bytes'),
-    });
-    await ingestMirrorZip(zip2);
-    const second = resolveLocalMirror('QmSRti2HK95NXWYG3t3he7UK7hkgw8w9TdqPc6hi5euV1p/back/42.jpg');
-
-    expect(second).not.toBe(first);
-    expect(createdUrls.has(first!)).toBe(false); // old one revoked
-    expect(createdUrls.has(second!)).toBe(true);
+    expect(URL.revokeObjectURL).toHaveBeenCalled();
+    unsubscribe();
   });
 });

@@ -22,6 +22,7 @@ const inFlight = new Map<string, Promise<string>>();
 const corrupt = new Set<string>();
 let cacheBytes = 0;
 let indexedBytes = 0;
+let indexedFileCount = 0;
 let loadedAt: number | null = null;
 let generation = 0;
 
@@ -61,7 +62,7 @@ let cachedStatus: LocalMirrorStatus = {
 };
 
 function emit() {
-  cachedStatus = { ...cachedStatus, fileCount: index.size, totalBytes: indexedBytes, loadedAt, generation, corruptFiles: corrupt.size };
+  cachedStatus = { ...cachedStatus, fileCount: indexedFileCount, totalBytes: indexedBytes, loadedAt, generation, corruptFiles: corrupt.size };
   for (const fn of listeners) fn();
 }
 
@@ -244,6 +245,7 @@ export async function ingestMirrorZipBatch(sources: Array<File | Blob>): Promise
   readers.push(...newReaders);
   for (const [key, value] of newIndex) index.set(key, value);
   indexedBytes = bytes;
+  indexedFileCount = parts.reduce((sum, part) => sum + part.fileCount, 0);
   loadedAt = Date.now();
   generation += 1;
   cachedStatus = { ...cachedStatus, parts, duplicateFiles: duplicates, coverage: 'checking', persisted: false };
@@ -252,7 +254,7 @@ export async function ingestMirrorZipBatch(sources: Array<File | Blob>): Promise
   cachedStatus = { ...cachedStatus, ...coverage };
   generation += 1;
   emit();
-  return { added: newIndex.size, bytes };
+  return { added: indexedFileCount, bytes };
 }
 
 /** Backwards-compatible single-part helper. */
@@ -266,7 +268,7 @@ async function clearLocalMirrorInternal() {
   cache.clear(); cacheBytes = 0; index.clear(); corrupt.clear(); inFlight.clear();
   const oldReaders = readers.splice(0);
   await Promise.allSettled(oldReaders.map((reader) => reader.close()));
-  indexedBytes = 0; loadedAt = null;
+  indexedBytes = 0; indexedFileCount = 0; loadedAt = null;
 }
 
 export function clearLocalMirror(): void {
@@ -285,7 +287,7 @@ export async function restoreLocalMirrorFromIdb(): Promise<number> { return 0; }
 export function __resetLocalMirrorForTests(): void {
   for (const item of cache.values()) URL.revokeObjectURL(item.url);
   cache.clear(); index.clear(); readers.splice(0); corrupt.clear(); inFlight.clear(); listeners.clear();
-  cacheBytes = 0; indexedBytes = 0; loadedAt = null; generation = 0;
+  cacheBytes = 0; indexedBytes = 0; indexedFileCount = 0; loadedAt = null; generation = 0;
   cachedStatus = { fileCount: 0, totalBytes: 0, loadedAt: null, persisted: false, generation: 0,
     coverage: 'none', expectedFiles: null, missingFiles: 0, duplicateFiles: 0, corruptFiles: 0, parts: [] };
 }
