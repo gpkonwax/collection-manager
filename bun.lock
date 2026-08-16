@@ -40,6 +40,7 @@
         "@wharfkit/wallet-plugin-anchor": "^1.6.1",
         "@wharfkit/wallet-plugin-cloudwallet": "^1.5.1",
         "@wharfkit/web-renderer": "^1.4.3",
+        "@zip.js/zip.js": "^2.8.51",
         "buffer": "^6.0.3",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -670,6 +671,8 @@
     "@wharfkit/wallet-plugin-cloudwallet": ["@wharfkit/wallet-plugin-cloudwallet@1.6.4", "", { "dependencies": { "@aws-amplify/api": "6.3.11", "@aws-amplify/core": "6.12.0", "@aws-sdk/client-appsync": "^3.817.0", "aws-amplify": "^6.14.4", "tslib": "^2.1.0", "uuid": "^11.1.0" }, "peerDependencies": { "@wharfkit/antelope": "^1.1.1", "@wharfkit/session": "^1.6.1" } }, "sha512-q7ZrKVGGz+xPHWJkR8+HtbDysVnk3gdXRYAwkNzN49yyGnMi6Tycn8OMG4qea393etAT2yEF/Eu/MgvqXyw2dQ=="],
 
     "@wharfkit/web-renderer": ["@wharfkit/web-renderer@1.4.3", "", { "peerDependencies": { "@wharfkit/session": "^1.4.0" } }, "sha512-rNmToX67Rv/QOLj8USrS9wDH0OKXq5H6jGqJu5BIcLnc1Equ/hzMHdQ3oW830Bd0AEqjI57JK8nxESC0Q/w4Sw=="],
+
+    "@zip.js/zip.js": ["@zip.js/zip.js@2.8.51", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@zip.js/zip.js/-/zip.js-2.8.51.tgz", {}, "sha512-xCEMRBwBh6JPMQKy5D/RE0Ra9NJvrvjcCHNXo+NzMYCdZy3R0oAX9zJKRb1c393HNMbLYfoD2MRSPgB8L6Jskw=="],
 
     "abab": ["abab@2.0.6", "", {}, "sha512-j2afSsaIENvHZN2B8GOpF566vZ5WVk5opAiMTvWgaQT8DkbOqsTfvNAvHoRGU2zzP8cPoqys+xHTRDWW8L+/BA=="],
 
