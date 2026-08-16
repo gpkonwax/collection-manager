@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import {
-  CATEGORY_LABELS, PACKS_CATEGORY, getVariantsForCategory, hasVariants,
+  CATEGORY_LABELS, PACKS_CATEGORY, deriveVariantOptions,
   isPacksCategory, normalizeAssetCategory,
 } from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
