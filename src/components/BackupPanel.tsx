@@ -484,7 +484,7 @@ function RecommendedZipCard({
 
   const defaultKey = (sourceOptions.find((o) => o.key === 'primary') ?? sourceOptions[0])?.key;
   const [selectedSourceKey, setSelectedSourceKey] = useState<typeof defaultKey>(defaultKey);
-  const [showDownloadLauncher, setShowDownloadLauncher] = useState(false);
+  
   const [startedPartNames, setStartedPartNames] = useState<string[]>([]);
 
   // Keep selection valid as options load in.
