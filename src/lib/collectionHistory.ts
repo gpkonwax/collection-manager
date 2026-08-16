@@ -106,6 +106,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       sourceUrl: 'https://topps.wdny.io/faq',
       note: 'The alternate Bony Joanie Mega wrapper is on screen around 0:26. Found embedded on the original Topps GPK FAQ page.',
     },
+    links: [
+      { label: 'WAX.io launch announcement', url: 'https://medium.com/wax-io/new-topps-garbage-pail-kids-nfts-are-now-available-on-wax-2de012783c60', kind: 'official' },
+      { label: 'Topps GPK FAQ page', url: 'https://topps.wdny.io/faq', kind: 'official' },
+      { label: 'Packs sell out, secondary market flourishes', url: 'https://gpknews.com/wax-x-topps-packs-sell-out-secondary-market-flourishes/', kind: 'coverage' },
+      { label: 'Topps enters crypto collectibles', url: 'https://decrypt.co/28547/trading-card-giant-topps-is-now-offering-crypto-collectibles', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
 
 
