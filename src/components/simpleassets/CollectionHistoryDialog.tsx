@@ -43,7 +43,7 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
     return () => window.removeEventListener('keydown', onKey, true);
   }, [zoomed]);
 
-  useEffect(() => { if (!open) setZoomed(null); }, [open]);
+  useEffect(() => { if (!open) { setZoomed(null); setPlaying(false); } }, [open]);
 
   if (!history) return null;
 
