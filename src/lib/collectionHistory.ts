@@ -200,8 +200,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'A quiet, surprise-style launch rather than a headline event. Collectors treated it as a curiosity at first; the tiny checklist and small pack count have made it steadily harder to complete over time.',
     notes: [
       'Checklist: Crash Gordon, Flying Flash, Flush Gordon, Dethroned Ming, Merciless Ming, Noah Mercy, Revolting Vultan, Hawkman Hank, Doctoring Zarkov, Handy Hans.',
-      'Only three card types — Base, Prism and Gold. Odds: 50% "b" Base, 25% "a" Prism, 10% "b" Prism, 1% "a" Gold, 0.5% "b" Gold.',
+      'Only three card types — Base, Prism and Gold. Published pack odds: 50% "B" Name Base, 25% "A" Name Prism, 10% "B" Name Prism, 1% "A" Name Gold, 0.5% "B" Name Gold.',
+      'The pack wrapper read "5 DIGITAL CARDS • NO GUM", and the store listing announced the packs would unlock at 3pm EST / 9pm CEST.',
       'One of the first GPK sets to appear on the AtomicAssets standard rather than SimpleAssets.',
+
     ],
     links: [
       { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },

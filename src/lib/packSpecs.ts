@@ -159,9 +159,16 @@ export const PACK_SPECS: Record<string, PackSpec> = {
     releaseDate: 'August 28, 2020',
     contains: '5 Cards',
     printRun: '5,000 packs',
-    note: 'No original sale price was ever published',
-    includes: ['5 digital cards from the Crash Gordon series'],
+    note: 'Unlocked at 3pm EST / 9pm CEST. No original sale price was ever published',
+    includes: [
+      '50% "B" Name Base',
+      '25% "A" Name Prism',
+      '10% "B" Name Prism',
+      '1% "A" Name Gold',
+      '0.5% "B" Name Gold',
+    ],
   },
+
   '48479': {
     packType: 'Bernventures Pack',
     price: '$5 in WAX',
