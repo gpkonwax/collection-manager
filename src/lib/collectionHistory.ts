@@ -99,6 +99,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     notes: [
       'Base, Prism, Sketch, Collector\'s Edition and the ultra-rare Gold chase (0.2% in Standard packs, 1% in Mega).',
       'Every card exists in an "a" and "b" name version, exactly like the printed sets.',
+      'Estimated per-card counts published at the time: Base around 908 of each card (74,460 across 82 cards), Prism "b" 487 and Prism "a" 268, Sketch "b" 73 and Sketch "a" 36, and Collector\'s Edition just 5 of each — only 8 names, 40 cards in total.',
+      '100 special Gold cards were randomly awarded to buyers, and there were no purchase limits on the sale.',
+      'Launch day had odd random errors on the site, and there was no built-in marketplace yet — early trading happened on third-party markets, which had over 4,000 cards listed in the first week.',
+      'Early secondary prices: Mega packs reselling for $100+, rare sketches around $600 and prisms $100+.',
       'Because minting happened on pack-open, the earliest openers effectively raced for the low mint numbers — a mechanic Topps later dropped.',
       'This set set the template every later WAX GPK drop followed: a storefront sale, pack odds published up front, and cards living on the SimpleAssets standard.',
       'An alternate Mega Pack wrapper turns up in the original Topps launch promo video: it shows Bony Joanie on the front and reads "25 DIGITAL CARDS • NO GUM" instead of the 30 the Mega Pack actually shipped with. In the same clip, the shop panel beside it lists the Mega Pack as 30 cards. No official explanation was ever published, and this wrapper never appeared in the store; the shipped Mega art and every GPKNews/Topps listing say 30 cards for $24.99.',
@@ -112,6 +116,14 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       {
         src: promoSeries1Now.url,
         caption: 'Topps x WAX "Available Now!" promotional art for Series 1.',
+      },
+      {
+        src: promoSeries1Poster.url,
+        caption: '"Packs Available Now!" poster for toppsgpk.io, showing the four Series 1 rarities: Base, Prism, Sketch and Collector\'s Edition.',
+      },
+      {
+        src: promoSeries1Banner.url,
+        caption: '"Topps cards to the Blockchain!" launch banner for the Topps x WAX partnership.',
       },
     ],
     video: {
