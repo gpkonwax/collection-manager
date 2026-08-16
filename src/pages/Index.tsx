@@ -3057,7 +3057,7 @@ export default function SimpleAssetsPage() {
                   </SelectContent>
                 </Select>
               )}
-              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); if (v !== 'series1' && v !== 'series2' && v !== 'exotic' && v !== 'foodfightb') setVariantFilter(['all']); }}>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setVariantFilter(['all']); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent className="max-h-none overflow-visible">
                   <SelectItem value="all">All Categories</SelectItem>
@@ -3079,9 +3079,10 @@ export default function SimpleAssetsPage() {
               >
                 <RefreshCw className={`h-4 w-4 ${(saLoading || aaLoading || packsLoading || atomicPacksLoading) ? 'animate-spin' : ''}`} />
               </Button>
-              {hasVariants(categoryFilter) && (
+              {variantFilterActive && (
                 <VariantFilterPopover
                   category={categoryFilter}
+                  variants={categoryVariantOptions}
                   value={variantFilter}
                   onChange={setVariantFilter}
                   className="w-full sm:w-[180px]"
