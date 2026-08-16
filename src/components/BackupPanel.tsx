@@ -3,6 +3,7 @@ import {
   Download,
   HardDrive,
   Loader2,
+  Copy,
   Server,
   ShieldCheck,
   Trash2,
@@ -159,6 +160,24 @@ export function BackupPanel({ triggerClassName }: Props) {
   const onClear = () => {
     clearLocalMirror();
     toast({ title: 'Offline backup cleared' });
+  };
+
+  const copyBackupReport = async () => {
+    const report = {
+      coverage: status.coverage,
+      indexedFiles: status.fileCount,
+      expectedFiles: status.expectedFiles,
+      missingFiles: status.missingFiles,
+      corruptFiles: status.corruptFiles,
+      duplicateEntries: status.duplicateFiles,
+      parts: status.parts,
+    };
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+      toast({ title: 'Backup report copied' });
+    } catch {
+      toast({ title: 'Could not copy report', variant: 'destructive' });
+    }
   };
 
 
@@ -444,6 +463,12 @@ export function BackupPanel({ triggerClassName }: Props) {
                   {status.parts.map((part) => `${part.name}: ${part.fileCount.toLocaleString()} files`).join(' · ')}
                   {status.expectedFiles != null ? ` · ${status.fileCount.toLocaleString()}/${status.expectedFiles.toLocaleString()} expected` : ''}
                 </div>
+                {status.coverage !== 'complete' && status.coverage !== 'checking' && (
+                  <Button type="button" size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={copyBackupReport}>
+                    <Copy className="mr-1.5 h-3.5 w-3.5" />
+                    Copy report
+                  </Button>
+                )}
               </div>
             )}
             <p className="text-[10px] text-muted-foreground">
