@@ -32,6 +32,15 @@ export interface CollectionHistoryVideo {
   note?: string;
 }
 
+export interface CollectionHistoryLink {
+  /** Short human-readable title of the page. */
+  label: string;
+  /** Absolute URL. */
+  url: string;
+  /** Official = Topps/WAX-owned or an official press release. Coverage = hobby/news press. */
+  kind: 'official' | 'coverage';
+}
+
 export interface CollectionHistory {
   /** One-line description of the set. */
   tagline: string;
@@ -49,6 +58,8 @@ export interface CollectionHistory {
   images?: CollectionHistoryImage[];
   /** Optional supporting video, playable inline or on YouTube. */
   video?: CollectionHistoryVideo;
+  /** WAX/Topps-specific pages for this collection, shown at the bottom of the story. */
+  links?: CollectionHistoryLink[];
   /** Where the details came from. */
   sources: string[];
 }
@@ -95,6 +106,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       sourceUrl: 'https://topps.wdny.io/faq',
       note: 'The alternate Bony Joanie Mega wrapper is on screen around 0:26. Found embedded on the original Topps GPK FAQ page.',
     },
+    links: [
+      { label: 'WAX.io launch announcement', url: 'https://medium.com/wax-io/new-topps-garbage-pail-kids-nfts-are-now-available-on-wax-2de012783c60', kind: 'official' },
+      { label: 'Topps GPK FAQ page', url: 'https://topps.wdny.io/faq', kind: 'official' },
+      { label: 'Packs sell out, secondary market flourishes', url: 'https://gpknews.com/wax-x-topps-packs-sell-out-secondary-market-flourishes/', kind: 'coverage' },
+      { label: 'Topps enters crypto collectibles', url: 'https://decrypt.co/28547/trading-card-giant-topps-is-now-offering-crypto-collectibles', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
 
 
@@ -116,6 +133,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Six rare Collector Edition cards were randomly seeded through packs.',
       'Print-run figures were published as estimates because cards minted on pack-open — everyone from the first pack to the last had the same odds.',
     ],
+    links: [
+      { label: 'Press release: sold out in 67 minutes', url: 'https://www.globenewswire.com/news-release/2020/07/16/2062972/0/en/Topps-GPK-Goes-Exotic-Digital-Trading-Cards-Makes-Blockchain-History-on-WAX-Selling-Out-in-67-Minutes.html', kind: 'official' },
+      { label: 'WAX.io announcement', url: 'https://medium.com/wax-io/topps-gpk-goes-exotic-trading-cards-are-now-on-the-wax-blockchain-e77f1356c627', kind: 'official' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-x-wax-launch-gpk-goes-exotic-digital-set/', kind: 'coverage' },
+      { label: 'Sell-out coverage', url: 'https://gpknews.com/topps-x-wax-gpk-goes-exotic-sells-out/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
 
@@ -133,6 +156,9 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     notes: [
       'Checklist: Crash Gordon, Flying Flash, Flush Gordon, Dethroned Ming, Merciless Ming, Noah Mercy, Revolting Vultan, Hawkman Hank, Doctoring Zarkov, Handy Hans.',
       'One of the first GPK sets to appear on the AtomicAssets standard rather than SimpleAssets.',
+    ],
+    links: [
+      { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
@@ -154,6 +180,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Returning cards brought subjects back from earlier sets; Collector\'s Edition odds scaled with pack size (1% / 4% / 10%).',
       
     ],
+    links: [
+      { label: 'Initial details on the OS2 digital release', url: 'https://gpknews.com/initial-details-on-gpk-x-wax-os-2-digital-release/', kind: 'coverage' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-launches-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
 
@@ -173,6 +203,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'The real hook was the burn event: Base b = 1 point, Base a = 2, Sketch = 5, Raw = 20, Signature = 150. Burning ran until February 1, 2021.',
       'Points earned in the burn event were exchanged for Mitten packs — see the Mittens collection.',
       'Sold in WAX tokens only, on the AtomicAssets standard.',
+    ],
+    links: [
+      { label: 'gpkbernventures.com — the original sale site', url: 'https://gpkbernventures.com/', kind: 'official' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-digital-launches-garbage-pail-kids-bernventures-digital-wax-set/', kind: 'coverage' },
+      { label: 'Bernie mitten memes become NFTs', url: 'https://cointelegraph.com/news/bernie-sanders-mitten-memes-immortalized-in-new-nft-collection', kind: 'coverage' },
+      { label: 'The art behind Bernventures', url: 'https://ecency.com/@kommienezuspadt/bernie-as-a-garbage-pail-kid-the-art-behind-bernventures', kind: 'coverage' },
     ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
@@ -213,6 +249,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Rarities: Base (B Common / A Uncommon), Prismatic (B Rare / A Epic), Sketch (B Rare / A Epic), Raw (Epic), Gold (Legendary) and Signature (Legendary, only on the two new pieces).',
       'No numeric pull rates were ever published.',
     ],
+    links: [
+      { label: 'Topps drop page on AtomicHub', url: 'https://topps.atomichub.io/drops/gpk.topps', kind: 'official' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-digital-launching-garbage-pail-kids-gamestonk-on-wax/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, ONCHAIN],
   },
 
@@ -233,6 +273,11 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Five rarities: Base, Prism, Sketch, Artist Autograph and Golden.',
       'WinterCon odds: 59.83% Base, 26.58% Prism, 11.67% Sketch, 1.83% Artist Signature, 0.08% Golden.',
       'The digital checklist is completely different art from the physical Food Fight cards.',
+    ],
+    links: [
+      { label: 'Official site: toppsgpk.io', url: 'https://toppsgpk.io/', kind: 'official' },
+      { label: 'Press release: coming to Walmart and Target', url: 'https://www.globenewswire.com/news-release/2021/02/22/2179668/0/en/Coming-to-Walmart-and-Target-WAX-Digital-Cards-from-Topps.html', kind: 'official' },
+      { label: 'Retail launch coverage', url: 'https://news.bitcoin.com/topps-garbage-pail-kids-blockchain-collectibles-can-be-bought-at-target-and-walmarts/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
