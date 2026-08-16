@@ -2799,15 +2799,15 @@ export default function SimpleAssetsPage() {
                 </div>
               </div>
 
-              {/* Draw & Write */}
+              {/* Pack Opening History & Replay */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">✏️</span>
+                  <span className="text-3xl">🕰️</span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-cheese mb-2">Draw & Write on Cards</h3>
+                  <h3 className="text-xl font-bold text-cheese mb-2">Pack Opening History & Replay</h3>
                    <p className="text-foreground text-sm theme-bright-text">
-                     Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family members with the <span className="text-cheese font-semibold theme-bright-text">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold theme-bright-text">Late Late Late Show</span>. Except now after taking a screenshot just press the erase button or close the modal and your cards are as good as new!
+                     Rebuild every pack you have ever opened straight from the WAX chain — pack type, date, and full contents. Replay any opening through the full reveal and card-deal animation, with the reveal order shuffled each time. Download your history as JSON and load it back any time.
                    </p>
                 </div>
               </div>
@@ -2853,9 +2853,9 @@ export default function SimpleAssetsPage() {
                   description="Select multiple NFTs and transfer them to any WAX account or burn them permanently — all in a single transaction. Supports both SimpleAssets and AtomicAssets contracts simultaneously."
                 />
                 <FeatureCard
-                  icon={<span className="text-2xl">🕰️</span>}
-                  title="Pack Opening History & Replay"
-                  description="Rebuild every pack you have ever opened straight from the WAX chain — pack type, date, and full contents. Replay any opening through the full reveal and card-deal animation, with the reveal order shuffled each time. Download your history as JSON and load it back any time."
+                  icon={<span className="text-2xl">✏️</span>}
+                  title="Draw & Write on Cards"
+                  description="Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family with the 'Spaz Award' — then press erase or close the modal and your cards are as good as new."
                 />
                 <div className="sm:col-span-2 flex justify-center">
                   <div className="w-full max-w-lg">
