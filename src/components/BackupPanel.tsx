@@ -484,7 +484,7 @@ function RecommendedZipCard({
 
   const defaultKey = (sourceOptions.find((o) => o.key === 'primary') ?? sourceOptions[0])?.key;
   const [selectedSourceKey, setSelectedSourceKey] = useState<typeof defaultKey>(defaultKey);
-  const [showDownloadLauncher, setShowDownloadLauncher] = useState(false);
+  
   const [startedPartNames, setStartedPartNames] = useState<string[]>([]);
 
   // Keep selection valid as options load in.
@@ -529,26 +529,12 @@ function RecommendedZipCard({
     if (key === selectedSourceKey) return;
     setSelectedSourceKey(key);
     setStartedPartNames([]);
-    setShowDownloadLauncher(false);
   };
 
   const markPartStarted = (fileName: string) => {
     setStartedPartNames((current) => current.includes(fileName) ? current : [...current, fileName]);
   };
 
-  const startNextPartDownload = () => {
-    if (!nextPart) return;
-    const partToDownload = nextPart;
-    const link = document.createElement('a');
-    link.href = partToDownload.url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.download = partToDownload.fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    markPartStarted(partToDownload.fileName);
-  };
 
   return (
     <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-3">
@@ -601,73 +587,65 @@ function RecommendedZipCard({
       )}
 
       {activeOption && activeOption.parts.length > 1 && (
-        <div className="space-y-2">
-          <Button
-            size="lg"
-            className="w-full h-11 text-base"
-            onClick={() => setShowDownloadLauncher(true)}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Download ZIP parts from {activeProviderName}{activeTotalLabel ? ` (~${activeTotalLabel})` : ''}
-          </Button>
+        <div className="rounded-md border border-border bg-background/60 p-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium">
+              Download {activeParts.length} ZIP parts from {activeProviderName}
+              {activeTotalLabel ? ` (~${activeTotalLabel})` : ''}
+            </p>
+            <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {downloadedCount}/{activeParts.length} started
+            </p>
+          </div>
+
+          <ul className="space-y-2">
+            {activeParts.map((part) => {
+              const started = startedPartSet.has(part.fileName);
+              return (
+                <li key={part.fileName} className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold flex-shrink-0',
+                      started
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {started ? '✓' : part.index}
+                  </span>
+                  <span className={cn('text-[11px]', started ? 'text-emerald-400' : 'text-muted-foreground')}>
+                    Part {part.index} — {formatBytes(part.bytes)}
+                    {started ? ' (started)' : ''}
+                  </span>
+                  <Button asChild size="sm" className="h-7 text-xs ml-auto">
+                    <a
+                      href={part.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={part.fileName}
+                      onClick={() => markPartStarted(part.fileName)}
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1.5" />
+                      Download
+                    </a>
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+
           <p className="text-[10px] text-muted-foreground">
-            Large files need one click per part so your browser does not block the downloads.
+            Each part downloads separately — start them one at a time if your browser struggles with several large files at once.
           </p>
 
-          {showDownloadLauncher && (
-            <div className="rounded-md border border-border bg-background/60 p-3 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium">Download {activeParts.length} ZIP parts one at a time</p>
-                <p className="text-[10px] text-muted-foreground whitespace-nowrap">
-                  {downloadedCount}/{activeParts.length} started
-                </p>
-              </div>
-
-              {nextPart && (
-                <Button size="lg" className="w-full h-11 justify-start text-sm" onClick={startNextPartDownload}>
-                  <Download className="w-4 h-4 mr-2" />
-                  {downloadedCount === 0 ? 'Start download' : 'Start next download'}
-                  {`: Part ${nextPart.index} of ${activeParts.length} (${formatBytes(nextPart.bytes)})`}
-                </Button>
-              )}
-
-              <p className="text-[10px] text-muted-foreground">
-                Wait until Part {nextPart?.index ?? activeParts.length} finishes downloading, then press the button again to start the next part.
-              </p>
-
-              <ol className="space-y-1 text-[11px] text-muted-foreground">
-                {activeParts.map((part) => {
-                  const started = startedPartSet.has(part.fileName);
-                  return (
-                    <li key={part.fileName} className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          'inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold flex-shrink-0',
-                          started
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'bg-muted text-muted-foreground',
-                        )}
-                      >
-                        {started ? '✓' : part.index}
-                      </span>
-                      <span className={started ? 'text-emerald-400' : ''}>
-                        Part {part.index} — {formatBytes(part.bytes)}
-                        {started ? ' (started)' : ''}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-
-              {!nextPart && (
-                <p className="text-xs text-emerald-400">
-                  All {activeParts.length} ZIP part downloads have been started. Keep all files together before loading them in Step 3.
-                </p>
-              )}
-            </div>
+          {!nextPart && (
+            <p className="text-xs text-emerald-400">
+              All {activeParts.length} ZIP part downloads have been started. Keep all files together before loading them in Step 3.
+            </p>
           )}
         </div>
       )}
+
 
       {sourceOptions.length <= 1 && (
         <p className="text-[10px] text-muted-foreground">
