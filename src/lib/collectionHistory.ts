@@ -112,7 +112,9 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'This set set the template every later WAX GPK drop followed: a storefront sale, pack odds published up front, and cards living on the SimpleAssets standard.',
       'An alternate Mega Pack wrapper turns up in the original Topps launch promo video: it shows Bony Joanie on the front and reads "25 DIGITAL CARDS • NO GUM" instead of the 30 the Mega Pack actually shipped with. In the same clip, the shop panel beside it lists the Mega Pack as 30 cards. No official explanation was ever published, and this wrapper never appeared in the store; the shipped Mega art and every GPKNews/Topps listing say 30 cards for $24.99.',
     ],
+    heroImageIndex: 1,
     images: [
+
       {
         src: bonyJoanieMega,
         caption:
