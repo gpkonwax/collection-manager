@@ -1,81 +1,42 @@
-# Plan: Deploy the Data Mirror to Cloudflare Pages
+# Bring the Info dialog up to date
 
-## Quick answers to your questions
+The Info dialog (header ⓘ button) still describes the app as it was several releases ago. It has no mention of trading, pack history/replay, the puzzle expansion, retro view, pack info popups, data mirror, or the bright theme. This updates the content only — no layout or behaviour changes.
 
-- **Where do I download the ZIP?** It's inside the Lovable project at `scripts/data-mirror-output/gpk-data.zip` (8.4 MB, 134 files). You download it from the Lovable editor's file browser (details below).
-- **Will this affect the Cloudflare image mirror?** No. The image mirror (`gpkonwaxbackup.pages.dev`) and the data mirror (`gpk-data.pages.dev`) are **two completely separate Cloudflare Pages projects**. They don't share files, settings, or anything else. Creating one does not touch the other.
-- **Can I use the same Cloudflare account?** Yes. One account can host many Pages projects.
-- **Can I have 2 public Pages projects?** Yes. Cloudflare's free plan allows unlimited public Pages projects. You already have one (the image mirror); this adds a second.
+## New sections to add
 
-## What the data mirror is
+**🔄 Card & Pack Trading (P2P)**
+- Propose card-for-card or pack-for-pack trades directly with any WAX account.
+- Protocol-locked: AtomicAssets trades AtomicAssets, SimpleAssets trades SimpleAssets — never mixed.
+- AtomicAssets uses the official atomicassets offer system; SimpleAssets uses an `eosio.msig` multisig swap so both sides execute in one atomic transaction — no escrow, no custom contract, nobody can take a card and walk.
+- Consistent wording throughout: left side is **You send**, right side is **They send back**.
+- Trade composer has the same filtering as the homepage — series, variant (including Packs), sort and search — plus mint-number ribbon, card ID, variant and series on every card.
+- Trades dialog merges both protocols into Received / Sent tabs, with protocol badges, stale-offer flags, and accept / decline / cancel / counter.
+- A green number badge on the Trades header button counts unread incoming offers from both protocols.
 
-A tiny static site (8.4 MB) containing:
-- `manifests/gpk-topps-holders.json` — the holders list (14,255 accounts)
-- `manifests/data-mirror-index.json` — an index of every file in the mirror
-- `packs/` — 7 pack artwork images (Series 1, 2, Exotic, Megas)
-- `puzzles/` — 124 puzzle piece images (OS2–OS5)
-- `_headers` — a Cloudflare config file that allows cross-origin access (CORS)
+**🕰️ Pack Opening History & Replay**
+- Rebuild every pack you have ever opened straight from the WAX chain — pack type, date, transaction, and full contents.
+- Gallery overview groups by pack type in the same natural order as the homepage; click a pack to drill into every individual opening.
+- Download your history as JSON and load it back any time; a Clear button removes stale files.
+- History is stored in IndexedDB, and a warning tells you when openings have been recorded since your last download.
+- **Replay** any opening through the full reveal and card-deal animation, with the reveal order shuffled so it feels different every time.
+- Thumbnails are cached locally and served mirror-first for fast reopening.
 
-The app uses this as the primary source for puzzle pieces and holders data, falling back to geepeekay.com if the mirror is unreachable.
+## Sections to revise
 
-## Step-by-step instructions (first-timer friendly)
+**🛡️ Built-in Resistance** — add the **Data mirror** layer (Cloudflare-hosted backup of puzzle scans, pack art and the holders manifest, with geepeekay.com as fallback). Drop "coming soon" from the offline app bundle line since it ships now.
 
-### Step 1 — Download the ZIP from Lovable
+**📦 Pack Openings** — note that Mittens, GameStonk and the Mega/token packs are supported now, and add hover **pack info popups** showing original Topps spec sheets (price, print run, contents, odds) plus variant descriptions in the filter dropdown.
 
-1. In the Lovable editor, click the **file browser** icon (the folder icon in the left sidebar).
-2. Navigate to: `scripts` → `data-mirror-output`.
-3. You'll see `gpk-data.zip` (8.4 MB). Right-click it and choose **Download** (or click the download icon).
-4. Save it somewhere easy to find, like your **Desktop** or **Downloads** folder.
+**🧩 Puzzle Builder** — retitle from "Series 2 Puzzle Builder" to cover the added Series 2 (2nd/3rd printing), Series 3, 4 and 5 puzzles; mention the always-visible reference picture and that pieces stay locked until Scramble is pressed.
 
-### Step 2 — Do NOT unzip (upload the ZIP directly)
+**👁️ Collection Views** — mention the **Retro (1985 scan)** colour-grade toggle for Series 1 & 2, and that Series 2 SimpleAssets cards now show their real mint number in the top ribbon.
 
-The `gpk-data.zip` already has the correct structure: `_headers`, `manifests/`, `packs/`, and `puzzles/` are at the top level of the ZIP (no wrapping `gpk-data/` folder inside it). Cloudflare's upload box only accepts **one** item — a single folder OR a single zip file — so you do **not** unzip it. Just upload the ZIP file as-is.
+**🎛️ Flexibility** — add the **holders dropdown** in View Wallet (top-to-bottom largest holders) and the **Bright** theme skin alongside Dark Cheese.
 
-### Step 3 — Go to Cloudflare and create a new Pages project
+**📂 Import / Export** — add pack history JSON to the list of exportable files.
 
-1. Go to **[dash.cloudflare.com](https://dash.cloudflare.com)** and log into your existing account (the same one you used for the image mirror).
-2. In the left sidebar, click **Workers & Pages** (under "Compute").
-3. Click the **Create** button (top right) or **Create application**.
-4. Choose **Pages** (not Workers).
-5. Choose **Upload assets** (not "Connect to Git").
-6. In the project name field, type: **`gpk-data`**
-   - This determines the URL: `https://gpk-data.pages.dev`
-   - If that name is taken, Cloudflare will add a random suffix — that's fine, just tell me the actual URL later.
-7. Click **Create project**.
+**🤝 Community** — add the footer Donate option (WAX, $CHEESE or packs).
 
-### Step 4 — Upload the ZIP file
+## Technical notes
 
-1. You'll see a "Drop your files here" area.
-2. **Drag the `gpk-data.zip` file directly into this area** — the whole ZIP, not its contents.
-   - Cloudflare only accepts one item (a single folder or a single zip). Dragging the ZIP is the simplest path.
-   - Do not unzip it first. The ZIP's internal structure is already correct (`_headers` at the root, not nested in a folder).
-3. Wait for it to upload and process (8.4 MB — a few seconds).
-4. Click **Deploy site** or **Save and Deploy**.
-
-### Step 5 — Confirm the deployment
-
-1. Cloudflare will show a "Success" screen with your new URL: `https://gpk-data.pages.dev`
-2. Click the URL to open it in a new tab. You should see a directory listing or a 404 (that's normal — there's no `index.html`).
-3. Test a real file: add `manifests/data-mirror-index.json` to the URL:
-   `https://gpk-data.pages.dev/manifests/data-mirror-index.json` — you should see JSON text.
-4. Test CORS: the `_headers` file makes this work. If the JSON loads in your browser, CORS is active.
-
-### Step 6 — Tell me the URL
-
-1. Copy the full URL (including the trailing slash), e.g. `https://gpk-data.pages.dev/`.
-2. Paste it in chat here.
-
-## What happens after you paste the URL
-
-Once you give me the `gpk-data.pages.dev` URL, I will:
-
-1. **Wire it into the app**: Update `src/lib/dataMirror.ts` — set `DATA_MIRROR_URL` to your new URL so the app knows to use it.
-2. **Verify the manifest**: Run the audit script against the new mirror to confirm all 134 files are present and correct sizes.
-3. **Test in the browser**: Open the app, load the puzzle builder, and confirm puzzle pieces and holders data now load from the Cloudflare mirror.
-4. **Update the BackupPanel**: Add a "Data mirror" health-check row showing the new Cloudflare Pages URL and its status (green = online, files verified).
-
-## What NOT to do
-
-- Do **not** unzip the ZIP and then drag multiple files/folders into Cloudflare — it only accepts one item and will throw "only supports uploading a single folder or a single zip file." Upload the ZIP directly.
-- Do **not** delete or touch the existing `gpkonwaxbackup.pages.dev` project — that's the image mirror and is completely separate.
-- Do **not** rename the files or folders inside the zip — the app expects exact paths like `manifests/gpk-topps-holders.json` and `puzzles/os2/piece-01.png`.
+All changes are inside the Info dialog JSX block in `src/pages/Index.tsx` (roughly lines 2504–2636). Same markup patterns (`<h4 className="font-semibold text-cheese ...">` + bulleted `<ul>`) so styling and both themes stay consistent. No other files touched.
