@@ -64,8 +64,60 @@ export const FOODFIGHT_VARIANTS: VariantOption[] = [
   { value: 'golden', label: 'Golden' },
 ];
 
+/** Bernventures (template variants on chain: base, raw, sketch, artistsignature, collector). */
+export const BERNVENTURES_VARIANTS: VariantOption[] = [
+  { value: 'base', label: 'Base' },
+  { value: 'raw', label: 'Raw' },
+  { value: 'sketch', label: 'Sketch' },
+  { value: 'artistssignature', label: "Artist's Signature" },
+  { value: 'collector', label: 'Collectors' },
+];
+
+/** GameStonk! (base, raw, prism, sketch, artistsignature, golden). */
+export const GAMESTONK_VARIANTS: VariantOption[] = [
+  { value: 'base', label: 'Base' },
+  { value: 'raw', label: 'Raw' },
+  { value: 'prism', label: 'Prism' },
+  { value: 'sketch', label: 'Sketch' },
+  { value: 'artistssignature', label: "Artist's Signature" },
+  { value: 'golden', label: 'Golden' },
+];
+
+/** Mittens uses rarity tiers instead of print variants. */
+export const MITTENS_VARIANTS: VariantOption[] = [
+  { value: 'common', label: 'Common' },
+  { value: 'uncommon', label: 'Uncommon' },
+  { value: 'rare', label: 'Rare' },
+  { value: 'epic', label: 'Epic' },
+  { value: 'legendary', label: 'Legendary' },
+];
+
+/** Original Art (base, raw, sketch, artistsignature). */
+export const ORIGINALART_VARIANTS: VariantOption[] = [
+  { value: 'base', label: 'Base' },
+  { value: 'raw', label: 'Raw' },
+  { value: 'sketch', label: 'Sketch' },
+  { value: 'artistssignature', label: "Artist's Signature" },
+];
+
+/** Bonus cards are rarity tagged. */
+export const BONUS_VARIANTS: VariantOption[] = [
+  { value: 'common', label: 'Common' },
+  { value: 'uncommon', label: 'Uncommon' },
+  { value: 'rare', label: 'Rare' },
+];
+
+/** Promo cards (food / sticker promos). */
+export const PROMO_VARIANTS: VariantOption[] = [
+  { value: 'food', label: 'Food' },
+  { value: 'sticker', label: 'Sticker' },
+];
+
 /** Categories that expose a variant multi-select filter. */
-export const VARIANT_CATEGORIES = ['series1', 'series2', 'exotic', 'foodfightb', 'crashgordon'] as const;
+export const VARIANT_CATEGORIES = [
+  'series1', 'series2', 'exotic', 'foodfightb', 'crashgordon',
+  'bernventures', 'gamestonk', 'mittens', 'originalart', 'bonus', 'promo',
+] as const;
 
 export function hasVariants(category: string): boolean {
   return (VARIANT_CATEGORIES as readonly string[]).includes(category);
@@ -78,6 +130,12 @@ export function getVariantsForCategory(category: string): VariantOption[] {
     case 'foodfightb': return FOODFIGHT_VARIANTS;
     case 'crashgordon': return CRASHGORDON_VARIANTS;
     case 'series2': return SERIES2_VARIANTS;
+    case 'bernventures': return BERNVENTURES_VARIANTS;
+    case 'gamestonk': return GAMESTONK_VARIANTS;
+    case 'mittens': return MITTENS_VARIANTS;
+    case 'originalart': return ORIGINALART_VARIANTS;
+    case 'bonus': return BONUS_VARIANTS;
+    case 'promo': return PROMO_VARIANTS;
     default: return [];
   }
 }
