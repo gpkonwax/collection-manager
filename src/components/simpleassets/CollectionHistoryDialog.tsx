@@ -31,8 +31,44 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
   const [playerLoaded, setPlayerLoaded] = useState(false);
   const [playerBlocked, setPlayerBlocked] = useState(false);
   const images = history?.images ?? [];
-  const heroIndex = Math.min(history?.heroImageIndex ?? 0, Math.max(images.length - 1, 0));
+  const configuredHeroIndex = Math.min(history?.heroImageIndex ?? 0, Math.max(images.length - 1, 0));
+  // The hero slot is banner-shaped, so prefer the widest promo art when one is clearly a banner.
+  const [bannerIndex, setBannerIndex] = useState<number | null>(null);
+  const heroIndex = bannerIndex ?? configuredHeroIndex;
   const heroImage = images[heroIndex];
+
+  const imageKey = images.map((i) => i.src).join('|');
+  useEffect(() => {
+    if (!open || images.length === 0) return;
+    let cancelled = false;
+    const sources = images.map((i) => i.src);
+    Promise.all(
+      sources.map(
+        (src) =>
+          new Promise<number>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img.naturalHeight ? img.naturalWidth / img.naturalHeight : 0);
+            img.onerror = () => resolve(0);
+            img.src = src;
+          }),
+      ),
+    ).then((ratios) => {
+      if (cancelled) return;
+      let best = -1;
+      let bestRatio = 0;
+      ratios.forEach((ratio, index) => {
+        if (ratio >= 1.7 && ratio > bestRatio) {
+          bestRatio = ratio;
+          best = index;
+        }
+      });
+      setBannerIndex(best >= 0 ? best : null);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, imageKey]);
+
+
 
 
   // Close the enlarged view on Escape without closing the dialog itself.
