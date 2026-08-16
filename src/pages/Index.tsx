@@ -2758,8 +2758,34 @@ export default function SimpleAssetsPage() {
               </div>
             </div>
 
-            {/* Section C — Puzzle Builder + Draw & Write */}
+            {/* Section C — Feature Highlights (2×2) */}
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* View Any Wallet */}
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
+                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
+                  <span className="text-3xl">👁️</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-cheese mb-2">View Any Wallet</h3>
+                  <p className="text-foreground text-sm theme-bright-text">
+                    Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click. The holders dropdown lists every GPK holder largest-to-smallest, perfect for finding accounts to trade with in the Card & Pack Trading section below.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card & Pack Trading */}
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
+                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
+                  <span className="text-3xl">🔄</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-cheese mb-2">Card & Pack Trading (P2P)</h3>
+                  <p className="text-foreground text-sm theme-bright-text">
+                    Start from the View Any Wallet section above — find the collector you want to trade with, then open the trade composer to propose a card-for-card or pack-for-pack swap. No marketplace, no fees. AtomicAssets uses the official offer system; SimpleAssets uses an eosio.msig multisig swap so both sides execute in one atomic transaction. A green badge on the Trades button counts incoming offers from both protocols; accept, decline, cancel or counter from the Trades dialog.
+                  </p>
+                </div>
+              </div>
+
               {/* Puzzle Builder */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
@@ -2783,35 +2809,6 @@ export default function SimpleAssetsPage() {
                    <p className="text-foreground text-sm theme-bright-text">
                      Switch to pen mode on any card to doodle, scribble or write. Reward your friends and family members with the <span className="text-cheese font-semibold theme-bright-text">'Spaz Award'</span>, permit them the right to stay up late and watch the <span className="text-cheese font-semibold theme-bright-text">Late Late Late Show</span>. Except now after taking a screenshot just press the erase button or close the modal and your cards are as good as new!
                    </p>
-                </div>
-              </div>
-            </div>
-
-            {/* View Any Wallet & Card & Pack Trading */}
-            <div className="max-w-5xl mx-auto space-y-6">
-              {/* View Any Wallet */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
-                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">👁️</span>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-cheese mb-2">View Any Wallet</h3>
-                  <p className="text-foreground text-sm theme-bright-text max-w-2xl">
-                    Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click. The holders dropdown lists every GPK holder largest-to-smallest, perfect for finding accounts to trade with in the Card & Pack Trading section below.
-                  </p>
-                </div>
-              </div>
-
-              {/* Card & Pack Trading */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
-                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">🔄</span>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-cheese mb-2">Card & Pack Trading (P2P)</h3>
-                  <p className="text-foreground text-sm theme-bright-text max-w-2xl">
-                    Start from the View Any Wallet section above — find the collector you want to trade with, then open the trade composer to propose a card-for-card or pack-for-pack swap. No marketplace, no fees. AtomicAssets uses the official offer system; SimpleAssets uses an eosio.msig multisig swap so both sides execute in one atomic transaction. A green badge on the Trades button counts incoming offers from both protocols; accept, decline, cancel or counter from the Trades dialog.
-                  </p>
                 </div>
               </div>
             </div>
