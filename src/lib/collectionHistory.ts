@@ -177,6 +177,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Returning cards brought subjects back from earlier sets; Collector\'s Edition odds scaled with pack size (1% / 4% / 10%).',
       
     ],
+    links: [
+      { label: 'Initial details on the OS2 digital release', url: 'https://gpknews.com/initial-details-on-gpk-x-wax-os-2-digital-release/', kind: 'coverage' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-launches-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
 
