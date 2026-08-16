@@ -1259,6 +1259,23 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, packs, atomicPacks]);
 
+  /** Variants present in the currently selected category (before variant filtering). */
+  const categoryVariantOptions = useMemo(() => {
+    if (categoryFilter === 'all') return [];
+    const values = new Set<string>();
+    for (const a of assets) {
+      if (a.category === 'packs') continue;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      if (effectiveCategory !== categoryFilter) continue;
+      if (sourceFilter !== 'all' && a.source !== sourceFilter) continue;
+      const v = (a.quality || '').toLowerCase();
+      if (v) values.add(v);
+    }
+    return deriveVariantOptions(categoryFilter, values);
+  }, [assets, categoryFilter, sourceFilter]);
+
+  const variantFilterActive = categoryVariantOptions.length > 1;
+
   const filtered = useMemo(() => {
     return assets.filter((a) => {
       if (a.category === 'packs') return false;
@@ -1266,10 +1283,11 @@ export default function SimpleAssetsPage() {
       const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
       if (categoryFilter !== 'all' && effectiveCategory !== categoryFilter) return false;
       if (sourceFilter !== 'all' && a.source !== sourceFilter) return false;
-      if ((categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic' || categoryFilter === 'foodfightb') && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
+      if (variantFilterActive && !variantFilter.includes('all') && !variantFilter.includes(a.quality.toLowerCase())) return false;
       return true;
     });
-  }, [assets, search, categoryFilter, sourceFilter, variantFilter]);
+  }, [assets, search, categoryFilter, sourceFilter, variantFilter, variantFilterActive]);
+
 
   const sortedFiltered = useMemo(() => {
     if (sortMode === 'natural') return filtered;
