@@ -1274,7 +1274,7 @@ export default function SimpleAssetsPage() {
     return deriveVariantOptions(categoryFilter, values);
   }, [assets, categoryFilter, sourceFilter]);
 
-  const variantFilterActive = categoryVariantOptions.length > 1;
+  const variantFilterActive = hasVariants(categoryFilter) || categoryVariantOptions.length > 1;
 
   const filtered = useMemo(() => {
     return assets.filter((a) => {
