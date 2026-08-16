@@ -2794,8 +2794,8 @@ export default function SimpleAssetsPage() {
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Multi-File JSON Import</h3>
                    <p className="text-foreground text-sm theme-bright-text">
-                     Load all your saved collection layouts, price alerts, and puzzle formation in one easy step. Drop multiple JSON files at once — each lands in the right category automatically, with recent imports cached for instant re-apply.
-                   </p>
+                     Load all your saved collection layouts, price alerts, puzzle formation, and pack opening history in one easy step. Drop multiple JSON files at once — each lands in the right category automatically, with recent imports cached for instant re-apply.
+                    </p>
                 </div>
               </div>
 
