@@ -157,6 +157,9 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Checklist: Crash Gordon, Flying Flash, Flush Gordon, Dethroned Ming, Merciless Ming, Noah Mercy, Revolting Vultan, Hawkman Hank, Doctoring Zarkov, Handy Hans.',
       'One of the first GPK sets to appear on the AtomicAssets standard rather than SimpleAssets.',
     ],
+    links: [
+      { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
 
