@@ -6,6 +6,16 @@
 // estimates, because cards were minted on pack-open rather than up front.
 
 import bonyJoanieMega from '@/assets/gpk-mega-bony-joanie.png';
+import promoSeries2Banner from '@/assets/promo-37.png.asset.json';
+import promoFoodFight1 from '@/assets/promo-38.png.asset.json';
+import promoFoodFight2 from '@/assets/promo-39.png.asset.json';
+import promoGameStonk from '@/assets/promo-40.png.asset.json';
+import promoBernventures from '@/assets/promo-41.png.asset.json';
+import promoSeries2Soon from '@/assets/promo-42.png.asset.json';
+import promoExoticNow from '@/assets/promo-43.png.asset.json';
+import promoExoticJettin from '@/assets/promo-44.png.asset.json';
+import promoExoticSoon from '@/assets/promo-45.png.asset.json';
+import promoSeries1Now from '@/assets/promo-46.png.asset.json';
 
 
 
