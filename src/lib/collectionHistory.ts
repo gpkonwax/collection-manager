@@ -16,6 +16,9 @@ import promoExoticNow from '@/assets/promo-43.png.asset.json';
 import promoExoticJettin from '@/assets/promo-44.png.asset.json';
 import promoExoticSoon from '@/assets/promo-45.png.asset.json';
 import promoSeries1Now from '@/assets/promo-46.png.asset.json';
+import promoSeries1Poster from '@/assets/promo-47.png.asset.json';
+import promoSeries1Banner from '@/assets/promo-48.png.asset.json';
+import promoSeries2Phone from '@/assets/promo-49.png.asset.json';
 
 
 
@@ -96,6 +99,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     notes: [
       'Base, Prism, Sketch, Collector\'s Edition and the ultra-rare Gold chase (0.2% in Standard packs, 1% in Mega).',
       'Every card exists in an "a" and "b" name version, exactly like the printed sets.',
+      'Estimated per-card counts published at the time: Base around 908 of each card (74,460 across 82 cards), Prism "b" 487 and Prism "a" 268, Sketch "b" 73 and Sketch "a" 36, and Collector\'s Edition just 5 of each — only 8 names, 40 cards in total.',
+      '100 special Gold cards were randomly awarded to buyers, and there were no purchase limits on the sale.',
+      'Launch day had odd random errors on the site, and there was no built-in marketplace yet — early trading happened on third-party markets, which had over 4,000 cards listed in the first week.',
+      'Early secondary prices: Mega packs reselling for $100+, rare sketches around $600 and prisms $100+.',
       'Because minting happened on pack-open, the earliest openers effectively raced for the low mint numbers — a mechanic Topps later dropped.',
       'This set set the template every later WAX GPK drop followed: a storefront sale, pack odds published up front, and cards living on the SimpleAssets standard.',
       'An alternate Mega Pack wrapper turns up in the original Topps launch promo video: it shows Bony Joanie on the front and reads "25 DIGITAL CARDS • NO GUM" instead of the 30 the Mega Pack actually shipped with. In the same clip, the shop panel beside it lists the Mega Pack as 30 cards. No official explanation was ever published, and this wrapper never appeared in the store; the shipped Mega art and every GPKNews/Topps listing say 30 cards for $24.99.',
@@ -109,6 +116,14 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       {
         src: promoSeries1Now.url,
         caption: 'Topps x WAX "Available Now!" promotional art for Series 1.',
+      },
+      {
+        src: promoSeries1Poster.url,
+        caption: '"Packs Available Now!" poster for toppsgpk.io, showing the four Series 1 rarities: Base, Prism, Sketch and Collector\'s Edition.',
+      },
+      {
+        src: promoSeries1Banner.url,
+        caption: '"Topps cards to the Blockchain!" launch banner for the Topps x WAX partnership.',
       },
     ],
     video: {
@@ -135,16 +150,18 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     tagline:
       'GPK Goes Exotic — the Tiger King parody set, riding the biggest streaming phenomenon of 2020.',
     released:
-      'July 14, 2020 at toppsgpk.io. Standard packs $4.99 (5 cards), Mega packs $19.99 (25 cards), credit/debit only.',
+      'July 14, 2020, 12:00 PM EST at toppsgpk.io. Standard packs $4.99 (5 cards), Mega packs $19.99 (25 cards), credit/debit only. It was originally scheduled for July 8 at 12:00 PM EST, but WAX announced a delay on Twitter with no reason given; it was later put down to a technical problem with a third-party shopping-cart provider, with a promise of 24 hours\' notice before the new date.',
     dropSize:
       '13,000 Standard and 7,000 Mega packs — around 240,000 cards, more than double the Series 1 run. 30 pieces of art (15 subjects with a/b versions), all drawn by GPK artist David Gross, carried over from the three online physical Exotic sets released earlier that year.',
     sellOut:
-      'A much bigger run with no purchase limits, so it did not vanish the way Series 1 did — but demand was solid, helped by Series 1 secondary prices climbing steadily in the two months since May.',
+      'Gone in just over an hour. All 7,000 Mega packs sold in 24 minutes through an early-access window opened at 11:30 EST for Telegram trading-group members with a password, and all 13,000 Standard packs were gone by 12:37 EST.',
     reception:
-      'Warmly received. Collectors who missed Series 1 finally got a shot at packs, and the Tiger King tie-in pulled in buyers from well outside the usual GPK crowd. Telegram trading-group members were given early access to buy.',
+      'Warmly received, but the checkout was a mess: credit and debit cards were declined en masse, payments took up to 30 minutes to process, and the backlog caused oversells so some orders were cancelled and refunded after the fact — which means the true sell-out was probably earlier than the 1:07 PM figure shown at the time. The Tiger King tie-in still pulled in buyers from well outside the usual GPK crowd.',
     notes: [
       'Parallels: Prism, Tiger Stripe and Tiger Claw versions of all 30 cards.',
       'Six rare Collector Edition cards were randomly seeded through packs.',
+      'Estimated per-card counts: Prism "b" 2,386 each, Prism "a" 1,746 each, Tiger Stripe 160 each, Tiger Claw 16 each and Collector Edition 80 each.',
+      'A burn event was announced that would let collectors burn Tiger King base "a" cards for rare sketch cards. It was pushed back to Q1 2021 alongside a new website and never ran.',
       'Print-run figures were published as estimates because cards minted on pack-open — everyone from the first pack to the last had the same odds.',
     ],
     images: [
@@ -174,19 +191,21 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     tagline:
       'A small, strange Flash Gordon parody set that started life as a 7-day online-only physical release.',
     released:
-      'August 28, 2020 on WAX, as the third Topps x WAX GPK drop. The physical version had been sold on Topps.com as a 7-day timed set ($19.99 a set, $179.99 for ten) with the print run only revealed after the sale closed.',
+      'August 2020 on WAX — a surprise launch announced live during the Topps DigiCon Twitch broadcast. 500 packs were given away free at 1:00 PM EST (one per account), then 3,000 packs went on sale at 3:00 PM EST on Atomic Hub for 220 WAX each (about $10), WAX-only, with another 1,500 released later. The physical version had been sold on Topps.com as a 7-day timed set ($19.99 a set, $179.99 for ten) with the print run only revealed after the sale closed.',
     dropSize:
-      '5,000 packs of 5 cards. The set is 10 cards — 5 subjects with a/b versions — celebrating the 40th anniversary of Flash Gordon.',
+      '5,000 packs of 5 cards — 25,000 cards in total. The set is 10 cards — 5 subjects with a/b versions — celebrating the 40th anniversary of Flash Gordon.',
     sellOut:
-      'No original sale price was ever published for the WAX packs, and Topps never released detailed sell-out numbers. With only 5,000 packs it is one of the scarcer digital GPK sets.',
+      'Very fast for a surprise drop: the first batch of 3,000 packs sold out in 3 minutes 18 seconds, and the follow-up batch of 1,200 went in 31 seconds.',
     reception:
       'A quiet, surprise-style launch rather than a headline event. Collectors treated it as a curiosity at first; the tiny checklist and small pack count have made it steadily harder to complete over time.',
     notes: [
       'Checklist: Crash Gordon, Flying Flash, Flush Gordon, Dethroned Ming, Merciless Ming, Noah Mercy, Revolting Vultan, Hawkman Hank, Doctoring Zarkov, Handy Hans.',
+      'Only three card types — Base, Prism and Gold. Odds: 50% "b" Base, 25% "a" Prism, 10% "b" Prism, 1% "a" Gold, 0.5% "b" Gold.',
       'One of the first GPK sets to appear on the AtomicAssets standard rather than SimpleAssets.',
     ],
     links: [
       { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },
+      { label: 'WAX archive on GPKNews', url: 'https://gpknews.com/category/wax/page/2/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
@@ -204,9 +223,13 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Mixed. Demand was strong, but the launch was marred by errors — the first 10 minutes were unbuyable due to a credit-card processor failure, and plenty of collectors reported problems actually opening their packs afterwards. The set itself is well liked; the launch day is remembered as a mess.',
     notes: [
       'Each pack tier had an exclusive parallel: Slime (Standard), Gum (Mega), VHS (Ultimate).',
+      'The release is an 84-card base set plus Chrome OS 2 "Returning Cards" (26) and Chrome "c" name variations (20). Parallels: Raw, Slime, Gum, VHS and Sketch, alongside new Animation and Relic cards and original-art pieces.',
+      'New artists came on board — Nik Castaneda, Chenduz and Brent Scotchmer — with some cards animated and carrying digital autographs.',
+      'Estimated per-card counts: Base a/b/c 2,454 each (104 cards), Returning "a" 2,211 and "b" 1,826, Raw 1,428, Slime 238, Gum 238, VHS 119, Sketch 255 and Collector\'s Edition 31 each across 24 cards.',
       'Topps slipped in unannounced "error" cards, including a badly miscut Spilt Kit and a censored, black-barred Schizo Fran.',
+      'Ahead of launch, Tobin Lent said Topps had "tucked some surprises into the set" and revealed he had asked original GPK artist John Pound to do digital autographs — Pound declined, staying retired.',
       'Returning cards brought subjects back from earlier sets; Collector\'s Edition odds scaled with pack size (1% / 4% / 10%).',
-      
+      'A follow-up Burn 4 Gold event ran December 4–9, 2020: burning OS 2 base cards and opening packs put collectors in line for 80 OS 2 Gold cards across four tiers (40 / 25 / 10 / 5 golds, needing 5 / 10 / 30 / 100 cards burned).',
     ],
     images: [
       {
@@ -217,10 +240,17 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
         src: promoSeries2Soon.url,
         caption: 'The "Coming Soon!" teaser banner released ahead of the Series 2 drop.',
       },
+      {
+        src: promoSeries2Phone.url,
+        caption: 'Topps app promo showing Leaky Lindsay 45a with the Trade and Sell buttons.',
+      },
     ],
     links: [
       { label: 'Initial details on the OS2 digital release', url: 'https://gpknews.com/initial-details-on-gpk-x-wax-os-2-digital-release/', kind: 'coverage' },
+      { label: 'New art a highlight in the OS 2 set', url: 'https://gpknews.com/new-art-a-highlight-in-upcoming-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-launches-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
+      { label: 'Burn for Gold event announced', url: 'https://gpknews.com/topps-announces-burn-for-gold-wax-digital-event/', kind: 'coverage' },
+      { label: 'Topps readies Burn4Gold', url: 'https://gpknews.com/topps-readies-burn4gold-digital-garbage-pail-kids-wax-event/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
@@ -314,7 +344,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     dropSize:
       '11 all-new pieces of art by Nik Castaneda. Redemption packs held 3 "a" cards; the first 10,000 redemption packs were pre-minted, with anything beyond that minted on demand. WinterCon sold 3-card "b" name packs at $9.99, 2,500 packs per day across four days — all four days sold out.',
     sellOut:
-      'Redemption supply was tied to physical box sales rather than a fixed run. The WinterCon daily packs, capped at 2,500 each, sold out for all four days of the convention.',
+      'Redemption supply was tied to physical box sales rather than a fixed run. The WinterCon daily packs, capped at 2,500 each, sold out for all four days of the convention — the first day\'s allocation went in about 17 minutes.',
     reception:
       'Seen as a genuine step forward — Topps finally gave physical collectors a low-friction on-ramp to the blockchain, including account creation at the redemption site. The two-part split ("a" names from redemptions, "b" names only from WinterCon) was the sticking point: completing the set meant taking part in both.',
     notes: [
