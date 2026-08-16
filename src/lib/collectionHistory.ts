@@ -236,6 +236,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Rarities: Base (B Common / A Uncommon), Prismatic (B Rare / A Epic), Sketch (B Rare / A Epic), Raw (Epic), Gold (Legendary) and Signature (Legendary, only on the two new pieces).',
       'No numeric pull rates were ever published.',
     ],
+    links: [
+      { label: 'Topps drop page on AtomicHub', url: 'https://topps.atomichub.io/drops/gpk.topps', kind: 'official' },
+      { label: 'Launch coverage', url: 'https://gpknews.com/topps-digital-launching-garbage-pail-kids-gamestonk-on-wax/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, ONCHAIN],
   },
 
