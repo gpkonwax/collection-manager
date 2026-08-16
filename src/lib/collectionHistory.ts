@@ -86,7 +86,8 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     ],
     video: {
       title: 'Topps Garbage Pail Kids NFTs are now available on the WAX Blockchain!',
-      embedUrl: 'https://www.youtube-nocookie.com/embed/7qXtHSYdm5s?start=20',
+      embedUrl: 'https://www.youtube.com/embed/7qXtHSYdm5s?start=20&rel=0&playsinline=1',
+      thumbnailUrl: 'https://i.ytimg.com/vi/7qXtHSYdm5s/hqdefault.jpg',
       watchUrl: 'https://www.youtube.com/watch?v=7qXtHSYdm5s',
       sourceLabel: 'topps.wdny.io/faq',
       sourceUrl: 'https://topps.wdny.io/faq',
