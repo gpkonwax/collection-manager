@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import {
-  CATEGORY_LABELS, PACKS_CATEGORY, deriveVariantOptions,
+  CATEGORY_LABELS, PACKS_CATEGORY, deriveVariantOptions, getVariantsForCategory, variantDisplayLabel,
   isPacksCategory, normalizeAssetCategory,
 } from '@/lib/gpkCategories';
 import { getGpkVariantRank } from '@/lib/gpkVariant';
@@ -97,7 +97,7 @@ function variantLabelFor(category: string, quality: string): string {
   if (!raw) return '';
   const cat = normalizeAssetCategory((category || '').toLowerCase());
   return getVariantsForCategory(cat).find((v) => v.value === raw)?.label
-    ?? raw.replace(/\b\w/g, (c) => c.toUpperCase());
+    ?? variantDisplayLabel(raw);
 }
 
 /** Protocol logo used in the grid, sized up for the trade header. */
@@ -269,6 +269,7 @@ function AssetPicker({
         {showVariants && (
           <VariantFilterPopover
             category={category}
+            variants={variantOptions}
             value={variants}
             onChange={setVariants}
             className="h-8 text-xs flex-1 min-w-[120px]"
