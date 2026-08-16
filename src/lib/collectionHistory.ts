@@ -5,6 +5,13 @@
 // Figures are best-effort community records — card totals in particular are
 // estimates, because cards were minted on pack-open rather than up front.
 
+export interface CollectionHistoryImage {
+  /** Imported image URL. */
+  src: string;
+  /** Caption shown under the thumbnail and in the enlarged view. */
+  caption: string;
+}
+
 export interface CollectionHistory {
   /** One-line description of the set. */
   tagline: string;
@@ -18,6 +25,8 @@ export interface CollectionHistory {
   reception: string;
   /** Fun facts, oddities, chases. */
   notes: string[];
+  /** Optional supporting images shown with the notes, enlargeable on click. */
+  images?: CollectionHistoryImage[];
   /** Where the details came from. */
   sources: string[];
 }
@@ -28,6 +37,7 @@ const TOPPS_SHOP = 'Topps WAX shop pages & FAQ';
 const ONCHAIN = 'On-chain template and pack data';
 
 export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
+
   series1: {
     tagline:
       'The very first Garbage Pail Kids cards ever put on a blockchain — the Topps x WAX partnership starts here.',
