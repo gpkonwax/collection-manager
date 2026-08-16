@@ -178,7 +178,19 @@ function AssetPicker({
       (CATEGORY_LABELS[x] || x).localeCompare(CATEGORY_LABELS[y] || y));
   }, [assets, packOptions.length]);
 
-  const showVariants = hasVariants(category);
+  /** Variants actually present in this picker for the selected category. */
+  const variantOptions = useMemo(() => {
+    if (category === 'all' || category === PACKS_CATEGORY) return [];
+    const values = new Set<string>();
+    for (const a of assets) {
+      if (normalizeAssetCategory(a.category) !== category) continue;
+      const v = (a.quality || '').toLowerCase();
+      if (v) values.add(v);
+    }
+    return deriveVariantOptions(category, values);
+  }, [assets, category]);
+
+  const showVariants = variantOptions.length > 1;
   const filtersActive = query.trim() !== '' || category !== 'all' || !variants.includes('all');
   /** SimpleAssets packs are token balances, so they get a quantity picker. */
   const showPackQuantities = category === PACKS_CATEGORY && packOptions.length > 0;
@@ -191,7 +203,7 @@ function AssetPicker({
       // Packs stay out of the way until the Packs category is picked.
       if (category === 'all' && isPacksCategory(a.category)) return false;
       if (category !== 'all' && normalizeAssetCategory(a.category) !== category) return false;
-      if (hasVariants(category) && !variants.includes('all')
+      if (showVariants && !variants.includes('all')
         && !variants.includes((a.quality || '').toLowerCase())) return false;
       if (!q) return true;
       return (
