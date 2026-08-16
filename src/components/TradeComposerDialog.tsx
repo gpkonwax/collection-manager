@@ -255,7 +255,7 @@ function AssetPicker({
         className="h-8 text-xs border-cheese/40 theme-bright-border theme-bright-fill"
       />
       <div className="flex flex-wrap gap-1.5">
-        <Select value={category} onValueChange={(v) => { setCategory(v); if (!hasVariants(v)) setVariants(['all']); }}>
+        <Select value={category} onValueChange={(v) => { setCategory(v); setVariants(['all']); }}>
           <SelectTrigger className="h-8 text-xs flex-1 min-w-[120px] border-cheese/40 text-cheese theme-bright-border theme-bright-text theme-bright-fill">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
