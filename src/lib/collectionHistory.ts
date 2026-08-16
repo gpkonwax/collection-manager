@@ -16,6 +16,20 @@ export interface CollectionHistoryImage {
   caption: string;
 }
 
+export interface CollectionHistoryVideo {
+  /** Human-readable title of the clip. */
+  title: string;
+  /** Privacy-friendly embed URL used for the in-app preview player. */
+  embedUrl: string;
+  /** Canonical watch URL for the "open on YouTube" link. */
+  watchUrl: string;
+  /** Where the video was found, shown as a source link. */
+  sourceLabel: string;
+  sourceUrl: string;
+  /** Short note explaining why the clip matters. */
+  note?: string;
+}
+
 export interface CollectionHistory {
   /** One-line description of the set. */
   tagline: string;
@@ -31,9 +45,12 @@ export interface CollectionHistory {
   notes: string[];
   /** Optional supporting images shown with the notes, enlargeable on click. */
   images?: CollectionHistoryImage[];
+  /** Optional supporting video, playable inline or on YouTube. */
+  video?: CollectionHistoryVideo;
   /** Where the details came from. */
   sources: string[];
 }
+
 
 const GPKNEWS = 'GPKNews.com launch coverage';
 const GEEPEEKAY = 'geepeekay.com digital release timeline';
@@ -58,16 +75,25 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Every card exists in an "a" and "b" name version, exactly like the printed sets.',
       'Because minting happened on pack-open, the earliest openers effectively raced for the low mint numbers — a mechanic Topps later dropped.',
       'This set set the template every later WAX GPK drop followed: a storefront sale, pack odds published up front, and cards living on the SimpleAssets standard.',
-      'An alternate Mega Pack wrapper turns up in some of the early Topps promo videos and pre-launch marketing: it shows Bony Joanie on the front and reads "25 CARDS" instead of the 30 the Mega Pack actually shipped with. No official explanation was ever published, and it never appeared in the store — the shipped Mega art and every GPKNews/Topps listing say 30 cards for $24.99. The most likely story is simply that it is a pre-launch mock-up made before the pack contents were locked; 25 was the count Topps went on to use for both the Exotic ($19.99) and Series 2 ($24.99) Mega Packs, so the artwork may have been drafted against an earlier plan or recycled from the same template. Treat it as an unverified collector curiosity rather than a documented error card.',
+      'An alternate Mega Pack wrapper turns up in the original Topps launch promo video: it shows Bony Joanie on the front and reads "25 DIGITAL CARDS • NO GUM" instead of the 30 the Mega Pack actually shipped with — and in the very same clip, the shop panel beside it lists the Mega Pack as 30 cards. No official explanation was ever published, and this wrapper never appeared in the store; the shipped Mega art and every GPKNews/Topps listing say 30 cards for $24.99. The most likely story is simply that it is a pre-launch mock-up made before the pack contents were locked; 25 was the count Topps went on to use for both the Exotic ($19.99) and Series 2 ($24.99) Mega Packs, so the artwork may have been drafted against an earlier plan or recycled from the same template. Treat it as an unverified collector curiosity rather than a documented error card.',
     ],
     images: [
       {
         src: bonyJoanieMega,
         caption:
-          'The alternate Series 1 Mega Pack wrapper from the early Topps promo footage — Bony Joanie on the front, "25 DIGITAL CARDS • NO GUM". The shipped Mega Pack used different art and 30 cards. Unverified pre-launch mock-up.',
+          'The alternate Series 1 Mega Pack wrapper as it appears in the Topps launch promo video (around 0:26) — Bony Joanie on the front, "25 DIGITAL CARDS • NO GUM". The shipped Mega Pack used different art and 30 cards. Unverified pre-launch mock-up.',
       },
     ],
+    video: {
+      title: 'Topps Garbage Pail Kids NFTs are now available on the WAX Blockchain!',
+      embedUrl: 'https://www.youtube-nocookie.com/embed/7qXtHSYdm5s?start=20',
+      watchUrl: 'https://www.youtube.com/watch?v=7qXtHSYdm5s',
+      sourceLabel: 'topps.wdny.io/faq',
+      sourceUrl: 'https://topps.wdny.io/faq',
+      note: 'The alternate Bony Joanie Mega wrapper is on screen around 0:26. Found embedded on the original Topps GPK FAQ page.',
+    },
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
+
 
   },
 
