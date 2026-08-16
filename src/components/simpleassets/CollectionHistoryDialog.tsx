@@ -97,14 +97,36 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
               <Section title="🎬 Watch the original promo">
                 <p className="mb-2">{history.video.note}</p>
                 {playing ? (
-                  <div className="aspect-video w-full overflow-hidden rounded-md border border-border">
+                  <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border bg-black">
                     <iframe
+                      key={history.video.embedUrl}
                       src={`${history.video.embedUrl}${history.video.embedUrl.includes('?') ? '&' : '?'}autoplay=1`}
                       title={history.video.title}
-                      className="h-full w-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      className="absolute inset-0 h-full w-full"
+                      loading="lazy"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      onLoad={() => setPlayerLoaded(true)}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                       allowFullScreen
                     />
+                    {!playerLoaded && (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-white/70">
+                        Loading player…
+                      </div>
+                    )}
+                    {playerBlocked && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/85 p-4 text-center text-xs text-white">
+                        <span>The embedded player couldn’t load here (browser or extension blocked it).</span>
+                        <a
+                          href={history.video.watchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full bg-cheese px-3 py-1.5 font-semibold text-cheese-foreground"
+                        >
+                          Watch on YouTube <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -113,10 +135,20 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
                     className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30 hover:border-cheese transition-colors"
                     aria-label="Play the promo video here"
                   >
-                    <span className="flex items-center gap-2 rounded-full bg-cheese px-4 py-2 text-sm font-semibold text-cheese-foreground theme-bright-fill theme-bright-text">
+                    {history.video.thumbnailUrl && (
+                      <img
+                        src={history.video.thumbnailUrl}
+                        alt=""
+                        aria-hidden
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="absolute inset-0 h-full w-full object-cover opacity-70 transition-opacity group-hover:opacity-90"
+                      />
+                    )}
+                    <span className="relative flex items-center gap-2 rounded-full bg-cheese px-4 py-2 text-sm font-semibold text-cheese-foreground theme-bright-fill theme-bright-text">
                       <Play className="h-4 w-4" /> Play preview
                     </span>
-                    <span className="absolute bottom-2 left-3 right-3 truncate text-left text-xs text-muted-foreground theme-bright-text-muted">
+                    <span className="absolute bottom-2 left-3 right-3 truncate text-left text-xs text-white/90 drop-shadow">
                       {history.video.title}
                     </span>
                   </button>
