@@ -92,6 +92,56 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
               )}
             </Section>
 
+            {history.video && (
+              <Section title="🎬 Watch the original promo">
+                <p className="mb-2">{history.video.note}</p>
+                {playing ? (
+                  <div className="aspect-video w-full overflow-hidden rounded-md border border-border">
+                    <iframe
+                      src={`${history.video.embedUrl}${history.video.embedUrl.includes('?') ? '&' : '?'}autoplay=1`}
+                      title={history.video.title}
+                      className="h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setPlaying(true)}
+                    className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30 hover:border-cheese transition-colors"
+                    aria-label="Play the promo video here"
+                  >
+                    <span className="flex items-center gap-2 rounded-full bg-cheese px-4 py-2 text-sm font-semibold text-cheese-foreground theme-bright-fill theme-bright-text">
+                      <Play className="h-4 w-4" /> Play preview
+                    </span>
+                    <span className="absolute bottom-2 left-3 right-3 truncate text-left text-xs text-muted-foreground theme-bright-text-muted">
+                      {history.video.title}
+                    </span>
+                  </button>
+                )}
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                  <a
+                    href={history.video.watchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-cheese hover:underline"
+                  >
+                    Watch on YouTube <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <a
+                    href={history.video.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-muted-foreground theme-bright-text-muted hover:underline"
+                  >
+                    Found on {history.video.sourceLabel} <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </Section>
+            )}
+
+
             <p className="text-xs text-muted-foreground theme-bright-text-muted border-t border-border pt-3">
               Sources: {history.sources.join(' · ')}. Figures are best-effort community records — most card
               totals are estimates, because cards were minted when packs were opened rather than up front.
