@@ -262,7 +262,7 @@ export function useIpfsMedia(
     setLocalExtractFailed(false);
     const immediate = hash ? resolveLocalMirror(hash) : null;
     setExtractedLocalUrl(immediate);
-    if (!hash || !hasLocalMirrorEntry(hash)) {
+    if (!hash || !hasLocalMirrorEntry(hash) || !enabled) {
       setLocalPending(false);
       return;
     }
@@ -286,7 +286,7 @@ export function useIpfsMedia(
       cancelled = true;
       if (acquired) releaseLocalMirror(hash);
     };
-  }, [hash, localGeneration]);
+  }, [hash, localGeneration, enabled]);
 
   const localMirrorUrl = extractedLocalUrl ?? cachedLocalUrl;
 

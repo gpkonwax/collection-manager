@@ -218,7 +218,9 @@ export async function ingestMirrorZipBatch(sources: Array<File | Blob>): Promise
     for (let i = 0; i < sources.length; i += 1) {
       const source = sources[i];
       const name = source instanceof File ? source.name : `ZIP part ${i + 1}`;
-      const reader = new ZipReader(new BlobReader(source), { useWebWorkers: true });
+      // Main-thread random access also works from file:// offline bundles; web
+      // workers can be blocked there by browser origin/CORS rules.
+      const reader = new ZipReader(new BlobReader(source), { useWebWorkers: false });
       newReaders.push(reader);
       const entries = await reader.getEntries();
       let fileCount = 0;

@@ -245,7 +245,9 @@ export async function preloadRevealImage(
     const winner = await raceCandidateGroup(group.candidates, group.timeout, signal);
     if (winner) {
       const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-      if (acquiredLocal) releaseLocalMirror(hash);
+      // Keep the Blob URL pinned through the reveal/deal animation, then make
+      // it eligible for bounded-cache eviction.
+      if (acquiredLocal) setTimeout(() => releaseLocalMirror(hash), 60_000);
       return { url: winner.url, label: winner.label, elapsedMs: now - startedAt };
     }
   }
