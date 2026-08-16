@@ -58,6 +58,8 @@ export interface CollectionHistory {
   images?: CollectionHistoryImage[];
   /** Optional supporting video, playable inline or on YouTube. */
   video?: CollectionHistoryVideo;
+  /** WAX/Topps-specific pages for this collection, shown at the bottom of the story. */
+  links?: CollectionHistoryLink[];
   /** Where the details came from. */
   sources: string[];
 }
