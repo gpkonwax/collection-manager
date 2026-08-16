@@ -2528,29 +2528,6 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔄</span> Card &amp; Pack Trading (P2P)</h4>
-                <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Propose card-for-card or pack-for-pack trades directly with any WAX account — no marketplace, no fees.</li>
-                  <li><strong>Protocol-locked:</strong> AtomicAssets trades AtomicAssets, SimpleAssets trades SimpleAssets — never mixed.</li>
-                  <li>AtomicAssets uses the official atomicassets offer system. SimpleAssets uses an <span className="font-mono">eosio.msig</span> multisig swap, so both sides execute in one atomic transaction — no escrow, no custom contract, and nobody can take a card and walk away.</li>
-                  <li>Consistent wording throughout: the left side is <strong>You send</strong>, the right side is <strong>They send back</strong>.</li>
-                  <li>The trade composer has the same filtering as the homepage — series, variant (including <strong>Packs</strong>), sort and search — and every card shows its mint-number ribbon, card ID, variant and series.</li>
-                  <li>The Trades dialog merges both protocols into <strong>Received</strong> and <strong>Sent</strong> tabs, with protocol badges, stale-offer flags, and accept / decline / cancel / counter.</li>
-                  <li>A green number badge on the Trades button counts unread incoming offers from both protocols; opening the dialog clears it.</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🕰️</span> Pack Opening History &amp; Replay</h4>
-                <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Rebuild every pack you have ever opened straight from the WAX chain — pack type, date, transaction and full contents.</li>
-                  <li>The gallery overview groups openings by pack type in the same natural order as the homepage; click a pack to drill into every individual opening.</li>
-                  <li>Download your history as a JSON file and load it back any time; a Clear button removes stale files.</li>
-                  <li>History is stored in IndexedDB, and a warning tells you when new openings have been recorded since your last download.</li>
-                  <li><strong>Replay</strong> any opening through the full reveal and card-deal animation — the reveal order is shuffled so it feels different every time.</li>
-                  <li>Thumbnails are cached locally and served mirror-first, so reopening the history is instant.</li>
-                </ul>
-              </div>
-              <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection as it is. Supports pagination for large collections and instant search across all card names.</li>
@@ -2575,6 +2552,17 @@ export default function SimpleAssetsPage() {
                 </ul>
               </div>
               <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🕰️</span> Pack Opening History &amp; Replay</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Rebuild every pack you have ever opened straight from the WAX chain — pack type, date, transaction and full contents.</li>
+                  <li>The gallery overview groups openings by pack type in the same natural order as the homepage; click a pack to drill into every individual opening.</li>
+                  <li>Download your history as a JSON file and load it back any time; a Clear button removes stale files.</li>
+                  <li>History is stored in IndexedDB, and a warning tells you when new openings have been recorded since your last download.</li>
+                  <li><strong>Replay</strong> any opening through the full reveal and card-deal animation — the reveal order is shuffled so it feels different every time.</li>
+                  <li>Thumbnails are cached locally and served mirror-first, so reopening the history is instant.</li>
+                </ul>
+              </div>
+              <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🎛️</span> Flexibility</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
                   <li>Unified view for <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> — your entire GPK collection in one place regardless of which contract holds them.</li>
@@ -2585,6 +2573,18 @@ export default function SimpleAssetsPage() {
                   <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
                   <li><strong>Holders dropdown</strong> — the View Wallet box lists every GPK holder, largest to smallest, so you can browse any collection without typing an account name.</li>
                   <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme matching geepeekay.com — switch any time from the header.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🔄</span> Card &amp; Pack Trading (P2P)</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Propose card-for-card or pack-for-pack trades directly with any WAX account — no marketplace, no fees.</li>
+                  <li><strong>Protocol-locked:</strong> AtomicAssets trades AtomicAssets, SimpleAssets trades SimpleAssets — never mixed.</li>
+                  <li>AtomicAssets uses the official atomicassets offer system. SimpleAssets uses an <span className="font-mono">eosio.msig</span> multisig swap, so both sides execute in one atomic transaction — no escrow, no custom contract, and nobody can take a card and walk away.</li>
+                  <li>Consistent wording throughout: the left side is <strong>You send</strong>, the right side is <strong>They send back</strong>.</li>
+                  <li>The trade composer has the same filtering as the homepage — series, variant (including <strong>Packs</strong>), sort and search — and every card shows its mint-number ribbon, card ID, variant and series.</li>
+                  <li>The Trades dialog merges both protocols into <strong>Received</strong> and <strong>Sent</strong> tabs, with protocol badges, stale-offer flags, and accept / decline / cancel / counter.</li>
+                  <li>A green number badge on the Trades button counts unread incoming offers from both protocols; opening the dialog clears it.</li>
                 </ul>
               </div>
               <div>
