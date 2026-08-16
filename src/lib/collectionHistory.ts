@@ -257,6 +257,11 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'WinterCon odds: 59.83% Base, 26.58% Prism, 11.67% Sketch, 1.83% Artist Signature, 0.08% Golden.',
       'The digital checklist is completely different art from the physical Food Fight cards.',
     ],
+    links: [
+      { label: 'Official site: toppsgpk.io', url: 'https://toppsgpk.io/', kind: 'official' },
+      { label: 'Press release: coming to Walmart and Target', url: 'https://www.globenewswire.com/news-release/2021/02/22/2179668/0/en/Coming-to-Walmart-and-Target-WAX-Digital-Cards-from-Topps.html', kind: 'official' },
+      { label: 'Retail launch coverage', url: 'https://news.bitcoin.com/topps-garbage-pail-kids-blockchain-collectibles-can-be-bought-at-target-and-walmarts/', kind: 'coverage' },
+    ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
 
