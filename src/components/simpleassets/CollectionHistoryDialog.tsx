@@ -85,7 +85,7 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
   }, [zoomed]);
 
   useEffect(() => {
-    if (!open) { setZoomed(null); setPlaying(false); setPlayerLoaded(false); setPlayerBlocked(false); }
+    if (!open) { setZoomed(null); setPlaying(false); setPlayerLoaded(false); setPlayerBlocked(false); setBannerIndex(null); }
   }, [open]);
 
   // If the embed never loads (blocker / restrictive frame policy), surface a link out.
