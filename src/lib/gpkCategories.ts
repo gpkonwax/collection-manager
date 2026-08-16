@@ -236,10 +236,80 @@ export const VARIANT_DESCRIPTIONS: Record<string, Record<string, string>> = {
     collector: 'Super rare cards with special animations; 3 characters available in "A" and "B" name.',
     golden: 'Golden Cards were cards sent to winners of special promotions.',
   },
+  crashgordon: {
+    base: 'Standard static Crash Gordon cards — the common pull, included in every pack.',
+    prism: 'Uncommon cards that feature a prismatic sheen effect over the original art.',
+    golden: 'Golden Cards, the rarest Crash Gordon chase pull.',
+  },
+  foodfightb: {
+    base: 'Standard static Food Fight cards, included in every pack.',
+    prism: 'Uncommon cards that feature a prismatic sheen effect.',
+    sketch: 'Rare cards that feature an animated transition from original sketches to final art.',
+    artistssignature: "Super rare cards hand-signed by the artist, showing the artist's signature on the card.",
+    golden: 'Golden Cards were cards sent to winners of special promotions.',
+  },
+  bernventures: {
+    base: 'Standard static Bernventures cards — the common pull, included in every pack.',
+    raw: 'Uncommon cards featuring the raw, uncoloured line art.',
+    sketch: 'Rare cards that feature an animated transition from original sketches to final art.',
+    artistssignature: "Super rare cards showing the artist's signature on the card.",
+    collector: 'Collector cards with special animations — the rarest Bernventures pull.',
+  },
+  gamestonk: {
+    base: 'Standard static GameStonk! cards, included in every pack.',
+    raw: 'Uncommon cards featuring the raw, uncoloured line art.',
+    prism: 'Uncommon cards that feature a prismatic sheen effect.',
+    sketch: 'Rare cards that feature an animated transition from original sketches to final art.',
+    artistssignature: "Super rare cards showing the artist's signature on the card.",
+    golden: 'Golden Cards, the rarest GameStonk! chase pull.',
+  },
+  originalart: {
+    base: 'Standard static Original Art cards, the common pull of the set.',
+    raw: 'Uncommon cards featuring the raw, uncoloured line art.',
+    sketch: 'Rare cards that feature an animated transition from original sketches to final art.',
+    artistssignature: "Super rare cards showing the artist's signature on the card.",
+  },
+  mittens: {
+    common: 'The most widely printed Mittens cards — the standard pull.',
+    uncommon: 'Less common Mittens cards, a step up from the common tier.',
+    rare: 'Rare Mittens cards with a much lower print run.',
+    epic: 'Epic Mittens cards — one of the toughest tiers to pull.',
+    legendary: 'Legendary Mittens cards, the rarest tier in the set.',
+  },
+  bonus: {
+    common: 'Bonus cards handed out alongside the main sets.',
+    uncommon: 'Less common bonus cards with a lower print run.',
+    rare: 'Rare bonus cards, the hardest of the bonus drops to find.',
+  },
+  promo: {
+    food: 'Promotional food-themed card issued outside the standard packs.',
+    sticker: 'Promotional sticker card issued outside the standard packs.',
+  },
+};
+
+/** Fallback wording used when a category has no bespoke text for a variant. */
+const GENERIC_VARIANT_DESCRIPTIONS: Record<string, string> = {
+  base: 'Standard static cards — the common pull, included in every pack.',
+  raw: 'Uncommon cards featuring the raw, uncoloured line art.',
+  prism: 'Uncommon cards that feature a prismatic sheen effect.',
+  sketch: 'Rare cards that feature an animated transition from original sketches to final art.',
+  artistssignature: "Super rare cards showing the artist's signature on the card.",
+  collector: 'Collector cards with special animations — among the rarest pulls.',
+  golden: 'Golden Cards were cards sent to winners of special promotions.',
+  relic: 'Relic cards tied to a physical or one-of-a-kind collectible.',
+  error: 'Error cards — misprints and mistakes that made it on-chain.',
+  originalart: 'Cards showing the original artwork behind the printed card.',
+  promo: 'Promotional cards issued outside the standard packs.',
+  returning: 'Cards with reimagined art of characters returning from earlier series.',
+  common: 'The most widely printed cards in the set — the standard pull.',
+  uncommon: 'Less common cards, a step up from the common tier.',
+  rare: 'Rare cards with a much lower print run.',
+  epic: 'Epic cards — one of the toughest tiers to pull.',
+  legendary: 'Legendary cards, the rarest tier in the set.',
 };
 
 export function getVariantDescription(category: string, variant: string): string | undefined {
-  return VARIANT_DESCRIPTIONS[category]?.[variant];
+  return VARIANT_DESCRIPTIONS[category]?.[variant] ?? GENERIC_VARIANT_DESCRIPTIONS[variant];
 }
 
 const SCHEMA_TO_CATEGORY: Record<string, string> = {
