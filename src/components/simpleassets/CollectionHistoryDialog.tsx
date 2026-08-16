@@ -189,6 +189,30 @@ export function CollectionHistoryDialog({ categoryKey, categoryLabel, open, onOp
               </Section>
             )}
 
+            {history.links && history.links.length > 0 && (
+              <Section title="🔗 Links">
+                <ul className="space-y-1.5">
+                  {history.links.map((link) => (
+                    <li key={link.url} className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold text-cheese hover:underline"
+                      >
+                        {link.label} <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground theme-bright-text-muted">
+                        {link.kind === 'official' ? 'Official' : 'Coverage'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            )}
+
+
+
 
             <p className="text-xs text-muted-foreground theme-bright-text-muted border-t border-border pt-3">
               Sources: {history.sources.join(' · ')}. Figures are best-effort community records — most card
