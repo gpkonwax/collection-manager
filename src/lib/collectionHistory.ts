@@ -152,7 +152,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Each pack tier had an exclusive parallel: Slime (Standard), Gum (Mega), VHS (Ultimate).',
       'Topps slipped in unannounced "error" cards, including a badly miscut Spilt Kit and a censored, black-barred Schizo Fran.',
       'Returning cards brought subjects back from earlier sets; Collector\'s Edition odds scaled with pack size (1% / 4% / 10%).',
-      'Complete the Messy Tessie puzzle from this set in the Puzzle Builder to unlock the full run of classic GPK puzzles.',
+      
     ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
