@@ -2768,7 +2768,7 @@ export default function SimpleAssetsPage() {
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
                    <p className="text-foreground text-sm theme-bright-text">
-                     Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder auto-populates your collected pieces onto a free-form canvas where you can drag, rotate, and arrange them. Scramble them, line them up, and save your progress as JSON. Collect all 18 pieces of the <span className="text-cheese font-semibold theme-bright-text">Messy Tessie</span> Series 2 puzzle and you unlock the full set of classic GPK puzzles — the Series 2 second/third printings, both Series 3 puzzles, Series 4, and both Series 5 puzzles — all playable in the same builder.
+                     Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder auto-populates your collected pieces onto a free-form canvas where you can drag, rotate, and arrange them. Scramble them, line them up, and save your progress as JSON. Collect all 18 pieces of the <span className="text-cheese font-semibold theme-bright-text">Messy Tessie</span> Series 2 puzzle and you unlock the full set of classic GPK puzzles.
                    </p>
                 </div>
               </div>
