@@ -16,6 +16,20 @@ export interface CollectionHistoryImage {
   caption: string;
 }
 
+export interface CollectionHistoryVideo {
+  /** Human-readable title of the clip. */
+  title: string;
+  /** Privacy-friendly embed URL used for the in-app preview player. */
+  embedUrl: string;
+  /** Canonical watch URL for the "open on YouTube" link. */
+  watchUrl: string;
+  /** Where the video was found, shown as a source link. */
+  sourceLabel: string;
+  sourceUrl: string;
+  /** Short note explaining why the clip matters. */
+  note?: string;
+}
+
 export interface CollectionHistory {
   /** One-line description of the set. */
   tagline: string;
@@ -31,9 +45,12 @@ export interface CollectionHistory {
   notes: string[];
   /** Optional supporting images shown with the notes, enlargeable on click. */
   images?: CollectionHistoryImage[];
+  /** Optional supporting video, playable inline or on YouTube. */
+  video?: CollectionHistoryVideo;
   /** Where the details came from. */
   sources: string[];
 }
+
 
 const GPKNEWS = 'GPKNews.com launch coverage';
 const GEEPEEKAY = 'geepeekay.com digital release timeline';
