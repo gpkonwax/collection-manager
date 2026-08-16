@@ -147,6 +147,20 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Six rare Collector Edition cards were randomly seeded through packs.',
       'Print-run figures were published as estimates because cards minted on pack-open — everyone from the first pack to the last had the same odds.',
     ],
+    images: [
+      {
+        src: promoExoticNow.url,
+        caption: 'GPK Goes Exotic "Available Now!" promotional art.',
+      },
+      {
+        src: promoExoticSoon.url,
+        caption: 'The "Coming Soon!" teaser banner released ahead of the Exotic drop.',
+      },
+      {
+        src: promoExoticJettin.url,
+        caption: 'Jettin\' James single-card promotional art from the Exotic campaign.',
+      },
+    ],
     links: [
       { label: 'Press release: sold out in 67 minutes', url: 'https://www.globenewswire.com/news-release/2020/07/16/2062972/0/en/Topps-GPK-Goes-Exotic-Digital-Trading-Cards-Makes-Blockchain-History-on-WAX-Selling-Out-in-67-Minutes.html', kind: 'official' },
       { label: 'WAX.io announcement', url: 'https://medium.com/wax-io/topps-gpk-goes-exotic-trading-cards-are-now-on-the-wax-blockchain-e77f1356c627', kind: 'official' },
@@ -194,6 +208,16 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Returning cards brought subjects back from earlier sets; Collector\'s Edition odds scaled with pack size (1% / 4% / 10%).',
       
     ],
+    images: [
+      {
+        src: promoSeries2Banner.url,
+        caption: 'Topps x WAX Series 2 promotional banner.',
+      },
+      {
+        src: promoSeries2Soon.url,
+        caption: 'The "Coming Soon!" teaser banner released ahead of the Series 2 drop.',
+      },
+    ],
     links: [
       { label: 'Initial details on the OS2 digital release', url: 'https://gpknews.com/initial-details-on-gpk-x-wax-os-2-digital-release/', kind: 'coverage' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-launches-garbage-pail-kids-x-wax-os-2-digital-set/', kind: 'coverage' },
@@ -217,6 +241,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'The real hook was the burn event: Base b = 1 point, Base a = 2, Sketch = 5, Raw = 20, Signature = 150. Burning ran until February 1, 2021.',
       'Points earned in the burn event were exchanged for Mitten packs — see the Mittens collection.',
       'Sold in WAX tokens only, on the AtomicAssets standard.',
+    ],
+    images: [
+      {
+        src: promoBernventures.url,
+        caption: 'Bernventures promotional art from gpkbernventures.com.',
+      },
     ],
     links: [
       { label: 'gpkbernventures.com — the original sale site', url: 'https://gpkbernventures.com/', kind: 'official' },
@@ -263,6 +293,12 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Rarities: Base (B Common / A Uncommon), Prismatic (B Rare / A Epic), Sketch (B Rare / A Epic), Raw (Epic), Gold (Legendary) and Signature (Legendary, only on the two new pieces).',
       'No numeric pull rates were ever published.',
     ],
+    images: [
+      {
+        src: promoGameStonk.url,
+        caption: 'GameStonk! promotional banner from the February 2021 AtomicHub drop.',
+      },
+    ],
     links: [
       { label: 'Topps drop page on AtomicHub', url: 'https://topps.atomichub.io/drops/gpk.topps', kind: 'official' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-digital-launching-garbage-pail-kids-gamestonk-on-wax/', kind: 'coverage' },
@@ -287,6 +323,16 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Five rarities: Base, Prism, Sketch, Artist Autograph and Golden.',
       'WinterCon odds: 59.83% Base, 26.58% Prism, 11.67% Sketch, 1.83% Artist Signature, 0.08% Golden.',
       'The digital checklist is completely different art from the physical Food Fight cards.',
+    ],
+    images: [
+      {
+        src: promoFoodFight1.url,
+        caption: 'Topps Digital "Available February 24th!" promo art for GPK Food Fight.',
+      },
+      {
+        src: promoFoodFight2.url,
+        caption: 'A second Food Fight promotional frame showing Bobby Wasabi and friends.',
+      },
     ],
     links: [
       { label: 'Official site: toppsgpk.io', url: 'https://toppsgpk.io/', kind: 'official' },
