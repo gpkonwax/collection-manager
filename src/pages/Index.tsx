@@ -2543,6 +2543,7 @@ export default function SimpleAssetsPage() {
                   <li>Multi-account support: add multiple WAX accounts and switch between them instantly.</li>
                   <li>Filter by any GPK sub-collection (Series 1, Series 2, Crash Gordon, Tiger King, etc.).</li>
                   <li>Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold, and more.</li>
+                  <li>Variant descriptions appear in the filter dropdown, so you always know what a Prism, Sketch, VHS or Slime card actually is.</li>
                   <li>Multiple sort options: natural order, name, variant rarity, and recently received.</li>
                   <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
                   <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme inspired by geepeekay.com — switch any time from the header.</li>
@@ -2557,7 +2558,7 @@ export default function SimpleAssetsPage() {
                   <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions with an option to skip animation</li>
                   <li>Immersive sound design — packs shake, packs rip, and card reveal noises synchronized to the animations. When the cards are dealt listen to your new cards fuse to your collection</li>
                   <li><strong>Pack info popups</strong> — hover any pack to see the original Topps spec sheet: release date, original price, contents, print run and the published odds for each hit.</li>
-                  <li>Variant descriptions appear in the filter dropdown, so you always know what a Prism, Sketch, VHS or Slime card actually is.</li>
+                  
                   <li>View your SimpleAssets packs using the original placeholder artwork.</li>
                 </ul>
               </div>
