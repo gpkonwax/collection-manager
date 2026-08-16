@@ -2786,15 +2786,15 @@ export default function SimpleAssetsPage() {
                 </div>
               </div>
 
-              {/* Puzzle Builder */}
+              {/* Multi-File JSON Import */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">🧩</span>
+                  <span className="text-3xl">📂</span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-cheese mb-2">Series 2 Puzzle Builder</h3>
+                  <h3 className="text-xl font-bold text-cheese mb-2">Multi-File JSON Import</h3>
                    <p className="text-foreground text-sm theme-bright-text">
-                     Series 2 cards contain hidden puzzle pieces on their backs. The Puzzle Builder auto-populates your collected pieces onto a free-form canvas where you can drag, rotate, and arrange them. Scramble them, line them up, and save your progress as JSON. Collect all 18 pieces of the <span className="text-cheese font-semibold theme-bright-text">Messy Tessie</span> Series 2 puzzle and you unlock the full set of classic GPK puzzles.
+                     Load all your saved collection layouts, price alerts, and puzzle formation in one easy step. Drop multiple JSON files at once — each lands in the right category automatically, with recent imports cached for instant re-apply.
                    </p>
                 </div>
               </div>
@@ -2843,9 +2843,9 @@ export default function SimpleAssetsPage() {
                   description="Set up to 5 price alerts across your entire collection on any missing card. Get pinged the moment a listing drops below your target — never miss a deal on that one card you've been hunting."
                 />
                 <FeatureCard
-                  icon={<span className="text-2xl">📂</span>}
-                  title="Multi-File JSON Import"
-                  description="Load all your saved collection layouts, price alerts, and puzzle formation in one easy step. Drop multiple JSON files at once — each lands in the right category automatically, with recent imports cached for instant re-apply."
+                  icon={<span className="text-2xl">🧩</span>}
+                  title="Series 2 Puzzle Builder"
+                  description="Series 2 cards contain hidden puzzle pieces on their backs. Auto-populate your collected pieces onto a free-form canvas — drag, rotate, and arrange them. Collect all 18 pieces of the Messy Tessie puzzle to unlock the full set of classic GPK puzzles."
                 />
                 <FeatureCard
                   icon={<span className="text-2xl">🔥</span>}
