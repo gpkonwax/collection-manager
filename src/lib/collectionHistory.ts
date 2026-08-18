@@ -6,20 +6,20 @@
 // estimates, because cards were minted on pack-open rather than up front.
 
 import bonyJoanieMega from '@/assets/gpk-mega-bony-joanie.png';
-import promoSeries2Banner from '@/assets/promo-37.png.asset.json';
-import promoFoodFight1 from '@/assets/promo-38.png.asset.json';
-import promoFoodFight2 from '@/assets/promo-39.png.asset.json';
-import promoGameStonk from '@/assets/promo-40.png.asset.json';
-import promoBernventures from '@/assets/promo-41.png.asset.json';
-import promoSeries2Soon from '@/assets/promo-42.png.asset.json';
-import promoExoticNow from '@/assets/promo-43.png.asset.json';
-import promoExoticJettin from '@/assets/promo-44.png.asset.json';
-import promoExoticSoon from '@/assets/promo-45.png.asset.json';
-import promoSeries1Now from '@/assets/promo-46.png.asset.json';
-import promoSeries1Poster from '@/assets/promo-47.png.asset.json';
-import promoSeries1Banner from '@/assets/promo-48.png.asset.json';
-import promoSeries2Phone from '@/assets/promo-49.png.asset.json';
-import promoDigicon from '@/assets/promo-51.png.asset.json';
+import promoSeries2Banner from '@/assets/promo-37.webp';
+import promoFoodFight1 from '@/assets/promo-38.webp';
+import promoFoodFight2 from '@/assets/promo-39.webp';
+import promoGameStonk from '@/assets/promo-40.webp';
+import promoBernventures from '@/assets/promo-41.webp';
+import promoSeries2Soon from '@/assets/promo-42.webp';
+import promoExoticNow from '@/assets/promo-43.webp';
+import promoExoticJettin from '@/assets/promo-44.webp';
+import promoExoticSoon from '@/assets/promo-45.webp';
+import promoSeries1Now from '@/assets/promo-46.webp';
+import promoSeries1Poster from '@/assets/promo-47.webp';
+import promoSeries1Banner from '@/assets/promo-48.webp';
+import promoSeries2Phone from '@/assets/promo-49.webp';
+import promoDigicon from '@/assets/promo-51.webp';
 
 
 
@@ -121,15 +121,15 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
           'The alternate Series 1 Mega Pack wrapper as it appears in the Topps launch promo video (around 0:26) — Bony Joanie on the front, "25 DIGITAL CARDS • NO GUM". The shipped Mega Pack used different art and 30 cards.',
       },
       {
-        src: promoSeries1Now.url,
+        src: promoSeries1Now,
         caption: 'Topps x WAX "Available Now!" promotional art for Series 1.',
       },
       {
-        src: promoSeries1Poster.url,
+        src: promoSeries1Poster,
         caption: '"Packs Available Now!" poster for toppsgpk.io, showing the four Series 1 rarities: Base, Prism, Sketch and Collector\'s Edition.',
       },
       {
-        src: promoSeries1Banner.url,
+        src: promoSeries1Banner,
         caption: '"Topps cards to the Blockchain!" launch banner for the Topps x WAX partnership.',
       },
     ],
@@ -173,15 +173,15 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     ],
     images: [
       {
-        src: promoExoticNow.url,
+        src: promoExoticNow,
         caption: 'GPK Goes Exotic "Available Now!" promotional art.',
       },
       {
-        src: promoExoticSoon.url,
+        src: promoExoticSoon,
         caption: 'The "Coming Soon!" teaser banner released ahead of the Exotic drop.',
       },
       {
-        src: promoExoticJettin.url,
+        src: promoExoticJettin,
         caption: 'Jettin\' James single-card promotional art from the Exotic campaign.',
       },
     ],
@@ -215,7 +215,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     ],
     images: [
       {
-        src: promoDigicon.url,
+        src: promoDigicon,
         caption: 'Topps Digital DigiCon 2020 logo — Crash Gordon was announced live during the DigiCon Twitch broadcast.',
       },
     ],
@@ -252,15 +252,15 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     ],
     images: [
       {
-        src: promoSeries2Banner.url,
+        src: promoSeries2Banner,
         caption: 'Topps x WAX Series 2 promotional banner.',
       },
       {
-        src: promoSeries2Soon.url,
+        src: promoSeries2Soon,
         caption: 'The "Coming Soon!" teaser banner released ahead of the Series 2 drop.',
       },
       {
-        src: promoSeries2Phone.url,
+        src: promoSeries2Phone,
         caption: 'Topps app promo showing Leaky Lindsay 45a with the Trade and Sell buttons.',
       },
     ],
@@ -293,7 +293,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     ],
     images: [
       {
-        src: promoBernventures.url,
+        src: promoBernventures,
         caption: 'Bernventures promotional art from gpkbernventures.com.',
       },
     ],
@@ -344,7 +344,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     ],
     images: [
       {
-        src: promoGameStonk.url,
+        src: promoGameStonk,
         caption: 'GameStonk! promotional banner from the February 2021 AtomicHub drop.',
       },
     ],
@@ -375,11 +375,11 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     ],
     images: [
       {
-        src: promoFoodFight1.url,
+        src: promoFoodFight1,
         caption: 'Topps Digital "Available February 24th!" promo art for GPK Food Fight.',
       },
       {
-        src: promoFoodFight2.url,
+        src: promoFoodFight2,
         caption: 'A second Food Fight promotional frame showing Bobby Wasabi and friends.',
       },
     ],
