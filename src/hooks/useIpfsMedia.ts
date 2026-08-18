@@ -91,6 +91,40 @@ const MIRROR_FIRST_TIMEOUT_MS = 1500;
 let mirrorConsecutiveFailures = 0;
 let mirrorDown = false;
 
+// ---- adaptive gateway health -------------------------------------------
+// Public IPFS gateways degrade gracelessly: some images load, some hang.
+// We score failures so that, once the network is clearly laggy, new card
+// images go straight to our own mirror instead of paying the timeout tax.
+/** Try the mirror after this many failed gateway attempts for a single hash. */
+const MIRROR_INSERT_AFTER = 2;
+/** Failure score at which the whole session is considered "IPFS degraded". */
+const DEGRADED_THRESHOLD = 8;
+const DEGRADED_SCORE_MAX = DEGRADED_THRESHOLD * 2;
+let gatewayFailureScore = 0;
+
+function noteGatewayFailure() {
+  gatewayFailureScore = Math.min(gatewayFailureScore + 1, DEGRADED_SCORE_MAX);
+}
+
+function noteGatewaySuccess() {
+  // Successes decay faster than failures accumulate so the app drifts back to
+  // public gateways as soon as IPFS recovers.
+  gatewayFailureScore = Math.max(0, gatewayFailureScore - 2);
+}
+
+/** True when recent gateway attempts have been failing often enough to bypass them. */
+export function isIpfsDegraded(): boolean {
+  return gatewayFailureScore >= DEGRADED_THRESHOLD;
+}
+
+/** Test helper: reset all session-level mirror/gateway health state. */
+export function resetIpfsHealthState() {
+  gatewayFailureScore = 0;
+  mirrorMissSet.clear();
+  mirrorConsecutiveFailures = 0;
+  mirrorDown = false;
+}
+
 function noteMirrorMiss(hash: string) {
   mirrorMissSet.add(hash);
   mirrorConsecutiveFailures += 1;
@@ -100,6 +134,7 @@ function noteMirrorMiss(hash: string) {
 function noteMirrorHit() {
   mirrorConsecutiveFailures = 0;
 }
+
 
 const MAX_RETRY_ROUNDS = 10;
 
