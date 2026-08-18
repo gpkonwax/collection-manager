@@ -91,6 +91,40 @@ const MIRROR_FIRST_TIMEOUT_MS = 1500;
 let mirrorConsecutiveFailures = 0;
 let mirrorDown = false;
 
+// ---- adaptive gateway health -------------------------------------------
+// Public IPFS gateways degrade gracelessly: some images load, some hang.
+// We score failures so that, once the network is clearly laggy, new card
+// images go straight to our own mirror instead of paying the timeout tax.
+/** Try the mirror after this many failed gateway attempts for a single hash. */
+const MIRROR_INSERT_AFTER = 2;
+/** Failure score at which the whole session is considered "IPFS degraded". */
+const DEGRADED_THRESHOLD = 8;
+const DEGRADED_SCORE_MAX = DEGRADED_THRESHOLD * 2;
+let gatewayFailureScore = 0;
+
+function noteGatewayFailure() {
+  gatewayFailureScore = Math.min(gatewayFailureScore + 1, DEGRADED_SCORE_MAX);
+}
+
+function noteGatewaySuccess() {
+  // Successes decay faster than failures accumulate so the app drifts back to
+  // public gateways as soon as IPFS recovers.
+  gatewayFailureScore = Math.max(0, gatewayFailureScore - 2);
+}
+
+/** True when recent gateway attempts have been failing often enough to bypass them. */
+export function isIpfsDegraded(): boolean {
+  return gatewayFailureScore >= DEGRADED_THRESHOLD;
+}
+
+/** Test helper: reset all session-level mirror/gateway health state. */
+export function resetIpfsHealthState() {
+  gatewayFailureScore = 0;
+  mirrorMissSet.clear();
+  mirrorConsecutiveFailures = 0;
+  mirrorDown = false;
+}
+
 function noteMirrorMiss(hash: string) {
   mirrorMissSet.add(hash);
   mirrorConsecutiveFailures += 1;
@@ -100,6 +134,7 @@ function noteMirrorMiss(hash: string) {
 function noteMirrorHit() {
   mirrorConsecutiveFailures = 0;
 }
+
 
 const MAX_RETRY_ROUNDS = 10;
 
@@ -361,10 +396,17 @@ export function useIpfsMedia(
   const hasLoadedRef = useRef(!!cachedLoadedUrl);
 
   // Mirror-first phase: true while we're attempting the primary static mirror.
-  const canTryMirror = (h: string | null) =>
-    mirrorFirst && !!h && !!PRIMARY_MIRROR && !mirrorDown && !mirrorMissSet.has(h)
+  // Base eligibility — the mirror is reachable and plausibly holds this hash.
+  const mirrorEligible = (h: string | null) =>
+    !!h && !!PRIMARY_MIRROR && !mirrorDown && !mirrorMissSet.has(h)
     && !getCachedLoadedUrl(h) && !peekThumb(h);
+  // At mount we go mirror-first when explicitly opted in (Pack History) or when
+  // public IPFS is currently measured as degraded.
+  const canTryMirror = (h: string | null) =>
+    mirrorEligible(h) && (mirrorFirst || (context === 'card' && isIpfsDegraded()));
   const [mirrorPhase, setMirrorPhase] = useState(() => canTryMirror(hash));
+  // Only one mid-rotation mirror insertion per hash.
+  const mirrorInsertedRef = useRef(false);
 
   // Reset state when URL or active mirror changes
   useEffect(() => {
@@ -378,6 +420,7 @@ export function useIpfsMedia(
     setNonce(0);
     setVerifiedMirrorUrl(null);
     setMirrorPhase(canTryMirror(hash));
+    mirrorInsertedRef.current = false;
     hasLoadedRef.current = !!newCached;
     attemptRef.current += 1;
     if (retryTimerRef.current) {
@@ -394,8 +437,24 @@ export function useIpfsMedia(
   const leaveMirrorPhase = useCallback(() => {
     if (hash) noteMirrorMiss(hash);
     attemptRef.current += 1;
+    // Rotation resumes from the current gwIdx — no attempts are re-spent.
     setMirrorPhase(false);
   }, [hash]);
+
+  // Mid-rotation mirror insertion: after a couple of failed gateway attempts for
+  // this hash, try our own mirror instead of walking the remaining gateways.
+  useEffect(() => {
+    if (mirrorPhase || !enabled || failed || !isLoading || !hash) return;
+    if (context !== 'card') return;
+    if (mirrorInsertedRef.current || hasLoadedRef.current) return;
+    if (triedCount < MIRROR_INSERT_AFTER) return;
+    if (!mirrorEligible(hash)) return;
+    mirrorInsertedRef.current = true;
+    attemptRef.current += 1;
+    setMirrorPhase(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triedCount, mirrorPhase, enabled, failed, isLoading, hash, context]);
+
 
   // Short timeout for the mirror attempt — fall through to gateways quickly.
   useEffect(() => {
@@ -494,7 +553,10 @@ export function useIpfsMedia(
   const advance = useCallback(() => {
     // Don't rotate if we've already successfully loaded this hash
     if (hasLoadedRef.current) return;
+    // A gateway attempt just failed/timed out — feed the health score.
+    noteGatewayFailure();
     attemptRef.current += 1;
+
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
       // Finished a full rotation — schedule a delayed retry instead of giving up.
       if (retryRound + 1 >= MAX_RETRY_ROUNDS) {
@@ -594,11 +656,14 @@ export function useIpfsMedia(
         // Persist the bytes so later opens/reloads never touch the network.
         void putThumb(hash, src);
       } else {
+        // A public gateway served it — the network is healthy-ish again.
+        noteGatewaySuccess();
         setCachedGateway(hash, gwIdx);
         setCachedLoadedUrl(hash, src);
         // Only mirrorFirst consumers (Pack History) opt into the byte cache.
         if (mirrorFirst) void putThumb(hash, src);
       }
+
     }
   }, [hash, gwIdx, src, usingMirrorFirst, mirrorFirst]);
 
