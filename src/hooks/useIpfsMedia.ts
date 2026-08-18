@@ -656,11 +656,14 @@ export function useIpfsMedia(
         // Persist the bytes so later opens/reloads never touch the network.
         void putThumb(hash, src);
       } else {
+        // A public gateway served it — the network is healthy-ish again.
+        noteGatewaySuccess();
         setCachedGateway(hash, gwIdx);
         setCachedLoadedUrl(hash, src);
         // Only mirrorFirst consumers (Pack History) opt into the byte cache.
         if (mirrorFirst) void putThumb(hash, src);
       }
+
     }
   }, [hash, gwIdx, src, usingMirrorFirst, mirrorFirst]);
 
