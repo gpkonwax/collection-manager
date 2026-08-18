@@ -553,7 +553,10 @@ export function useIpfsMedia(
   const advance = useCallback(() => {
     // Don't rotate if we've already successfully loaded this hash
     if (hasLoadedRef.current) return;
+    // A gateway attempt just failed/timed out — feed the health score.
+    noteGatewayFailure();
     attemptRef.current += 1;
+
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
       // Finished a full rotation — schedule a delayed retry instead of giving up.
       if (retryRound + 1 >= MAX_RETRY_ROUNDS) {
