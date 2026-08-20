@@ -104,6 +104,11 @@ export function ImageSourceIndicator() {
             <div className="text-xs font-semibold">
               Active source: <span className="text-cheese">{label}</span>
             </div>
+            {degraded && (
+              <p className="text-[11px] text-muted-foreground">
+                Public IPFS is responding but slow — images are being served from our mirror instead.
+              </p>
+            )}
             <ul className="space-y-1">
               {rows.map((r) => (
                 <li key={r.key} className="flex items-center gap-2 text-xs">
