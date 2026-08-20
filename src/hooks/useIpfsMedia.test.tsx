@@ -56,7 +56,7 @@ describe('useIpfsMedia adaptive mirror fallback', () => {
   it('marks IPFS degraded after enough gateway failures and decays on success', () => {
     expect(isIpfsDegraded()).toBe(false);
     const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
-    fail(result, 2);
+    fail(result, 1);
     fail(result, 1); // leave mirror phase
     fail(result, 8); // keep burning gateways
     expect(isIpfsDegraded()).toBe(true);
