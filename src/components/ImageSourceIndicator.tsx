@@ -18,6 +18,7 @@ import {
   type CheckStatus,
   type SourceKey,
 } from '@/hooks/useImageSourceStatus';
+import { isIpfsDegraded } from '@/hooks/useIpfsMedia';
 import { cn } from '@/lib/utils';
 
 const DOT_COLOR: Record<SourceKey, string> = {
