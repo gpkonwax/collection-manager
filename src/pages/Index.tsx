@@ -2835,7 +2835,7 @@ export default function SimpleAssetsPage() {
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">View Any Wallet</h3>
                   <p className="text-foreground text-sm theme-bright-text">
-                    Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click. The holders dropdown lists every GPK holder largest-to-smallest, perfect for finding accounts to trade with in the Card & Pack Trading section beside it.
+                    Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click. The holders dropdown lists every GPK holder largest-to-smallest.
                   </p>
                 </div>
               </div>
