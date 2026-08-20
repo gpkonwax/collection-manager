@@ -18,6 +18,7 @@ import {
   type CheckStatus,
   type SourceKey,
 } from '@/hooks/useImageSourceStatus';
+import { isIpfsDegraded } from '@/hooks/useIpfsMedia';
 import { cn } from '@/lib/utils';
 
 const DOT_COLOR: Record<SourceKey, string> = {
@@ -50,8 +51,11 @@ function openBackupPanel() {
 
 export function ImageSourceIndicator() {
   const status = useImageSourceStatus();
-  const label = SOURCE_LABELS[status.active];
-  const dot = DOT_COLOR[status.active];
+  // Public IPFS can answer the canary probe while still being far too slow for
+  // the grid. When the adaptive fallback has flipped to mirror-first, say so.
+  const degraded = status.active === 'ipfs' && isIpfsDegraded();
+  const label = degraded ? 'IPFS degraded' : SOURCE_LABELS[status.active];
+  const dot = degraded ? 'bg-yellow-400' : DOT_COLOR[status.active];
 
   const rows = useMemo(
     () => [
@@ -100,6 +104,11 @@ export function ImageSourceIndicator() {
             <div className="text-xs font-semibold">
               Active source: <span className="text-cheese">{label}</span>
             </div>
+            {degraded && (
+              <p className="text-[11px] text-muted-foreground">
+                Public IPFS is responding but slow — images are being served from our mirror instead.
+              </p>
+            )}
             <ul className="space-y-1">
               {rows.map((r) => (
                 <li key={r.key} className="flex items-center gap-2 text-xs">

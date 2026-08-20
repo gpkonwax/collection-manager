@@ -6,11 +6,12 @@
  * Order matters: winners get promoted via lastGoodGatewayIndex.
  */
 export const PUBLIC_IPFS_GATEWAYS = [
-  'https://gateway.pinata.cloud/ipfs/',
-  'https://dweb.link/ipfs/',
-  'https://nftstorage.link/ipfs/',
+  // Ordered by measured health (2026-08 probe against real GPK card hashes).
+  // Removed: cloudflare-ipfs.com (Cloudflare retired the gateway — DNS no longer
+  // resolves) and nftstorage.link (nft.storage shut down its free public gateway).
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/', // Moved to last - experiencing tunnel errors
+  'https://dweb.link/ipfs/',
+  'https://gateway.pinata.cloud/ipfs/', // often 10s+ — last resort
 ];
 
 /**

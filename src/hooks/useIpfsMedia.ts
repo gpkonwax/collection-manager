@@ -95,10 +95,13 @@ let mirrorDown = false;
 // Public IPFS gateways degrade gracelessly: some images load, some hang.
 // We score failures so that, once the network is clearly laggy, new card
 // images go straight to our own mirror instead of paying the timeout tax.
+// Thresholds tightened 2026-08: only three public gateways remain healthy
+// (cloudflare-ipfs.com and nftstorage.link were retired), so waiting on the
+// rotation costs far more than it can ever win.
 /** Try the mirror after this many failed gateway attempts for a single hash. */
-const MIRROR_INSERT_AFTER = 2;
+const MIRROR_INSERT_AFTER = 1;
 /** Failure score at which the whole session is considered "IPFS degraded". */
-const DEGRADED_THRESHOLD = 8;
+const DEGRADED_THRESHOLD = 4;
 const DEGRADED_SCORE_MAX = DEGRADED_THRESHOLD * 2;
 let gatewayFailureScore = 0;
 

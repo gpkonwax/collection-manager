@@ -35,28 +35,32 @@ describe('useIpfsMedia adaptive mirror fallback', () => {
     expect(result.current.src.startsWith(PUBLIC_IPFS_GATEWAYS[0])).toBe(true);
   });
 
-  it('inserts the primary mirror after two failed gateway attempts', () => {
+  it('inserts the primary mirror after the first failed gateway attempt', () => {
     const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
-    fail(result, 2);
+    fail(result, 1);
     expect(result.current.src).toBe(`${PRIMARY_MIRROR}${HASH}`);
   });
 
   it('falls through to the remaining gateways when the mirror misses', () => {
     const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
-    fail(result, 2);
+    fail(result, 1);
     expect(result.current.src).toBe(`${PRIMARY_MIRROR}${HASH}`);
     fail(result, 1); // mirror 404
     expect(result.current.src.startsWith(PRIMARY_MIRROR)).toBe(false);
     expect(result.current.src.includes(HASH)).toBe(true);
-    // Mirror is not retried again for this hash in the same session.
-    fail(result, 2);
+    // The mirror shortcut is not re-entered for this hash; the rotation
+    // continues through the remaining public gateways.
+    fail(result, 1);
     expect(result.current.src.startsWith(PRIMARY_MIRROR)).toBe(false);
+    expect(
+      PUBLIC_IPFS_GATEWAYS.some((gw) => result.current.src.startsWith(gw)),
+    ).toBe(true);
   });
 
   it('marks IPFS degraded after enough gateway failures and decays on success', () => {
     expect(isIpfsDegraded()).toBe(false);
     const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
-    fail(result, 2);
+    fail(result, 1);
     fail(result, 1); // leave mirror phase
     fail(result, 8); // keep burning gateways
     expect(isIpfsDegraded()).toBe(true);

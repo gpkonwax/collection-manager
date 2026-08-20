@@ -23,12 +23,11 @@ const PRIMARY_MIRROR = 'https://bewbzz.github.io/gpkonwaxbackup/';
 const BACKUP_MIRROR_A = 'https://gpkonwaxbackup.netlify.app/';
 const BACKUP_MIRROR_B = 'https://gpkonwaxbackup.pages.dev/';
 
+// Keep in sync with src/lib/ipfsGateways.ts
 const PUBLIC_IPFS_GATEWAYS = [
-  'https://gateway.pinata.cloud/ipfs/',
-  'https://dweb.link/ipfs/',
-  'https://nftstorage.link/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
+  'https://dweb.link/ipfs/',
+  'https://gateway.pinata.cloud/ipfs/',
 ];
 
 const MIRROR_BASES = [
