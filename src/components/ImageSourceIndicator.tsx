@@ -51,8 +51,11 @@ function openBackupPanel() {
 
 export function ImageSourceIndicator() {
   const status = useImageSourceStatus();
-  const label = SOURCE_LABELS[status.active];
-  const dot = DOT_COLOR[status.active];
+  // Public IPFS can answer the canary probe while still being far too slow for
+  // the grid. When the adaptive fallback has flipped to mirror-first, say so.
+  const degraded = status.active === 'ipfs' && isIpfsDegraded();
+  const label = degraded ? 'IPFS degraded' : SOURCE_LABELS[status.active];
+  const dot = degraded ? 'bg-yellow-400' : DOT_COLOR[status.active];
 
   const rows = useMemo(
     () => [
