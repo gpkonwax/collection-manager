@@ -106,8 +106,10 @@ export function ImageSourceIndicator() {
             </div>
             {degraded && (
               <p className="text-[11px] text-muted-foreground">
-                Public IPFS is responding but slow — images are being served from our mirror instead.
+                Public IPFS is responding but slow right now — images are temporarily served from
+                our mirror. The app keeps re-testing IPFS and switches back automatically.
               </p>
+
             )}
             <ul className="space-y-1">
               {rows.map((r) => (
