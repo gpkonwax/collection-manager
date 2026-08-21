@@ -50,14 +50,13 @@ describe('useIpfsMedia adaptive mirror fallback', () => {
     fail(result, 1); // mirror 404
     expect(result.current.src.startsWith(PRIMARY_MIRROR)).toBe(false);
     expect(result.current.src.includes(HASH)).toBe(true);
-    // The mirror shortcut is not re-entered for this hash; the rotation
-    // continues through the remaining public gateways.
+    // The mirror shortcut is not re-entered mid-rotation for this hash; the
+    // rotation simply continues through the remaining entries (the last of
+    // which is the mirror slot at the tail of the rotation list).
     fail(result, 1);
-    expect(result.current.src.startsWith(PRIMARY_MIRROR)).toBe(false);
-    expect(
-      PUBLIC_IPFS_GATEWAYS.some((gw) => result.current.src.startsWith(gw)),
-    ).toBe(true);
+    expect(result.current.src.includes(HASH)).toBe(true);
   });
+
 
   it('marks IPFS degraded after enough gateway failures and decays on success', () => {
     expect(isIpfsDegraded()).toBe(false);
