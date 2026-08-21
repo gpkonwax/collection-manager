@@ -167,13 +167,16 @@ export function isIpfsDegraded(): boolean {
 }
 
 /**
- * While degraded, occasionally let an image take the normal gateway path so a
- * recovery can actually be observed.
+ * While degraded, a deterministic slice of hashes still takes the normal
+ * gateway path so a recovery can actually be observed. Hash-based (not a
+ * counter) so the answer is stable across re-renders of the same image.
  */
-function shouldMirrorFirstWhileDegraded(): boolean {
-  degradedProbeCounter += 1;
-  return degradedProbeCounter % DEGRADED_PROBE_EVERY !== 0;
+function shouldMirrorFirstWhileDegraded(hash: string): boolean {
+  let sum = 0;
+  for (let i = 0; i < hash.length; i++) sum = (sum + hash.charCodeAt(i)) % 100000;
+  return sum % DEGRADED_PROBE_EVERY !== 0;
 }
+
 
 /** Test helper: reset all session-level mirror/gateway health state. */
 export function resetIpfsHealthState() {
