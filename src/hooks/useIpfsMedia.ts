@@ -619,7 +619,9 @@ export function useIpfsMedia(
     // Don't rotate if we've already successfully loaded this hash
     if (hasLoadedRef.current) return;
     // A gateway attempt just failed/timed out — feed the health score.
-    noteGatewayFailure();
+    // Structurally slow gateways (Pinata) are excluded inside the helper.
+    noteGatewayFailure(IPFS_GATEWAYS[gwIdx % IPFS_GATEWAYS.length]);
+
     attemptRef.current += 1;
 
     if (triedCount + 1 >= IPFS_GATEWAYS.length) {
