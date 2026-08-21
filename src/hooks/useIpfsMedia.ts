@@ -470,7 +470,7 @@ export function useIpfsMedia(
   const canTryMirror = (h: string | null) =>
     mirrorEligible(h)
     && (mirrorFirst
-      || (context === 'card' && isIpfsDegraded() && shouldMirrorFirstWhileDegraded()));
+      || (context === 'card' && isIpfsDegraded() && shouldMirrorFirstWhileDegraded(h ?? '')));
 
   const [mirrorPhase, setMirrorPhase] = useState(() => canTryMirror(hash));
   // Only one mid-rotation mirror insertion per hash.
