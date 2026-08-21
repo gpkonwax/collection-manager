@@ -647,7 +647,7 @@ export function useIpfsMedia(
       setTriedCount(prev => prev + 1);
       setGwIdx(prev => (prev + 1) % IPFS_GATEWAYS.length);
     }
-  }, [triedCount, retryRound]);
+  }, [triedCount, retryRound, gwIdx]);
 
   const onError = useCallback(() => {
     // Ignore errors once we've already loaded successfully (sticky URL)
