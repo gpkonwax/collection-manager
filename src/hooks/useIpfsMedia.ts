@@ -465,7 +465,10 @@ export function useIpfsMedia(
   // At mount we go mirror-first when explicitly opted in (Pack History) or when
   // public IPFS is currently measured as degraded.
   const canTryMirror = (h: string | null) =>
-    mirrorEligible(h) && (mirrorFirst || (context === 'card' && isIpfsDegraded()));
+    mirrorEligible(h)
+    && (mirrorFirst
+      || (context === 'card' && isIpfsDegraded() && shouldMirrorFirstWhileDegraded()));
+
   const [mirrorPhase, setMirrorPhase] = useState(() => canTryMirror(hash));
   // Only one mid-rotation mirror insertion per hash.
   const mirrorInsertedRef = useRef(false);
