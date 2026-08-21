@@ -95,34 +95,91 @@ let mirrorDown = false;
 // Public IPFS gateways degrade gracelessly: some images load, some hang.
 // We score failures so that, once the network is clearly laggy, new card
 // images go straight to our own mirror instead of paying the timeout tax.
-// Thresholds tightened 2026-08: only three public gateways remain healthy
-// (cloudflare-ipfs.com and nftstorage.link were retired), so waiting on the
-// rotation costs far more than it can ever win.
+//
+// The score must never latch: once the session flips to mirror-first, almost
+// no gateway attempts happen any more, so without decay + re-probing +
+// expiry the app can never notice IPFS recovering.
 /** Try the mirror after this many failed gateway attempts for a single hash. */
-const MIRROR_INSERT_AFTER = 1;
+const MIRROR_INSERT_AFTER = 2;
 /** Failure score at which the whole session is considered "IPFS degraded". */
-const DEGRADED_THRESHOLD = 4;
+const DEGRADED_THRESHOLD = 6;
 const DEGRADED_SCORE_MAX = DEGRADED_THRESHOLD * 2;
-let gatewayFailureScore = 0;
+/** Degraded mode auto-expires so a bad minute never poisons a whole session. */
+const DEGRADED_TTL_MS = 90_000;
+/** While degraded, every Nth card image still tries a gateway first (re-probe). */
+const DEGRADED_PROBE_EVERY = 6;
+/**
+ * Gateways that are structurally slower than the card timeout. Their timeouts
+ * say nothing about IPFS health, so they must not feed the degraded score.
+ */
+const SLOW_GATEWAY_HOSTS = ['gateway.pinata.cloud'];
 
-function noteGatewayFailure() {
+let gatewayFailureScore = 0;
+let degradedSince = 0;
+let degradedProbeCounter = 0;
+
+function isSlowGateway(url: string | undefined): boolean {
+  if (!url) return false;
+  return SLOW_GATEWAY_HOSTS.some((host) => url.includes(host));
+}
+
+function noteGatewayFailure(gatewayUrl?: string) {
+  // A guaranteed-slow gateway timing out is a false signal — ignore it.
+  if (isSlowGateway(gatewayUrl)) return;
   gatewayFailureScore = Math.min(gatewayFailureScore + 1, DEGRADED_SCORE_MAX);
+  if (gatewayFailureScore >= DEGRADED_THRESHOLD && !degradedSince) {
+    degradedSince = Date.now();
+  }
+}
+
+function clearDegraded() {
+  gatewayFailureScore = 0;
+  degradedSince = 0;
 }
 
 function noteGatewaySuccess() {
   // Successes decay faster than failures accumulate so the app drifts back to
   // public gateways as soon as IPFS recovers.
   gatewayFailureScore = Math.max(0, gatewayFailureScore - 2);
+  if (gatewayFailureScore < DEGRADED_THRESHOLD) degradedSince = 0;
+}
+
+/**
+ * A mirror hit also decays the score (more slowly than a gateway success).
+ * Without this the score can only ever go up once mirror-first kicks in,
+ * because gateways stop being attempted at all.
+ */
+function noteMirrorServed() {
+  gatewayFailureScore = Math.max(0, gatewayFailureScore - 1);
+  if (gatewayFailureScore < DEGRADED_THRESHOLD) degradedSince = 0;
 }
 
 /** True when recent gateway attempts have been failing often enough to bypass them. */
 export function isIpfsDegraded(): boolean {
-  return gatewayFailureScore >= DEGRADED_THRESHOLD;
+  if (gatewayFailureScore < DEGRADED_THRESHOLD) return false;
+  if (degradedSince && Date.now() - degradedSince > DEGRADED_TTL_MS) {
+    // Time-boxed: let the session measure the network again instead of
+    // assuming IPFS is still broken.
+    clearDegraded();
+    return false;
+  }
+  return true;
+}
+
+/**
+ * While degraded, occasionally let an image take the normal gateway path so a
+ * recovery can actually be observed.
+ */
+function shouldMirrorFirstWhileDegraded(): boolean {
+  degradedProbeCounter += 1;
+  return degradedProbeCounter % DEGRADED_PROBE_EVERY !== 0;
 }
 
 /** Test helper: reset all session-level mirror/gateway health state. */
 export function resetIpfsHealthState() {
   gatewayFailureScore = 0;
+  degradedSince = 0;
+  degradedProbeCounter = 0;
   mirrorMissSet.clear();
   mirrorConsecutiveFailures = 0;
   mirrorDown = false;
@@ -136,7 +193,9 @@ function noteMirrorMiss(hash: string) {
 
 function noteMirrorHit() {
   mirrorConsecutiveFailures = 0;
+  noteMirrorServed();
 }
+
 
 
 const MAX_RETRY_ROUNDS = 10;
