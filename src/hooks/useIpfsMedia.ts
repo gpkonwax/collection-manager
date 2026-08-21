@@ -116,7 +116,6 @@ const SLOW_GATEWAY_HOSTS = ['gateway.pinata.cloud'];
 
 let gatewayFailureScore = 0;
 let degradedSince = 0;
-let degradedProbeCounter = 0;
 
 function isSlowGateway(url: string | undefined): boolean {
   if (!url) return false;
@@ -182,7 +181,6 @@ function shouldMirrorFirstWhileDegraded(hash: string): boolean {
 export function resetIpfsHealthState() {
   gatewayFailureScore = 0;
   degradedSince = 0;
-  degradedProbeCounter = 0;
   mirrorMissSet.clear();
   mirrorConsecutiveFailures = 0;
   mirrorDown = false;
