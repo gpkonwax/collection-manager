@@ -758,7 +758,7 @@ function OfflineAppCard() {
     return () => {
       cancelled = true;
       clearTimeout(timer);
-především: undefined;
+      controller.abort();
     };
   }, []);
 
