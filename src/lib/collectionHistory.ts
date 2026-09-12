@@ -147,6 +147,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       { label: 'Topps GPK FAQ page', url: 'https://topps.wdny.io/faq', kind: 'official' },
       { label: 'Packs sell out, secondary market flourishes', url: 'https://gpknews.com/wax-x-topps-packs-sell-out-secondary-market-flourishes/', kind: 'coverage' },
       { label: 'Topps enters crypto collectibles', url: 'https://decrypt.co/28547/trading-card-giant-topps-is-now-offering-crypto-collectibles', kind: 'coverage' },
+      { label: 'Topps x WAX launch digital GPK on the blockchain', url: 'https://gpknews.com/topps-x-wax-launch-digital-garbage-pail-kids-on-blockchain/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
 
@@ -190,6 +191,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       { label: 'WAX.io announcement', url: 'https://medium.com/wax-io/topps-gpk-goes-exotic-trading-cards-are-now-on-the-wax-blockchain-e77f1356c627', kind: 'official' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-x-wax-launch-gpk-goes-exotic-digital-set/', kind: 'coverage' },
       { label: 'Sell-out coverage', url: 'https://gpknews.com/topps-x-wax-gpk-goes-exotic-sells-out/', kind: 'coverage' },
+      { label: 'Details on the upcoming Goes Exotic set', url: 'https://gpknews.com/details-on-upcoming-topps-x-wax-gpk-goes-exotic-digital-set/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, TOPPS_SHOP, GEEPEEKAY],
   },
@@ -223,7 +225,8 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
 
       { label: 'Topps announces Crash Gordon digital set', url: 'https://gpknews.com/topps-announces-wax-x-garbage-pail-kids-crash-gordon-digital-set/', kind: 'coverage' },
       { label: '40th anniversary checklist & details', url: 'https://www.beckett.com/news/2020-topps-garbage-pail-kids-crash-gordon-40th-anniversary-checklist-and-details/', kind: 'coverage' },
-      { label: 'WAX archive on GPKNews', url: 'https://gpknews.com/category/wax/page/2/', kind: 'coverage' },
+      { label: 'Topps talks the future of GPK x WAX', url: 'https://gpknews.com/topps-talks-wax-x-garbage-pail-kids-future/', kind: 'coverage' },
+      { label: 'WAX archive on GPKNews', url: 'https://gpknews.com/category/wax/', kind: 'coverage' },
     ],
 
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
@@ -300,7 +303,7 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
     links: [
       { label: 'gpkbernventures.com — the original sale site', url: 'https://gpkbernventures.com/', kind: 'official' },
       { label: 'Launch coverage', url: 'https://gpknews.com/topps-digital-launches-garbage-pail-kids-bernventures-digital-wax-set/', kind: 'coverage' },
-      { label: 'Bernie mitten memes become NFTs', url: 'https://cointelegraph.com/news/bernie-sanders-mitten-memes-immortalized-in-new-nft-collection', kind: 'coverage' },
+      { label: 'Bernie mitten memes immortalised on WAX', url: 'https://www.coinspeaker.com/sanders-inauguration-wax-blockchain/', kind: 'coverage' },
       { label: 'The art behind Bernventures', url: 'https://ecency.com/@kommienezuspadt/bernie-as-a-garbage-pail-kid-the-art-behind-bernventures', kind: 'coverage' },
     ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
@@ -321,6 +324,9 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       'Contents: base Mitten cards, a chance at Golden Mitten cards, and rare animation cards.',
       'A genuinely deflationary event — the burned Bernventures cards are gone from the chain permanently.',
       'AtomicAssets standard.',
+    ],
+    links: [
+      { label: 'Bernventures & Golden Mittens launch coverage', url: 'https://gpknews.com/topps-digital-launches-garbage-pail-kids-bernventures-digital-wax-set/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, ONCHAIN],
   },
@@ -384,9 +390,11 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       },
     ],
     links: [
-      { label: 'Official site: toppsgpk.io', url: 'https://toppsgpk.io/', kind: 'official' },
       { label: 'Press release: coming to Walmart and Target', url: 'https://www.globenewswire.com/news-release/2021/02/22/2179668/0/en/Coming-to-Walmart-and-Target-WAX-Digital-Cards-from-Topps.html', kind: 'official' },
       { label: 'Retail launch coverage', url: 'https://news.bitcoin.com/topps-garbage-pail-kids-blockchain-collectibles-can-be-bought-at-target-and-walmarts/', kind: 'coverage' },
+      { label: 'Food Fight redemptions in 2021 Series 1', url: 'https://gpknews.com/2021s1-garbage-pail-kids-food-fight-to-include-redemptions-for-wax-digital-collectibles/', kind: 'coverage' },
+      { label: 'WinterCon pack launch details', url: 'https://gpknews.com/topps-digital-to-launch-wax-garbage-pail-kids-food-fight-packs-during-winter-con/', kind: 'coverage' },
+      { label: 'Redemption & WinterCon release info', url: 'https://gpknews.com/info-on-topps-digital-food-fight-redemption-winter-con-releases/', kind: 'coverage' },
     ],
     sources: [GPKNEWS, GEEPEEKAY, ONCHAIN],
   },
