@@ -1,5 +1,5 @@
 import { HardDrive } from 'lucide-react';
-import { isOfflineBundle } from '@/lib/offlineBundle';
+import { formatOfflineBuildDate, getOfflineBuildInfo, isOfflineBundle } from '@/lib/offlineBundle';
 
 /**
  * Persistent banner shown only in the offline-bundle build. Tells users the
@@ -8,6 +8,8 @@ import { isOfflineBundle } from '@/lib/offlineBundle';
  */
 export function OfflineBundleBanner() {
   if (!isOfflineBundle()) return null;
+
+  const build = getOfflineBuildInfo();
 
   return (
     <div className="border-b border-cheese/30 bg-cheese/10">
@@ -19,6 +21,11 @@ export function OfflineBundleBanner() {
           features are disabled or will fail — that's expected. Open the
           Offline backup panel and load your image backup ZIP to view every
           card.
+          {build && (
+            <span className="ml-1 whitespace-nowrap opacity-70">
+              (copy built {formatOfflineBuildDate(build.date)})
+            </span>
+          )}
         </p>
       </div>
     </div>

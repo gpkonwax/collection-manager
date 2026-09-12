@@ -1,0 +1,56 @@
+name: Build & publish offline app bundle
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - name: Build offline bundle
+        run: bun run build:offline
+
+      - name: Show bundle info
+        run: |
+          ls -lh dist-offline/gpk-collection-manager-offline.zip
+          cat dist-offline/version.txt || true
+
+      # The ZIP lives on the backup repo's release, next to the image mirror
+      # parts. BACKUP_REPO_TOKEN must be a token with `contents: write` on
+      # bewbzz/gpkonwaxbackup (add it under Settings → Secrets → Actions).
+      - name: Upload to the backup repo's latest release
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          BACKUP_REPO: bewbzz/gpkonwaxbackup
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "BACKUP_REPO_TOKEN is not set — skipping upload."
+            echo "Add the secret, then re-run this workflow."
+            exit 1
+          fi
+          TAG=$(gh release view --repo "$BACKUP_REPO" --json tagName -q .tagName)
+          echo "Uploading to $BACKUP_REPO release $TAG"
+          gh release upload "$TAG" \
+            dist-offline/gpk-collection-manager-offline.zip \
+            --repo "$BACKUP_REPO" --clobber
+
+      - name: Keep a copy as a workflow artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gpk-collection-manager-offline
+          path: dist-offline/gpk-collection-manager-offline.zip
+          if-no-files-found: warn
