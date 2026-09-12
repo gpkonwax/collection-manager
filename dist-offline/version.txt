@@ -1,0 +1,5 @@
+GPK Collection Manager — offline copy
+Built:  2026-09-12
+Commit: 7299e72
+
+You also need gpk-image-mirror.zip (the card images) — see README.txt.
