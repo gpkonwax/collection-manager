@@ -99,3 +99,13 @@ whichever responds first.
 Runtime is dominated by the per-scope SimpleAssets pass — expect 15–45
 minutes depending on RPC latency. The script is idempotent; kill and re-run
 any time.
+
+## Offline copy of the app itself
+
+`build-offline-bundle.mjs` builds a self-contained copy of the manager
+(`dist-offline/gpk-collection-manager-offline.zip`) that runs from a local
+folder. It is published automatically by
+`.github/workflows/offline-bundle.yml` to the latest release of
+`bewbzz/gpkonwaxbackup` (needs a `BACKUP_REPO_TOKEN` repo secret with
+`contents: write` on that repo). Manual fallback: `npm run build:offline`, then
+attach the ZIP to the release by hand. See `.lovable/plan-offline-bundle.md`.
