@@ -49,6 +49,8 @@ execSync('vite build --outDir dist-offline', {
   cwd: ROOT,
   env: {
     ...process.env,
+    // Works whether invoked via `npm run` (bin already on PATH) or plain `node`.
+    PATH: `${join(ROOT, 'node_modules', '.bin')}:${process.env.PATH ?? ''}`,
     VITE_OFFLINE_BUNDLE: '1',
     VITE_OFFLINE_BUILD_DATE: buildDate,
     VITE_OFFLINE_COMMIT: commit,
