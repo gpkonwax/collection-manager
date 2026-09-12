@@ -34,11 +34,25 @@ function walk(dir, base = dir, files = []) {
   return files;
 }
 
+// Stamp the bundle so anyone holding a copy can tell how old it is.
+const buildDate = new Date().toISOString().slice(0, 10);
+let commit = '';
+try {
+  commit = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim();
+} catch {
+  commit = 'unknown';
+}
+
 console.log('[build-offline-bundle] running Vite build (VITE_OFFLINE_BUNDLE=1)…');
 execSync('vite build --outDir dist-offline', {
   stdio: 'inherit',
   cwd: ROOT,
-  env: { ...process.env, VITE_OFFLINE_BUNDLE: '1' },
+  env: {
+    ...process.env,
+    VITE_OFFLINE_BUNDLE: '1',
+    VITE_OFFLINE_BUILD_DATE: buildDate,
+    VITE_OFFLINE_COMMIT: commit,
+  },
 });
 
 if (!existsSync(OUT_DIR)) {
@@ -53,6 +67,20 @@ for (const name of ['open-me.html', 'README.txt']) {
   writeFileSync(dst, readFileSync(src));
   console.log(`[build-offline-bundle] wrote ${relative(ROOT, dst)}`);
 }
+
+// Plain-text version stamp inside the ZIP
+writeFileSync(
+  join(OUT_DIR, 'version.txt'),
+  [
+    'GPK Collection Manager — offline copy',
+    `Built:  ${buildDate}`,
+    `Commit: ${commit}`,
+    '',
+    'You also need gpk-image-mirror.zip (the card images) — see README.txt.',
+    '',
+  ].join('\n'),
+);
+console.log(`[build-offline-bundle] stamped version.txt (${buildDate}, ${commit})`);
 
 // Zip everything except any previous zip
 console.log('[build-offline-bundle] zipping…');
