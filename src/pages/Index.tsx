@@ -117,8 +117,6 @@ import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { useTheme } from '@/hooks/useTheme';
 import { CATEGORY_LABELS, deriveVariantOptions, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
-import { useRetroMode } from '@/hooks/useRetroMode';
-import { isRetroEligible } from '@/lib/retroMode';
 import { getCollectionHistory } from '@/lib/collectionHistory';
 import { CollectionHistoryDialog } from '@/components/simpleassets/CollectionHistoryDialog';
 
@@ -337,7 +335,7 @@ export default function SimpleAssetsPage() {
   const [tradeBusyOfferId, setTradeBusyOfferId] = useState<string | null>(null);
   const [tradeBusyAction, setTradeBusyAction] = useState<'accept' | 'decline' | 'cancel' | 'counter' | null>(null);
   const { theme, toggleTheme } = useTheme();
-  const { retro, toggleRetro } = useRetroMode();
+  
   // Poll AtomicAssets offers for the active (non-viewed) account only.
   const tradesAccount = !isViewing ? accountName : null;
   const {
@@ -1781,7 +1779,6 @@ export default function SimpleAssetsPage() {
           selected={selectedIds.has(asset.id)}
           onSelect={toggleSelection}
           priceAlertTemplate={template}
-          retro={retro && isRetroEligible(asset)}
           isReadOnly={isViewing}
           onTradeClick={handleTradeFromCard}
         />
@@ -2086,7 +2083,6 @@ export default function SimpleAssetsPage() {
                   selectionMode={selectionMode}
                   selected={selectedIds.has(asset.id)}
                   onSelect={toggleSelection}
-                  retro={retro && isRetroEligible(asset)}
                   isReadOnly={isViewing}
                   onTradeClick={handleTradeFromCard}
                 />
@@ -2308,7 +2304,7 @@ export default function SimpleAssetsPage() {
                 onDragOver={handleDragOver(idx)}
                 onDrop={handleDrop(idx)}
                 onDragEnd={handleDragEnd}
-                retro={retro && isRetroEligible(asset)}
+                
                 isReadOnly={isViewing}
                 onTradeClick={handleTradeFromCard}
               />
@@ -3103,17 +3099,6 @@ export default function SimpleAssetsPage() {
                   className="w-full sm:w-[180px]"
                 />
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleRetro}
-                aria-pressed={retro}
-                title="Retro view: grades Series 1 & 2 cards to look like the original 1985 scans"
-                className={`h-9 px-3 text-xs font-semibold border-cheese/50 theme-bright-border ${retro ? 'bg-cheese text-cheese-foreground theme-bright-fill' : 'text-cheese theme-bright-text theme-bright-fill'}`}
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1" />
-                Retro {retro ? 'On' : 'Off'}
-              </Button>
 
             </div>
 
@@ -3447,7 +3432,7 @@ export default function SimpleAssetsPage() {
         </div>
       )}
 
-      <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} retro={retro} />
+      <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
       <BinderStackDialog
         assets={stackedAssets ?? []}
         open={stackDialogOpen}

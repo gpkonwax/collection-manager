@@ -5,7 +5,7 @@ import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { RETRO_CLASS } from '@/lib/retroMode';
+
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
 import type { BinderTemplate } from '@/hooks/useBinderTemplates';
@@ -28,8 +28,6 @@ interface SimpleAssetCardProps {
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
   priceAlertTemplate?: BinderTemplate;
   isReadOnly?: boolean;
-  /** Apply the retro (1985 scan) colour grade to the artwork. */
-  retro?: boolean;
   /** When set, a "Trade" button is shown (only used while viewing another wallet with AA assets). */
   onTradeClick?: (asset: SimpleAsset) => void;
 }
@@ -64,7 +62,7 @@ function getMintNumber(asset: SimpleAsset): number | null {
   return null;
 }
 
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick, retro }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
@@ -217,7 +215,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
             <IpfsMedia
               url={asset.image}
               alt={asset.name}
-              className={cn('w-full h-full', retro && RETRO_CLASS)}
+              className={cn('w-full h-full')}
               context="card"
             />
           </div>
