@@ -5,10 +5,10 @@ import { sanitizeUrl } from '@/lib/sanitizeUrl';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
-import waxEdgeBanner from '@/assets/waxedge.jpg';
 
 const ROTATION_INTERVAL = 30_000;
 const CHEESE_PLACEHOLDER_IMAGE = `${import.meta.env.BASE_URL}cheese-banner-placeholder.png`;
+const WAXEDGE_PLACEHOLDER_IMAGE = `${import.meta.env.BASE_URL}waxedge.jpg`;
 
 function getIpfsImageUrl(hash: string, gatewayIndex = 0): string {
   const gateway = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
@@ -21,7 +21,7 @@ function isPlaceholderBanner(banner: ActiveBanner): boolean {
 
 function getPlaceholderImage(banner: ActiveBanner): string {
   return banner.user === '__placeholder_waxedge__'
-    ? waxEdgeBanner
+    ? WAXEDGE_PLACEHOLDER_IMAGE
     : CHEESE_PLACEHOLDER_IMAGE;
 }
 
