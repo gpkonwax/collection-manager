@@ -5,7 +5,7 @@ import { sanitizeUrl } from '@/lib/sanitizeUrl';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
-import waxEdgeBanner from '@/assets/waxedge.jpg.asset.json';
+import waxEdgeBanner from '@/assets/waxedge.jpg';
 
 const ROTATION_INTERVAL = 30_000;
 const CHEESE_PLACEHOLDER_IMAGE = `${import.meta.env.BASE_URL}cheese-banner-placeholder.png`;
@@ -21,7 +21,7 @@ function isPlaceholderBanner(banner: ActiveBanner): boolean {
 
 function getPlaceholderImage(banner: ActiveBanner): string {
   return banner.user === '__placeholder_waxedge__'
-    ? waxEdgeBanner.url
+    ? waxEdgeBanner
     : CHEESE_PLACEHOLDER_IMAGE;
 }
 
