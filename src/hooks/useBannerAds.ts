@@ -27,6 +27,9 @@ export interface ActiveBanner {
   sharedWebsiteUrl?: string;
 }
 
+const WAXEDGE_PLACEHOLDER_USER = '__placeholder_waxedge__';
+const CHEESE_PLACEHOLDER_USER = '__placeholder_cheese__';
+
 const CONTRACT_ACCOUNT = 'cheesebannad';
 const SECONDS_PER_DAY = 86400;
 
@@ -127,14 +130,25 @@ async function fetchBannerAds(): Promise<ActiveBanner[]> {
         banners.push({
           time: row.time,
           position,
-          user: '__placeholder__',
+          user: WAXEDGE_PLACEHOLDER_USER,
           ipfsHash: '',
-          websiteUrl: 'https://cheesehubwax.github.io/cheesehub/farm',
+          websiteUrl: 'https://waxedge.app/',
           rentalType,
           displayMode: 'shared',
         });
       }
     }
+  }
+
+  // The first visible vacancy promotes WaxEDGE. If both banner positions have
+  // vacant shared halves, retain the original CheeseHub artwork for the second.
+  const vacantSharedSlots = banners
+    .filter(banner => banner.user === WAXEDGE_PLACEHOLDER_USER)
+    .sort((a, b) => a.position - b.position);
+
+  for (const banner of vacantSharedSlots.slice(1)) {
+    banner.user = CHEESE_PLACEHOLDER_USER;
+    banner.websiteUrl = 'https://cheesehubwax.github.io/cheesehub/farm';
   }
 
   return banners;
