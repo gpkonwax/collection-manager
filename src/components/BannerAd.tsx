@@ -5,9 +5,10 @@ import { sanitizeUrl } from '@/lib/sanitizeUrl';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { ExternalLinkWarningDialog, useExternalLinkWarning } from '@/components/ExternalLinkWarningDialog';
+import waxEdgeBanner from '@/assets/waxedge.jpg.asset.json';
 
 const ROTATION_INTERVAL = 30_000;
-const PLACEHOLDER_IMAGE = `${import.meta.env.BASE_URL}cheese-banner-placeholder.png`;
+const CHEESE_PLACEHOLDER_IMAGE = `${import.meta.env.BASE_URL}cheese-banner-placeholder.png`;
 
 function getIpfsImageUrl(hash: string, gatewayIndex = 0): string {
   const gateway = IPFS_GATEWAYS[gatewayIndex % IPFS_GATEWAYS.length];
@@ -15,7 +16,13 @@ function getIpfsImageUrl(hash: string, gatewayIndex = 0): string {
 }
 
 function isPlaceholderBanner(banner: ActiveBanner): boolean {
-  return banner.user === '__placeholder__';
+  return banner.user.startsWith('__placeholder_');
+}
+
+function getPlaceholderImage(banner: ActiveBanner): string {
+  return banner.user === '__placeholder_waxedge__'
+    ? waxEdgeBanner.url
+    : CHEESE_PLACEHOLDER_IMAGE;
 }
 
 interface SingleBannerProps {
@@ -39,7 +46,7 @@ function SingleBanner({ banner, className = '', onLinkClick }: SingleBannerProps
     if (safeUrl) onLinkClick(safeUrl);
   };
 
-  const imgSrc = placeholder ? PLACEHOLDER_IMAGE : getIpfsImageUrl(banner.ipfsHash, gatewayIdx);
+  const imgSrc = placeholder ? getPlaceholderImage(banner) : getIpfsImageUrl(banner.ipfsHash, gatewayIdx);
 
   return (
     <div
@@ -95,7 +102,7 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
       {banners.map((banner, idx) => {
         const isActive = idx === activeIndex;
         const gIdx = gatewayIdxMap[idx] || 0;
-        const imgSrc = isPlaceholderBanner(banner) ? PLACEHOLDER_IMAGE : getIpfsImageUrl(banner.ipfsHash, gIdx);
+        const imgSrc = isPlaceholderBanner(banner) ? getPlaceholderImage(banner) : getIpfsImageUrl(banner.ipfsHash, gIdx);
         const bannerUrl = sanitizeUrl(banner.websiteUrl);
 
         return (
@@ -123,7 +130,7 @@ function SharedBannerRotator({ banners, className = '', onLinkClick }: SharedBan
       })}
       {/* Invisible spacer to maintain container height */}
       <img
-        src={isPlaceholderBanner(activeBanner) ? PLACEHOLDER_IMAGE : getIpfsImageUrl(activeBanner.ipfsHash, gatewayIdxMap[activeIndex] || 0)}
+        src={isPlaceholderBanner(activeBanner) ? getPlaceholderImage(activeBanner) : getIpfsImageUrl(activeBanner.ipfsHash, gatewayIdxMap[activeIndex] || 0)}
         alt=""
         className="w-full h-full object-fill invisible"
         aria-hidden="true"
