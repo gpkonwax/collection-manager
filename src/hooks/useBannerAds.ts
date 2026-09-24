@@ -28,7 +28,7 @@ export interface ActiveBanner {
 }
 
 const WAXEDGE_PLACEHOLDER_USER = '__placeholder_waxedge__';
-const CHEESE_PLACEHOLDER_USER = '__placeholder_cheese__';
+const GPK_PLACEHOLDER_USER = '__placeholder_gpk__';
 
 const CONTRACT_ACCOUNT = 'cheesebannad';
 const SECONDS_PER_DAY = 86400;
@@ -141,14 +141,14 @@ async function fetchBannerAds(): Promise<ActiveBanner[]> {
   }
 
   // The first visible vacancy promotes WaxEDGE. If both banner positions have
-  // vacant shared halves, retain the original CheeseHub artwork for the second.
+  // vacant shared halves, promote the GPK Collection Manager in the second.
   const vacantSharedSlots = banners
     .filter(banner => banner.user === WAXEDGE_PLACEHOLDER_USER)
     .sort((a, b) => a.position - b.position);
 
   for (const banner of vacantSharedSlots.slice(1)) {
-    banner.user = CHEESE_PLACEHOLDER_USER;
-    banner.websiteUrl = 'https://cheesehubwax.github.io/cheesehub/farm';
+    banner.user = GPK_PLACEHOLDER_USER;
+    banner.websiteUrl = 'https://gpkonwax.github.io/collection-manager/';
   }
 
   return banners;
