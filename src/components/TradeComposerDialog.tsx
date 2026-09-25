@@ -346,7 +346,7 @@ function AssetPicker({
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {selectedAssets.map((a) => {
-              const mintDisplay = mintDisplayFor(a.category, a.mint, protocol);
+              const mintDisplay = mintDisplayFor(a.mint);
               const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
               const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
               const variantLabel = variantLabelFor(a.category, a.quality);
@@ -459,7 +459,7 @@ function AssetPicker({
             {filtered.map((a) => {
               const selected = selectedIds.has(a.id);
               const capReached = !selected && selectedIds.size >= maxPerSide;
-              const mintDisplay = mintDisplayFor(a.category, a.mint, protocol);
+              const mintDisplay = mintDisplayFor(a.mint);
               const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
               const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
               const variantLabel = variantLabelFor(a.category, a.quality);
