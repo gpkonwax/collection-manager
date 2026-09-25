@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { AtomicOffer, OfferAsset, OfferPack, TradeProtocol } from '@/lib/atomicOffers';
+import { resolveSaMintsForAssets } from '@/lib/saMintResolver';
 import { packImage } from '@/lib/gpkPackMeta';
 import { cn } from '@/lib/utils';
 import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
@@ -37,11 +38,12 @@ const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 /** Offers older than this are surfaced as "stale" with a one-click way out. */
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
-function AssetThumb({ asset, protocol }: { asset: OfferAsset; protocol: TradeProtocol }) {
-  // Bridged AtomicAssets copies carry a bridge sequence, not the real GPK mint.
+function AssetThumb({ asset, protocol, resolvedMint }: { asset: OfferAsset; protocol: TradeProtocol; resolvedMint?: number }) {
+  // Bridged AtomicAssets copies carry a bridge sequence, not the real GPK mint —
+  // use the resolved SimpleAssets mint when it has arrived.
   const isBridged = protocol === 'atomicassets'
     && BRIDGED_SCHEMAS.has(String(asset.schema_name || '').toLowerCase());
-  const mintValue = isBridged ? null : asset.mint;
+  const mintValue = isBridged ? (resolvedMint ?? null) : asset.mint;
   const mintDisplay = mintValue !== null && mintValue !== undefined && String(mintValue).trim() !== ''
     ? `#${mintValue}`
     : '#--';
@@ -65,7 +67,7 @@ function AssetThumb({ asset, protocol }: { asset: OfferAsset; protocol: TradePro
     >
       <div
         className="w-full flex justify-center"
-        title="Mint number (placeholder — real mint will populate when available)"
+        title={mintValue != null ? 'On-chain mint number' : 'Mint number (resolving…)'}
       >
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
           {mintDisplay}
@@ -128,11 +130,12 @@ function PackThumb({ pack }: { pack: OfferPack }) {
   );
 }
 
-function AssetRow({ label, assets, packs = [], protocol }: {
+function AssetRow({ label, assets, packs = [], protocol, mintMap }: {
   label: string;
   assets: OfferAsset[];
   packs?: OfferPack[];
   protocol: TradeProtocol;
+  mintMap?: Map<string, number>;
 }) {
   const total = assets.length + packs.length;
   return (
