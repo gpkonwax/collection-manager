@@ -153,7 +153,7 @@ function AssetRow({ label, assets, packs = [], protocol, mintMap }: {
       ) : (
         <ScrollArea className="w-full">
           <div className="flex gap-2 pb-2">
-            {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} protocol={protocol} />)}
+            {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} protocol={protocol} resolvedMint={mintMap?.get(a.asset_id)} />)}
             {packs.map((p) => <PackThumb key={`pack-${p.symbol}`} pack={p} />)}
           </div>
         </ScrollArea>
@@ -168,12 +168,14 @@ function OfferCard({
   isNew,
   onAction,
   busyAction,
+  mintMap,
 }: {
   offer: AtomicOffer;
   direction: 'incoming' | 'outgoing';
   isNew: boolean;
   onAction?: (action: OfferAction, offer: AtomicOffer) => Promise<void> | void;
   busyAction?: OfferAction | null;
+  mintMap?: Map<string, number>;
 }) {
   const theyGive = direction === 'incoming' ? offer.sender_assets : offer.recipient_assets;
   const youGive  = direction === 'incoming' ? offer.recipient_assets : offer.sender_assets;
@@ -297,13 +299,13 @@ function OfferCard({
       <div className="grid gap-3 md:grid-cols-2">
         {direction === 'incoming' ? (
           <>
-            <AssetRow label="They send" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
-            <AssetRow label="You send back" assets={youGive} packs={youGivePacks} protocol={protocol} />
+            <AssetRow label="They send" assets={theyGive} packs={theyGivePacks} protocol={protocol} mintMap={mintMap} />
+            <AssetRow label="You send back" assets={youGive} packs={youGivePacks} protocol={protocol} mintMap={mintMap} />
           </>
         ) : (
           <>
-            <AssetRow label="You send" assets={youGive} packs={youGivePacks} protocol={protocol} />
-            <AssetRow label="They send back" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
+            <AssetRow label="You send" assets={youGive} packs={youGivePacks} protocol={protocol} mintMap={mintMap} />
+            <AssetRow label="They send back" assets={theyGive} packs={theyGivePacks} protocol={protocol} mintMap={mintMap} />
           </>
         )}
       </div>
