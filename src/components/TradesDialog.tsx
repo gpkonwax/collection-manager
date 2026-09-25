@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import type { AtomicOffer, OfferAsset, OfferPack, TradeProtocol } from '@/lib/atomicOffers';
+import { resolveSaMintsForAssets } from '@/lib/saMintResolver';
 import { packImage } from '@/lib/gpkPackMeta';
 import { cn } from '@/lib/utils';
 import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
@@ -37,11 +38,12 @@ const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 /** Offers older than this are surfaced as "stale" with a one-click way out. */
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
-function AssetThumb({ asset, protocol }: { asset: OfferAsset; protocol: TradeProtocol }) {
-  // Bridged AtomicAssets copies carry a bridge sequence, not the real GPK mint.
+function AssetThumb({ asset, protocol, resolvedMint }: { asset: OfferAsset; protocol: TradeProtocol; resolvedMint?: number }) {
+  // Bridged AtomicAssets copies carry a bridge sequence, not the real GPK mint —
+  // use the resolved SimpleAssets mint when it has arrived.
   const isBridged = protocol === 'atomicassets'
     && BRIDGED_SCHEMAS.has(String(asset.schema_name || '').toLowerCase());
-  const mintValue = isBridged ? null : asset.mint;
+  const mintValue = isBridged ? (resolvedMint ?? null) : asset.mint;
   const mintDisplay = mintValue !== null && mintValue !== undefined && String(mintValue).trim() !== ''
     ? `#${mintValue}`
     : '#--';
@@ -65,7 +67,7 @@ function AssetThumb({ asset, protocol }: { asset: OfferAsset; protocol: TradePro
     >
       <div
         className="w-full flex justify-center"
-        title="Mint number (placeholder — real mint will populate when available)"
+        title={mintValue != null ? 'On-chain mint number' : 'Mint number (resolving…)'}
       >
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
           {mintDisplay}
@@ -128,11 +130,12 @@ function PackThumb({ pack }: { pack: OfferPack }) {
   );
 }
 
-function AssetRow({ label, assets, packs = [], protocol }: {
+function AssetRow({ label, assets, packs = [], protocol, mintMap }: {
   label: string;
   assets: OfferAsset[];
   packs?: OfferPack[];
   protocol: TradeProtocol;
+  mintMap?: Map<string, number>;
 }) {
   const total = assets.length + packs.length;
   return (
@@ -150,7 +153,7 @@ function AssetRow({ label, assets, packs = [], protocol }: {
       ) : (
         <ScrollArea className="w-full">
           <div className="flex gap-2 pb-2">
-            {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} protocol={protocol} />)}
+            {assets.map((a) => <AssetThumb key={a.asset_id} asset={a} protocol={protocol} resolvedMint={mintMap?.get(a.asset_id)} />)}
             {packs.map((p) => <PackThumb key={`pack-${p.symbol}`} pack={p} />)}
           </div>
         </ScrollArea>
@@ -165,12 +168,14 @@ function OfferCard({
   isNew,
   onAction,
   busyAction,
+  mintMap,
 }: {
   offer: AtomicOffer;
   direction: 'incoming' | 'outgoing';
   isNew: boolean;
   onAction?: (action: OfferAction, offer: AtomicOffer) => Promise<void> | void;
   busyAction?: OfferAction | null;
+  mintMap?: Map<string, number>;
 }) {
   const theyGive = direction === 'incoming' ? offer.sender_assets : offer.recipient_assets;
   const youGive  = direction === 'incoming' ? offer.recipient_assets : offer.sender_assets;
@@ -294,13 +299,13 @@ function OfferCard({
       <div className="grid gap-3 md:grid-cols-2">
         {direction === 'incoming' ? (
           <>
-            <AssetRow label="They send" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
-            <AssetRow label="You send back" assets={youGive} packs={youGivePacks} protocol={protocol} />
+            <AssetRow label="They send" assets={theyGive} packs={theyGivePacks} protocol={protocol} mintMap={mintMap} />
+            <AssetRow label="You send back" assets={youGive} packs={youGivePacks} protocol={protocol} mintMap={mintMap} />
           </>
         ) : (
           <>
-            <AssetRow label="You send" assets={youGive} packs={youGivePacks} protocol={protocol} />
-            <AssetRow label="They send back" assets={theyGive} packs={theyGivePacks} protocol={protocol} />
+            <AssetRow label="You send" assets={youGive} packs={youGivePacks} protocol={protocol} mintMap={mintMap} />
+            <AssetRow label="They send back" assets={theyGive} packs={theyGivePacks} protocol={protocol} mintMap={mintMap} />
           </>
         )}
       </div>
@@ -346,6 +351,33 @@ export function TradesDialog({
 }: TradesDialogProps) {
   const [tab, setTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [lastSeenAtOpen, setLastSeenAtOpen] = useState<number>(0);
+  const [mintMap, setMintMap] = useState<Map<string, number>>(new Map());
+
+  // Resolve real SimpleAssets mints for bridged GPK cards shown in offers.
+  useEffect(() => {
+    const bridged: { assetId: string; sassetsId: string }[] = [];
+    for (const offer of [...incoming, ...outgoing]) {
+      if ((offer.protocol ?? 'atomicassets') !== 'atomicassets') continue;
+      for (const a of [...offer.sender_assets, ...offer.recipient_assets]) {
+        if (a.sassets_id && BRIDGED_SCHEMAS.has(String(a.schema_name || '').toLowerCase())) {
+          bridged.push({ assetId: a.asset_id, sassetsId: a.sassets_id });
+        }
+      }
+    }
+    if (bridged.length === 0) return;
+    let cancelled = false;
+    resolveSaMintsForAssets(bridged)
+      .then((resolved) => {
+        if (cancelled || resolved.size === 0) return;
+        setMintMap((prev) => {
+          const next = new Map(prev);
+          for (const [assetId, info] of resolved) next.set(assetId, info.mint);
+          return next;
+        });
+      })
+      .catch((err) => console.warn('[TradesDialog] SA mint resolution failed:', err));
+    return () => { cancelled = true; };
+  }, [incoming, outgoing]);
 
   // Snapshot "last seen" at open so NEW ribbons stay visible during this viewing,
   // then mark everything read.
@@ -439,6 +471,7 @@ export function TradesDialog({
                       isNew={!o.created_at_time || o.created_at_time > lastSeenAtOpen}
                       onAction={onOfferAction}
                       busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
+                      mintMap={mintMap}
                     />
                   ))}
                 </div>
@@ -463,6 +496,7 @@ export function TradesDialog({
                       isNew={false}
                       onAction={onOfferAction}
                       busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
+                      mintMap={mintMap}
                     />
                   ))}
                 </div>

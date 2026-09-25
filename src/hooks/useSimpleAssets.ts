@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchTableRows } from '@/lib/waxRpcFallback';
 import { getIpfsUrl, extractIpfsHash } from '@/lib/ipfsGateways';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
+import { resolveSaMintsForAssets } from '@/lib/saMintResolver';
 
 export interface SimpleAsset {
   id: string;
@@ -21,6 +22,8 @@ export interface SimpleAsset {
   source: 'simpleassets' | 'atomicassets';
   /** Epoch ms when the asset was last transferred (received). Only populated for AtomicAssets. */
   transferredAt?: number;
+  /** True on-chain mint number, resolved from AtomicHub's SimpleAssets mint API. */
+  mintNumber?: number;
 }
 
 interface RawSAsset {
@@ -121,6 +124,31 @@ export function useSimpleAssets(account: string | null) {
         return Number(BigInt(a.id) - BigInt(b.id));
       });
       setAssets(parsed);
+
+      // Resolve the true on-chain mint/total for each SimpleAsset from
+      // AtomicHub's mint API (the SA table rows don't carry mint numbers).
+      resolveSaMintsForAssets(parsed.map((a) => ({ assetId: a.id, sassetsId: a.id })))
+        .then((mintMap) => {
+          if (mintMap.size === 0) return;
+          setAssets((prev) =>
+            prev.map((asset) => {
+              const info = mintMap.get(asset.id);
+              if (!info) return asset;
+              return {
+                ...asset,
+                mintNumber: info.mint,
+                idata: {
+                  ...asset.idata,
+                  mint: String(info.mint),
+                  maxsupply: String(info.total),
+                },
+              };
+            }),
+          );
+        })
+        .catch((err) => {
+          console.warn('[SimpleAssets] SA mint resolution failed:', err);
+        });
     } catch (err) {
       console.error('[SimpleAssets] Failed to fetch:', err);
       setError((err as Error).message);

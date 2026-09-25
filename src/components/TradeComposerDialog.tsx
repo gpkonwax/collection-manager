@@ -85,9 +85,8 @@ interface PickerAsset {
 /** Bridged SimpleAssets schemas: their AA sequence is not the real GPK mint. */
 const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 
-/** Mint ribbon text: real mint for native SA / native AA, placeholder for bridged AA. */
-function mintDisplayFor(category: string, mint: string, protocol: TradeProtocol): string {
-  if (protocol === 'atomicassets' && BRIDGED_SCHEMAS.has((category || '').toLowerCase())) return '#--';
+/** Mint ribbon text: real mint when known, placeholder while unresolved. */
+function mintDisplayFor(mint: string): string {
   return mint && mint.trim() !== '' ? `#${mint}` : '#--';
 }
 
@@ -118,6 +117,13 @@ function ProtocolLogo({ protocol, className }: { protocol: TradeProtocol; classN
 }
 
 function toPicker(a: SimpleAsset): PickerAsset {
+  // Bridged AA cards carry the bridge order in idata.mint until the resolver
+  // upgrades them — only surface the resolved on-chain mint (mintNumber).
+  const isBridgedAA = a.source === 'atomicassets'
+    && BRIDGED_SCHEMAS.has((a.category || '').toLowerCase());
+  const mint = isBridgedAA
+    ? (a.mintNumber != null ? String(a.mintNumber) : '')
+    : String((a.idata as Record<string, unknown>)?.mint ?? '');
   return {
     id: a.id,
     name: a.name,
@@ -126,7 +132,7 @@ function toPicker(a: SimpleAsset): PickerAsset {
     side: a.side || '',
     quality: a.quality || '',
     category: a.category || '',
-    mint: String((a.idata as Record<string, unknown>)?.mint ?? ''),
+    mint,
   };
 }
 
@@ -340,7 +346,7 @@ function AssetPicker({
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {selectedAssets.map((a) => {
-              const mintDisplay = mintDisplayFor(a.category, a.mint, protocol);
+              const mintDisplay = mintDisplayFor(a.mint);
               const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
               const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
               const variantLabel = variantLabelFor(a.category, a.quality);
@@ -453,7 +459,7 @@ function AssetPicker({
             {filtered.map((a) => {
               const selected = selectedIds.has(a.id);
               const capReached = !selected && selectedIds.size >= maxPerSide;
-              const mintDisplay = mintDisplayFor(a.category, a.mint, protocol);
+              const mintDisplay = mintDisplayFor(a.mint);
               const catKey = normalizeAssetCategory((a.category || '').toLowerCase());
               const categoryLabel = CATEGORY_LABELS[catKey] || a.category || '';
               const variantLabel = variantLabelFor(a.category, a.quality);
