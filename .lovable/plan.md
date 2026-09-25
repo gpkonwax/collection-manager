@@ -1,4 +1,4 @@
-# AtomicHub mint API is live — show real mints everywhere
+# Wire the live AtomicHub mint API into every mint ribbon
 
 ## Status (verified today)
 
@@ -9,24 +9,23 @@ GET https://nft-data.api.atomichub.io/v1/simpleassets/mints?asset_ids=1000000044
 → {"success":true,"data":[{"asset_id":"100000004478015","mint":356,"total":398,"burned":0},...]}
 ```
 
-The homepage collection already uses it: `useGpkAtomicAssets` calls `resolveSaMintsForAssets` and upgrades bridged cards from the bridge-order mint to the true original SimpleAssets mint. So on the main grid, real mint numbers should already be populating.
+## Root cause of "no mint numbers on the grid"
 
-## What's still showing placeholders
+Two breaks, both confirmed in code:
 
-Three spots still hardcode `#--` for bridged cards because they never call the resolver:
-
-1. **Trades dialog** (`TradesDialog.tsx`) — offer thumbnails show `#--` for bridged GPK schemas.
-2. **Trade composer** (`TradeComposerDialog.tsx`) — card selectors show `#--` for bridged schemas.
-3. **Atomic pack browser** (`AtomicPackBrowserDialog.tsx`) — pack contents show `#--` until resolved.
+1. **Bridged AtomicAssets cards (Series 1/2/Exotic):** `useGpkAtomicAssets` already calls `resolveSaMintsForAssets` and writes the real mint into `idata.mint` — but `SimpleAssetCard` never reads it. For bridged AA it only looks at a top-level `asset.mintNumber` field that nothing ever sets, so the ribbon stays `#--` forever.
+2. **Plain SimpleAssets cards:** `useSimpleAssets` never fetches mint data at all — the SA table rows don't include it, and the AtomicHub resolver is never called for them. So SA cards only show a mint if the author happened to put one in idata.
 
 ## What changes
 
-- In the Trades dialog and Trade composer, collect the `sassets_id` values of any bridged cards on screen and run them through the existing `resolveSaMintsForAssets` (batched, cached 30 min, max 3 concurrent requests — no extra load). When the real mint arrives, the ribbon swaps from `#--` to the true `#<mint>`, exactly like the homepage.
-- In the Atomic pack browser, do the same for bridged pack contents.
-- Update the placeholder tooltip wording ("real mint will populate when available") to reflect that mints now resolve automatically.
+1. **Card ribbon fix** (`SimpleAssetCard.tsx`): for bridged AA cards, fall back to `idata.mint` (the resolver-upgraded value) when `mintNumber` is absent. Ribbon swaps from `#--` to the true `#<mint>` as soon as the resolver returns.
+2. **SimpleAssets mint resolution** (`useSimpleAssets.ts`): after loading SA assets, batch their asset IDs through the existing `resolveSaMintsForAssets` (using each SA asset's own ID as the `sassets_id`) and set `idata.mint` / `idata.maxsupply`. SA cards then show real mints via the existing `getMintInfo` path.
+3. **Trades dialog + Trade composer** (`TradesDialog.tsx`, `TradeComposerDialog.tsx`): collect `sassets_id` of bridged cards on screen, run them through the resolver, and swap `#--` for the real mint in the ribbons. `OfferAsset` in `atomicOffers.ts` gains an optional `sassets_id` field carried from immutable_data.
+4. **Atomic pack browser** (`AtomicPackBrowserDialog.tsx`): same resolver pass for bridged pack contents.
+5. **Tooltip wording**: update "real mint will populate when available" to reflect that mints now resolve automatically.
 
 ## Technical notes
 
-- No new dependencies, no backend changes — reuses `src/lib/saMintResolver.ts` as-is.
-- Files touched: `src/components/TradesDialog.tsx`, `src/components/TradeComposerDialog.tsx`, `src/components/simpleassets/AtomicPackBrowserDialog.tsx`, tooltip string in `src/components/simpleassets/SimpleAssetCard.tsx`.
-- `OfferAsset` in `src/lib/atomicOffers.ts` may need the asset's `sassets_id` carried through from immutable_data so the resolver can join it — a small additive field, no breaking change.
+- No new dependencies, no backend changes — reuses `src/lib/saMintResolver.ts` (batched, 30-min cache, max 3 concurrent requests).
+- Files: `src/components/simpleassets/SimpleAssetCard.tsx`, `src/hooks/useSimpleAssets.ts`, `src/components/TradesDialog.tsx`, `src/components/TradeComposerDialog.tsx`, `src/lib/atomicOffers.ts`, `src/components/simpleassets/AtomicPackBrowserDialog.tsx`.
+- Verify with the preview on a wallet holding Series 1 cards in both SA and bridged AA form.
