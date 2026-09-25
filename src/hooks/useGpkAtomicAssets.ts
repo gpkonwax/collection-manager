@@ -148,6 +148,7 @@ export function useGpkAtomicAssets(account: string | null) {
               if (!info) return asset;
               return {
                 ...asset,
+                mintNumber: info.mint,
                 idata: {
                   ...asset.idata,
                   mint: String(info.mint),
