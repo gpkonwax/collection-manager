@@ -351,6 +351,33 @@ export function TradesDialog({
 }: TradesDialogProps) {
   const [tab, setTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [lastSeenAtOpen, setLastSeenAtOpen] = useState<number>(0);
+  const [mintMap, setMintMap] = useState<Map<string, number>>(new Map());
+
+  // Resolve real SimpleAssets mints for bridged GPK cards shown in offers.
+  useEffect(() => {
+    const bridged: { assetId: string; sassetsId: string }[] = [];
+    for (const offer of [...incoming, ...outgoing]) {
+      if ((offer.protocol ?? 'atomicassets') !== 'atomicassets') continue;
+      for (const a of [...offer.sender_assets, ...offer.recipient_assets]) {
+        if (a.sassets_id && BRIDGED_SCHEMAS.has(String(a.schema_name || '').toLowerCase())) {
+          bridged.push({ assetId: a.asset_id, sassetsId: a.sassets_id });
+        }
+      }
+    }
+    if (bridged.length === 0) return;
+    let cancelled = false;
+    resolveSaMintsForAssets(bridged)
+      .then((resolved) => {
+        if (cancelled || resolved.size === 0) return;
+        setMintMap((prev) => {
+          const next = new Map(prev);
+          for (const [assetId, info] of resolved) next.set(assetId, info.mint);
+          return next;
+        });
+      })
+      .catch((err) => console.warn('[TradesDialog] SA mint resolution failed:', err));
+    return () => { cancelled = true; };
+  }, [incoming, outgoing]);
 
   // Snapshot "last seen" at open so NEW ribbons stay visible during this viewing,
   // then mark everything read.
@@ -444,6 +471,7 @@ export function TradesDialog({
                       isNew={!o.created_at_time || o.created_at_time > lastSeenAtOpen}
                       onAction={onOfferAction}
                       busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
+                      mintMap={mintMap}
                     />
                   ))}
                 </div>
