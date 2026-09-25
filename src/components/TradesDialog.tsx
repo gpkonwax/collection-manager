@@ -496,6 +496,7 @@ export function TradesDialog({
                       isNew={false}
                       onAction={onOfferAction}
                       busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
+                      mintMap={mintMap}
                     />
                   ))}
                 </div>
