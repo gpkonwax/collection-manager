@@ -19,6 +19,8 @@ export interface OfferAsset {
   schema_name: string;
   template_id: string | null;
   mint: string | null;
+  /** Original SimpleAssets id for bridged GPK assets (used to resolve the real mint). */
+  sassets_id?: string;
   /** Normalized GPK variant (base, sketch, golden, ...) when available. */
   variant?: string;
   /** Card id within its series, when available. */
@@ -115,6 +117,7 @@ function normalizeAsset(a: RawOfferAsset): OfferAsset {
     schema_name: a.schema?.schema_name || '',
     template_id: a.template?.template_id || null,
     mint: a.template_mint || null,
+    sassets_id: String(a.immutable_data?.sassets_id ?? a.data?.sassets_id ?? '') || undefined,
     variant: normalizeGpkVariant(combined.variant),
     cardid: String(combined.cardid ?? ''),
   };
