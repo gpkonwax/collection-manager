@@ -86,9 +86,7 @@ interface PickerAsset {
 const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
 
 /** Mint ribbon text: real mint when known, placeholder while unresolved. */
-function mintDisplayFor(category: string, mint: string, protocol: TradeProtocol): string {
-  void category;
-  void protocol;
+function mintDisplayFor(mint: string): string {
   return mint && mint.trim() !== '' ? `#${mint}` : '#--';
 }
 
