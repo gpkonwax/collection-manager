@@ -118,7 +118,7 @@
     --background: 60 33% 97%;
     --foreground: 0 0% 8%;
 
-    /* Yellow card surface — cards pop against the dark backdrop */
+    /* Keep the existing yellow card surface against the light backdrop. */
     --card: 50 100% 55%;
     --card-foreground: 0 0% 8%;
 
@@ -152,10 +152,10 @@
     --cheese-glow: 330 100% 65%;
     --cheese-foreground: 0 0% 100%;
 
-    /* Grid lines (uses --cream) and secondary orb (uses --brown) both pink */
-    --cream: 201 86% 49%;
+    /* Existing accent tokens remain available for components. */
+    --cream: 330 100% 55%;
     --cream-dark: 330 100% 45%;
-    --brown: 331 93% 55%;
+    --brown: 330 100% 55%;
     --brown-light: 330 100% 65%;
     --glass: 60 33% 97%;
     --glass-border: 330 100% 55%;
