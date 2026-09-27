@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { WAX_CHAIN } from '@/lib/waxConfig';
 import { fetchTopGpkHolders, getCachedHolders, clearCachedHolders, type Holder } from '@/lib/gpkHolders';
+import { fetchActiveWallets, getCachedActiveWallets, clearCachedActiveWallets, formatLastActive, type ActiveWallet } from '@/lib/activeWallets';
+import { isOfflineBundle } from '@/lib/offlineBundle';
 
 interface ViewWalletControlProps {
   currentAccount: string | null;
