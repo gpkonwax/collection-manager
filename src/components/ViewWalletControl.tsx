@@ -220,7 +220,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const snapshotLabel = formatSnapshotDate(generatedAt);
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); setShowList(false); } }}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); setShowList(false); setShowActive(false); } }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
