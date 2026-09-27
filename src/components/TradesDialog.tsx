@@ -350,6 +350,7 @@ export function TradesDialog({
   incoming, outgoing, isLoading, error,
   onRefresh, onMarkAllRead,
   onOfferAction, busyOfferId, busyAction,
+  onOpenViewWallet,
 }: TradesDialogProps) {
   const [tab, setTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [lastSeenAtOpen, setLastSeenAtOpen] = useState<number>(0);
