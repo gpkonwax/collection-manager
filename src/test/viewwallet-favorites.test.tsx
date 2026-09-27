@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ViewWalletControl } from '../components/ViewWalletControl';
 import { addFavorite, loadFavorites, parseFavoritesEnvelope } from '../lib/favoriteAccounts';
+import { toast } from 'sonner';
+
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 vi.mock('../lib/activeWallets', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/activeWallets')>();
@@ -85,7 +88,12 @@ describe('ViewWalletControl — Favourites list', () => {
       fireEvent.click(screen.getByText(/Favourites \(1\)/i));
       fireEvent.click(screen.getByRole('button', { name: /^export$/i }));
       expect(createObjectURL).toHaveBeenCalledTimes(1);
-      const text = await created[0].text();
+      const text = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(r.error);
+        r.readAsText(created[0]);
+      });
       expect(parseFavoritesEnvelope(JSON.parse(text))!.map((f) => f.account)).toEqual(['dave.wam']);
     } finally {
       // Restore defaults for other tests
