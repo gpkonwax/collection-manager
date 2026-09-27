@@ -113,6 +113,7 @@ import { loadFavorites, importFavorites, exportFavoritesJson, FAVORITES_CHANGED_
 import { JsonMenu } from '@/components/JsonMenu';
 import { ViewWalletControl } from '@/components/ViewWalletControl';
 import { ViewingBanner } from '@/components/ViewingBanner';
+import { FavoritesExportReminder } from '@/components/FavoritesExportReminder';
 import { FavoriteAccountButton } from '@/components/FavoriteAccountButton';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
@@ -2594,6 +2595,8 @@ export default function SimpleAssetsPage() {
       {isViewing && viewedAccount && (
         <ViewingBanner viewedAccount={viewedAccount} onClear={handleClearViewing} />
       )}
+
+      <FavoritesExportReminder />
 
       <TradesDialog
         open={showTradesDialog}
