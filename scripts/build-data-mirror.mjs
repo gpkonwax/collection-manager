@@ -181,6 +181,7 @@ function sha256Hex(buf) {
  */
 async function findHoldersManifest() {
   const candidates = [
+    path.join(ROOT, 'mirror-output', 'manifests', 'gpk-topps-holders.json'),
     path.join(ROOT, 'scripts', 'mirror-output', 'manifests', 'gpk-topps-holders.json'),
     path.join(ROOT, 'manifests', 'gpk-topps-holders.json'),
     path.join(OUT_ROOT, 'incoming', 'gpk-topps-holders.json'),
