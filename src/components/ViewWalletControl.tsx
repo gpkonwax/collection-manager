@@ -109,6 +109,15 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, sync);
   }, []);
 
+  // Allow external components (e.g. a link in the Trades dialog) to open this popover.
+  useEffect(() => {
+    if (openSignal && openSignal > 0) {
+      setOpen(true);
+      // Focus the input shortly after the popover opens.
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [openSignal]);
+
   const favoriteSet = useMemo(() => new Set(favorites.map((f) => f.account)), [favorites]);
 
   const handleToggleFavorite = useCallback((account: string) => {
