@@ -253,8 +253,7 @@
   .bright .theme-bright-fill:hover {
     background-color: hsl(var(--card) / 0.85);
   }
-  /* Fill any non-solid button inside the header with yellow in bright mode.
-     Excludes solid pink buttons (bg-cheese) and elements portalled outside the header. */
+  /* Preserve the header buttons' yellow regardless of shared field surface styles. */
   .bright .theme-bright-header button {
     background-color: hsl(var(--header-button));
   }
@@ -265,7 +264,7 @@
   /* Spilled cyan, magenta and lemon pigment sits behind light content surfaces. */
   .bright body {
     background-image: url('./assets/bright-paint-background.jpg');
-    background-size: cover;
+    background-size: 100% 100%;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
