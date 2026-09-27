@@ -114,7 +114,7 @@ export function JsonMenu({
           <Button
             variant="outline"
             size="sm"
-            className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+            className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8 bright-grid-action"
             title="Import, export, and recent JSON files"
           >
             <FileJson className="h-4 w-4 mr-1" />

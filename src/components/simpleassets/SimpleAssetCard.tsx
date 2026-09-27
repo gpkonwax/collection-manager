@@ -253,7 +253,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
             {isBridgedAA && asset.idata?.bridge_mint ? (
               <span
-                className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium bright-bridge-mint"
                 title="Original bridge order mint from SimpleAssets → AtomicAssets bridging"
               >
                 Bridge Mint #{String(asset.idata.bridge_mint)}
