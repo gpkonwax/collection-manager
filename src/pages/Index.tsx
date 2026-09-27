@@ -2467,9 +2467,6 @@ export default function SimpleAssetsPage() {
                 <Info className="h-4 w-4" />
                 <span className="sr-only">GPK Collection Manager Info</span>
               </Button>
-              {isViewing && viewedAccount && (
-                <FavoriteAccountButton account={viewedAccount} />
-              )}
 
               {isConnected && accountName ? (
                 <DropdownMenu>
@@ -2580,6 +2577,9 @@ export default function SimpleAssetsPage() {
                 onClear={handleClearViewing}
                 openSignal={viewWalletSignal}
               />
+              {isViewing && viewedAccount && (
+                <FavoriteAccountButton account={viewedAccount} />
+              )}
             </div>
           )}
         </div>
