@@ -156,9 +156,19 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     toast.success(`Exported ${count} favourite${count !== 1 ? 's' : ''}`);
   }, []);
 
+  const readFileText = (file: File) =>
+    typeof file.text === 'function'
+      ? file.text()
+      : new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result ?? ''));
+          reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+          reader.readAsText(file);
+        });
+
   const handleImportFavsFile = useCallback(async (file: File) => {
     try {
-      const text = await file.text();
+      const text = await readFileText(file);
       const parsed: unknown = JSON.parse(text);
       const accounts = parseFavoritesEnvelope(parsed);
       if (!accounts || accounts.length === 0) {
