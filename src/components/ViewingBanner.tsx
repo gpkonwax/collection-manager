@@ -1,7 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Eye, X, Star } from 'lucide-react';
+import { Eye, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { isFavorite, toggleFavorite, FAVORITES_CHANGED_EVENT } from '@/lib/favoriteAccounts';
 
 interface ViewingBannerProps {
   viewedAccount: string;
@@ -9,21 +7,6 @@ interface ViewingBannerProps {
 }
 
 export function ViewingBanner({ viewedAccount, onClear }: ViewingBannerProps) {
-  const [fav, setFav] = useState(() => isFavorite(viewedAccount));
-
-  // Stay in sync with the shared favourites list (View Wallet stars, imports, JSON menu).
-  useEffect(() => {
-    setFav(isFavorite(viewedAccount));
-    const onFavChange = () => setFav(isFavorite(viewedAccount));
-    window.addEventListener(FAVORITES_CHANGED_EVENT, onFavChange);
-    return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, onFavChange);
-  }, [viewedAccount]);
-
-  const handleToggleFav = useCallback(() => {
-    toggleFavorite(viewedAccount);
-    setFav(isFavorite(viewedAccount));
-  }, [viewedAccount]);
-
   return (
     <div className="sticky top-12 z-30 border-b border-cheese/30 bg-cheese/10 backdrop-blur-md">
       <div className="container flex items-center justify-between gap-3 py-2 text-sm">
