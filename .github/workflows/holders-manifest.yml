@@ -32,11 +32,11 @@ jobs:
       - name: Scan WAX chain for gpk.topps holders (~30 min)
         run: node scripts/build-holders-manifest.mjs
 
-      - name: Stage manifest into the data-mirror folder
+      - name: Stage manifest into the repo manifests folder
         run: |
-          mkdir -p scripts/data-mirror-output/gpk-data/manifests
+          mkdir -p manifests
           cp mirror-output/manifests/gpk-topps-holders.json \
-             scripts/data-mirror-output/gpk-data/manifests/gpk-topps-holders.json
+             manifests/gpk-topps-holders.json
 
       - name: Rebuild data-mirror folder + index
         run: node scripts/build-data-mirror.mjs
