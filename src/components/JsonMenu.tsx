@@ -238,6 +238,17 @@ export function JsonMenu({
             </DropdownMenuItem>
           )}
 
+          {onExportFavorites && (
+            <DropdownMenuItem
+              onClick={onExportFavorites}
+              disabled={favoritesCount === 0}
+              className="cursor-pointer data-[disabled]:opacity-50 data-[disabled]:pointer-events-none"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span>Export favourites{favoritesCount > 0 ? ` (${favoritesCount})` : ''}</span>
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuSeparator />
           <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
             Alerts ({alertsCount}/{alertsMax})
