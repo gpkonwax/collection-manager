@@ -5,3 +5,4 @@
 - [x] Replace bright-mode yellow box fills with light surfaces; make the background bold spilled paint, preserving header buttons and dark mode.
 - [x] Extend paint across the bright background and use the banner's exact lettering for the bright-mode title.
 - [x] Give dark mode the same banner-lettered title in the existing yellow, cream, and dark brown palette.
+- [x] Make bright-mode card surrounds translucent white and fill the view selector so it stands out over the paint.

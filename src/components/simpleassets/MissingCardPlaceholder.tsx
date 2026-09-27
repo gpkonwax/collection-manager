@@ -30,7 +30,7 @@ export function MissingCardPlaceholder({ template, isReadOnly }: MissingCardPlac
   return (
     <>
       <Card
-        className="overflow-hidden bg-card/30 border-border/30 opacity-50 hover:opacity-80 transition-opacity cursor-pointer relative"
+        className="overflow-hidden bg-card/30 border-border/30 opacity-50 hover:opacity-80 transition-opacity cursor-pointer relative bright-card-shell"
         onClick={() => requestNavigation(buyUrl)}
       >
         {!isReadOnly && (

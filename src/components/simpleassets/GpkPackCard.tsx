@@ -119,7 +119,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
   return (
     <>
       <PackInfoPopover specKey={pack.symbol}>
-      <Card className="bg-card border-border hover:border-primary/40 transition-colors">
+      <Card className="bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           {series2Img ? <img src={series2Img} alt={pack.label} className="w-3/4 h-auto rounded mx-auto" /> : <span className="text-3xl">📦</span>}
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.label}</p>
