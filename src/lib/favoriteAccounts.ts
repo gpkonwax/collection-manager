@@ -37,9 +37,11 @@ export function isValidWaxName(name: string): boolean {
   return name.length >= 1 && name.length <= 12 && WAX_NAME_RE.test(name);
 }
 
-function notifyChanged() {
+export type FavoritesChangeType = 'added' | 'removed' | 'imported';
+
+function notifyChanged(type?: FavoritesChangeType, account?: string) {
   try {
-    window.dispatchEvent(new CustomEvent(FAVORITES_CHANGED_EVENT));
+    window.dispatchEvent(new CustomEvent(FAVORITES_CHANGED_EVENT, { detail: { type, account } }));
   } catch { /* non-browser env */ }
 }
 
@@ -58,13 +60,13 @@ export function loadFavorites(): FavoriteAccount[] {
   }
 }
 
-function saveFavorites(list: FavoriteAccount[]) {
+function saveFavorites(list: FavoriteAccount[], changeType?: FavoritesChangeType, changedAccount?: string) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch (err) {
     console.warn('Failed to persist favourite accounts', err);
   }
-  notifyChanged();
+  notifyChanged(changeType, changedAccount);
 }
 
 export function isFavorite(account: string): boolean {
@@ -76,7 +78,7 @@ export function addFavorite(account: string, note?: string): boolean {
   const list = loadFavorites();
   if (list.some((f) => f.account === account)) return false;
   if (list.length >= CAP) return false;
-  saveFavorites([{ account, addedAt: new Date().toISOString(), ...(note ? { note } : {}) }, ...list]);
+  saveFavorites([{ account, addedAt: new Date().toISOString(), ...(note ? { note } : {}) }, ...list], 'added', account);
   return true;
 }
 
@@ -84,7 +86,7 @@ export function removeFavorite(account: string): boolean {
   const list = loadFavorites();
   const next = list.filter((f) => f.account !== account);
   if (next.length === list.length) return false;
-  saveFavorites(next);
+  saveFavorites(next, 'removed', account);
   return true;
 }
 
@@ -135,7 +137,7 @@ export function importFavorites(accounts: FavoriteAccount[]): FavoritesImportRes
     });
     added++;
   }
-  if (incoming.length > 0) saveFavorites([...incoming, ...list]);
+  if (incoming.length > 0) saveFavorites([...incoming, ...list], 'imported');
   return { added, updated, skipped };
 }
 
