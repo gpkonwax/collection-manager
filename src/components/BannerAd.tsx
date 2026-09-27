@@ -203,7 +203,7 @@ function BannerAdComponent() {
       <div className="flex justify-center mt-1">
         <span
           onClick={() => requestNavigation('https://cheesehubwax.github.io/cheesehub/bannerads')}
-          className="text-[10px] text-muted-foreground/60 hover:text-cheese/80 cursor-pointer transition-colors theme-bright-text-muted theme-bright-hover-text"
+          className="text-[10px] text-muted-foreground/60 hover:text-cheese/80 cursor-pointer transition-colors theme-bright-text-muted theme-bright-hover-text bright-ad-link"
         >
           Advertise with CheeseHub
         </span>

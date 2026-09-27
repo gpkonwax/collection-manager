@@ -2108,7 +2108,7 @@ export default function SimpleAssetsPage() {
               onClick={handleSnapshotToSaved}
               variant="outline"
               size="sm"
-              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8"
+              className="whitespace-nowrap border-cheese/30 text-cheese hover:border-cheese hover:bg-cheese/10 h-8 bright-grid-action"
               title="Copy current view to Saved Collection for custom arrangement"
             >
               <Save className="h-4 w-4 mr-1" />
@@ -2819,9 +2819,9 @@ export default function SimpleAssetsPage() {
             <h1 className="text-3xl font-bold text-cheese theme-bright-text bright-page-heading">
               <img src={theme === 'bright' ? brightBannerTitle : darkBannerTitle} alt="Unofficial GPK Collection Manager" className="mx-auto w-full max-w-[430px] h-auto" />
             </h1>
-            <p className="text-cheese/70 mt-1 theme-bright-text-muted">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
+            <p className="text-cheese/70 mt-1 theme-bright-text-muted bright-intro-copy">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
-              <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80 theme-bright-text-muted">
+              <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80 theme-bright-text-muted bright-bridge-info">
                 <span>Optional: Bridge your</span>
                 <img src={logoSimpleAssets} alt="SimpleAssets" title="SimpleAssets" className="h-10 w-auto rounded-full bg-white p-[1px]" />
                 <span>to</span>
@@ -3357,7 +3357,7 @@ export default function SimpleAssetsPage() {
         )}
       </div>
 
-      <footer className="border-t border-cheese/20 mt-12 py-8">
+      <footer className="border-t border-cheese/20 mt-12 py-8 bright-readable-footer">
         <div className="container">
           <div className="grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
             <div className="text-xs text-cheese space-y-0.5 text-center sm:text-left">

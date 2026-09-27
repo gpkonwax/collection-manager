@@ -45,7 +45,7 @@ export function BackupNudgeBanner() {
   };
 
   return (
-    <div className="bg-cheese/10 border-b border-cheese/30 text-sm">
+    <div className="bg-cheese/10 border-b border-cheese/30 text-sm bright-backup-warning">
       <div className="container flex flex-wrap items-center gap-2 py-2">
         <ShieldCheck className="h-4 w-4 text-cheese flex-shrink-0" aria-hidden />
         <p className="text-cheese/90 flex-1 min-w-[16rem]">

@@ -6,3 +6,4 @@
 - [x] Extend paint across the bright background and use the banner's exact lettering for the bright-mode title.
 - [x] Give dark mode the same banner-lettered title in the existing yellow, cream, and dark brown palette.
 - [x] Make bright-mode card surrounds translucent white and fill the view selector so it stands out over the paint.
+- [x] Improve bright-mode readability for bridge mint badges, backup warning, grid actions, intro and bridge copy, ad link, and footer.

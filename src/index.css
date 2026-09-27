@@ -292,6 +292,69 @@
   .bright .bright-view-tabs [data-state="inactive"]:hover {
     background-color: hsl(var(--cheese-foreground) / 0.16);
   }
+  /* Filled reading surfaces protect small text from the vivid poster background. */
+  .bright .bright-backup-warning {
+    background-color: hsl(var(--header-button));
+    border-color: hsl(var(--foreground) / 0.25);
+  }
+  .bright .bright-backup-warning p,
+  .bright .bright-backup-warning > div > svg,
+  .bright .bright-backup-warning button:not(:first-child) {
+    color: hsl(var(--foreground));
+  }
+  .bright .bright-backup-warning button:first-child {
+    background-color: hsl(var(--foreground));
+    color: hsl(var(--card));
+  }
+  .bright .bright-intro-copy,
+  .bright .bright-bridge-info {
+    background-color: hsl(var(--card) / 0.88);
+    color: hsl(var(--foreground));
+    border-radius: var(--radius);
+    padding: 0.35rem 0.75rem;
+    max-width: 100%;
+  }
+  .bright .bright-intro-copy {
+    display: inline-block;
+  }
+  .bright .bright-bridge-info a {
+    color: hsl(var(--cheese-dark));
+    font-weight: 700;
+  }
+  .bright .bright-ad-link {
+    display: inline-block;
+    background-color: hsl(var(--card) / 0.94);
+    color: hsl(var(--foreground));
+    border-radius: var(--radius);
+    padding: 0.2rem 0.65rem;
+    font-weight: 600;
+  }
+  .bright .bright-bridge-mint {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--foreground));
+  }
+  .bright .bright-grid-action {
+    background-color: hsl(var(--header-button));
+    border-color: hsl(var(--foreground) / 0.35);
+    color: hsl(var(--foreground));
+  }
+  .bright .bright-grid-action:hover {
+    background-color: hsl(var(--header-button) / 0.85);
+    border-color: hsl(var(--foreground));
+    color: hsl(var(--foreground));
+  }
+  .bright .bright-readable-footer {
+    background-color: hsl(var(--card) / 0.93);
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--foreground) / 0.25);
+  }
+  .bright .bright-readable-footer :is(.text-cheese, .text-muted-foreground, strong, code) {
+    color: hsl(var(--foreground));
+  }
+  .bright .bright-readable-footer :is(a, button) {
+    color: hsl(var(--cheese-dark));
+    font-weight: 600;
+  }
 
   .bright .bright-page-heading,
   .bright .bright-section-heading {
