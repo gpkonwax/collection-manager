@@ -197,6 +197,13 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     }
   }, []);
 
+  const handleClearFavs = useCallback(() => {
+    const removed = clearFavorites();
+    setFavorites(loadFavorites());
+    setClearConfirmOpen(false);
+    toast.success(removed === 1 ? 'Cleared 1 favourite' : `Cleared ${removed} favourites`);
+  }, []);
+
   const submit = useCallback(async () => {
     const name = normalize(value);
     const validation = validateWaxName(name);
