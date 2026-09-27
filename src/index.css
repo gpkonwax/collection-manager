@@ -122,16 +122,16 @@
     --card: 50 100% 55%;
     --card-foreground: 0 0% 8%;
 
-    --popover: 30 15% 12%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 60 33% 97%;
+    --popover-foreground: 0 0% 8%;
 
     --primary: 330 100% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 15% 18%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 0 0% 93%;
+    --secondary-foreground: 0 0% 8%;
 
-    --muted: 30 12% 20%;
+    --muted: 0 0% 91%;
     --muted-foreground: 0 0% 30%;
 
     --accent: 210 100% 55%;
@@ -142,7 +142,7 @@
     --destructive-foreground: 0 0% 100%;
 
     --border: 330 100% 55%;
-    --input: 30 15% 18%;
+    --input: 0 0% 82%;
     --ring: 330 100% 55%;
 
     /* --cheese remapped to pink so text-cheese / text-cheese-gradient render pink headers/subheaders */
@@ -157,19 +157,19 @@
     --cream-dark: 330 100% 45%;
     --brown: 331 93% 55%;
     --brown-light: 330 100% 65%;
-    --glass: 30 15% 14%;
+    --glass: 60 33% 97%;
     --glass-border: 330 100% 55%;
 
     --shadow-cheese: 0 0 40px hsl(330 100% 55% / 0.35);
     --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.4);
     --shadow-glow: 0 0 60px hsl(210 100% 55% / 0.2);
 
-    --sidebar-background: 30 15% 12%;
-    --sidebar-foreground: 0 0% 100%;
+    --sidebar-background: 60 33% 97%;
+    --sidebar-foreground: 0 0% 8%;
     --sidebar-primary: 330 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 15% 18%;
-    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 93%;
+    --sidebar-accent-foreground: 0 0% 8%;
     --sidebar-border: 330 100% 55%;
     --sidebar-ring: 330 100% 55%;
   }
