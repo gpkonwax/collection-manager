@@ -2552,6 +2552,7 @@ export default function SimpleAssetsPage() {
                 viewedAccount={viewedAccount}
                 onView={handleViewWallet}
                 onClear={handleClearViewing}
+                openSignal={viewWalletSignal}
               />
             </div>
           )}
