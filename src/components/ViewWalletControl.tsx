@@ -1,5 +1,6 @@
 import { useState, useCallback, KeyboardEvent, useEffect, useRef, useMemo } from 'react';
-import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw, Star } from 'lucide-react';
+import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw, Star, Download, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -11,6 +12,9 @@ import {
   loadFavorites,
   toggleFavorite,
   isValidWaxName,
+  exportFavoritesJson,
+  importFavorites,
+  parseFavoritesEnvelope,
   FAVORITES_CHANGED_EVENT,
   type FavoriteAccount,
 } from '@/lib/favoriteAccounts';
@@ -130,6 +134,56 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     if (!f) return favorites;
     return favorites.filter((w) => w.account.includes(f));
   }, [favorites, favFilter]);
+
+  const favInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleExportFavs = useCallback(() => {
+    const count = loadFavorites().length;
+    if (count === 0) {
+      toast.error('No favourites to export');
+      return;
+    }
+    const blob = new Blob([exportFavoritesJson()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url;
+    a.download = `gpk-favorite-accounts-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${count} favourite${count !== 1 ? 's' : ''}`);
+  }, []);
+
+  const readFileText = (file: File) =>
+    typeof file.text === 'function'
+      ? file.text()
+      : new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result ?? ''));
+          reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+          reader.readAsText(file);
+        });
+
+  const handleImportFavsFile = useCallback(async (file: File) => {
+    try {
+      const text = await readFileText(file);
+      const parsed: unknown = JSON.parse(text);
+      const accounts = parseFavoritesEnvelope(parsed);
+      if (!accounts || accounts.length === 0) {
+        toast.error('That file is not a favourites export');
+        return;
+      }
+      const res = importFavorites(accounts);
+      setFavorites(loadFavorites());
+      toast.success(
+        `Imported favourites — ${res.added} added, ${res.updated} already saved${res.skipped ? `, ${res.skipped} skipped` : ''}`,
+      );
+    } catch {
+      toast.error('Could not read that file as JSON');
+    }
+  }, []);
 
   const submit = useCallback(async () => {
     const name = normalize(value);
@@ -351,6 +405,38 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
 
         {showFavs && (
           <div className="space-y-2">
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-cheese hover:bg-cheese/10 flex-1"
+                onClick={handleExportFavs}
+                disabled={favorites.length === 0}
+                title="Download your favourites as a JSON file"
+              >
+                <Download className="h-3 w-3 mr-1" />Export
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-cheese hover:bg-cheese/10 flex-1"
+                onClick={() => favInputRef.current?.click()}
+                title="Import a favourites JSON file (merges, no duplicates)"
+              >
+                <Upload className="h-3 w-3 mr-1" />Import
+              </Button>
+            </div>
+            <input
+              ref={favInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleImportFavsFile(file);
+                e.target.value = '';
+              }}
+            />
             {favorites.length > 4 && (
               <Input
                 spellCheck={false}
