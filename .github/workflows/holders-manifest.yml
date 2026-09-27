@@ -1,0 +1,68 @@
+name: Refresh GPK holders manifest
+
+# Rebuilds manifests/gpk-topps-holders.json (the View Wallet "Top Holders"
+# list) on the 10th of every month and republishes it to the Cloudflare Pages
+# data mirror. Can also be run manually from the Actions tab.
+#
+# Required repo secrets for the Cloudflare deploy step:
+#   CF_API_TOKEN   — Cloudflare API token with Account → Cloudflare Pages → Edit
+#   CF_ACCOUNT_ID  — Cloudflare account ID
+# Without them the manifest is still rebuilt and committed to the repo; only
+# the Cloudflare deploy is skipped.
+
+on:
+  schedule:
+    - cron: '0 0 10 * *' # 00:00 UTC on the 10th (10:00 AM Brisbane)
+  workflow_dispatch:
+
+permissions:
+  contents: write # to commit the refreshed manifest back to the repo
+
+jobs:
+  rebuild-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120 # the WAX scan takes ~30 min; leave headroom
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Scan WAX chain for gpk.topps holders (~30 min)
+        run: node scripts/build-holders-manifest.mjs
+
+      - name: Stage manifest into the data-mirror folder
+        run: |
+          mkdir -p scripts/data-mirror-output/gpk-data/manifests
+          cp mirror-output/manifests/gpk-topps-holders.json \
+             scripts/data-mirror-output/gpk-data/manifests/gpk-topps-holders.json
+
+      - name: Rebuild data-mirror folder + index
+        run: node scripts/build-data-mirror.mjs
+
+      - name: Deploy to Cloudflare Pages (gpk-data)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::CF_API_TOKEN / CF_ACCOUNT_ID not set — manifest rebuilt and committed, but the Cloudflare deploy was skipped."
+            exit 0
+          fi
+          npx --yes wrangler pages deploy scripts/data-mirror-output/gpk-data \
+            --project-name gpk-data --branch main
+
+      - name: Commit refreshed manifest to the repo
+        run: |
+          git config user.name "gpk-holders-bot"
+          git config user.email "actions@github.com"
+          mkdir -p manifests
+          cp mirror-output/manifests/gpk-topps-holders.json manifests/gpk-topps-holders.json
+          git add manifests/gpk-topps-holders.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: refresh gpk-topps holders manifest ($(date -u +%Y-%m-%d))"
+            git push
+          fi
