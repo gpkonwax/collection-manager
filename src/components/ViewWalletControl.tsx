@@ -156,12 +156,50 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     if (showList && !holders && !loading && !attemptedRef.current) loadHolders();
   }, [showList, holders, loading, loadHolders]);
 
+  const loadActive = useCallback(async () => {
+    activeAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    activeAbortRef.current = ctrl;
+    activeAttemptedRef.current = true;
+    setActiveLoading(true);
+    setActiveError(null);
+    try {
+      const { wallets } = await fetchActiveWallets({ signal: ctrl.signal });
+      setActiveWallets(wallets);
+    } catch (e) {
+      const err = e as Error;
+      if (err.name === 'AbortError') return;
+      setActiveError(err.message || 'Failed to load active traders');
+    } finally {
+      if (activeAbortRef.current === ctrl) activeAbortRef.current = null;
+      setActiveLoading(false);
+    }
+  }, []);
+
+  const refreshActive = useCallback(() => {
+    clearCachedActiveWallets();
+    setActiveWallets(null);
+    activeAttemptedRef.current = false;
+    loadActive();
+  }, [loadActive]);
+
+  useEffect(() => {
+    if (showActive && !activeWallets && !activeLoading && !activeAttemptedRef.current && !isOfflineBundle()) loadActive();
+  }, [showActive, activeWallets, activeLoading, loadActive]);
+
   // Abort in-flight on popover close
   useEffect(() => {
-    if (!open && abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
-      setLoading(false);
+    if (!open) {
+      if (abortRef.current) {
+        abortRef.current.abort();
+        abortRef.current = null;
+        setLoading(false);
+      }
+      if (activeAbortRef.current) {
+        activeAbortRef.current.abort();
+        activeAbortRef.current = null;
+        setActiveLoading(false);
+      }
     }
   }, [open]);
 
@@ -171,6 +209,13 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     if (!f) return holders;
     return holders.filter((h) => h.account.includes(f));
   }, [holders, filter]);
+
+  const filteredActive = useMemo(() => {
+    if (!activeWallets) return [];
+    const f = activeFilter.trim().toLowerCase();
+    if (!f) return activeWallets;
+    return activeWallets.filter((w) => w.account.includes(f));
+  }, [activeWallets, activeFilter]);
 
   const snapshotLabel = formatSnapshotDate(generatedAt);
 
