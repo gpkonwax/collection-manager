@@ -20,6 +20,8 @@ interface ViewWalletControlProps {
   viewedAccount: string | null;
   onView: (account: string) => void;
   onClear: () => void;
+  /** Increment this number to programmatically open the popover (e.g. from a link in another dialog). */
+  openSignal?: number;
 }
 
 // WAX account naming rules: a-z, 1-5, and '.', length 1..12, no leading/trailing/double dots.
