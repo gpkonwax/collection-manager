@@ -1660,6 +1660,18 @@ export default function SimpleAssetsPage() {
       parts.push(`Pack history: ${added} new, ${updated} updated`);
     }
 
+    const favsOk = ok.filter(r => r.kind === 'favorites' && r.favorites);
+    if (favsOk.length > 0) {
+      const added = favsOk.reduce((n, r) => n + r.favorites!.added, 0);
+      const updated = favsOk.reduce((n, r) => n + r.favorites!.updated, 0);
+      const skipped = favsOk.reduce((n, r) => n + r.favorites!.skipped, 0);
+      const f: string[] = [];
+      if (added) f.push(`${added} added`);
+      if (updated) f.push(`${updated} already saved`);
+      if (skipped) f.push(`${skipped} skipped`);
+      parts.push(`Favourites: ${f.join(', ')}`);
+    }
+
     if (ok.length > 0) {
       toast.success(`Imported ${ok.length} file${ok.length !== 1 ? 's' : ''}${parts.length ? ` — ${parts.join(' · ')}` : ''}`);
     }
