@@ -272,6 +272,9 @@
   .bright .bright-background-decorations {
     display: none;
   }
+  .bright .bright-content-panel {
+    background-color: hsl(var(--card) / 0.96);
+  }
 
   .bright .bright-page-heading,
   .bright .bright-section-heading {
