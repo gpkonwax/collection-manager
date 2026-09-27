@@ -1,5 +1,5 @@
 import { useState, useCallback, KeyboardEvent, useEffect, useRef, useMemo } from 'react';
-import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -7,6 +7,13 @@ import { WAX_CHAIN } from '@/lib/waxConfig';
 import { fetchTopGpkHolders, getCachedHolders, clearCachedHolders, type Holder } from '@/lib/gpkHolders';
 import { fetchActiveWallets, getCachedActiveWallets, clearCachedActiveWallets, formatLastActive, type ActiveWallet } from '@/lib/activeWallets';
 import { isOfflineBundle } from '@/lib/offlineBundle';
+import {
+  loadFavorites,
+  toggleFavorite,
+  isValidWaxName,
+  FAVORITES_CHANGED_EVENT,
+  type FavoriteAccount,
+} from '@/lib/favoriteAccounts';
 
 interface ViewWalletControlProps {
   currentAccount: string | null;
@@ -88,6 +95,30 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const [activeFilter, setActiveFilter] = useState('');
   const activeAbortRef = useRef<AbortController | null>(null);
   const activeAttemptedRef = useRef(false);
+
+  const [showFavs, setShowFavs] = useState(false);
+  const [favorites, setFavorites] = useState<FavoriteAccount[]>(() => loadFavorites());
+  const [favFilter, setFavFilter] = useState('');
+
+  // Keep in sync when favourites change elsewhere (JSON import, other popover)
+  useEffect(() => {
+    const sync = () => setFavorites(loadFavorites());
+    window.addEventListener(FAVORITES_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, sync);
+  }, []);
+
+  const favoriteSet = useMemo(() => new Set(favorites.map((f) => f.account)), [favorites]);
+
+  const handleToggleFavorite = useCallback((account: string) => {
+    toggleFavorite(account);
+    setFavorites(loadFavorites());
+  }, []);
+
+  const filteredFavs = useMemo(() => {
+    const f = favFilter.trim().toLowerCase();
+    if (!f) return favorites;
+    return favorites.filter((w) => w.account.includes(f));
+  }, [favorites, favFilter]);
 
   const submit = useCallback(async () => {
     const name = normalize(value);
