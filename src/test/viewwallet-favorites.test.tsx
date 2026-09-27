@@ -136,4 +136,42 @@ describe('ViewWalletControl — Favourites list', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('That file is not a favourites export'));
     expect(loadFavorites()).toHaveLength(0);
   });
+
+  it('clear button is disabled when the list is empty', () => {
+    render(
+      <ViewWalletControl currentAccount="me.wam" viewedAccount={null} onView={() => {}} onClear={() => {}} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /view wallet/i }));
+    fireEvent.click(screen.getByText(/Favourites \(0\)/i));
+    expect((screen.getByRole('button', { name: /^clear$/i }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('cancelling the clear dialog keeps the favourites intact', () => {
+    addFavorite('frank.wam');
+    render(
+      <ViewWalletControl currentAccount="me.wam" viewedAccount={null} onView={() => {}} onClear={() => {}} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /view wallet/i }));
+    fireEvent.click(screen.getByText(/Favourites \(1\)/i));
+    fireEvent.click(screen.getByRole('button', { name: /^clear$/i }));
+    expect(screen.getByText(/Clear all favourites\?/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+    expect(loadFavorites().map((f) => f.account)).toEqual(['frank.wam']);
+    expect(screen.queryByText(/Clear all favourites\?/i)).toBeNull();
+  });
+
+  it('clear all empties the list and toasts the removed count', () => {
+    addFavorite('grace.wam');
+    addFavorite('heidi.wam');
+    render(
+      <ViewWalletControl currentAccount="me.wam" viewedAccount={null} onView={() => {}} onClear={() => {}} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /view wallet/i }));
+    fireEvent.click(screen.getByText(/Favourites \(2\)/i));
+    fireEvent.click(screen.getByRole('button', { name: /^clear$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /clear all/i }));
+    expect(loadFavorites()).toHaveLength(0);
+    expect(toast.success).toHaveBeenCalledWith('Cleared 2 favourites');
+    expect(screen.getByText(/No favourites yet/i)).toBeTruthy();
+  });
 });

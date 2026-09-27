@@ -1,9 +1,19 @@
 import { useState, useCallback, KeyboardEvent, useEffect, useRef, useMemo } from 'react';
-import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw, Star, Download, Upload } from 'lucide-react';
+import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw, Star, Download, Upload, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { WAX_CHAIN } from '@/lib/waxConfig';
 import { fetchTopGpkHolders, getCachedHolders, clearCachedHolders, type Holder } from '@/lib/gpkHolders';
 import { fetchActiveWallets, getCachedActiveWallets, clearCachedActiveWallets, formatLastActive, type ActiveWallet } from '@/lib/activeWallets';
@@ -14,6 +24,7 @@ import {
   isValidWaxName,
   exportFavoritesJson,
   importFavorites,
+  clearFavorites,
   parseFavoritesEnvelope,
   FAVORITES_CHANGED_EVENT,
   type FavoriteAccount,
@@ -105,6 +116,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const [showFavs, setShowFavs] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteAccount[]>(() => loadFavorites());
   const [favFilter, setFavFilter] = useState('');
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   // Keep in sync when favourites change elsewhere (JSON import, other popover)
   useEffect(() => {
@@ -183,6 +195,13 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     } catch {
       toast.error('Could not read that file as JSON');
     }
+  }, []);
+
+  const handleClearFavs = useCallback(() => {
+    const removed = clearFavorites();
+    setFavorites(loadFavorites());
+    setClearConfirmOpen(false);
+    toast.success(removed === 1 ? 'Cleared 1 favourite' : `Cleared ${removed} favourites`);
   }, []);
 
   const submit = useCallback(async () => {
@@ -425,6 +444,16 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
               >
                 <Upload className="h-3 w-3 mr-1" />Import
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 flex-1"
+                onClick={() => setClearConfirmOpen(true)}
+                disabled={favorites.length === 0}
+                title="Remove all favourites from this browser"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />Clear
+              </Button>
             </div>
             <input
               ref={favInputRef}
@@ -437,6 +466,29 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 e.target.value = '';
               }}
             />
+            <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+              <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear all favourites?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <span className="block">
+                      This removes every favourited account from this browser — accounts you starred this session and
+                      accounts loaded from imported JSON files. This cannot be undone.
+                    </span>
+                    <span className="block">Press Export first if you want a backup of the current list.</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleClearFavs}
+                  >
+                    Clear all
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             {favorites.length > 4 && (
               <Input
                 spellCheck={false}
