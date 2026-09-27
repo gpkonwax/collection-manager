@@ -89,7 +89,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
   return (
     <>
       <PackInfoPopover specKey={pack.templateId}>
-      <Card className="bg-card border-border hover:border-primary/40 transition-colors">
+      <Card className="bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           <IpfsMedia url={pack.image} alt={pack.name} className="w-3/4 aspect-[3/4] rounded mx-auto" />
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.name}</p>

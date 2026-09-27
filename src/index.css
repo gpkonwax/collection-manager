@@ -275,6 +275,23 @@
   .bright .bright-content-panel {
     background-color: hsl(var(--card) / 0.96);
   }
+  /* Let the spilled paint show through the card surrounds without fading artwork or labels. */
+  .bright .bright-card-shell {
+    background-color: hsl(var(--card) / 0.55);
+  }
+  /* A solid colored selector stays legible over every part of the painted backdrop. */
+  .bright .bright-view-tabs {
+    background-color: hsl(var(--cheese));
+    border-color: hsl(var(--cheese-dark));
+    color: hsl(var(--cheese-foreground));
+  }
+  .bright .bright-view-tabs [data-state="active"] {
+    background-color: hsl(var(--header-button));
+    color: hsl(var(--foreground));
+  }
+  .bright .bright-view-tabs [data-state="inactive"]:hover {
+    background-color: hsl(var(--cheese-foreground) / 0.16);
+  }
 
   .bright .bright-page-heading,
   .bright .bright-section-heading {

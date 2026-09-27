@@ -3186,7 +3186,7 @@ export default function SimpleAssetsPage() {
 
             <div className="flex justify-center mt-2">
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-auto">
-                <TabsList className="h-8 bg-muted/50 border border-cheese/20">
+                <TabsList className="h-8 bg-muted/50 border border-cheese/20 bright-view-tabs">
                   <TabsTrigger value="classic" className="text-xs px-3 py-1 data-[state=active]:bg-cheese/20 data-[state=active]:text-cheese">
                     <Grid3X3 className="h-3 w-3 mr-1" />
                     Classic View
@@ -3212,7 +3212,7 @@ export default function SimpleAssetsPage() {
             {!isLoading && !error && (
               categoryFilter === 'series2' && viewMode !== 'saved' ? (
                 <Tabs value={series2SubTab} onValueChange={setSeries2SubTab} className="w-full">
-                  <TabsList className="mb-1">
+                  <TabsList className="mb-1 bright-view-tabs">
                     <TabsTrigger value="collection">Collection</TabsTrigger>
                     {!isViewing && <TabsTrigger value="puzzle">Puzzle Builder</TabsTrigger>}
                   </TabsList>

@@ -132,7 +132,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   return (
     <>
     <Card
-      className={`overflow-hidden cursor-pointer bg-card border-border relative
+      className={`overflow-hidden cursor-pointer bg-card border-border relative bright-card-shell
         ${isDragging ? 'opacity-50 scale-95' : 'hover:ring-2 hover:ring-cheese/50 hover:shadow-lg hover:shadow-cheese/10'}
         ${isDragOver ? 'ring-2 ring-primary shadow-lg shadow-primary/20 scale-105' : ''}
         ${selected ? 'ring-2 ring-cheese shadow-lg shadow-cheese/20' : ''}
