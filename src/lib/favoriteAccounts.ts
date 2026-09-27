@@ -37,9 +37,11 @@ export function isValidWaxName(name: string): boolean {
   return name.length >= 1 && name.length <= 12 && WAX_NAME_RE.test(name);
 }
 
-function notifyChanged() {
+export type FavoritesChangeType = 'added' | 'removed' | 'imported';
+
+function notifyChanged(type?: FavoritesChangeType, account?: string) {
   try {
-    window.dispatchEvent(new CustomEvent(FAVORITES_CHANGED_EVENT));
+    window.dispatchEvent(new CustomEvent(FAVORITES_CHANGED_EVENT, { detail: { type, account } }));
   } catch { /* non-browser env */ }
 }
 
@@ -58,13 +60,13 @@ export function loadFavorites(): FavoriteAccount[] {
   }
 }
 
-function saveFavorites(list: FavoriteAccount[]) {
+function saveFavorites(list: FavoriteAccount[], changeType?: FavoritesChangeType, changedAccount?: string) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch (err) {
     console.warn('Failed to persist favourite accounts', err);
   }
-  notifyChanged();
+  notifyChanged(changeType, changedAccount);
 }
 
 export function isFavorite(account: string): boolean {
