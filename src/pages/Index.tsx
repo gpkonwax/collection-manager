@@ -2814,7 +2814,7 @@ export default function SimpleAssetsPage() {
 
         {(isConnected || isViewing) && (
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-cheese theme-bright-text">Unofficial GPK.Topps Collection Manager</h1>
+            <h1 className="text-3xl font-bold text-cheese theme-bright-text bright-page-heading">Unofficial GPK.Topps Collection Manager</h1>
             <p className="text-cheese/70 mt-1 theme-bright-text-muted">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
               <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80 theme-bright-text-muted">
@@ -2838,7 +2838,7 @@ export default function SimpleAssetsPage() {
         {!isConnected && !isViewing ? (
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
-              <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient theme-bright-gradient leading-[1.25] pb-2 max-w-3xl">
+              <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient theme-bright-gradient bright-page-heading leading-[1.25] pb-2 max-w-3xl">
                 The Unofficial GPK Collection Manager
               </h2>
               <p className="text-lg text-foreground max-w-2xl theme-bright-text-muted">
@@ -2856,7 +2856,7 @@ export default function SimpleAssetsPage() {
 
             {/* Section A — Three Ways to View */}
             <div className="max-w-5xl mx-auto space-y-4">
-              <h3 className="text-2xl font-bold text-cheese text-center">Three Ways to View, Sort and Show Your Collection</h3>
+              <h3 className="text-2xl font-bold text-cheese text-center bright-section-heading">Three Ways to View, Sort and Show Your Collection</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <FeatureCard
                   icon={<span className="text-2xl">👁️</span>}
@@ -2956,7 +2956,7 @@ export default function SimpleAssetsPage() {
 
             {/* Section D — More Features */}
             <div className="max-w-5xl mx-auto space-y-4">
-              <h3 className="text-2xl font-bold text-cheese text-center">More Features</h3>
+              <h3 className="text-2xl font-bold text-cheese text-center bright-section-heading">More Features</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <FeatureCard
                   icon={<span className="text-2xl">📐</span>}
