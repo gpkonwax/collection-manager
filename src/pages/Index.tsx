@@ -1194,6 +1194,32 @@ export default function SimpleAssetsPage() {
     return result;
   }, [importAlertsJson, maxAlerts]);
 
+  const [favoritesCount, setFavoritesCount] = useState(() => loadFavorites().length);
+  useEffect(() => {
+    const sync = () => setFavoritesCount(loadFavorites().length);
+    window.addEventListener(FAVORITES_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, sync);
+  }, []);
+
+  const handleExportFavorites = useCallback(() => {
+    const count = loadFavorites().length;
+    if (count === 0) {
+      toast.error('No favourites to export');
+      return;
+    }
+    const blob = new Blob([exportFavoritesJson()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url;
+    a.download = `gpk-favorite-accounts-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${count} favourite${count !== 1 ? 's' : ''}`);
+  }, []);
+
 
   // Restore saved layout when account or category changes
   const restoringRef = useRef(false);
@@ -1651,6 +1677,7 @@ export default function SimpleAssetsPage() {
       setPackHistoryRefresh((n) => n + 1);
       return r;
     },
+    onFavorites: (accounts: FavoriteAccount[]) => importFavorites(accounts),
   }), [applyAlertsRaw, applyLayoutData, applyPuzzleData]);
 
   const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
