@@ -305,8 +305,92 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
           >
             {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'View'}
           </Button>
+          {(() => {
+            const candidate = normalize(value) || viewedAccount || '';
+            const valid = isValidWaxName(candidate);
+            const starred = valid && favoriteSet.has(candidate);
+            return (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={`h-8 px-2 ${starred ? 'text-amber-400' : 'text-muted-foreground'} hover:bg-cheese/10 hover:text-amber-400`}
+                disabled={!valid}
+                onClick={() => handleToggleFavorite(candidate)}
+                title={starred ? `Remove ${candidate} from favourites` : `Star ${candidate || 'this account'} as a favourite`}
+                aria-label={starred ? 'Remove from favourites' : 'Add to favourites'}
+              >
+                <Star className={`h-4 w-4 ${starred ? 'fill-amber-400' : ''}`} />
+              </Button>
+            );
+          })()}
         </div>
         {error && <p className="text-xs text-destructive">{error}</p>}
+
+        <button
+          type="button"
+          onClick={() => setShowFavs((v) => !v)}
+          className="w-full flex items-center justify-between text-xs text-cheese hover:bg-cheese/10 rounded px-2 py-1.5 border border-cheese/20"
+        >
+          <span className="font-medium">
+            {showFavs ? 'Hide List' : 'Show List'}
+            <span className="text-muted-foreground font-normal ml-1">— Favourites ({favorites.length})</span>
+          </span>
+          {showFavs ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+
+        {showFavs && (
+          <div className="space-y-2">
+            {favorites.length > 4 && (
+              <Input
+                spellCheck={false}
+                autoComplete="off"
+                placeholder="Filter account…"
+                value={favFilter}
+                onChange={(e) => setFavFilter(e.target.value)}
+                className="h-7 text-xs border-cheese/40"
+              />
+            )}
+            {favorites.length === 0 ? (
+              <p className="px-1 text-[11px] text-muted-foreground">
+                No favourites yet. Star an account with the ★ button, or import a favourites JSON from the JSON menu.
+              </p>
+            ) : (
+              <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
+                {filteredFavs.length === 0 && (
+                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">No matches</div>
+                )}
+                {filteredFavs.map((f) => (
+                  <div
+                    key={f.account}
+                    className="grid grid-cols-[1fr_24px] gap-1 items-center px-2 py-1.5 border-t border-cheese/10 first:border-t-0 hover:bg-cheese/10"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue(f.account);
+                        setShowFavs(false);
+                        setError(null);
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }}
+                      className="text-xs text-foreground truncate text-left"
+                    >
+                      {f.account}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFavorite(f.account)}
+                      className="text-amber-400 hover:text-muted-foreground p-0.5"
+                      title={`Remove ${f.account} from favourites`}
+                      aria-label={`Remove ${f.account} from favourites`}
+                    >
+                      <Star className="h-3.5 w-3.5 fill-amber-400" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           type="button"
