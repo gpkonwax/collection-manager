@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ViewWalletControl } from '../components/ViewWalletControl';
-import { addFavorite, loadFavorites } from '../lib/favoriteAccounts';
+import { addFavorite, loadFavorites, parseFavoritesEnvelope } from '../lib/favoriteAccounts';
 
 vi.mock('../lib/activeWallets', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/activeWallets')>();
