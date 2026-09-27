@@ -37,6 +37,10 @@ interface JsonMenuProps {
   onExportPackHistory?: () => void;
   /** How many openings are stored — shown next to the export item. */
   packHistoryCount?: number;
+  /** Export the starred favourite accounts list. */
+  onExportFavorites?: () => void;
+  /** How many favourites are stored — shown next to the export item. */
+  favoritesCount?: number;
   layoutHasData: boolean;
   puzzleHasData: boolean;
 }
@@ -45,6 +49,8 @@ const KIND_BADGE_CLASSES: Record<string, string> = {
   alerts: 'bg-cheese/20 text-cheese border-cheese/30',
   layout: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   puzzle: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  packhistory: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+  favorites: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   unknown: 'bg-muted text-muted-foreground border-border',
 };
 
@@ -63,6 +69,8 @@ export function JsonMenu({
   onExportPuzzle,
   onExportPackHistory,
   packHistoryCount = 0,
+  onExportFavorites,
+  favoritesCount = 0,
   layoutHasData,
   puzzleHasData,
 }: JsonMenuProps) {
@@ -227,6 +235,17 @@ export function JsonMenu({
             >
               <Download className="h-4 w-4 mr-2" />
               <span>Export pack history{packHistoryCount > 0 ? ` (${packHistoryCount})` : ''}</span>
+            </DropdownMenuItem>
+          )}
+
+          {onExportFavorites && (
+            <DropdownMenuItem
+              onClick={onExportFavorites}
+              disabled={favoritesCount === 0}
+              className="cursor-pointer data-[disabled]:opacity-50 data-[disabled]:pointer-events-none"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span>Export favourites{favoritesCount > 0 ? ` (${favoritesCount})` : ''}</span>
             </DropdownMenuItem>
           )}
 

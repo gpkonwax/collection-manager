@@ -109,6 +109,7 @@ import {
 } from '@/lib/packOpenHistory';
 import { storablePackImage, resolvePackArt } from '@/lib/gpkPackMeta';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
+import { loadFavorites, importFavorites, exportFavoritesJson, FAVORITES_CHANGED_EVENT, type FavoriteAccount } from '@/lib/favoriteAccounts';
 import { JsonMenu } from '@/components/JsonMenu';
 import { ViewWalletControl } from '@/components/ViewWalletControl';
 import { ViewingBanner } from '@/components/ViewingBanner';
@@ -1194,6 +1195,32 @@ export default function SimpleAssetsPage() {
     return result;
   }, [importAlertsJson, maxAlerts]);
 
+  const [favoritesCount, setFavoritesCount] = useState(() => loadFavorites().length);
+  useEffect(() => {
+    const sync = () => setFavoritesCount(loadFavorites().length);
+    window.addEventListener(FAVORITES_CHANGED_EVENT, sync);
+    return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, sync);
+  }, []);
+
+  const handleExportFavorites = useCallback(() => {
+    const count = loadFavorites().length;
+    if (count === 0) {
+      toast.error('No favourites to export');
+      return;
+    }
+    const blob = new Blob([exportFavoritesJson()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url;
+    a.download = `gpk-favorite-accounts-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${count} favourite${count !== 1 ? 's' : ''}`);
+  }, []);
+
 
   // Restore saved layout when account or category changes
   const restoringRef = useRef(false);
@@ -1634,6 +1661,18 @@ export default function SimpleAssetsPage() {
       parts.push(`Pack history: ${added} new, ${updated} updated`);
     }
 
+    const favsOk = ok.filter(r => r.kind === 'favorites' && r.favorites);
+    if (favsOk.length > 0) {
+      const added = favsOk.reduce((n, r) => n + r.favorites!.added, 0);
+      const updated = favsOk.reduce((n, r) => n + r.favorites!.updated, 0);
+      const skipped = favsOk.reduce((n, r) => n + r.favorites!.skipped, 0);
+      const f: string[] = [];
+      if (added) f.push(`${added} added`);
+      if (updated) f.push(`${updated} already saved`);
+      if (skipped) f.push(`${skipped} skipped`);
+      parts.push(`Favourites: ${f.join(', ')}`);
+    }
+
     if (ok.length > 0) {
       toast.success(`Imported ${ok.length} file${ok.length !== 1 ? 's' : ''}${parts.length ? ` — ${parts.join(' · ')}` : ''}`);
     }
@@ -1651,6 +1690,7 @@ export default function SimpleAssetsPage() {
       setPackHistoryRefresh((n) => n + 1);
       return r;
     },
+    onFavorites: (accounts: FavoriteAccount[]) => importFavorites(accounts),
   }), [applyAlertsRaw, applyLayoutData, applyPuzzleData]);
 
   const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
@@ -2150,6 +2190,8 @@ export default function SimpleAssetsPage() {
               onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -2206,6 +2248,8 @@ export default function SimpleAssetsPage() {
               onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -2251,6 +2295,8 @@ export default function SimpleAssetsPage() {
               onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -3178,6 +3224,8 @@ export default function SimpleAssetsPage() {
                               onExportPuzzle={handleExportPuzzle}
                             onExportPackHistory={handleExportPackHistory}
                             packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
                               layoutHasData={savedOrder !== null}
                               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
                             />
@@ -3252,6 +3300,8 @@ export default function SimpleAssetsPage() {
                           onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
                           layoutHasData={savedOrder !== null}
                           puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
                         />
