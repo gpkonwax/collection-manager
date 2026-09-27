@@ -31,6 +31,8 @@ interface TradesDialogProps {
   /** Offer id currently being processed (spinner state). */
   busyOfferId?: string | null;
   busyAction?: OfferAction | null;
+  /** Called when the user clicks the "View Wallet" link in the helper note. */
+  onOpenViewWallet?: () => void;
 }
 
 const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
@@ -348,6 +350,7 @@ export function TradesDialog({
   incoming, outgoing, isLoading, error,
   onRefresh, onMarkAllRead,
   onOfferAction, busyOfferId, busyAction,
+  onOpenViewWallet,
 }: TradesDialogProps) {
   const [tab, setTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [lastSeenAtOpen, setLastSeenAtOpen] = useState<number>(0);
@@ -421,6 +424,22 @@ export function TradesDialog({
             . Accept, decline, cancel or counter directly here.
           </DialogDescription>
         </DialogHeader>
+
+        <p className="text-xs text-muted-foreground theme-bright-text-muted leading-relaxed">
+          To propose trades click the{' '}
+          {onOpenViewWallet ? (
+            <button
+              type="button"
+              onClick={() => { onOpenViewWallet(); }}
+              className="text-cheese theme-bright-text font-medium underline underline-offset-2 hover:text-cheese/80 inline"
+            >
+              View Wallet
+            </button>
+          ) : (
+            <span className="text-cheese theme-bright-text font-medium">View Wallet</span>
+          )}
+          {' '}button and either enter an account or scan the recent or top traders list, view their collection and press the trade button on the asset you wish for yourself.
+        </p>
 
         <div className="flex items-center gap-2">
           <Button

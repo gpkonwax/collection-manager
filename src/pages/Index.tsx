@@ -324,6 +324,7 @@ export default function SimpleAssetsPage() {
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showTradesDialog, setShowTradesDialog] = useState(false);
+  const [viewWalletSignal, setViewWalletSignal] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
   const [composerInitialTheirPackQty, setComposerInitialTheirPackQty] = useState<Record<string, number>>({});
@@ -2551,6 +2552,7 @@ export default function SimpleAssetsPage() {
                 viewedAccount={viewedAccount}
                 onView={handleViewWallet}
                 onClear={handleClearViewing}
+                openSignal={viewWalletSignal}
               />
             </div>
           )}
@@ -2580,6 +2582,7 @@ export default function SimpleAssetsPage() {
         onOfferAction={handleOfferAction}
         busyOfferId={tradeBusyOfferId}
         busyAction={tradeBusyAction}
+        onOpenViewWallet={() => { setShowTradesDialog(false); setViewWalletSignal((n) => n + 1); }}
       />
 
       <TradeComposerDialog
