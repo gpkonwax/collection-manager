@@ -117,6 +117,7 @@ import { FavoritesExportReminder } from '@/components/FavoritesExportReminder';
 import { FavoriteAccountButton } from '@/components/FavoriteAccountButton';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
+import brightBannerTitle from '@/assets/bright-banner-title.png';
 import { useTheme } from '@/hooks/useTheme';
 import { CATEGORY_LABELS, deriveVariantOptions, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
@@ -2814,7 +2815,9 @@ export default function SimpleAssetsPage() {
 
         {(isConnected || isViewing) && (
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-cheese theme-bright-text bright-page-heading">Unofficial GPK.Topps Collection Manager</h1>
+            <h1 className="text-3xl font-bold text-cheese theme-bright-text bright-page-heading">
+              {theme === 'bright' ? <img src={brightBannerTitle} alt="Unofficial GPK Collection Manager" className="mx-auto w-full max-w-[430px] h-auto" /> : 'Unofficial GPK.Topps Collection Manager'}
+            </h1>
             <p className="text-cheese/70 mt-1 theme-bright-text-muted">View, organize and transfer your gpk.topps cards. Open packs and drag and reorder cards where you want them.<br />Supports SimpleAssets and AtomicAssets.</p>
             {(categoryFilter === 'series1' || categoryFilter === 'series2' || categoryFilter === 'exotic') && (
               <p className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-cheese/80 theme-bright-text-muted">
@@ -2839,7 +2842,7 @@ export default function SimpleAssetsPage() {
           <div className="space-y-16 py-8">
             <div className="flex flex-col items-center text-center space-y-6">
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient theme-bright-gradient bright-page-heading leading-[1.25] pb-2 max-w-3xl">
-                The Unofficial GPK Collection Manager
+                {theme === 'bright' ? <img src={brightBannerTitle} alt="The Unofficial GPK Collection Manager" className="mx-auto w-full max-w-[600px] h-auto" /> : 'The Unofficial GPK Collection Manager'}
               </h2>
               <p className="text-lg text-foreground max-w-2xl theme-bright-text-muted">
                 Free to use, open source, built by <span className="text-cheese font-semibold theme-bright-text">$CHEESE</span> for the WAX and GPK communities.
