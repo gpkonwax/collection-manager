@@ -1,7 +1,8 @@
 import type { PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
 import { parsePackHistoryEnvelope, type PackHistoryEntry } from '@/lib/packOpenHistory';
+import { parseFavoritesEnvelope, type FavoriteAccount } from '@/lib/favoriteAccounts';
 
-export type JsonKind = 'alerts' | 'layout' | 'puzzle' | 'packhistory' | 'unknown';
+export type JsonKind = 'alerts' | 'layout' | 'puzzle' | 'packhistory' | 'favorites' | 'unknown';
 
 export interface DetectedAlerts {
   kind: 'alerts';
@@ -23,19 +24,25 @@ export interface DetectedPackHistory {
   raw: string;
   parsed: PackHistoryEntry[];
 }
+export interface DetectedFavorites {
+  kind: 'favorites';
+  raw: string;
+  parsed: FavoriteAccount[];
+}
 export interface DetectedUnknown {
   kind: 'unknown';
   raw: string;
   parsed: unknown;
 }
 
-export type Detected = DetectedAlerts | DetectedLayout | DetectedPuzzle | DetectedPackHistory | DetectedUnknown;
+export type Detected = DetectedAlerts | DetectedLayout | DetectedPuzzle | DetectedPackHistory | DetectedFavorites | DetectedUnknown;
 
 const KIND_LABELS: Record<JsonKind, string> = {
   alerts: 'Alerts',
   layout: 'Saved Layout',
   puzzle: 'Puzzle',
   packhistory: 'Pack History',
+  favorites: 'Favourites',
   unknown: 'Unknown',
 };
 
