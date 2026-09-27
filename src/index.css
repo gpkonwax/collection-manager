@@ -315,7 +315,10 @@
     max-width: 100%;
   }
   .bright .bright-intro-copy {
-    display: inline-block;
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
   }
   .bright .bright-bridge-info a {
     color: hsl(var(--cheese-dark));
