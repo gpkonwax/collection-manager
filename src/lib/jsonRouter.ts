@@ -61,6 +61,7 @@ export function detectKind(parsed: unknown): JsonKind {
   const obj = parsed as Record<string, unknown>;
 
   if (obj.type === 'gpk-pack-history' && Array.isArray(obj.entries)) return 'packhistory';
+  if (obj.type === 'gpk-favorite-accounts' && Array.isArray(obj.accounts)) return 'favorites';
   if (Array.isArray(obj.alerts)) return 'alerts';
   if (obj.orders && typeof obj.orders === 'object') return 'layout';
 
@@ -95,6 +96,8 @@ export function parseAndDetect(raw: string): Detected {
       return { kind, raw, parsed: parsed as PuzzlePieceMap };
     case 'packhistory':
       return { kind, raw, parsed: parsePackHistoryEnvelope(parsed) ?? [] };
+    case 'favorites':
+      return { kind, raw, parsed: parseFavoritesEnvelope(parsed) ?? [] };
     default:
       return { kind: 'unknown', raw, parsed };
   }
@@ -105,6 +108,7 @@ export interface RouterHandlers {
   onLayout: (parsed: DetectedLayout['parsed'], filename: string) => { cards: number; hasPuzzle: boolean };
   onPuzzle: (parsed: PuzzlePieceMap) => { pieces: number };
   onPackHistory: (entries: PackHistoryEntry[]) => { added: number; updated: number; skipped: number };
+  onFavorites: (accounts: FavoriteAccount[]) => { added: number; updated: number; skipped: number };
 }
 
 export interface RouteResult {
