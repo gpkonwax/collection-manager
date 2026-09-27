@@ -1,9 +1,19 @@
 import { useState, useCallback, KeyboardEvent, useEffect, useRef, useMemo } from 'react';
-import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw, Star, Download, Upload } from 'lucide-react';
+import { Eye, Loader2, X, ChevronDown, ChevronUp, RefreshCw, Star, Download, Upload, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { WAX_CHAIN } from '@/lib/waxConfig';
 import { fetchTopGpkHolders, getCachedHolders, clearCachedHolders, type Holder } from '@/lib/gpkHolders';
 import { fetchActiveWallets, getCachedActiveWallets, clearCachedActiveWallets, formatLastActive, type ActiveWallet } from '@/lib/activeWallets';
@@ -14,6 +24,7 @@ import {
   isValidWaxName,
   exportFavoritesJson,
   importFavorites,
+  clearFavorites,
   parseFavoritesEnvelope,
   FAVORITES_CHANGED_EVENT,
   type FavoriteAccount,
@@ -105,6 +116,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const [showFavs, setShowFavs] = useState(false);
   const [favorites, setFavorites] = useState<FavoriteAccount[]>(() => loadFavorites());
   const [favFilter, setFavFilter] = useState('');
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   // Keep in sync when favourites change elsewhere (JSON import, other popover)
   useEffect(() => {
