@@ -466,6 +466,29 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 e.target.value = '';
               }}
             />
+            <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+              <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear all favourites?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <span className="block">
+                      This removes every favourited account from this browser — accounts you starred this session and
+                      accounts loaded from imported JSON files. This cannot be undone.
+                    </span>
+                    <span className="block">Press Export first if you want a backup of the current list.</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleClearFavs}
+                  >
+                    Clear all
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             {favorites.length > 4 && (
               <Input
                 spellCheck={false}
