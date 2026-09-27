@@ -31,6 +31,8 @@ interface TradesDialogProps {
   /** Offer id currently being processed (spinner state). */
   busyOfferId?: string | null;
   busyAction?: OfferAction | null;
+  /** Called when the user clicks the "View Wallet" link in the helper note. */
+  onOpenViewWallet?: () => void;
 }
 
 const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
