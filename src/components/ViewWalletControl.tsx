@@ -471,31 +471,45 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
               )}
               {filtered.map((h) => {
                 const rank = (holders?.indexOf(h) ?? 0) + 1;
+                const starred = favoriteSet.has(h.account);
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={h.account}
-                    onClick={() => {
-                      setValue(h.account);
-                      setShowList(false);
-                      setError(null);
-                      requestAnimationFrame(() => inputRef.current?.focus());
-                    }}
-                    className="w-full grid grid-cols-[28px_1fr_44px_44px_52px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10 text-left"
-                    title={`${h.sa.toLocaleString()} SA · ${h.aa.toLocaleString()} AA`}
+                    className="grid grid-cols-[28px_1fr_44px_44px_52px_24px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10"
                   >
-                    <span className="text-muted-foreground tabular-nums">#{rank}</span>
-                    <span className="text-foreground truncate">{h.account}</span>
-                    <span className="text-muted-foreground text-right tabular-nums">
-                      {h.sa.toLocaleString()}
-                    </span>
-                    <span className="text-muted-foreground text-right tabular-nums">
-                      {h.aa.toLocaleString()}
-                    </span>
-                    <span className="text-cheese font-semibold text-right tabular-nums">
-                      {h.total.toLocaleString()}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue(h.account);
+                        setShowList(false);
+                        setError(null);
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }}
+                      className="contents text-left"
+                      title={`${h.sa.toLocaleString()} SA · ${h.aa.toLocaleString()} AA`}
+                    >
+                      <span className="text-muted-foreground tabular-nums">#{rank}</span>
+                      <span className="text-foreground truncate">{h.account}</span>
+                      <span className="text-muted-foreground text-right tabular-nums">
+                        {h.sa.toLocaleString()}
+                      </span>
+                      <span className="text-muted-foreground text-right tabular-nums">
+                        {h.aa.toLocaleString()}
+                      </span>
+                      <span className="text-cheese font-semibold text-right tabular-nums">
+                        {h.total.toLocaleString()}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleFavorite(h.account)}
+                      className={`${starred ? 'text-amber-400' : 'text-muted-foreground/50'} hover:text-amber-400 p-0.5`}
+                      title={starred ? `Remove ${h.account} from favourites` : `Star ${h.account} as a favourite`}
+                      aria-label={starred ? `Remove ${h.account} from favourites` : `Add ${h.account} to favourites`}
+                    >
+                      <Star className={`h-3.5 w-3.5 ${starred ? 'fill-amber-400' : ''}`} />
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -568,27 +582,43 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                       {activeFilter ? 'No matches' : 'No active accounts found'}
                     </div>
                   )}
-                  {filteredActive.map((w) => (
-                    <button
-                      type="button"
-                      key={w.account}
-                      onClick={() => {
-                        setValue(w.account);
-                        setShowActive(false);
-                        setError(null);
-                        requestAnimationFrame(() => inputRef.current?.focus());
-                      }}
-                      className="w-full grid grid-cols-[1fr_64px_56px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10 text-left"
-                    >
-                      <span className="text-foreground truncate">{w.account}</span>
-                      <span className="text-muted-foreground text-right tabular-nums">
-                        {formatLastActive(w.lastActive)}
-                      </span>
-                      <span className="text-cheese font-semibold text-right tabular-nums">
-                        {w.activityCount.toLocaleString()}
-                      </span>
-                    </button>
-                  ))}
+                  {filteredActive.map((w) => {
+                    const starred = favoriteSet.has(w.account);
+                    return (
+                      <div
+                        key={w.account}
+                        className="grid grid-cols-[1fr_64px_56px_24px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue(w.account);
+                            setShowActive(false);
+                            setError(null);
+                            requestAnimationFrame(() => inputRef.current?.focus());
+                          }}
+                          className="contents text-left"
+                        >
+                          <span className="text-foreground truncate">{w.account}</span>
+                          <span className="text-muted-foreground text-right tabular-nums">
+                            {formatLastActive(w.lastActive)}
+                          </span>
+                          <span className="text-cheese font-semibold text-right tabular-nums">
+                            {w.activityCount.toLocaleString()}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleFavorite(w.account)}
+                          className={`${starred ? 'text-amber-400' : 'text-muted-foreground/50'} hover:text-amber-400 p-0.5`}
+                          title={starred ? `Remove ${w.account} from favourites` : `Star ${w.account} as a favourite`}
+                          aria-label={starred ? `Remove ${w.account} from favourites` : `Add ${w.account} to favourites`}
+                        >
+                          <Star className={`h-3.5 w-3.5 ${starred ? 'fill-amber-400' : ''}`} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}
