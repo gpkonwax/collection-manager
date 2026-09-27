@@ -388,6 +388,98 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
           </div>
         )}
 
+        <button
+          type="button"
+          onClick={() => setShowActive((v) => !v)}
+          className="w-full flex items-center justify-between text-xs text-cheese hover:bg-cheese/10 rounded px-2 py-1.5 border border-cheese/20"
+        >
+          <span className="font-medium">
+            {showActive ? 'Hide List' : 'Show List'}
+            <span className="text-muted-foreground font-normal ml-1">— Active traders (90 days)</span>
+          </span>
+          {showActive ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+
+        {showActive && (
+          <div className="space-y-2">
+            {isOfflineBundle() ? (
+              <p className="px-1 text-[11px] text-muted-foreground">Not available offline.</p>
+            ) : (
+              <>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    spellCheck={false}
+                    autoComplete="off"
+                    placeholder="Filter account…"
+                    value={activeFilter}
+                    onChange={(e) => setActiveFilter(e.target.value)}
+                    className="h-7 text-xs border-cheese/40"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-cheese hover:bg-cheese/10"
+                    onClick={refreshActive}
+                    disabled={activeLoading}
+                    title="Re-fetch activity from the chain APIs"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${activeLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                  {activeLoading ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Scanning the last 90 days…
+                    </span>
+                  ) : activeError ? (
+                    <span className="text-destructive">{activeError}</span>
+                  ) : activeWallets ? (
+                    <span>{activeWallets.length.toLocaleString()} active accounts</span>
+                  ) : (
+                    <span>Waiting…</span>
+                  )}
+                </div>
+
+                <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
+                  <div className="grid grid-cols-[1fr_64px_56px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
+                    <span>Account</span>
+                    <span className="text-right">Active</span>
+                    <span className="text-right">Events</span>
+                  </div>
+                  {activeWallets && filteredActive.length === 0 && !activeLoading && (
+                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                      {activeFilter ? 'No matches' : 'No active accounts found'}
+                    </div>
+                  )}
+                  {filteredActive.map((w) => (
+                    <button
+                      type="button"
+                      key={w.account}
+                      onClick={() => {
+                        setValue(w.account);
+                        setShowActive(false);
+                        setError(null);
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }}
+                      className="w-full grid grid-cols-[1fr_64px_56px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10 text-left"
+                    >
+                      <span className="text-foreground truncate">{w.account}</span>
+                      <span className="text-muted-foreground text-right tabular-nums">
+                        {formatLastActive(w.lastActive)}
+                      </span>
+                      <span className="text-cheese font-semibold text-right tabular-nums">
+                        {w.activityCount.toLocaleString()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {viewedAccount && (
           <Button
             variant="ghost"
