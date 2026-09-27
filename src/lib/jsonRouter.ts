@@ -121,6 +121,7 @@ export interface RouteResult {
   layout?: { cards: number; hasPuzzle: boolean };
   puzzle?: { pieces: number };
   packhistory?: { added: number; updated: number; skipped: number };
+  favorites?: { added: number; updated: number; skipped: number };
 }
 
 export function routeOne(
@@ -146,6 +147,10 @@ export function routeOne(
       case 'packhistory': {
         const r = handlers.onPackHistory(detected.parsed);
         return { filename, kind: 'packhistory', ok: true, packhistory: r };
+      }
+      case 'favorites': {
+        const r = handlers.onFavorites(detected.parsed);
+        return { filename, kind: 'favorites', ok: true, favorites: r };
       }
       default:
         return { filename, kind: 'unknown', ok: false, message: 'Unrecognized JSON shape' };
