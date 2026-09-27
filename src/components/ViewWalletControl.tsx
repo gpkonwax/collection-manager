@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { WAX_CHAIN } from '@/lib/waxConfig';
 import { fetchTopGpkHolders, getCachedHolders, clearCachedHolders, type Holder } from '@/lib/gpkHolders';
+import { fetchActiveWallets, getCachedActiveWallets, clearCachedActiveWallets, formatLastActive, type ActiveWallet } from '@/lib/activeWallets';
+import { isOfflineBundle } from '@/lib/offlineBundle';
 
 interface ViewWalletControlProps {
   currentAccount: string | null;
@@ -78,6 +80,15 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const attemptedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const [showActive, setShowActive] = useState(false);
+  const initialActiveCache = getCachedActiveWallets();
+  const [activeWallets, setActiveWallets] = useState<ActiveWallet[] | null>(initialActiveCache?.wallets ?? null);
+  const [activeLoading, setActiveLoading] = useState(false);
+  const [activeError, setActiveError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState('');
+  const activeAbortRef = useRef<AbortController | null>(null);
+  const activeAttemptedRef = useRef(false);
+
   const submit = useCallback(async () => {
     const name = normalize(value);
     const validation = validateWaxName(name);
@@ -145,12 +156,50 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     if (showList && !holders && !loading && !attemptedRef.current) loadHolders();
   }, [showList, holders, loading, loadHolders]);
 
+  const loadActive = useCallback(async () => {
+    activeAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    activeAbortRef.current = ctrl;
+    activeAttemptedRef.current = true;
+    setActiveLoading(true);
+    setActiveError(null);
+    try {
+      const { wallets } = await fetchActiveWallets({ signal: ctrl.signal });
+      setActiveWallets(wallets);
+    } catch (e) {
+      const err = e as Error;
+      if (err.name === 'AbortError') return;
+      setActiveError(err.message || 'Failed to load active traders');
+    } finally {
+      if (activeAbortRef.current === ctrl) activeAbortRef.current = null;
+      setActiveLoading(false);
+    }
+  }, []);
+
+  const refreshActive = useCallback(() => {
+    clearCachedActiveWallets();
+    setActiveWallets(null);
+    activeAttemptedRef.current = false;
+    loadActive();
+  }, [loadActive]);
+
+  useEffect(() => {
+    if (showActive && !activeWallets && !activeLoading && !activeAttemptedRef.current && !isOfflineBundle()) loadActive();
+  }, [showActive, activeWallets, activeLoading, loadActive]);
+
   // Abort in-flight on popover close
   useEffect(() => {
-    if (!open && abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
-      setLoading(false);
+    if (!open) {
+      if (abortRef.current) {
+        abortRef.current.abort();
+        abortRef.current = null;
+        setLoading(false);
+      }
+      if (activeAbortRef.current) {
+        activeAbortRef.current.abort();
+        activeAbortRef.current = null;
+        setActiveLoading(false);
+      }
     }
   }, [open]);
 
@@ -161,10 +210,17 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
     return holders.filter((h) => h.account.includes(f));
   }, [holders, filter]);
 
+  const filteredActive = useMemo(() => {
+    if (!activeWallets) return [];
+    const f = activeFilter.trim().toLowerCase();
+    if (!f) return activeWallets;
+    return activeWallets.filter((w) => w.account.includes(f));
+  }, [activeWallets, activeFilter]);
+
   const snapshotLabel = formatSnapshotDate(generatedAt);
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); setShowList(false); } }}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setError(null); setShowList(false); setShowActive(false); } }}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -328,6 +384,98 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 );
               })}
             </div>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowActive((v) => !v)}
+          className="w-full flex items-center justify-between text-xs text-cheese hover:bg-cheese/10 rounded px-2 py-1.5 border border-cheese/20"
+        >
+          <span className="font-medium">
+            {showActive ? 'Hide List' : 'Show List'}
+            <span className="text-muted-foreground font-normal ml-1">— Active traders (90 days)</span>
+          </span>
+          {showActive ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+
+        {showActive && (
+          <div className="space-y-2">
+            {isOfflineBundle() ? (
+              <p className="px-1 text-[11px] text-muted-foreground">Not available offline.</p>
+            ) : (
+              <>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    spellCheck={false}
+                    autoComplete="off"
+                    placeholder="Filter account…"
+                    value={activeFilter}
+                    onChange={(e) => setActiveFilter(e.target.value)}
+                    className="h-7 text-xs border-cheese/40"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-cheese hover:bg-cheese/10"
+                    onClick={refreshActive}
+                    disabled={activeLoading}
+                    title="Re-fetch activity from the chain APIs"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${activeLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground px-1">
+                  {activeLoading ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Scanning the last 90 days…
+                    </span>
+                  ) : activeError ? (
+                    <span className="text-destructive">{activeError}</span>
+                  ) : activeWallets ? (
+                    <span>{activeWallets.length.toLocaleString()} active accounts</span>
+                  ) : (
+                    <span>Waiting…</span>
+                  )}
+                </div>
+
+                <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
+                  <div className="grid grid-cols-[1fr_64px_56px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
+                    <span>Account</span>
+                    <span className="text-right">Active</span>
+                    <span className="text-right">Events</span>
+                  </div>
+                  {activeWallets && filteredActive.length === 0 && !activeLoading && (
+                    <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                      {activeFilter ? 'No matches' : 'No active accounts found'}
+                    </div>
+                  )}
+                  {filteredActive.map((w) => (
+                    <button
+                      type="button"
+                      key={w.account}
+                      onClick={() => {
+                        setValue(w.account);
+                        setShowActive(false);
+                        setError(null);
+                        requestAnimationFrame(() => inputRef.current?.focus());
+                      }}
+                      className="w-full grid grid-cols-[1fr_64px_56px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10 text-left"
+                    >
+                      <span className="text-foreground truncate">{w.account}</span>
+                      <span className="text-muted-foreground text-right tabular-nums">
+                        {formatLastActive(w.lastActive)}
+                      </span>
+                      <span className="text-cheese font-semibold text-right tabular-nums">
+                        {w.activityCount.toLocaleString()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}
