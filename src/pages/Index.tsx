@@ -2189,6 +2189,8 @@ export default function SimpleAssetsPage() {
               onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -2245,6 +2247,8 @@ export default function SimpleAssetsPage() {
               onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -2290,6 +2294,8 @@ export default function SimpleAssetsPage() {
               onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
               layoutHasData={savedOrder !== null}
               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
             />
@@ -3217,6 +3223,8 @@ export default function SimpleAssetsPage() {
                               onExportPuzzle={handleExportPuzzle}
                             onExportPackHistory={handleExportPackHistory}
                             packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
                               layoutHasData={savedOrder !== null}
                               puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
                             />
@@ -3291,6 +3299,8 @@ export default function SimpleAssetsPage() {
                           onExportPuzzle={handleExportPuzzle}
               onExportPackHistory={handleExportPackHistory}
               packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
                           layoutHasData={savedOrder !== null}
                           puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
                         />
