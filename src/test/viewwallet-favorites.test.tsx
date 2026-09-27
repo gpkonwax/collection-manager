@@ -83,7 +83,7 @@ describe('ViewWalletControl — Favourites list', () => {
       );
       fireEvent.click(screen.getByRole('button', { name: /view wallet/i }));
       fireEvent.click(screen.getByText(/Favourites \(1\)/i));
-      fireEvent.click(screen.getByRole('button', { name: /download your favourites/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^export$/i }));
       expect(createObjectURL).toHaveBeenCalledTimes(1);
       const text = await created[0].text();
       expect(parseFavoritesEnvelope(JSON.parse(text))!.map((f) => f.account)).toEqual(['dave.wam']);
