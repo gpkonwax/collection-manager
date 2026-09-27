@@ -444,6 +444,16 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
               >
                 <Upload className="h-3 w-3 mr-1" />Import
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 flex-1"
+                onClick={() => setClearConfirmOpen(true)}
+                disabled={favorites.length === 0}
+                title="Remove all favourites from this browser"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />Clear
+              </Button>
             </div>
             <input
               ref={favInputRef}
