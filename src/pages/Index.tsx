@@ -324,6 +324,7 @@ export default function SimpleAssetsPage() {
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showTradesDialog, setShowTradesDialog] = useState(false);
+  const [viewWalletSignal, setViewWalletSignal] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
   const [composerInitialTheirPackQty, setComposerInitialTheirPackQty] = useState<Record<string, number>>({});
