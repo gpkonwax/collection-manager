@@ -133,7 +133,7 @@ describe('ViewWalletControl — Favourites list', () => {
     const file = new File([JSON.stringify({ alerts: [] })], 'alerts.json', { type: 'application/json' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     await waitFor(() => fireEvent.change(input, { target: { files: [file] } }));
-    await waitFor(() => expect(screen.getByText(/not a favourites export/i)).toBeTruthy());
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('That file is not a favourites export'));
     expect(loadFavorites()).toHaveLength(0);
   });
 });
