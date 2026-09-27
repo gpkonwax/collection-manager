@@ -113,6 +113,7 @@ import { loadFavorites, importFavorites, exportFavoritesJson, FAVORITES_CHANGED_
 import { JsonMenu } from '@/components/JsonMenu';
 import { ViewWalletControl } from '@/components/ViewWalletControl';
 import { ViewingBanner } from '@/components/ViewingBanner';
+import { FavoriteAccountButton } from '@/components/FavoriteAccountButton';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { useTheme } from '@/hooks/useTheme';
@@ -2466,6 +2467,9 @@ export default function SimpleAssetsPage() {
                 <Info className="h-4 w-4" />
                 <span className="sr-only">GPK Collection Manager Info</span>
               </Button>
+              {isViewing && viewedAccount && (
+                <FavoriteAccountButton account={viewedAccount} />
+              )}
 
               {isConnected && accountName ? (
                 <DropdownMenu>
