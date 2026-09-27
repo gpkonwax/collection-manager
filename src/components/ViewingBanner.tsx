@@ -38,21 +38,6 @@ export function ViewingBanner({ viewedAccount, onClear }: ViewingBannerProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleToggleFav}
-            title={fav ? 'Remove this account from your favourites' : 'Add this account to your favourites'}
-            aria-pressed={fav}
-            className={
-              fav
-                ? 'h-7 gap-1 border-cheese bg-cheese text-cheese-foreground hover:bg-cheese/90 whitespace-nowrap theme-bright-fill theme-bright-text'
-                : 'h-7 gap-1 border-cheese/40 text-cheese hover:bg-cheese/20 whitespace-nowrap'
-            }
-          >
-            <Star className={`h-3.5 w-3.5 ${fav ? 'fill-current' : ''}`} />
-            {fav ? 'Favourited' : 'Favourite this account'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             onClick={onClear}
             className="h-7 gap-1 border-cheese/40 text-cheese hover:bg-cheese/20 whitespace-nowrap"
           >
