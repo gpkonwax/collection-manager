@@ -15,7 +15,7 @@ Goal: let you star WAX accounts (collections you like, past trading partners) an
 
 3. **Export via the JSON menu**: a new "Export favourites" item downloads `gpk-favorite-accounts.json`.
 
-4. **Import via the JSON menu**: dropping the file into "Import file(s)…" recognises it automatically (same as the other JSON types), merges it with your existing favourites (no duplicates), and shows it in the Recent imports list with its own badge.
+4. **Import via the JSON menu**: dropping the file into "Import file(s)…" recognises it automatically (same as the other JSON types), merges it with your existing favourites (no duplicates), and shows it in the Recent imports list with its own badge. Bulk drop fully supported: you can select or drop a favourites file together with alerts, layout, puzzle, and pack-history files in one big multi-file load — each file is detected and routed by its type, and the per-file result summary lists what was added from each.
 
 ## How it works (technical)
 
