@@ -2076,7 +2076,29 @@ export default function SimpleAssetsPage() {
         <div className="flex-shrink-0">
           {renderCompletionBar()}
         </div>
-        <div className="flex items-center justify-end flex-1">
+        <div className="flex items-center justify-end flex-1 gap-2">
+          {!isViewing && (
+            <JsonMenu
+              refreshKey={recentRefreshKey}
+              alertsCount={priceAlerts.length}
+              alertsMax={maxAlerts}
+              triggeredCount={priceAlerts.filter(a => a.triggered).length}
+              alertsCheckingNow={alertsCheckingNow}
+              alertsCooldownMs={alertsCooldownRemaining}
+              onImportFiles={handleImportFiles}
+              onApplyRecent={handleApplyRecent}
+              onCheckAlertsNow={handleCheckAlertsNow}
+              onExportAlerts={handleExportAlerts}
+              onExportLayout={handleExportLayout}
+              onExportPuzzle={handleExportPuzzle}
+              onExportPackHistory={handleExportPackHistory}
+              packHistoryCount={packHistoryCount}
+              onExportFavorites={handleExportFavorites}
+              favoritesCount={favoritesCount}
+              layoutHasData={savedOrder !== null}
+              puzzleHasData={Object.keys(puzzleStateRef.current).length > 0}
+            />
+          )}
           {!isViewing && (
             <Button
               onClick={handleSnapshotToSaved}
