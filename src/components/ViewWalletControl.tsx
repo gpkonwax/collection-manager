@@ -71,7 +71,7 @@ function formatSnapshotDate(iso: string | null): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-export function ViewWalletControl({ currentAccount, viewedAccount, onView, onClear }: ViewWalletControlProps) {
+export function ViewWalletControl({ currentAccount, viewedAccount, onView, onClear, openSignal }: ViewWalletControlProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
