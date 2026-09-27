@@ -18,7 +18,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT_PATH = join(__dirname, '..', 'mirror-output', 'manifests', 'gpk-topps-holders.json');
+
+// Optional: `--out <path>` (or HOLDERS_MANIFEST_OUT) writes the manifest
+// somewhere else — used by the monthly GitHub Action to write straight into
+// the data-mirror folder. Default behaviour is unchanged.
+const outArgIdx = process.argv.indexOf('--out');
+const OUT_PATH =
+  (outArgIdx !== -1 && process.argv[outArgIdx + 1]) ||
+  process.env.HOLDERS_MANIFEST_OUT ||
+  join(__dirname, '..', 'mirror-output', 'manifests', 'gpk-topps-holders.json');
 
 const WAX_RPCS = [
   'https://wax.api.eosnation.io',
