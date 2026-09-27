@@ -69,4 +69,63 @@ describe('ViewWalletControl — Favourites list', () => {
     fireEvent.click(screen.getByRole('button', { name: /remove carol\.wam from favourites/i }));
     expect(loadFavorites()).toHaveLength(0);
   });
+
+  it('export downloads a valid favourites envelope', async () => {
+    addFavorite('dave.wam');
+    const created: Blob[] = [];
+    const createObjectURL = vi.fn((b: Blob) => { created.push(b); return 'blob:mock'; });
+    // jsdom lacks URL.createObjectURL
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true, writable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true, writable: true });
+    try {
+      render(
+        <ViewWalletControl currentAccount="me.wam" viewedAccount={null} onView={() => {}} onClear={() => {}} />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: /view wallet/i }));
+      fireEvent.click(screen.getByText(/Favourites \(1\)/i));
+      fireEvent.click(screen.getByRole('button', { name: /download your favourites/i }));
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      const text = await created[0].text();
+      expect(parseFavoritesEnvelope(JSON.parse(text))!.map((f) => f.account)).toEqual(['dave.wam']);
+    } finally {
+      // Restore defaults for other tests
+      Object.defineProperty(URL, 'createObjectURL', { value: vi.fn(), configurable: true, writable: true });
+    }
+  });
+
+  it('import merges accounts from a favourites JSON file', async () => {
+    render(
+      <ViewWalletControl currentAccount="me.wam" viewedAccount={null} onView={() => {}} onClear={() => {}} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /view wallet/i }));
+    fireEvent.click(screen.getByText(/Favourites \(0\)/i));
+    const file = new File(
+      [JSON.stringify({
+        type: 'gpk-favorite-accounts',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        accounts: [{ account: 'erin.wam', addedAt: new Date().toISOString() }],
+      })],
+      'gpk-favorite-accounts.json',
+      { type: 'application/json' },
+    );
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    await waitFor(() => fireEvent.change(input, { target: { files: [file] } }));
+    await waitFor(() => expect(loadFavorites().map((f) => f.account)).toEqual(['erin.wam']));
+    expect(screen.getByText('erin.wam')).toBeTruthy();
+  });
+
+  it('importing a non-favourites JSON changes nothing', async () => {
+    render(
+      <ViewWalletControl currentAccount="me.wam" viewedAccount={null} onView={() => {}} onClear={() => {}} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /view wallet/i }));
+    fireEvent.click(screen.getByText(/Favourites \(0\)/i));
+    const file = new File([JSON.stringify({ alerts: [] })], 'alerts.json', { type: 'application/json' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await waitFor(() => fireEvent.change(input, { target: { files: [file] } }));
+    await waitFor(() => expect(screen.getByText(/not a favourites export/i)).toBeTruthy());
+    expect(loadFavorites()).toHaveLength(0);
+  });
 });
