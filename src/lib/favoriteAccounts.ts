@@ -37,7 +37,7 @@ export function isValidWaxName(name: string): boolean {
   return name.length >= 1 && name.length <= 12 && WAX_NAME_RE.test(name);
 }
 
-export type FavoritesChangeType = 'added' | 'removed' | 'imported';
+export type FavoritesChangeType = 'added' | 'removed' | 'imported' | 'cleared';
 
 function notifyChanged(type?: FavoritesChangeType, account?: string) {
   try {
@@ -92,6 +92,14 @@ export function removeFavorite(account: string): boolean {
 
 export function toggleFavorite(account: string): boolean {
   return isFavorite(account) ? !removeFavorite(account) : addFavorite(account);
+}
+
+/** Removes every favourite (session adds and imported JSON alike). Returns how many were removed. */
+export function clearFavorites(): number {
+  const list = loadFavorites();
+  if (list.length === 0) return 0;
+  saveFavorites([], 'cleared');
+  return list.length;
 }
 
 export function exportFavoritesJson(): string {
