@@ -78,7 +78,7 @@ export function addFavorite(account: string, note?: string): boolean {
   const list = loadFavorites();
   if (list.some((f) => f.account === account)) return false;
   if (list.length >= CAP) return false;
-  saveFavorites([{ account, addedAt: new Date().toISOString(), ...(note ? { note } : {}) }, ...list]);
+  saveFavorites([{ account, addedAt: new Date().toISOString(), ...(note ? { note } : {}) }, ...list], 'added', account);
   return true;
 }
 
@@ -86,7 +86,7 @@ export function removeFavorite(account: string): boolean {
   const list = loadFavorites();
   const next = list.filter((f) => f.account !== account);
   if (next.length === list.length) return false;
-  saveFavorites(next);
+  saveFavorites(next, 'removed', account);
   return true;
 }
 
@@ -137,7 +137,7 @@ export function importFavorites(accounts: FavoriteAccount[]): FavoritesImportRes
     });
     added++;
   }
-  if (incoming.length > 0) saveFavorites([...incoming, ...list]);
+  if (incoming.length > 0) saveFavorites([...incoming, ...list], 'imported');
   return { added, updated, skipped };
 }
 
