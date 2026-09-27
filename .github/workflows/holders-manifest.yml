@@ -33,16 +33,10 @@ jobs:
         run: node scripts/build-holders-manifest.mjs
 
       - name: Stage manifest into the data-mirror folder
-        run: node scripts/build-holders-manifest.mjs --out scripts/data-mirror-output/gpk-data/manifests/gpk-topps-holders.json
-        # NOTE: the scan above already wrote the default output; this step
-        # re-uses it instead of scanning twice.
-        # (build-holders-manifest writes to --out directly, so we actually
-        # just copy the freshly built file:)
-        # shell: bash
-        # run: |
-        #   mkdir -p scripts/data-mirror-output/gpk-data/manifests
-        #   cp mirror-output/manifests/gpk-topps-holders.json \
-        #      scripts/data-mirror-output/gpk-data/manifests/gpk-topps-holders.json
+        run: |
+          mkdir -p scripts/data-mirror-output/gpk-data/manifests
+          cp mirror-output/manifests/gpk-topps-holders.json \
+             scripts/data-mirror-output/gpk-data/manifests/gpk-topps-holders.json
 
       - name: Rebuild data-mirror folder + index
         run: node scripts/build-data-mirror.mjs
