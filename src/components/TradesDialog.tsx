@@ -425,6 +425,22 @@ export function TradesDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <p className="text-xs text-muted-foreground theme-bright-text-muted leading-relaxed">
+          To propose trades click the{' '}
+          {onOpenViewWallet ? (
+            <button
+              type="button"
+              onClick={() => { onOpenViewWallet(); }}
+              className="text-cheese theme-bright-text font-medium underline underline-offset-2 hover:text-cheese/80 inline"
+            >
+              View Wallet
+            </button>
+          ) : (
+            <span className="text-cheese theme-bright-text font-medium">View Wallet</span>
+          )}
+          {' '}button and either enter an account or scan the recent or top traders list, view their collection and press the trade button on the asset you wish for yourself.
+        </p>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
