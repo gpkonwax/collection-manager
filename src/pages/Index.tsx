@@ -2844,7 +2844,7 @@ export default function SimpleAssetsPage() {
               <p className="text-lg text-foreground max-w-2xl theme-bright-text-muted">
                 Free to use, open source, built by <span className="text-cheese font-semibold theme-bright-text">$CHEESE</span> for the WAX and GPK communities.
               </p>
-              <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 px-4 py-3 text-sm text-foreground">
+              <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 bright-content-panel px-4 py-3 text-sm text-foreground">
                 <span className="font-semibold text-cheese theme-bright-text">🔒 No new smart contracts.</span>
                 <span className="theme-bright-text"> This manager only uses the existing <strong>simpleassets</strong> and <strong>atomicassets</strong> actions and tables — no custom contracts, fully transparent on-chain.</span>
               </div>
@@ -2881,7 +2881,7 @@ export default function SimpleAssetsPage() {
 
             {/* Section B — Pack Openings */}
             <div className="max-w-5xl mx-auto">
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-8 flex flex-col md:flex-row items-center gap-6">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-8 flex flex-col md:flex-row items-center gap-6">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">📦</span>
                 </div>
@@ -2902,7 +2902,7 @@ export default function SimpleAssetsPage() {
             {/* Section C — Feature Highlights (2×2) */}
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* View Any Wallet */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">👁️</span>
                 </div>
@@ -2915,7 +2915,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Card & Pack Trading */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">🔄</span>
                 </div>
@@ -2928,7 +2928,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Multi-File JSON Import */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">📂</span>
                 </div>
@@ -2941,7 +2941,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Pack Opening History & Replay */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">🕰️</span>
                 </div>

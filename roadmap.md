@@ -2,3 +2,4 @@
 
 - [x] Favourite accounts feature: star accounts, Favourites section in View Wallet popover, JSON export/import via JSON menu with bulk multi-file drop — done 2026-09-27
 - [x] Rework only bright-mode backdrop and headings; preserve dark mode, page layout, card grid and behavior.
+- [x] Replace bright-mode yellow box fills with light surfaces; make the background bold spilled paint, preserving header buttons and dark mode.
