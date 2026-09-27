@@ -347,7 +347,7 @@
     color: hsl(var(--foreground));
   }
   .bright .bright-readable-footer {
-    background-color: hsl(var(--card) / 0.93);
+    background-color: hsl(var(--card) / 0.55);
     color: hsl(var(--foreground));
     border-color: hsl(var(--foreground) / 0.25);
   }
