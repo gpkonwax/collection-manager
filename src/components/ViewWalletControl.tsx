@@ -80,6 +80,15 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   const attemptedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const [showActive, setShowActive] = useState(false);
+  const initialActiveCache = getCachedActiveWallets();
+  const [activeWallets, setActiveWallets] = useState<ActiveWallet[] | null>(initialActiveCache?.wallets ?? null);
+  const [activeLoading, setActiveLoading] = useState(false);
+  const [activeError, setActiveError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState('');
+  const activeAbortRef = useRef<AbortController | null>(null);
+  const activeAttemptedRef = useRef(false);
+
   const submit = useCallback(async () => {
     const name = normalize(value);
     const validation = validateWaxName(name);
