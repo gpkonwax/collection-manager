@@ -2582,6 +2582,7 @@ export default function SimpleAssetsPage() {
         onOfferAction={handleOfferAction}
         busyOfferId={tradeBusyOfferId}
         busyAction={tradeBusyAction}
+        onOpenViewWallet={() => { setShowTradesDialog(false); setViewWalletSignal((n) => n + 1); }}
       />
 
       <TradeComposerDialog
