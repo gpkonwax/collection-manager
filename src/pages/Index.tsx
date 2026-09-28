@@ -2879,7 +2879,7 @@ export default function SimpleAssetsPage() {
                 />
               </div>
             </div>
-            <p className="max-w-5xl mx-auto text-center text-cheese text-base font-medium">
+            <p className="max-w-5xl mx-auto text-center text-cheese text-base font-medium bright-landing-panel rounded-lg px-4 py-3">
               All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Toggle between them instantly using a simple tab interface.
             </p>
 
@@ -3014,7 +3014,7 @@ export default function SimpleAssetsPage() {
               </div>
             </div>
 
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-4 max-w-md mx-auto rounded-lg bright-landing-panel p-6">
               <p className="text-foreground">Connect your WAX wallet to get started — it only takes a few seconds.</p>
               <Button onClick={login} className="bg-cheese hover:bg-cheese/90 text-cheese-foreground">
                 <Wallet className="h-4 w-4 mr-2" />
