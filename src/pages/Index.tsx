@@ -242,7 +242,7 @@ function EmptySlot({ onDragOver, onDrop, isOver }: {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6 space-y-3 hover:border-cheese/40 transition-colors">
+    <div className="rounded-xl border border-border bg-card bright-landing-panel p-6 space-y-3 hover:border-cheese/40 transition-colors">
       <div className="h-12 w-12 rounded-lg bg-cheese/10 flex items-center justify-center">{icon}</div>
       <h3 className="text-lg font-semibold text-cheese">{title}</h3>
       <p className="text-sm text-foreground leading-relaxed theme-bright-text">{description}</p>
@@ -2879,13 +2879,13 @@ export default function SimpleAssetsPage() {
                 />
               </div>
             </div>
-            <p className="max-w-5xl mx-auto text-center text-cheese text-base font-medium">
+            <p className="max-w-5xl mx-auto text-center text-cheese text-base font-medium bright-landing-panel rounded-lg px-4 py-3">
               All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Toggle between them instantly using a simple tab interface.
             </p>
 
             {/* Section B — Pack Openings */}
             <div className="max-w-5xl mx-auto">
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-8 flex flex-col md:flex-row items-center gap-6">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-8 flex flex-col md:flex-row items-center gap-6">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">📦</span>
                 </div>
@@ -2906,7 +2906,7 @@ export default function SimpleAssetsPage() {
             {/* Section C — Feature Highlights (2×2) */}
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* View Any Wallet */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">👁️</span>
                 </div>
@@ -2919,7 +2919,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Card & Pack Trading */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">🔄</span>
                 </div>
@@ -2932,7 +2932,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Multi-File JSON Import */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">📂</span>
                 </div>
@@ -2945,7 +2945,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Pack Opening History & Replay */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">🕰️</span>
                 </div>
@@ -3014,7 +3014,7 @@ export default function SimpleAssetsPage() {
               </div>
             </div>
 
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-4 max-w-md mx-auto rounded-lg bright-landing-panel p-6">
               <p className="text-foreground">Connect your WAX wallet to get started — it only takes a few seconds.</p>
               <Button onClick={login} className="bg-cheese hover:bg-cheese/90 text-cheese-foreground">
                 <Wallet className="h-4 w-4 mr-2" />
