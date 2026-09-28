@@ -2885,7 +2885,7 @@ export default function SimpleAssetsPage() {
 
             {/* Section B — Pack Openings */}
             <div className="max-w-5xl mx-auto">
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-8 flex flex-col md:flex-row items-center gap-6">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-8 flex flex-col md:flex-row items-center gap-6">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">📦</span>
                 </div>
@@ -2906,7 +2906,7 @@ export default function SimpleAssetsPage() {
             {/* Section C — Feature Highlights (2×2) */}
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* View Any Wallet */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">👁️</span>
                 </div>
@@ -2919,7 +2919,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Card & Pack Trading */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">🔄</span>
                 </div>
@@ -2932,7 +2932,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Multi-File JSON Import */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">📂</span>
                 </div>
@@ -2945,7 +2945,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Pack Opening History & Replay */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-content-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
                 <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
                   <span className="text-3xl">🕰️</span>
                 </div>
