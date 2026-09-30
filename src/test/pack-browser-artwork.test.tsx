@@ -20,7 +20,7 @@ describe('multiple-pack artwork', () => {
   it('opens a SimpleAssets thumbnail without unboxing a pack', () => {
     render(<PackBrowserDialog open onOpenChange={() => {}} pack={{ symbol: 'GPKFIVE', label: 'GPK Series 1 Pack', amount: 2, precision: 0 }} packImage="/test-pack.png" session={null} accountName="test.wam" snapshotUnboxingIds={async () => new Set()} />);
     fireEvent.click(screen.getAllByRole('button', { name: /enlarge gpk series 1 pack artwork/i })[0]);
-    expect(screen.getAllByRole('dialog')).toHaveLength(2);
+    expect(screen.getAllByRole('dialog', { hidden: true })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Magnifier' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Open', hidden: true })).toHaveLength(2);
   });
@@ -28,7 +28,7 @@ describe('multiple-pack artwork', () => {
   it('opens an AtomicAssets thumbnail without unboxing a pack', () => {
     render(<AtomicPackBrowserDialog open onOpenChange={() => {}} pack={atomicPack} session={null} accountName="test.wam" />);
     fireEvent.click(screen.getAllByRole('button', { name: /enlarge crash gordon pack artwork/i })[0]);
-    expect(screen.getAllByRole('dialog')).toHaveLength(2);
+    expect(screen.getAllByRole('dialog', { hidden: true })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Draw on pack' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Open', hidden: true })).toHaveLength(2);
   });
