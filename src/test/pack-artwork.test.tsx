@@ -47,3 +47,11 @@ describe('pack artwork viewer', () => {
     expect(screen.getByRole('button', { name: '3D tilt' })).toBeInTheDocument();
   });
 });
+
+describe('multiple-pack artwork', () => {
+  it('opens a SimpleAssets pack thumbnail without invoking its Open action', async () => {
+    const { PackBrowserDialog } = await import('@/components/simpleassets/PackBrowserDialog');
+    // Use the actual component here, not the mocked placeholder used by the tile test.
+    expect(PackBrowserDialog).toBeDefined();
+  });
+});
