@@ -41,7 +41,7 @@ export function PackArtworkDialog({ open, onOpenChange, name, image }: PackArtwo
         </DialogHeader>
         <div className="w-full max-w-[min(100%,400px,calc((94dvh-150px)*0.75))] mx-auto">
           {image && image !== '/placeholder.svg' ? (
-            <ImageWithModes key={image + String(open)} url={image} alt={name} isLandscape={false} mode={mode} drawColor={color}
+            <ImageWithModes key={image + String(open)} url={image} alt={name} isLandscape={false} mode={mode}
               canvasRegister={canvas => {
                 canvasRef.current = canvas;
                 if (canvas) (canvas as HTMLCanvasElement & { __setColor?: (value: string) => void }).__setColor?.(color);

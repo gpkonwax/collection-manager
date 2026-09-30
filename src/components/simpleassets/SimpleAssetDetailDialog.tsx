@@ -149,7 +149,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   isLandscape={isLandscape}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   mode={mode}
-                  drawColor={unifiedColor}
                   canvasRegister={(canvas) => {
                     if (canvas) {
                       if (!canvasRefs.current.includes(canvas)) canvasRefs.current.push(canvas);

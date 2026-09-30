@@ -112,13 +112,12 @@ function DrawCanvas({ canvasRegister, active }: {
   );
 }
 
-export function ImageWithModes({ url, alt, isLandscape, className, mode, drawColor, canvasRegister }: {
+export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasRegister }: {
   url: string;
   alt: string;
   isLandscape: boolean;
   className?: string;
   mode: ViewMode;
-  drawColor: string;
   canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
 }) {
   const [hover, setHover] = useState(false);
@@ -128,7 +127,7 @@ export function ImageWithModes({ url, alt, isLandscape, className, mode, drawCol
   const hash = url ? extractIpfsHash(url) : null;
   const cachedIdx = getCachedGatewayIndex(hash);
   const [displayedUrl, setDisplayedUrl] = useState<string | null>(null);
-  const resolvedUrl = displayedUrl || (hash ? getCachedLoadedUrl(hash) : null) || (hash ? `${IPFS_GATEWAYS[cachedIdx]}${hash}` : url);
+  const resolvedUrl = displayedUrl;
   useEffect(() => { setDisplayedUrl(null); }, [url]);
 
   useEffect(() => {
