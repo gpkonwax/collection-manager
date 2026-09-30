@@ -7,6 +7,7 @@ import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { AtomicPackRevealDialog } from './AtomicPackRevealDialog';
 import { AtomicPackBrowserDialog } from './AtomicPackBrowserDialog';
 import { PackInfoPopover } from './PackInfoPopover';
+import { PackArtworkDialog } from './PackArtworkDialog';
 import { IpfsMedia } from './IpfsMedia';
 import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
 import { buildOpenPackActions } from '@/lib/packOpenActions';
@@ -37,6 +38,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [artworkOpen, setArtworkOpen] = useState(false);
   const [openedAssetId, setOpenedAssetId] = useState<string | null>(null);
   const [demoRevealOpen, setDemoRevealOpen] = useState(false);
   const { executeTransaction } = useWaxTransaction(session);
@@ -91,7 +93,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
       <PackInfoPopover specKey={pack.templateId}>
       <Card className="bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
-          <IpfsMedia url={pack.image} alt={pack.name} className="w-3/4 aspect-[3/4] rounded mx-auto" />
+          <Button variant="ghost" className="w-3/4 h-auto p-0 rounded" aria-label={`Enlarge ${pack.name} artwork`} title="Enlarge pack artwork" onClick={() => setArtworkOpen(true)}><IpfsMedia url={pack.image} alt={pack.name} className="w-full aspect-[3/4] rounded mx-auto" /></Button>
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.name}</p>
           <div className="flex items-center justify-center gap-1.5">
             <img
@@ -139,6 +141,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
         </CardContent>
       </Card>
       </PackInfoPopover>
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.name} image={pack.image} />
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
         accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />

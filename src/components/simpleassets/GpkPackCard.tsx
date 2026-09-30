@@ -9,6 +9,7 @@ import { PackRevealDialog } from './PackRevealDialog';
 import type { RevealCard } from './PackRevealDialog';
 import { PackBrowserDialog } from './PackBrowserDialog';
 import { PackInfoPopover } from './PackInfoPopover';
+import { PackArtworkDialog } from './PackArtworkDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { RevealResult } from '@/lib/packReveal';
@@ -74,6 +75,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
   const [revealOpen, setRevealOpen] = useState(false);
   const [preOpenIds, setPreOpenIds] = useState<Set<number>>(new Set());
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [artworkOpen, setArtworkOpen] = useState(false);
   const [demoRevealOpen, setDemoRevealOpen] = useState(false);
   const { executeTransaction } = useWaxTransaction(session);
 
@@ -121,7 +123,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
       <PackInfoPopover specKey={pack.symbol}>
       <Card className="bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
-          {series2Img ? <img src={series2Img} alt={pack.label} className="w-3/4 h-auto rounded mx-auto" /> : <span className="text-3xl">📦</span>}
+          {series2Img ? <Button variant="ghost" className="w-3/4 h-auto p-0 rounded" aria-label={`Enlarge ${pack.label} artwork`} title="Enlarge pack artwork" onClick={() => setArtworkOpen(true)}><img src={series2Img} alt={pack.label} className="w-full h-auto rounded mx-auto" /></Button> : <span className="text-3xl">📦</span>}
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.label}</p>
           <div className="flex items-center justify-center gap-1.5">
             <img
@@ -164,6 +166,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
         </CardContent>
       </Card>
       </PackInfoPopover>
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.label} image={series2Img} />
       <PackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
         packImage={series2Img} accountName={accountName} preOpenUnboxingIds={preOpenIds} onComplete={handleRevealComplete} session={session} />
       <PackRevealDialog open={demoRevealOpen} onOpenChange={setDemoRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}

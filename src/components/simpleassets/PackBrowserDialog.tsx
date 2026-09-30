@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { PackArtworkDialog } from './PackArtworkDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Session } from '@wharfkit/session';
@@ -32,6 +33,7 @@ export function PackBrowserDialog({
   open, onOpenChange, pack, packImage, session, accountName, snapshotUnboxingIds, onSuccess,
 }: PackBrowserDialogProps) {
   const [page, setPage] = useState(0);
+  const [artworkOpen, setArtworkOpen] = useState(false);
   const [openingIdx, setOpeningIdx] = useState<number | null>(null);
   const [revealOpen, setRevealOpen] = useState(false);
   const [preOpenIds, setPreOpenIds] = useState<Set<number>>(new Set());
@@ -89,7 +91,7 @@ export function PackBrowserDialog({
               return (
                 <Card key={globalIdx} className="bg-card border-border hover:border-primary/40 transition-colors">
                   <CardContent className="p-3 flex flex-col items-center text-center space-y-2">
-                    {packImage ? <img src={packImage} alt={pack.label} className="w-3/4 h-auto rounded mx-auto" /> : <span className="text-3xl">📦</span>}
+                    {packImage ? <Button variant="ghost" className="w-3/4 h-auto p-0" aria-label={`Enlarge ${pack.label} artwork`} title="Enlarge pack artwork" onClick={() => setArtworkOpen(true)}><img src={packImage} alt={pack.label} className="w-full h-auto rounded mx-auto" /></Button> : <span className="text-3xl">📦</span>}
                     <p className="text-xs text-muted-foreground">#{globalIdx + 1}</p>
                     <Button size="sm" variant="outline" className="w-full text-xs" disabled={!session || openingIdx !== null || !unboxType} onClick={() => handleOpen(globalIdx)}>
                       {isThis ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : 'Open'}
@@ -108,6 +110,7 @@ export function PackBrowserDialog({
           )}
         </DialogContent>
       </Dialog>
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.label} image={packImage} />
       <PackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
         packImage={packImage} accountName={accountName} preOpenUnboxingIds={preOpenIds} onComplete={handleRevealComplete} session={session} />
     </>

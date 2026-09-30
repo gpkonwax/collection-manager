@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { PackArtworkDialog } from './PackArtworkDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Session } from '@wharfkit/session';
@@ -26,6 +27,7 @@ export function AtomicPackBrowserDialog({
   open, onOpenChange, pack, session, accountName, onSuccess,
 }: AtomicPackBrowserDialogProps) {
   const [page, setPage] = useState(0);
+  const [artworkOpen, setArtworkOpen] = useState(false);
   const [openingIdx, setOpeningIdx] = useState<number | null>(null);
   const [revealOpen, setRevealOpen] = useState(false);
   const [openedAssetId, setOpenedAssetId] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export function AtomicPackBrowserDialog({
                       </span>
                     </div>
                     <div className="p-3 pt-2 flex flex-col items-center text-center space-y-2 w-full">
-                    <IpfsMedia url={pack.image} alt={pack.name} className="w-3/4 aspect-[3/4] rounded mx-auto" />
+                    <Button variant="ghost" className="w-3/4 h-auto p-0" aria-label={`Enlarge ${pack.name} artwork`} title="Enlarge pack artwork" onClick={() => setArtworkOpen(true)}><IpfsMedia url={pack.image} alt={pack.name} className="w-full aspect-[3/4] rounded mx-auto" /></Button>
                     <Button size="sm" variant="outline" className="w-full text-xs"
                       disabled={!session || openingIdx !== null}
                       onClick={() => handleOpen(i)}>
@@ -137,6 +139,7 @@ export function AtomicPackBrowserDialog({
           )}
         </DialogContent>
       </Dialog>
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.name} image={pack.image} />
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
         accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />
