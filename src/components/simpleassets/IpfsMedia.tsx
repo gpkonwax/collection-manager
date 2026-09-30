@@ -98,6 +98,7 @@ function IpfsMediaComponent({ url, alt, className = '', context = 'card', showSk
       {showLoadingOverlay && (
         <Skeleton className="absolute inset-0 rounded-none" />
       )}
+      {context === 'detail' && failed && <span className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">Artwork unavailable</span>}
       {enabled && (
         <img
           src={src}
