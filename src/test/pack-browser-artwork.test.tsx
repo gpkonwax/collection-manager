@@ -22,6 +22,7 @@ describe('multiple-pack artwork', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /enlarge gpk series 1 pack artwork/i })[0]);
     expect(screen.getAllByRole('dialog', { hidden: true })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Magnifier' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveTextContent('Courtesy of geepeekay.com');
     expect(screen.getAllByRole('button', { name: 'Open', hidden: true })).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(2);

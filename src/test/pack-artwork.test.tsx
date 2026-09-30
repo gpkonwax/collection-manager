@@ -28,12 +28,27 @@ describe('pack artwork viewer', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent('GPK Series 1 Pack');
     expect(screen.getByRole('button', { name: '3D tilt' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open Pack', hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveTextContent('Courtesy of geepeekay.com');
+    expect(screen.getByRole('dialog')).toHaveTextContent('wax_pack_os1_sm.jpg');
+    expect(screen.getByRole('dialog')).not.toHaveTextContent('IPFS (on-chain pack image reference)');
   });
 
   it('opens AtomicAssets artwork even when the pack is unowned', () => {
     render(<AtomicPackCard pack={atomicPack} session={null} accountName="test.wam" />);
     fireEvent.click(screen.getByRole('button', { name: /enlarge crash gordon pack artwork/i }));
     expect(screen.getByRole('dialog')).toHaveTextContent('Crash Gordon Pack');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Template #13778');
+  });
+
+  it('shows the original IPFS path and the available pack metadata rather than a gateway URL', () => {
+    render(<PackArtworkDialog open name="Atomic pack" image="https://ipfs.io/ipfs/QmABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr/pack.png"
+      source="atomicassets" templateId="123" imageReference="QmABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr/pack.png"
+      immutableData={{ name: 'Atomic pack', img: 'QmABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr/pack.png' }} mutableData={{ rarity: 'Rare' }} onOpenChange={() => {}} />);
+    expect(screen.getByRole('dialog')).toHaveTextContent('IPFS (on-chain pack image reference)');
+    expect(screen.getByLabelText('IPFS image path')).toHaveTextContent('QmABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr/pack.png');
+    fireEvent.click(screen.getByRole('button', { name: 'Show Raw JSON' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('immutable_data');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Rare');
   });
 
   it('offers magnifier and drawing and resets to tilt on reopening', () => {
