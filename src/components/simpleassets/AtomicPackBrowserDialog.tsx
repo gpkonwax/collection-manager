@@ -28,6 +28,7 @@ export function AtomicPackBrowserDialog({
 }: AtomicPackBrowserDialogProps) {
   const [page, setPage] = useState(0);
   const [artworkOpen, setArtworkOpen] = useState(false);
+  const [artworkAssetId, setArtworkAssetId] = useState<string | null>(null);
   const [openingIdx, setOpeningIdx] = useState<number | null>(null);
   const [revealOpen, setRevealOpen] = useState(false);
   const [openedAssetId, setOpenedAssetId] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export function AtomicPackBrowserDialog({
                       </span>
                     </div>
                     <div className="p-3 pt-2 flex flex-col items-center text-center space-y-2 w-full">
-                    <Button variant="ghost" className="w-3/4 h-auto p-0" aria-label={`Enlarge ${pack.name} artwork`} title="Enlarge pack artwork" onClick={() => setArtworkOpen(true)}><IpfsMedia url={pack.image} alt={pack.name} className="w-full aspect-[3/4] rounded mx-auto" /></Button>
+                    <Button variant="ghost" className="w-3/4 h-auto p-0" aria-label={`Enlarge ${pack.name} artwork`} title="Enlarge pack artwork" onClick={() => { setArtworkAssetId(localAssetIds[globalIdx]); setArtworkOpen(true); }}><IpfsMedia url={pack.image} alt={pack.name} className="w-full aspect-[3/4] rounded mx-auto" /></Button>
                     <Button size="sm" variant="outline" className="w-full text-xs"
                       disabled={!session || openingIdx !== null}
                       onClick={() => handleOpen(i)}>
@@ -139,7 +140,7 @@ export function AtomicPackBrowserDialog({
           )}
         </DialogContent>
       </Dialog>
-      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.name} image={pack.image} />
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.name} image={pack.image} source="atomicassets" templateId={pack.templateId} assetId={artworkAssetId || undefined} mint={artworkAssetId ? localMints[localAssetIds.indexOf(artworkAssetId)] : undefined} imageReference={pack.imageReference} immutableData={pack.immutableData} mutableData={pack.mutableData} />
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
         accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />

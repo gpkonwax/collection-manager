@@ -110,7 +110,7 @@ export function PackBrowserDialog({
           )}
         </DialogContent>
       </Dialog>
-      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.label} image={packImage} />
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.label} image={packImage} source="simpleassets" symbol={pack.symbol} />
       <PackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
         packImage={packImage} accountName={accountName} preOpenUnboxingIds={preOpenIds} onComplete={handleRevealComplete} session={session} />
     </>

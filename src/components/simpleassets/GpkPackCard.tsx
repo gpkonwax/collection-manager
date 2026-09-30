@@ -166,7 +166,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
         </CardContent>
       </Card>
       </PackInfoPopover>
-      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.label} image={series2Img} />
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.label} image={series2Img} source="simpleassets" symbol={pack.symbol} />
       <PackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}
         packImage={series2Img} accountName={accountName} preOpenUnboxingIds={preOpenIds} onComplete={handleRevealComplete} session={session} />
       <PackRevealDialog open={demoRevealOpen} onOpenChange={setDemoRevealOpen} packSymbol={pack.symbol} packLabel={pack.label}

@@ -22,6 +22,10 @@ export interface AtomicPack {
   templateId: string;
   name: string;
   image: string;
+  /** Image reference from the on-chain template/asset, before gateway resolution. */
+  imageReference?: string;
+  immutableData?: Record<string, string>;
+  mutableData?: Record<string, string>;
   description: string;
   count: number;
   assetIds: string[];
@@ -120,6 +124,9 @@ export function useGpkAtomicPacks(accountName: string | null) {
           templateId: tid,
           name: combined.name || `Pack #${tid}`,
           image: resolveImage(combined.img || combined.image),
+          imageReference: combined.img || combined.image,
+          immutableData: idata,
+          mutableData: data,
           description: combined.description || '',
           count: sorted.length,
           assetIds: sorted.map((s) => s.asset.asset_id),
@@ -139,6 +146,7 @@ export function useGpkAtomicPacks(accountName: string | null) {
           templateId: tid,
           name: defaults?.name || `Pack #${tid}`,
           image: defaults ? resolveImage(defaults.image) : '/placeholder.svg',
+          imageReference: defaults?.image,
           description: defaults?.description || '',
           count: 0,
           assetIds: [],
