@@ -141,7 +141,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
         </CardContent>
       </Card>
       </PackInfoPopover>
-      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.name} image={pack.image} />
+      <PackArtworkDialog open={artworkOpen} onOpenChange={setArtworkOpen} name={pack.name} image={pack.image} source="atomicassets" templateId={pack.templateId} imageReference={pack.imageReference} immutableData={pack.immutableData} mutableData={pack.mutableData} />
       <AtomicPackRevealDialog open={revealOpen} onOpenChange={setRevealOpen} packName={pack.name} packImage={pack.image}
         packAssetId={openedAssetId} unpackContract={pack.unpackContract} expectedCards={pack.cardsPerPack}
         accountName={accountName} session={session} onComplete={handleRevealComplete} openMode={pack.openMode} />

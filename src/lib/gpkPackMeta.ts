@@ -29,6 +29,17 @@ export const PACK_IMAGES: Record<string, string> = {
   EXOMEGA: gpkExoticMegaImg,
 };
 
+/** Original collector-gallery artwork used for bundled SimpleAssets pack images. */
+export const PACK_ART_SOURCES: Record<string, string> = {
+  GPKFIVE: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os1_sm.jpg',
+  GPKMEGA: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os1_mega_sm.jpg',
+  GPKTWOA: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os2_sm.jpg',
+  GPKTWOB: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os2_mega_sm.jpg',
+  GPKTWOC: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os2_ultimate_sm.jpg',
+  EXOFIVE: 'https://geepeekay.com/gallery/wax/packs/wax_pack_exotic_sm.jpeg',
+  EXOMEGA: 'https://geepeekay.com/gallery/wax/packs/wax_pack_exotic_mega_sm.jpeg',
+};
+
 export function packLabel(symbol: string): string {
   return PACK_LABELS[symbol] || symbol;
 }

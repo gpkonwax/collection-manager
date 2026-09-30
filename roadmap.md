@@ -8,3 +8,4 @@
 - [x] Make bright-mode card surrounds translucent white and fill the view selector so it stands out over the paint.
 - [x] Improve bright-mode readability for bridge mint badges, backup warning, grid actions, intro and bridge copy, ad link, and footer.
 - [x] Enlarge pack artwork from both pack grids and multiple-pack browsers with card-style tilt, magnifier, and drawing controls.
+- [x] Display pack artwork source details: original geepeekay.com credits for bundled images, IPFS path and available on-chain metadata for AtomicAssets packs.
