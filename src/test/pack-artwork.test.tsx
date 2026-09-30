@@ -1,0 +1,49 @@
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { PackArtworkDialog } from '@/components/simpleassets/PackArtworkDialog';
+import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
+import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
+
+vi.mock('@/components/simpleassets/IpfsMedia', () => ({ IpfsMedia: ({ url, alt }: { url: string; alt: string }) => <img src={url} alt={alt} /> }));
+vi.mock('@/hooks/useWaxTransaction', () => ({ useWaxTransaction: () => ({ executeTransaction: vi.fn() }) }));
+vi.mock('@/components/simpleassets/PackRevealDialog', () => ({ PackRevealDialog: () => null }));
+vi.mock('@/components/simpleassets/AtomicPackRevealDialog', () => ({ AtomicPackRevealDialog: () => null }));
+vi.mock('@/components/simpleassets/PackBrowserDialog', () => ({ PackBrowserDialog: () => null }));
+vi.mock('@/components/simpleassets/AtomicPackBrowserDialog', () => ({ AtomicPackBrowserDialog: () => null }));
+vi.mock('@/components/simpleassets/PackInfoPopover', () => ({ PackInfoPopover: ({ children }: { children: React.ReactNode }) => children }));
+
+// Canvas API and ResizeObserver are supplied by browsers, not jsdom.
+vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
+
+const atomicPack = {
+  templateId: '13778', name: 'Crash Gordon Pack', image: '/test-pack.png', description: '', count: 0,
+  assetIds: [], mints: [], unpackContract: 'gpkcrashpack', cardsPerPack: 5, openMode: 'transfer' as const,
+  packConfig: { contract: 'gpkcrashpack', cards: 5, openMode: 'transfer' as const },
+};
+
+describe('pack artwork viewer', () => {
+  it('opens local SimpleAssets artwork from its image, leaving Open Pack separate', () => {
+    render(<GpkPackCard pack={{ symbol: 'GPKFIVE', label: 'GPK Series 1 Pack', amount: 1, precision: 0 }} session={null} accountName="test.wam" />);
+    fireEvent.click(screen.getByRole('button', { name: /enlarge gpk series 1 pack artwork/i }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('GPK Series 1 Pack');
+    expect(screen.getByRole('button', { name: '3D tilt' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Pack' })).toBeInTheDocument();
+  });
+
+  it('opens AtomicAssets artwork even when the pack is unowned', () => {
+    render(<AtomicPackCard pack={atomicPack} session={null} accountName="test.wam" />);
+    fireEvent.click(screen.getByRole('button', { name: /enlarge crash gordon pack artwork/i }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Crash Gordon Pack');
+  });
+
+  it('offers magnifier and drawing and resets to tilt on reopening', () => {
+    const { rerender } = render(<PackArtworkDialog open name="Test Pack" image="/test-pack.png" onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Magnifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Draw on pack' }));
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    rerender(<PackArtworkDialog open={false} name="Test Pack" image="/test-pack.png" onOpenChange={() => {}} />);
+    rerender(<PackArtworkDialog open name="Test Pack" image="/test-pack.png" onOpenChange={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '3D tilt' })).toBeInTheDocument();
+  });
+});
