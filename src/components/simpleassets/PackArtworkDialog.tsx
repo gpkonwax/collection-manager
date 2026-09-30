@@ -39,7 +39,7 @@ export function PackArtworkDialog({ open, onOpenChange, name, image }: PackArtwo
           <DialogTitle className="text-cheese pr-6">{name}</DialogTitle>
           <DialogDescription className="sr-only">Enlarged pack artwork</DialogDescription>
         </DialogHeader>
-        <div className="w-[min(100%,400px,65dvh)] mx-auto">
+        <div className="w-full max-w-[400px] mx-auto" style={{ width: 'min(100%, 65dvh)' }}>
           {image && image !== '/placeholder.svg' ? (
             <ImageWithModes key={image + String(open)} url={image} alt={name} isLandscape={false} mode={mode}
               canvasRegister={canvas => {

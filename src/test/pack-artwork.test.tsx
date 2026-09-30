@@ -27,7 +27,7 @@ describe('pack artwork viewer', () => {
     fireEvent.click(screen.getByRole('button', { name: /enlarge gpk series 1 pack artwork/i }));
     expect(screen.getByRole('dialog')).toHaveTextContent('GPK Series 1 Pack');
     expect(screen.getByRole('button', { name: '3D tilt' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open Pack' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Pack', hidden: true })).toBeInTheDocument();
   });
 
   it('opens AtomicAssets artwork even when the pack is unowned', () => {
