@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { IpfsMedia } from './IpfsMedia';
-import { getCachedGatewayIndex, getCachedLoadedUrl } from '@/hooks/useIpfsMedia';
-import { extractIpfsHash, IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 
@@ -124,8 +122,6 @@ export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasR
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [everDrawn, setEverDrawn] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const hash = url ? extractIpfsHash(url) : null;
-  const cachedIdx = getCachedGatewayIndex(hash);
   const [displayedUrl, setDisplayedUrl] = useState<string | null>(null);
   const resolvedUrl = displayedUrl;
   useEffect(() => { setDisplayedUrl(null); }, [url]);
