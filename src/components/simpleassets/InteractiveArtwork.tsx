@@ -134,8 +134,13 @@ export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasR
       if (img?.complete && img.naturalWidth > 0) setDisplayedUrl(img.currentSrc || img.src);
     };
     sync();
+    const onError = () => setDisplayedUrl(null);
     el.addEventListener('load', sync, true);
-    return () => el.removeEventListener('load', sync, true);
+    el.addEventListener('error', onError, true);
+    return () => {
+      el.removeEventListener('load', sync, true);
+      el.removeEventListener('error', onError, true);
+    };
   }, [url]);
 
   const tiltActive = mode === 'tilt';
