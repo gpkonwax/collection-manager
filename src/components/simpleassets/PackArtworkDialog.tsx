@@ -14,12 +14,14 @@ interface PackArtworkDialogProps {
   source?: 'simpleassets' | 'atomicassets';
   symbol?: string;
   templateId?: string;
+  assetId?: string;
+  mint?: number;
   imageReference?: string;
   immutableData?: Record<string, string>;
   mutableData?: Record<string, string>;
 }
 
-export function PackArtworkDialog({ open, onOpenChange, name, image, source, symbol, templateId, imageReference, immutableData, mutableData }: PackArtworkDialogProps) {
+export function PackArtworkDialog({ open, onOpenChange, name, image, source, symbol, templateId, assetId, mint, imageReference, immutableData, mutableData }: PackArtworkDialogProps) {
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [color, setColor] = useState(DRAW_COLORS[0].value);
   const [showRawJson, setShowRawJson] = useState(false);
@@ -69,6 +71,8 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
             <span>{source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}</span>
             {symbol && <span>· packs.topps · {symbol}</span>}
             {templateId && <span>· Template #{templateId}</span>}
+            {assetId && <span>· Asset #{assetId}</span>}
+            {mint != null && mint > 0 && <span>· Mint #{mint}</span>}
           </div>
           <div className="space-y-1">
             <p className="font-semibold text-cheese">Artwork source</p>
