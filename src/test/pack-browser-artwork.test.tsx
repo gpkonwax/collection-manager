@@ -23,6 +23,8 @@ describe('multiple-pack artwork', () => {
     expect(screen.getAllByRole('dialog', { hidden: true })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Magnifier' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Open', hidden: true })).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(2);
   });
 
   it('opens an AtomicAssets thumbnail without unboxing a pack', () => {
@@ -31,5 +33,7 @@ describe('multiple-pack artwork', () => {
     expect(screen.getAllByRole('dialog', { hidden: true })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Draw on pack' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Open', hidden: true })).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getAllByRole('button', { name: 'Open' })).toHaveLength(2);
   });
 });
