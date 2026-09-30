@@ -38,6 +38,7 @@ describe('pack artwork viewer', () => {
     fireEvent.click(screen.getByRole('button', { name: /enlarge crash gordon pack artwork/i }));
     expect(screen.getByRole('dialog')).toHaveTextContent('Crash Gordon Pack');
     expect(screen.getByRole('dialog')).toHaveTextContent('Template #13778');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Artwork source');
   });
 
   it('shows the original IPFS path and the available pack metadata rather than a gateway URL', () => {

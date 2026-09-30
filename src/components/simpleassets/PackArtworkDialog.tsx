@@ -74,7 +74,7 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
             <p className="font-semibold text-cheese">Artwork source</p>
             {isIpfs ? (
               <>
-                <p className="text-foreground">IPFS (on-chain pack image reference)</p>
+                <p className="text-foreground">IPFS ({immutableData || mutableData ? 'on-chain pack image reference' : 'catalog pack image reference'})</p>
                 <p className="text-muted-foreground break-all font-mono" aria-label="IPFS image path">{ipfsPath}</p>
               </>
             ) : originalUrl ? (
