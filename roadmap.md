@@ -9,3 +9,5 @@
 - [x] Improve bright-mode readability for bridge mint badges, backup warning, grid actions, intro and bridge copy, ad link, and footer.
 - [x] Enlarge pack artwork from both pack grids and multiple-pack browsers with card-style tilt, magnifier, and drawing controls.
 - [x] Display pack artwork source details: original geepeekay.com credits for bundled images, IPFS path and available on-chain metadata for AtomicAssets packs.
+- [x] Mint-number backup: builder script, sharded backup (bridged cards, 283,804 mints), app lookup backup-first then live, offline bundle, monthly workflow step.
+- [ ] Plain SimpleAssets cards in the mint backup — waiting on the user to run the "Refresh GPK holders manifest" workflow once (the full chain scan is too slow to run here).
