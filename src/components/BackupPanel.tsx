@@ -27,6 +27,15 @@ import {
   ingestMirrorZipBatch,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
+import {
+  RECORDS_ZIP_NAME,
+  RECORDS_ZIP_URL,
+  clearRecords,
+  getLoadedRecords,
+  loadRecordsZip,
+  subscribeRecords,
+} from '@/lib/recordsZip';
+import { clearCachedHolders } from '@/lib/gpkHolders';
 
 import {
   MIRRORS,
