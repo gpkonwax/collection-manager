@@ -28,6 +28,9 @@ export interface SimpleAsset {
   mintSource?: 'backup' | 'live';
   /** ISO build time of the backup snapshot when mintSource === 'backup'. */
   mintBackupDate?: string;
+  /** Copies still in circulation and copies burned, from the mint resolver. */
+  mintSurviving?: number;
+  mintBurned?: number;
 }
 
 interface RawSAsset {
@@ -143,6 +146,8 @@ export function useSimpleAssets(account: string | null) {
                 mintNumber: info.mint,
                 mintSource: info.source,
                 mintBackupDate: info.backupDate,
+                mintSurviving: info.total,
+                mintBurned: info.burned,
                 idata: {
                   ...asset.idata,
                   mint: String(info.mint),

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ImageWithModes, ArtworkModeControls, DRAW_COLORS } from './InteractiveArtwork';
 import type { ViewMode } from './InteractiveArtwork';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
@@ -17,72 +18,37 @@ interface Props {
 const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
-const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
-function getMintDisplay(asset: SimpleAsset): string | null {
-  const combined = { ...asset.idata, ...asset.mdata };
-  for (const key of MINT_KEYS) {
-    const val = combined[key];
-    if (val !== undefined && val !== null && String(val).trim() !== '') {
-      const str = String(val);
-      if (str.includes('/')) return str;
-      const supply = combined.maxsupply ?? combined.max_supply ?? combined.supply;
-      if (supply !== undefined && supply !== null) return `#${str} / ${supply}`;
-      return `#${str}`;
-    }
-  }
-  return null;
-}
-
-function getRealMintDisplay(asset: SimpleAsset): string {
-  const isAtomic = asset.source === 'atomicassets';
-  const category = String(asset.category || '').toLowerCase();
-  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(category);
-  const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
-  const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
-  const effectiveMint = realMint ?? nativeAAMint;
-  const combined = { ...asset.idata, ...asset.mdata };
-  const total =
-    combined.bridge_total ??
-    combined.maxsupply ??
-    combined.max_supply ??
-    combined.supply;
-  const suffix = total !== undefined && total !== null && String(total).trim() !== '' ? ` / ${total}` : '';
-  if (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== '') {
-    return `#${effectiveMint}${suffix}`;
-  }
-  return `#--${suffix}`;
-}
 
 export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
+  const assetId = asset?.id;
 
   useEffect(() => {
-    if (asset) {
+    if (assetId) {
       setShowRawJson(false);
       setMode('tilt');
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
     }
-  }, [asset?.id]);
+  }, [assetId]);
 
   // Push color changes into any registered canvases without remounting them
   useEffect(() => {
     canvasRefs.current.forEach((canvas) => {
-      if (canvas && (canvas as any).__setColor) (canvas as any).__setColor(unifiedColor);
+      if (canvas) (canvas as HTMLCanvasElement & { __setColor?: (color: string) => void }).__setColor?.(unifiedColor);
     });
   }, [unifiedColor]);
 
   if (!asset) return null;
 
   const images = asset.images;
-  const mintDisplay = getMintDisplay(asset);
-  const realMintDisplay = getRealMintDisplay(asset);
+  const mintLabel = getMintLabel(asset);
+  const supplyLines = getMintSupplyLines(asset);
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
-  const isAtomic = asset.source === 'atomicassets';
-  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
+  const isBridgedAA = isBridgedAsset(asset);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
@@ -123,13 +89,13 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             </span>
           </DialogDescription>
         </DialogHeader>
-        {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) */}
+        {/* True mint number; supply details are listed separately below. */}
         <div
           className="w-full flex justify-center py-1 bg-muted/30 -mb-2"
-          title="Mint number (placeholder — real mint will populate when available)"
+          title={mintLabel === '#--' ? 'Mint number not available yet' : `Mint ${mintLabel}`}
         >
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
-            {realMintDisplay}
+            {mintLabel}
           </span>
         </div>
         <div className={`flex flex-col sm:flex-row gap-4 items-start justify-center overflow-hidden ${images.length === 1 ? 'max-w-[400px] mx-auto' : ''}`}>
@@ -152,7 +118,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   canvasRegister={(canvas) => {
                     if (canvas) {
                       if (!canvasRefs.current.includes(canvas)) canvasRefs.current.push(canvas);
-                      (canvas as any).__setColor?.(unifiedColor);
+                      (canvas as HTMLCanvasElement & { __setColor?: (color: string) => void }).__setColor?.(unifiedColor);
                     } else {
                       canvasRefs.current = canvasRefs.current.filter(Boolean);
                     }
@@ -163,11 +129,10 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
-        {/* SimpleAssets mint info */}
-        {mintDisplay && !isAtomic && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-cheese">Mint</span>
-            <span className="text-sm font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">{mintDisplay}</span>
+        {supplyLines.length > 0 && (
+          <div className="space-y-1 text-sm text-foreground">
+            <p className="text-xs font-semibold text-cheese">Mint information</p>
+            {supplyLines.map((line) => <p key={line}>{line}</p>)}
           </div>
         )}
         {/* Bridged AtomicAssets bridge mint (green, like the removed green mint) */}
