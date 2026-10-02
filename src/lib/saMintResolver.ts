@@ -19,6 +19,7 @@
  * returned keyed by the caller's asset id (AA asset_id for bridged cards).
  */
 import { getDataMirrorBases } from './dataMirror';
+import { getLoadedRecords, getRecordsShard } from './recordsZip';
 import { isOfflineBundle } from './offlineBundle';
 
 const ENDPOINT = 'https://nft-data.api.atomichub.io/v1/simpleassets/mints';
@@ -160,16 +161,19 @@ async function resolveFromBackup(saIds: string[]): Promise<Map<string, SaMintInf
     list.push(id);
     byShard.set(k, list);
   }
-  const index = await loadIndex();
+  // A user-loaded records ZIP wins over the network mirror.
+  const records = getLoadedRecords();
+  const index = records ? null : await loadIndex();
+  const backupDate = records ? (records.generatedAt ?? undefined) : index?.generatedAt;
   await Promise.all([...byShard].map(async ([k, ids]) => {
-    const shard = await loadShard(k);
+    const shard = records ? getRecordsShard(k) : await loadShard(k);
     if (!shard) return;
     for (const id of ids) {
       const row = shard[id];
       if (!Array.isArray(row)) continue;
       const [mint, total, burned] = row.map(Number);
       if (!Number.isFinite(mint) || !Number.isFinite(total)) continue;
-      out.set(id, { mint, total, burned: Number.isFinite(burned) ? burned : 0, source: 'backup', backupDate: index?.generatedAt });
+      out.set(id, { mint, total, burned: Number.isFinite(burned) ? burned : 0, source: 'backup', backupDate });
     }
   }));
   return out;

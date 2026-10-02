@@ -43,8 +43,33 @@ jobs:
         # those cards, so publish anyway rather than failing the whole run.
         run: node scripts/build-mint-manifest.mjs --fresh || [ $? -eq 2 ]
 
+      - name: Install fflate for the records ZIP
+        run: npm install --no-save fflate@0.8.3
+
+      - name: Build records ZIP (holders + mint numbers)
+        run: node scripts/build-records-zip.mjs
+
       - name: Rebuild data-mirror folder + index
         run: node scripts/build-data-mirror.mjs
+
+      - name: Upload records ZIP to the backup repo's latest release
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          BACKUP_REPO: bewbzz/gpkonwaxbackup
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::BACKUP_REPO_TOKEN not set — records ZIP built but not uploaded to the release."
+            exit 0
+          fi
+          TAG=$(gh release view --repo "$BACKUP_REPO" --json tagName -q .tagName)
+          gh release upload "$TAG" dist-records/gpk-records.zip --repo "$BACKUP_REPO" --clobber
+
+      - name: Keep records ZIP as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpk-records
+          path: dist-records/gpk-records.zip
+          if-no-files-found: warn
 
       - name: Deploy to Cloudflare Pages (gpk-data)
         env:

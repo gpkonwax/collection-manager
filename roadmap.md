@@ -13,3 +13,4 @@
 - [x] Plain SimpleAssets cards in the mint backup — holders workflow indexed both bridged and unbridged assets.
 - [x] Show only the mint number on card ribbons; keep supply/burn figures in tooltips and details.
 - [x] In the default grid, sort duplicate cards by original mint number ascending, with unresolved copies last.
+- [x] Records ZIP: download + load in Offline Backup, rebuilt and released monthly
