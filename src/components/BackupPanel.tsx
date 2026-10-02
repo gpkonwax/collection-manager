@@ -732,115 +732,37 @@ function RecommendedZipCard({
   );
 }
 
-type OfflineAppState =
-  | { kind: 'checking' }
-  | { kind: 'available'; bytes: number; lastModified: string | null }
-  | { kind: 'missing' }
-  | { kind: 'unknown' };
-
 function OfflineAppCard() {
-  const [state, setState] = useState<OfflineAppState>({ kind: 'checking' });
-
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-
-    (async () => {
-      try {
-        // Follows the `releases/latest/download/...` redirect to the asset.
-        const res = await fetch(OFFLINE_APP_RELEASE_ASSET_URL, {
-          method: 'HEAD',
-          redirect: 'follow',
-          signal: controller.signal,
-        });
-        if (cancelled) return;
-        if (res.status === 404) {
-          setState({ kind: 'missing' });
-          return;
-        }
-        if (!res.ok) {
-          setState({ kind: 'unknown' });
-          return;
-        }
-        const len = Number(res.headers.get('content-length') ?? '');
-        setState({
-          kind: 'available',
-          bytes: Number.isFinite(len) && len > 0 ? len : 0,
-          lastModified: res.headers.get('last-modified'),
-        });
-      } catch {
-        // CORS-blocked, offline, or timed out — never hide the button for this.
-        if (!cancelled) setState({ kind: 'unknown' });
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, []);
-
-  const builtLabel = state.kind === 'available' && state.lastModified
-    ? new Date(state.lastModified).toLocaleDateString(undefined, {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
-    : null;
-
-  const detail = state.kind === 'available'
-    ? [state.bytes ? formatBytes(state.bytes) : null, builtLabel ? `built ${builtLabel}` : null]
-        .filter(Boolean)
-        .join(' — ')
-    : '';
-
   return (
     <section className="rounded-md border border-border bg-background/60 p-3 space-y-2">
       <div className="flex items-center gap-2">
         <HardDrive className="w-4 h-4 text-cheese" />
         <p className="font-medium">3 · Run the manager itself offline</p>
+        <span
+          className="ml-auto inline-flex items-center rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-400"
+        >
+          Coming soon
+        </span>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Download the manager as a ZIP. Unzip it, open <span className="font-mono">open-me.html</span>{' '}
-        (or run the tiny local server it explains), then load the image backup ZIP below.
-        Everything image-driven keeps working even if this site, GitHub, and every mirror
-        disappear. Wallet and live NFT features need internet and won't work offline.
+        A downloadable ZIP of the whole manager is on its way. Once it's ready, you'll unzip it,
+        open <span className="font-mono">open-me.html</span>, and load the image backup ZIP below —
+        everything image-driven keeps working even if this site, GitHub, and every mirror
+        disappear.
       </p>
 
-      {state.kind === 'missing' ? (
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">
-            The offline copy hasn't been published yet. Check the release page — it'll
-            appear there as{' '}
-            <span className="font-mono">gpk-collection-manager-offline.zip</span>.
-          </p>
-          <Button asChild size="sm" variant="outline" className="w-full h-8">
-            <a href={ZIP_GITHUB_RELEASE_URL} target="_blank" rel="noopener noreferrer">
-              Open the release page
-            </a>
-          </Button>
-        </div>
-      ) : (
-        <>
-          <Button asChild size="sm" variant="outline" className="w-full h-8">
-            <a href={OFFLINE_APP_RELEASE_ASSET_URL} target="_blank" rel="noopener noreferrer">
-              {state.kind === 'checking' ? (
-                <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5 mr-2" />
-              )}
-              Download the offline app
-              {detail && <span className="ml-1 opacity-70">({detail})</span>}
-            </a>
-          </Button>
-          {state.kind === 'checking' && (
-            <p className="text-[10px] text-muted-foreground">Checking the download…</p>
-          )}
-        </>
-      )}
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full h-8"
+        disabled
+        aria-disabled="true"
+        title="Coming soon"
+      >
+        <Download className="w-3.5 h-3.5 mr-2" />
+        Download the offline app
+      </Button>
     </section>
   );
 }
