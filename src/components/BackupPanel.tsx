@@ -40,7 +40,6 @@ import { clearCachedHolders } from '@/lib/gpkHolders';
 import {
   MIRRORS,
   type MirrorKey,
-  OFFLINE_APP_RELEASE_ASSET_URL,
   ZIP_GITHUB_RELEASE_URL,
   checkMirrorHealth,
   getMirrorDisplayLabel,
