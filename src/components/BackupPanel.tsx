@@ -245,17 +245,26 @@ export function BackupPanel({ triggerClassName }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Recommended: proactive ZIP download — pinned in the fixed header */}
-        <div className="px-6 pt-4 text-sm">
-          <RecommendedZipCard
-            protectedOnDevice={status.coverage === 'complete'}
-            fileCount={status.fileCount}
-            totalBytes={status.totalBytes}
-            zipInfo={zipInfo}
-          />
-        </div>
+        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 space-y-5 text-sm">
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-5 space-y-5 text-sm">
+          {/* All backup ZIP downloads grouped in one container at the top of the
+              scroll area — each ZIP in its own clearly labelled box, and the
+              mirror/status steps below are still reachable by scrolling past. */}
+          <section className="space-y-3 rounded-lg border border-cheese/40 bg-cheese/10 p-3">
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4 text-cheese" />
+              <p className="font-medium text-cheese">Backup downloads</p>
+            </div>
+            <RecommendedZipCard
+              protectedOnDevice={status.coverage === 'complete'}
+              fileCount={status.fileCount}
+              totalBytes={status.totalBytes}
+              zipInfo={zipInfo}
+            />
+            <RecordsZipCard />
+            {!isOfflineBundle() && <OfflineAppCard />}
+          </section>
+
 
 
           {/* Step 1: built-in primary mirror */}
@@ -496,14 +505,8 @@ export function BackupPanel({ triggerClassName }: Props) {
             </p>
 
           </section>
-
-          <RecordsZipCard />
-
-          <hr className="border-border" />
-
-          {/* Run the manager itself offline (hidden inside the offline bundle build) */}
-          {!isOfflineBundle() && <OfflineAppCard />}
         </div>
+
       </DialogContent>
     </Dialog>
   );
@@ -547,7 +550,11 @@ function RecommendedZipCard({
 
   if (protectedOnDevice) {
     return (
-      <section className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+      <section className="rounded-md border border-border bg-background/60 p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Download className="w-4 h-4 text-cheese" />
+          <p className="font-medium text-cheese">1 · Image backup ZIPs</p>
+        </div>
         <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium">
           <ShieldCheck className="w-4 h-4" />
           Complete — safe to use fully offline ({fileCount.toLocaleString()} files,{' '}
@@ -556,6 +563,7 @@ function RecommendedZipCard({
       </section>
     );
   }
+
 
   const approxSize = zipInfo?.bytes ? formatBytes(zipInfo.bytes) : null;
   const hasParts = (zipInfo?.parts.length ?? 0) > 1;
@@ -587,16 +595,17 @@ function RecommendedZipCard({
 
 
   return (
-    <section className="rounded-lg border border-cheese/40 bg-cheese/10 p-3 space-y-3">
+    <section className="rounded-md border border-border bg-background/60 p-3 space-y-3">
       <div className="flex items-center gap-2">
         <Download className="w-4 h-4 text-cheese" />
-        <p className="font-medium text-cheese">Recommended: keep a copy on your device</p>
+        <p className="font-medium text-cheese">1 · Image backup ZIPs</p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Save the offline backup ZIP{hasParts ? ' parts' : ''}{activeTotalLabel ? ` (~${activeTotalLabel} total)` : ''} now while
+        Recommended — save the offline backup ZIP{hasParts ? ' parts' : ''}{activeTotalLabel ? ` (~${activeTotalLabel} total)` : ''} now while
         everything's working. If every mirror ever goes down, you can load these files
         back into the app (Step 3 below) and every image still works.
       </p>
+
       <p className="text-[10px] text-muted-foreground">
         The backup mirrors serve individual images; the full archive downloads are hosted on GitHub Releases.
       </p>
@@ -788,11 +797,12 @@ function OfflineAppCard() {
     : '';
 
   return (
-    <section className="rounded-lg border border-border p-3 space-y-2">
+    <section className="rounded-md border border-border bg-background/60 p-3 space-y-2">
       <div className="flex items-center gap-2">
         <HardDrive className="w-4 h-4 text-cheese" />
-        <p className="font-medium">Run the manager itself offline</p>
+        <p className="font-medium">3 · Run the manager itself offline</p>
       </div>
+
       <p className="text-xs text-muted-foreground">
         Download the manager as a ZIP. Unzip it, open <span className="font-mono">open-me.html</span>{' '}
         (or run the tiny local server it explains), then load the image backup ZIP below.
@@ -901,11 +911,12 @@ function RecordsZipCard() {
     : '';
 
   return (
-    <section className="space-y-2 rounded-lg border border-border p-3">
+    <section className="space-y-2 rounded-md border border-border bg-background/60 p-3">
       <div className="flex items-center gap-2">
         <HardDrive className="w-4 h-4 text-cheese" />
-        <p className="font-medium">Collection records (holders + mint numbers)</p>
+        <p className="font-medium">2 · Collection records (mint numbers + holders)</p>
       </div>
+
       <p className="text-xs text-muted-foreground">
         A small ZIP with the Top Holders list and every saved mint number. Refreshed automatically
         on the 10th of each month. Load it here and mint numbers and holders read from your copy first.
