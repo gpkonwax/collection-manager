@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-28T10:34:53.431Z",
+  "generatedAt": "2026-10-02T09:33:34.214Z",
   "totals": {
-    "accounts": 14240,
+    "accounts": 14238,
     "sa": 500155,
-    "aa": 437361
+    "aa": 437457
   },
   "holders": [
     {
@@ -45,8 +45,8 @@
     {
       "account": "tnequ.wam",
       "sa": 0,
-      "aa": 7310,
-      "total": 7310
+      "aa": 7313,
+      "total": 7313
     },
     {
       "account": "vcd5y.wam",
@@ -97,16 +97,16 @@
       "total": 4580
     },
     {
+      "account": "ytoqw.wam",
+      "sa": 0,
+      "aa": 4499,
+      "total": 4499
+    },
+    {
       "account": "3y2ay.wam",
       "sa": 0,
       "aa": 4413,
       "total": 4413
-    },
-    {
-      "account": "ytoqw.wam",
-      "sa": 0,
-      "aa": 4392,
-      "total": 4392
     },
     {
       "account": "pfkpw.wam",
@@ -123,8 +123,8 @@
     {
       "account": "sundancekids",
       "sa": 3483,
-      "aa": 185,
-      "total": 3668
+      "aa": 183,
+      "total": 3666
     },
     {
       "account": "kjdau.wam",
@@ -213,8 +213,8 @@
     {
       "account": "twmqw.wam",
       "sa": 2591,
-      "aa": 244,
-      "total": 2835
+      "aa": 239,
+      "total": 2830
     },
     {
       "account": "pepperstake",
@@ -237,8 +237,8 @@
     {
       "account": "le1qu.wam",
       "sa": 32,
-      "aa": 2490,
-      "total": 2522
+      "aa": 2489,
+      "total": 2521
     },
     {
       "account": "hvgqu.wam",
@@ -321,14 +321,8 @@
     {
       "account": "bfdau.wam",
       "sa": 0,
-      "aa": 1937,
-      "total": 1937
-    },
-    {
-      "account": "guzdmnrrgmge",
-      "sa": 0,
-      "aa": 1903,
-      "total": 1903
+      "aa": 1929,
+      "total": 1929
     },
     {
       "account": "wfdqu.wam",
@@ -341,6 +335,12 @@
       "sa": 0,
       "aa": 1836,
       "total": 1836
+    },
+    {
+      "account": "guzdmnrrgmge",
+      "sa": 0,
+      "aa": 1834,
+      "total": 1834
     },
     {
       "account": "waxplorercom",
@@ -375,8 +375,8 @@
     {
       "account": "ubdqu.wam",
       "sa": 1603,
-      "aa": 91,
-      "total": 1694
+      "aa": 90,
+      "total": 1693
     },
     {
       "account": "oppqq.wam",
@@ -495,8 +495,8 @@
     {
       "account": "smgqw.wam",
       "sa": 0,
-      "aa": 1373,
-      "total": 1373
+      "aa": 1372,
+      "total": 1372
     },
     {
       "account": "e5rau.wam",
@@ -805,16 +805,16 @@
       "total": 848
     },
     {
-      "account": "dbpqu.wam",
-      "sa": 663,
-      "aa": 184,
-      "total": 847
-    },
-    {
       "account": "rxtqu.wam",
       "sa": 35,
       "aa": 812,
       "total": 847
+    },
+    {
+      "account": "dbpqu.wam",
+      "sa": 663,
+      "aa": 183,
+      "total": 846
     },
     {
       "account": "mrcqu.wam",
@@ -823,16 +823,16 @@
       "total": 843
     },
     {
-      "account": "3nfqu.wam",
-      "sa": 305,
-      "aa": 533,
-      "total": 838
-    },
-    {
       "account": "y2mqu.wam",
       "sa": 1,
       "aa": 837,
       "total": 838
+    },
+    {
+      "account": "3nfqu.wam",
+      "sa": 305,
+      "aa": 532,
+      "total": 837
     },
     {
       "account": "u5vau.wam",
@@ -933,8 +933,8 @@
     {
       "account": "ofeau.wam",
       "sa": 0,
-      "aa": 734,
-      "total": 734
+      "aa": 733,
+      "total": 733
     },
     {
       "account": "yhoas.wam",
@@ -1161,8 +1161,8 @@
     {
       "account": "irdau.wam",
       "sa": 0,
-      "aa": 624,
-      "total": 624
+      "aa": 623,
+      "total": 623
     },
     {
       "account": "rfiau.wam",
@@ -1211,6 +1211,12 @@
       "sa": 569,
       "aa": 22,
       "total": 591
+    },
+    {
+      "account": "ujsbe.wam",
+      "sa": 0,
+      "aa": 589,
+      "total": 589
     },
     {
       "account": "lpvqy.wam",
@@ -1387,16 +1393,16 @@
       "total": 510
     },
     {
-      "account": "hckaw.wam",
-      "sa": 0,
-      "aa": 508,
-      "total": 508
-    },
-    {
       "account": "kreau.wam",
       "sa": 0,
-      "aa": 508,
-      "total": 508
+      "aa": 507,
+      "total": 507
+    },
+    {
+      "account": "hckaw.wam",
+      "sa": 0,
+      "aa": 505,
+      "total": 505
     },
     {
       "account": "kbcqu.wam",
@@ -1565,12 +1571,6 @@
       "sa": 0,
       "aa": 456,
       "total": 456
-    },
-    {
-      "account": "ujsbe.wam",
-      "sa": 0,
-      "aa": 455,
-      "total": 455
     },
     {
       "account": "cjuqu.wam",
@@ -2683,12 +2683,6 @@
       "total": 260
     },
     {
-      "account": "yrgzc.wam",
-      "sa": 0,
-      "aa": 257,
-      "total": 257
-    },
-    {
       "account": "ozeau.wam",
       "sa": 254,
       "aa": 1,
@@ -2714,6 +2708,12 @@
     },
     {
       "account": "lubay.wam",
+      "sa": 0,
+      "aa": 254,
+      "total": 254
+    },
+    {
+      "account": "yrgzc.wam",
       "sa": 0,
       "aa": 254,
       "total": 254
@@ -3145,12 +3145,6 @@
       "total": 215
     },
     {
-      "account": "k41ke.wam",
-      "sa": 200,
-      "aa": 15,
-      "total": 215
-    },
-    {
       "account": "vncqu.wam",
       "sa": 214,
       "aa": 1,
@@ -3166,6 +3160,12 @@
       "account": "dzzqu.wam",
       "sa": 62,
       "aa": 152,
+      "total": 214
+    },
+    {
+      "account": "k41ke.wam",
+      "sa": 200,
+      "aa": 14,
       "total": 214
     },
     {
@@ -4105,12 +4105,6 @@
       "total": 153
     },
     {
-      "account": "g2jaw.wam",
-      "sa": 49,
-      "aa": 103,
-      "total": 152
-    },
-    {
       "account": "j2qau.wam",
       "sa": 24,
       "aa": 128,
@@ -4204,6 +4198,12 @@
       "account": "axvqu.wam",
       "sa": 32,
       "aa": 115,
+      "total": 147
+    },
+    {
+      "account": "g2jaw.wam",
+      "sa": 49,
+      "aa": 98,
       "total": 147
     },
     {
@@ -4421,12 +4421,6 @@
       "sa": 0,
       "aa": 134,
       "total": 134
-    },
-    {
-      "account": "humqk.wam",
-      "sa": 0,
-      "aa": 133,
-      "total": 133
     },
     {
       "account": "op5b2.wam",
@@ -4648,6 +4642,12 @@
       "account": "wx5r2.wam",
       "sa": 6,
       "aa": 118,
+      "total": 124
+    },
+    {
+      "account": "humqk.wam",
+      "sa": 0,
+      "aa": 124,
       "total": 124
     },
     {
@@ -5281,12 +5281,6 @@
       "total": 103
     },
     {
-      "account": "ibfqu.wam",
-      "sa": 2,
-      "aa": 101,
-      "total": 103
-    },
-    {
       "account": "kzeau.wam",
       "sa": 102,
       "aa": 1,
@@ -5333,6 +5327,12 @@
       "sa": 0,
       "aa": 103,
       "total": 103
+    },
+    {
+      "account": "ibfqu.wam",
+      "sa": 2,
+      "aa": 100,
+      "total": 102
     },
     {
       "account": "jo4qw.wam",
@@ -6775,12 +6775,6 @@
       "total": 75
     },
     {
-      "account": "rotingchrist",
-      "sa": 0,
-      "aa": 75,
-      "total": 75
-    },
-    {
       "account": "ufkr.wam",
       "sa": 0,
       "aa": 75,
@@ -6986,6 +6980,12 @@
     },
     {
       "account": "r54r4.wam",
+      "sa": 0,
+      "aa": 71,
+      "total": 71
+    },
+    {
+      "account": "rotingchrist",
       "sa": 0,
       "aa": 71,
       "total": 71
@@ -8713,12 +8713,6 @@
       "total": 53
     },
     {
-      "account": "kudau.wam",
-      "sa": 0,
-      "aa": 53,
-      "total": 53
-    },
-    {
       "account": "np4ay.wam",
       "sa": 0,
       "aa": 53,
@@ -9182,6 +9176,12 @@
     },
     {
       "account": "js1r2.wam",
+      "sa": 0,
+      "aa": 50,
+      "total": 50
+    },
+    {
+      "account": "kudau.wam",
       "sa": 0,
       "aa": 50,
       "total": 50
@@ -11155,12 +11155,6 @@
       "total": 37
     },
     {
-      "account": "rm1qy.wam",
-      "sa": 0,
-      "aa": 37,
-      "total": 37
-    },
-    {
       "account": "x45b2.wam",
       "sa": 0,
       "aa": 37,
@@ -11605,12 +11599,6 @@
       "total": 34
     },
     {
-      "account": "33d4q.wam",
-      "sa": 0,
-      "aa": 34,
-      "total": 34
-    },
-    {
       "account": ".4gr2.wam",
       "sa": 0,
       "aa": 34,
@@ -11786,6 +11774,12 @@
     },
     {
       "account": "1wur4.wam",
+      "sa": 0,
+      "aa": 33,
+      "total": 33
+    },
+    {
+      "account": "33d4q.wam",
       "sa": 0,
       "aa": 33,
       "total": 33
@@ -12122,6 +12116,12 @@
     },
     {
       "account": "pnvb.wam",
+      "sa": 0,
+      "aa": 32,
+      "total": 32
+    },
+    {
+      "account": "rm1qy.wam",
       "sa": 0,
       "aa": 32,
       "total": 32
@@ -14857,12 +14857,6 @@
       "total": 25
     },
     {
-      "account": "exjay.wam",
-      "sa": 0,
-      "aa": 25,
-      "total": 25
-    },
-    {
       "account": "g4zqy.wam",
       "sa": 0,
       "aa": 25,
@@ -16105,6 +16099,12 @@
       "total": 22
     },
     {
+      "account": "exjay.wam",
+      "sa": 0,
+      "aa": 22,
+      "total": 22
+    },
+    {
       "account": "fbxb.wam",
       "sa": 0,
       "aa": 22,
@@ -16294,12 +16294,6 @@
       "account": "c.tpy.wam",
       "sa": 13,
       "aa": 8,
-      "total": 21
-    },
-    {
-      "account": "d3iqu.wam",
-      "sa": 9,
-      "aa": 12,
       "total": 21
     },
     {
@@ -17701,6 +17695,12 @@
       "total": 18
     },
     {
+      "account": "d3iqu.wam",
+      "sa": 9,
+      "aa": 9,
+      "total": 18
+    },
+    {
       "account": "dsjb4.wam",
       "sa": 5,
       "aa": 13,
@@ -18829,12 +18829,6 @@
       "total": 17
     },
     {
-      "account": "reer.wam",
-      "sa": 0,
-      "aa": 17,
-      "total": 17
-    },
-    {
       "account": "rjnb2.wam",
       "sa": 0,
       "aa": 17,
@@ -19490,6 +19484,12 @@
     },
     {
       "account": "qxab4.wam",
+      "sa": 0,
+      "aa": 16,
+      "total": 16
+    },
+    {
+      "account": "reer.wam",
       "sa": 0,
       "aa": 16,
       "total": 16
@@ -23174,12 +23174,6 @@
     },
     {
       "account": "nfqb.wam",
-      "sa": 0,
-      "aa": 12,
-      "total": 12
-    },
-    {
-      "account": "nixba.wam",
       "sa": 0,
       "aa": 12,
       "total": 12
@@ -29029,6 +29023,12 @@
       "total": 8
     },
     {
+      "account": "nixba.wam",
+      "sa": 0,
+      "aa": 8,
+      "total": 8
+    },
+    {
       "account": "njwalke.gm",
       "sa": 0,
       "aa": 8,
@@ -30602,12 +30602,6 @@
     },
     {
       "account": "x5.ra.wam",
-      "sa": 0,
-      "aa": 7,
-      "total": 7
-    },
-    {
-      "account": "x.cqw.wam",
       "sa": 0,
       "aa": 7,
       "total": 7
@@ -38677,12 +38671,6 @@
       "total": 4
     },
     {
-      "account": "2graw.wam",
-      "sa": 0,
-      "aa": 4,
-      "total": 4
-    },
-    {
       "account": "2j2b4.wam",
       "sa": 0,
       "aa": 4,
@@ -38978,12 +38966,6 @@
     },
     {
       "account": "aw3.q.c.wam",
-      "sa": 0,
-      "aa": 4,
-      "total": 4
-    },
-    {
-      "account": "awuqc.wam",
       "sa": 0,
       "aa": 4,
       "total": 4
@@ -39866,12 +39848,6 @@
     },
     {
       "account": "lvfaw.wam",
-      "sa": 0,
-      "aa": 4,
-      "total": 4
-    },
-    {
-      "account": "lvjqu.wam",
       "sa": 0,
       "aa": 4,
       "total": 4
@@ -42709,6 +42685,12 @@
       "total": 3
     },
     {
+      "account": "2graw.wam",
+      "sa": 0,
+      "aa": 3,
+      "total": 3
+    },
+    {
       "account": "2gvb4.wam",
       "sa": 0,
       "aa": 3,
@@ -44210,6 +44192,12 @@
     },
     {
       "account": "awmb4.wam",
+      "sa": 0,
+      "aa": 3,
+      "total": 3
+    },
+    {
+      "account": "awuqc.wam",
       "sa": 0,
       "aa": 3,
       "total": 3
@@ -48476,6 +48464,12 @@
     },
     {
       "account": "luqb2.wam",
+      "sa": 0,
+      "aa": 3,
+      "total": 3
+    },
+    {
+      "account": "lvjqu.wam",
       "sa": 0,
       "aa": 3,
       "total": 3
@@ -53047,6 +53041,12 @@
       "total": 3
     },
     {
+      "account": "x.cqw.wam",
+      "sa": 0,
+      "aa": 3,
+      "total": 3
+    },
+    {
       "account": "xcrb4.wam",
       "sa": 0,
       "aa": 3,
@@ -54895,13 +54895,13 @@
       "total": 2
     },
     {
-      "account": "boeaw.wam",
+      "account": "boeqw.wam",
       "sa": 1,
       "aa": 1,
       "total": 2
     },
     {
-      "account": "boeqw.wam",
+      "account": "boeaw.wam",
       "sa": 1,
       "aa": 1,
       "total": 2
@@ -54925,13 +54925,13 @@
       "total": 2
     },
     {
-      "account": "bz1ai.waa",
+      "account": "bz1aistaking",
       "sa": 1,
       "aa": 1,
       "total": 2
     },
     {
-      "account": "bz1aistaking",
+      "account": "bz1ai.waa",
       "sa": 1,
       "aa": 1,
       "total": 2
@@ -56083,15 +56083,15 @@
       "total": 2
     },
     {
-      "account": "nftgiveaways",
-      "sa": 2,
-      "aa": 0,
-      "total": 2
-    },
-    {
       "account": "nfvpgkmatest",
       "sa": 1,
       "aa": 1,
+      "total": 2
+    },
+    {
+      "account": "nftgiveaways",
+      "sa": 2,
+      "aa": 0,
       "total": 2
     },
     {
@@ -56197,13 +56197,13 @@
       "total": 2
     },
     {
-      "account": "orelswapwaxp",
+      "account": "orel.wax",
       "sa": 1,
       "aa": 1,
       "total": 2
     },
     {
-      "account": "orel.wax",
+      "account": "orelswapwaxp",
       "sa": 1,
       "aa": 1,
       "total": 2
@@ -56683,12 +56683,6 @@
       "total": 2
     },
     {
-      "account": "therandomdog",
-      "sa": 1,
-      "aa": 1,
-      "total": 2
-    },
-    {
       "account": "therandomeel",
       "sa": 1,
       "aa": 1,
@@ -56707,13 +56701,13 @@
       "total": 2
     },
     {
-      "account": "therandomhag",
+      "account": "therandomhen",
       "sa": 1,
       "aa": 1,
       "total": 2
     },
     {
-      "account": "therandomhen",
+      "account": "therandomhag",
       "sa": 1,
       "aa": 1,
       "total": 2
@@ -56743,13 +56737,13 @@
       "total": 2
     },
     {
-      "account": "thespecialer",
+      "account": "thesnappiest",
       "sa": 1,
       "aa": 1,
       "total": 2
     },
     {
-      "account": "thesnappiest",
+      "account": "thespecialer",
       "sa": 1,
       "aa": 1,
       "total": 2
@@ -56762,6 +56756,12 @@
     },
     {
       "account": "thetinyflock",
+      "sa": 1,
+      "aa": 1,
+      "total": 2
+    },
+    {
+      "account": "therandomdog",
       "sa": 1,
       "aa": 1,
       "total": 2
@@ -56893,15 +56893,15 @@
       "total": 2
     },
     {
-      "account": "uprqw.wam",
-      "sa": 1,
-      "aa": 1,
-      "total": 2
-    },
-    {
       "account": "uppr4.wam",
       "sa": 2,
       "aa": 0,
+      "total": 2
+    },
+    {
+      "account": "uprqw.wam",
+      "sa": 1,
+      "aa": 1,
       "total": 2
     },
     {
@@ -59654,12 +59654,6 @@
     },
     {
       "account": "huhbs.wam",
-      "sa": 0,
-      "aa": 2,
-      "total": 2
-    },
-    {
-      "account": "hvbr2.wam",
       "sa": 0,
       "aa": 2,
       "total": 2
@@ -63253,19 +63247,13 @@
       "total": 1
     },
     {
-      "account": "christmaswx1",
-      "sa": 1,
-      "aa": 0,
-      "total": 1
-    },
-    {
       "account": "christmaswax",
       "sa": 1,
       "aa": 0,
       "total": 1
     },
     {
-      "account": "christmaswx3",
+      "account": "christmaswx1",
       "sa": 1,
       "aa": 0,
       "total": 1
@@ -63277,7 +63265,7 @@
       "total": 1
     },
     {
-      "account": "christmaswx5",
+      "account": "christmaswx3",
       "sa": 1,
       "aa": 0,
       "total": 1
@@ -63289,7 +63277,7 @@
       "total": 1
     },
     {
-      "account": "christmaswxa",
+      "account": "christmaswx5",
       "sa": 1,
       "aa": 0,
       "total": 1
@@ -63301,13 +63289,19 @@
       "total": 1
     },
     {
-      "account": "christmaswxd",
+      "account": "christmaswxa",
       "sa": 1,
       "aa": 0,
       "total": 1
     },
     {
       "account": "christmaswxc",
+      "sa": 1,
+      "aa": 0,
+      "total": 1
+    },
+    {
+      "account": "christmaswxd",
       "sa": 1,
       "aa": 0,
       "total": 1
@@ -65335,12 +65329,6 @@
       "total": 1
     },
     {
-      "account": "1vbb4.wam",
-      "sa": 0,
-      "aa": 1,
-      "total": 1
-    },
-    {
       "account": "1w3aw.wam",
       "sa": 0,
       "aa": 1,
@@ -66908,12 +66896,6 @@
     },
     {
       "account": "42wr4.wam",
-      "sa": 0,
-      "aa": 1,
-      "total": 1
-    },
-    {
-      "account": "43bb2.wam",
       "sa": 0,
       "aa": 1,
       "total": 1
@@ -73592,6 +73574,12 @@
     },
     {
       "account": "humbledrawin",
+      "sa": 0,
+      "aa": 1,
+      "total": 1
+    },
+    {
+      "account": "hvbr2.wam",
       "sa": 0,
       "aa": 1,
       "total": 1
