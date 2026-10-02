@@ -242,6 +242,17 @@ async function main() {
   }
 
 
+  // Records ZIP (built by build-records-zip.mjs) — optional download copy
+  try {
+    const recordsZip = path.join(ROOT, 'dist-records', 'gpk-records.zip');
+    await fs.access(recordsZip);
+    await fs.mkdir(path.join(OUT, 'downloads'), { recursive: true });
+    await fs.copyFile(recordsZip, path.join(OUT, 'downloads', 'gpk-records.zip'));
+    log('copied records ZIP to downloads/gpk-records.zip');
+  } catch {
+    log('records ZIP not built — skipping downloads/gpk-records.zip.');
+  }
+
   // Puzzle artwork
   log(`downloading ${PUZZLE_URLS.length} puzzle images from geepeekay.com…`);
   let downloaded = 0, skipped = 0, failed = 0;
