@@ -488,6 +488,8 @@ export function BackupPanel({ triggerClassName }: Props) {
 
           </section>
 
+          <RecordsZipCard />
+
           <hr className="border-border" />
 
           {/* Run the manager itself offline (hidden inside the offline bundle build) */}
