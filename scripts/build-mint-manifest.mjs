@@ -246,20 +246,24 @@ async function main() {
     shards.get(k)[id] = v;
   }
 
-  await fs.mkdir(OUT_DIR, { recursive: true });
-  for (const f of await fs.readdir(OUT_DIR)) {
-    if (/^\d{3}\.json$/.test(f)) await fs.rm(path.join(OUT_DIR, f));
-  }
+  // Write into a staging folder, then swap, so an interrupted run never
+  // leaves a half-written backup behind.
+  const FINAL_DIR = OUT_DIR;
+  const STAGE_DIR = `${FINAL_DIR}.tmp`;
+  await fs.rm(STAGE_DIR, { recursive: true, force: true });
+  await fs.mkdir(STAGE_DIR, { recursive: true });
   const index = { version: 1, generatedAt: new Date().toISOString(), count: merged.size, shardCount: 0, shards: {} };
   for (const k of [...shards.keys()].sort()) {
     const obj = shards.get(k);
     const sorted = Object.fromEntries(Object.keys(obj).sort().map((id) => [id, obj[id]]));
     const buf = Buffer.from(JSON.stringify(sorted));
-    await fs.writeFile(path.join(OUT_DIR, `${k}.json`), buf);
+    await fs.writeFile(path.join(STAGE_DIR, `${k}.json`), buf);
     index.shards[k] = { count: Object.keys(sorted).length, bytes: buf.length, sha256: sha256(buf) };
   }
   index.shardCount = Object.keys(index.shards).length;
-  await fs.writeFile(path.join(OUT_DIR, 'index.json'), JSON.stringify(index, null, 2));
+  await fs.writeFile(path.join(STAGE_DIR, 'index.json'), JSON.stringify(index, null, 2));
+  await fs.rm(FINAL_DIR, { recursive: true, force: true });
+  await fs.rename(STAGE_DIR, FINAL_DIR);
 
   if (failed === 0) await fs.rm(WORK_FILE, { force: true });
   const totalBytes = Object.values(index.shards).reduce((s, x) => s + x.bytes, 0);
