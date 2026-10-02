@@ -21,7 +21,7 @@ permissions:
 jobs:
   rebuild-and-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 120 # the WAX scan takes ~30 min; leave headroom
+    timeout-minutes: 180 # the WAX scan takes ~30 min; leave headroom
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +37,11 @@ jobs:
           mkdir -p manifests
           cp mirror-output/manifests/gpk-topps-holders.json \
              manifests/gpk-topps-holders.json
+
+      - name: Refresh mint-number backup (~10-20 min)
+        # Exit code 2 = some batches failed; previous backup values are kept for
+        # those cards, so publish anyway rather than failing the whole run.
+        run: node scripts/build-mint-manifest.mjs --fresh || [ $? -eq 2 ]
 
       - name: Rebuild data-mirror folder + index
         run: node scripts/build-data-mirror.mjs
@@ -59,10 +64,10 @@ jobs:
           git config user.email "actions@github.com"
           mkdir -p manifests
           cp mirror-output/manifests/gpk-topps-holders.json manifests/gpk-topps-holders.json
-          git add manifests/gpk-topps-holders.json
+          git add manifests/gpk-topps-holders.json manifests/mints
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: refresh gpk-topps holders manifest ($(date -u +%Y-%m-%d))"
+            git commit -m "chore: refresh gpk-topps holders + mint backup ($(date -u +%Y-%m-%d))"
             git push
           fi

@@ -55,6 +55,12 @@ const AA_APIS = [
 ];
 
 const SA_CONCURRENCY = 8;
+
+// Every gpk.topps SimpleAssets asset id seen during the scan. Written next to
+// the holders manifest so `build-mint-manifest.mjs` can look up mint numbers
+// without repeating the 30-minute scope scan.
+const saAssetIds = new Set();
+const SA_IDS_PATH = process.env.SA_IDS_OUT || join(dirname(OUT_PATH), 'gpk-sa-asset-ids.txt');
 const REQUEST_TIMEOUT_MS = 12_000;
 
 function log(msg) {
@@ -113,6 +119,7 @@ async function scanSimpleAssets() {
   log(`[SA] ${scopes.length} scopes with rows — counting gpk.topps per scope…`);
 
   const holders = new Map();
+  saAssetIds.clear();
   let done = 0;
   let cursor = 0;
 
@@ -134,7 +141,7 @@ async function scanSimpleAssets() {
             lower_bound: lb || undefined,
           });
           for (const row of res.rows || []) {
-            if (row.author === 'gpk.topps') saCount++;
+            if (row.author === 'gpk.topps') { saCount++; saAssetIds.add(String(row.id)); }
           }
           more = !!res.more;
           if (more && res.rows?.length) {
@@ -214,6 +221,9 @@ async function main() {
 
   await mkdir(dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, JSON.stringify(manifest, null, 2), 'utf8');
+  const sortedIds = [...saAssetIds].sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0));
+  await writeFile(SA_IDS_PATH, sortedIds.join('\n') + '\n', 'utf8');
+  log(`Wrote ${SA_IDS_PATH} (${sortedIds.length.toLocaleString()} SimpleAssets ids)`);
 
   const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
   log('');

@@ -226,6 +226,22 @@ async function main() {
     log('WARNING: holders manifest not found. Drop it at manifests/gpk-topps-holders.json (project root) or run `node scripts/build-holders-manifest.mjs`, then re-run this script. Skipping holders manifest.');
   }
 
+  // Mint-number backup (built by build-mint-manifest.mjs into manifests/mints/)
+  const mintsSrc = path.join(ROOT, 'manifests', 'mints');
+  try {
+    const files = (await fs.readdir(mintsSrc)).filter((f) => /^(\d{3}|index)\.json$/.test(f));
+    if (files.length) {
+      await fs.mkdir(path.join(OUT, 'manifests', 'mints'), { recursive: true });
+      for (const f of files) await fs.copyFile(path.join(mintsSrc, f), path.join(OUT, 'manifests', 'mints', f));
+      log(`copied mint backup (${files.length} files) from manifests/mints`);
+    } else {
+      log('WARNING: manifests/mints is empty — run `node scripts/build-mint-manifest.mjs`. Skipping mint backup.');
+    }
+  } catch {
+    log('WARNING: mint backup not found at manifests/mints — run `node scripts/build-mint-manifest.mjs`. Skipping mint backup.');
+  }
+
+
   // Puzzle artwork
   log(`downloading ${PUZZLE_URLS.length} puzzle images from geepeekay.com…`);
   let downloaded = 0, skipped = 0, failed = 0;
