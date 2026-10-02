@@ -39,12 +39,21 @@ export function isDataMirrorConfigured(): boolean {
  * The dedicated data mirror comes first (when configured), then the image
  * mirrors as fallbacks.
  */
+/**
+ * Raw GitHub fallback for the mint backup. The monthly GitHub Action commits
+ * manifests/mints/ straight to the repo, so raw.githubusercontent.com always
+ * has the latest snapshot even when the Cloudflare deploy step is skipped
+ * (missing CF_API_TOKEN / CF_ACCOUNT_ID). Raw GitHub sends open CORS headers.
+ */
+export const GITHUB_RAW_MIRROR_URL = 'https://raw.githubusercontent.com/gpkonwax/collection-manager/main/';
+
 export function getDataMirrorBases(): string[] {
   const bases: string[] = [];
   if (isDataMirrorConfigured()) bases.push(DATA_MIRROR_URL);
   for (const m of MIRRORS) {
     if (m.url && /^https:\/\//i.test(m.url) && m.url !== DATA_MIRROR_URL) bases.push(m.url);
   }
+  if (!bases.includes(GITHUB_RAW_MIRROR_URL)) bases.push(GITHUB_RAW_MIRROR_URL);
   return bases;
 }
 
