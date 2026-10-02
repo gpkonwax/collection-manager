@@ -24,6 +24,10 @@ export interface SimpleAsset {
   transferredAt?: number;
   /** True on-chain mint number, resolved from AtomicHub's SimpleAssets mint API. */
   mintNumber?: number;
+  /** Where mintNumber came from: self-hosted backup or live AtomicHub. */
+  mintSource?: 'backup' | 'live';
+  /** ISO build time of the backup snapshot when mintSource === 'backup'. */
+  mintBackupDate?: string;
 }
 
 interface RawSAsset {
@@ -137,6 +141,8 @@ export function useSimpleAssets(account: string | null) {
               return {
                 ...asset,
                 mintNumber: info.mint,
+                mintSource: info.source,
+                mintBackupDate: info.backupDate,
                 idata: {
                   ...asset.idata,
                   mint: String(info.mint),

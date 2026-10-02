@@ -5,6 +5,7 @@ import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { describeMintSource } from '@/lib/saMintResolver';
 
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
@@ -184,7 +185,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
       {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
       <div
         className="w-full flex justify-center py-1 mt-2"
-        title={saMintDisplay || realMintDisplay !== '#--' ? 'On-chain mint number' : 'Mint number (resolving…)'}
+        title={saMintDisplay || realMintDisplay !== '#--' ? describeMintSource(asset.mintSource, asset.mintBackupDate) : 'Mint number not available yet'}
       >
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
           {realMintDisplay}

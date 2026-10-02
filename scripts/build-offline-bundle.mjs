@@ -70,6 +70,24 @@ for (const name of ['open-me.html', 'README.txt']) {
   console.log(`[build-offline-bundle] wrote ${relative(ROOT, dst)}`);
 }
 
+// Mint-number backup as <script>-loadable files (file:// pages can't fetch JSON).
+const MINTS_SRC = join(ROOT, 'manifests', 'mints');
+if (existsSync(MINTS_SRC)) {
+  const dst = join(OUT_DIR, 'manifests', 'mints');
+  mkdirSync(dst, { recursive: true });
+  let n = 0;
+  for (const name of readdirSync(MINTS_SRC)) {
+    const m = /^(\d{3}|index)\.json$/.exec(name);
+    if (!m) continue;
+    const body = readFileSync(join(MINTS_SRC, name), 'utf8');
+    writeFileSync(join(dst, `${m[1]}.js`), `(window.__GPK_MINTS__=window.__GPK_MINTS__||{})[${JSON.stringify(m[1])}]=${body};\n`);
+    n++;
+  }
+  console.log(`[build-offline-bundle] bundled mint backup (${n} files)`);
+} else {
+  console.warn('[build-offline-bundle] WARNING: manifests/mints missing — offline copy will show #-- for SimpleAssets mints.');
+}
+
 // Plain-text version stamp inside the ZIP
 writeFileSync(
   join(OUT_DIR, 'version.txt'),

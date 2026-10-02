@@ -109,3 +109,13 @@ folder. It is published automatically by
 `bewbzz/gpkonwaxbackup` (needs a `BACKUP_REPO_TOKEN` repo secret with
 `contents: write` on that repo). Manual fallback: `npm run build:offline`, then
 attach the ZIP to the release by hand. See `.lovable/plan-offline-bundle.md`.
+
+## Mint-number backup
+
+`build-mint-manifest.mjs` looks up every gpk.topps SimpleAssets card (ids from
+`gpk-sa-asset-ids.txt`, written by `build-holders-manifest.mjs`) plus every
+bridged AtomicAssets card on AtomicHub's mint endpoint and writes
+`manifests/mints/000.json … 999.json` + `index.json` (shard = last 3 digits of
+the SA id). `build-data-mirror.mjs` publishes them to gpk-data; the offline
+bundle ships them as `.js` files. The monthly holders workflow refreshes it.
+Resumable: re-run without `--fresh` after an interruption.
