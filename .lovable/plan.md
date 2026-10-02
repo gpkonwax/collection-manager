@@ -1,39 +1,14 @@
-# Add the Cloudflare keys to GitHub so the mint backup deploys to gpk-data
+# One mint number on every card ribbon
 
-## Why
+## What will change
 
-The workflow already commits the mint backup to GitHub (which is why mints now show via the raw-GitHub fallback). Adding the two Cloudflare keys lets the same workflow also deploy to `gpk-data.pages.dev` — the fast primary mirror the app checks first.
+- In the main card grid, display only the mint number (for example, `#1524`) on Series 1, Series 2, and Tiger King/Exotic cards, whether they are SimpleAssets or bridged AtomicAssets. Never show `/ total` on the ribbon. Keep `#--` where the true mint has not resolved; do not mistake the bridge-order mint for the original mint.
+- Remove the separate Bridge Mint count from those grid cards so no second mint number appears there. Keep bridge-order information available in the card details, clearly labelled as distinct from the original mint.
+- Put supply context in the ribbon tooltip and the card details instead: total ever minted = surviving + burned; show surviving and burned counts when available, along with whether the mint came from the saved backup or live AtomicHub. Never label the surviving count as the total print run. For assets without a recorded burn count, show only supply figures the source actually provides.
+- Keep other card interactions, artwork, and pack flows unchanged.
 
-## Steps (all in your browser, no code changes)
+## Technical notes
 
-1. **Open the secrets page**
-   - Go to your **collection-manager** repo on GitHub (the main app repo, not gpk-backup).
-   - Click **Settings** (top tab bar) → in the left sidebar under "Security" click **Secrets and variables** → **Actions**.
-   - You should see a "Repository secrets" section with a green **New repository secret** button.
-
-2. **Add the first secret: CF_API_TOKEN**
-   - Click **New repository secret**.
-   - Name: `CF_API_TOKEN` (exactly this, all caps, underscores — the workflow looks for this exact name).
-   - Secret: paste your Cloudflare API token (the `cfat_...` or similar string).
-   - Click **Add secret**.
-
-3. **Add the second secret: CF_ACCOUNT_ID**
-   - Click **New repository secret** again.
-   - Name: `CF_ACCOUNT_ID`.
-   - Secret: paste your Cloudflare account ID (a 32-character hex string, found on any Cloudflare dashboard page in the right-hand sidebar, or in the URL after `/dash.cloudflare.com/`).
-   - Click **Add secret**.
-
-4. **Re-run the workflow**
-   - Click the **Actions** tab → **Refresh GPK holders manifest** in the left sidebar → **Run workflow** (right side) → confirm on the `main` branch.
-   - This time the "Deploy to Cloudflare Pages (gpk-data)" step will actually deploy instead of printing the skip warning.
-
-5. **Verify (optional, after the run finishes)**
-   - Open `https://gpk-data.pages.dev/manifests/mints/index.json` in a browser tab.
-   - Before: 404. After a successful deploy: a JSON index with `count: 503831` (or higher) and the shard list.
-
-## Notes
-
-- GitHub secrets are write-only: once saved, nobody (including you) can read them back through the UI — you can only replace them. That's normal.
-- If a step fails with a Cloudflare 403, the token is missing the **Account → Cloudflare Pages → Edit** permission; create a fresh token with that permission and replace the secret.
-- Nothing in the app code changes. Once the deploy works, the app automatically prefers the fast gpk-data mirror and only uses the GitHub fallback if the mirror is ever down.
-- The workflow also re-runs by itself on the 10th of each month, so this is a one-time setup.
+- The existing mint resolver returns `mint`, `total` (surviving), and `burned`, but the asset hooks currently retain only mint and `total`. Carry the burn/surviving breakdown through both SimpleAssets and bridged AtomicAssets assets without changing the backup format or lookup order.
+- Update `SimpleAssetCard` to format the ribbon as a single `#<mint>` and expose supply/source in its tooltip; update `SimpleAssetDetailDialog` to show a separate, labelled supply breakdown. Ensure memoized cards refresh when mint and supply information arrives.
+- Add focused tests for both asset types, burned Series 2 cards, Series 1/Tiger King cards with zero burns, and unresolved bridged cards. Verify the grid and detail display without changing the underlying mint number.
