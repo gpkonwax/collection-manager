@@ -93,6 +93,7 @@ import { toast } from 'sonner';
 import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
+import { compareNaturalCards } from '@/lib/cardGridSort';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
@@ -551,19 +552,7 @@ export default function SimpleAssetsPage() {
 
   const assets = useMemo(() => {
     const combined = [...saAssets, ...aaAssets];
-    combined.sort((a, b) => {
-      const numA = parseInt(a.cardid, 10), numB = parseInt(b.cardid, 10);
-      if (!isNaN(numA) && !isNaN(numB)) {
-        if (numA !== numB) return numA - numB;
-        const sideA = a.side || '', sideB = b.side || '';
-        if (sideA !== sideB) return sideA.localeCompare(sideB);
-        const rankDiff = getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality);
-        return rankDiff !== 0 ? rankDiff : a.quality.localeCompare(b.quality);
-      }
-      if (!isNaN(numA)) return -1;
-      if (!isNaN(numB)) return 1;
-      return Number(BigInt(a.id) - BigInt(b.id));
-    });
+    combined.sort(compareNaturalCards);
     return combined;
   }, [saAssets, aaAssets]);
 
