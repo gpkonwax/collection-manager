@@ -5,7 +5,7 @@ import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { describeMintSource } from '@/lib/saMintResolver';
+import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
 
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
@@ -33,36 +33,6 @@ interface SimpleAssetCardProps {
   onTradeClick?: (asset: SimpleAsset) => void;
 }
 
-function getMintInfo(asset: SimpleAsset): string | null {
-  const combined = { ...asset.idata, ...asset.mdata };
-  const mintKeys = ['edition', 'mint', 'serial', 'num', 'mint_num'];
-  for (const key of mintKeys) {
-    const val = combined[key];
-    if (val !== undefined && val !== null && String(val).trim() !== '') {
-      const str = String(val);
-      if (str.includes('/')) return str;
-      const supply = combined.maxsupply ?? combined.max_supply ?? combined.supply;
-      if (supply !== undefined && supply !== null) return `#${str} / ${supply}`;
-      return `#${str}`;
-    }
-  }
-  return null;
-}
-
-function getMintNumber(asset: SimpleAsset): number | null {
-  const combined = { ...asset.idata, ...asset.mdata };
-  const mintKeys = ['edition', 'mint', 'serial', 'num', 'mint_num'];
-  for (const key of mintKeys) {
-    const val = combined[key];
-    if (val !== undefined && val !== null && String(val).trim() !== '') {
-      const str = String(val).split('/')[0].replace('#', '').trim();
-      const n = parseInt(str, 10);
-      if (!isNaN(n)) return n;
-    }
-  }
-  return null;
-}
-
 function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -71,26 +41,13 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const { getAlert } = usePriceAlerts();
 
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
-  const mintInfo = getMintInfo(asset);
-  const mintNumber = getMintNumber(asset);
-  const isMintOne = mintNumber === 1;
+  const mintLabel = getMintLabel(asset);
+  const isMintOne = mintLabel === '#1';
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
   const isAtomic = asset.source === 'atomicassets';
   // Bridged AA schemas — their `bridge_mint` is the bridging order, not a real mint.
-  const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
-  const isBridgedAA = isAtomic && BRIDGED_SCHEMAS.has(String(asset.category || '').toLowerCase());
-  // Real on-chain mint: future `mintNumber` field wins; for native AA sets the
-  // `bridge_mint` value is actually the true template mint, so use it there.
-  const realMint = (asset as unknown as { mintNumber?: number | string | null }).mintNumber;
-  const nativeAAMint = isAtomic && !isBridgedAA ? asset.idata?.bridge_mint : undefined;
-  const effectiveMint = realMint ?? nativeAAMint;
-  // SimpleAssets cards carry their real mint in idata/mdata — surface it in the top
-  // ribbon (and drop the small green badge below the artwork).
-  const saMintDisplay = !isAtomic && mintInfo ? (mintInfo.startsWith('#') ? mintInfo : `#${mintInfo}`) : null;
-  const realMintDisplay = saMintDisplay
-    ?? (effectiveMint !== undefined && effectiveMint !== null && String(effectiveMint).trim() !== ''
-      ? `#${effectiveMint}`
-      : '#--');
+  const isBridgedAA = isBridgedAsset(asset);
+  const mintTooltip = mintLabel === '#--' ? 'Mint number not available yet' : [`Mint ${mintLabel}`, ...getMintSupplyLines(asset)].join('\n');
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
@@ -182,13 +139,13 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           Trade
         </button>
       )}
-      {/* Reserved mint-number ribbon (placeholder until real mint is plumbed) — sits in its own row above the artwork so it never overlaps the image */}
+      {/* Mint ribbon stays above the artwork, outside the tilt transform. */}
       <div
         className="w-full flex justify-center py-1 mt-2"
-        title={saMintDisplay || realMintDisplay !== '#--' ? describeMintSource(asset.mintSource, asset.mintBackupDate) : 'Mint number not available yet'}
+        title={mintTooltip}
       >
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
-          {realMintDisplay}
+          {mintLabel}
         </span>
       </div>
       {effectiveSelectionMode && (
@@ -250,17 +207,8 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {((isBridgedAA && asset.idata?.bridge_mint) || hasContained) && (
+        {hasContained && (
           <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-            {isBridgedAA && asset.idata?.bridge_mint ? (
-              <span
-                className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium bright-bridge-mint"
-                title="Original bridge order mint from SimpleAssets → AtomicAssets bridging"
-              >
-                Bridge Mint #{String(asset.idata.bridge_mint)}
-                {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
-              </span>
-            ) : null}
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
@@ -283,6 +231,11 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.quality === next.asset.quality &&
     prev.asset.side === next.asset.side &&
     prev.asset.source === next.asset.source &&
+    prev.asset.mintNumber === next.asset.mintNumber &&
+    prev.asset.mintSurviving === next.asset.mintSurviving &&
+    prev.asset.mintBurned === next.asset.mintBurned &&
+    prev.asset.mintSource === next.asset.mintSource &&
+    prev.asset.mintBackupDate === next.asset.mintBackupDate &&
     prev.asset.idata?.mint === next.asset.idata?.mint &&
     prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
