@@ -825,3 +825,121 @@ function OfflineAppCard() {
     </section>
   );
 }
+
+type RecordsRemoteState =
+  | { kind: 'checking' }
+  | { kind: 'available'; bytes: number; lastModified: string | null }
+  | { kind: 'missing' }
+  | { kind: 'unknown' };
+
+function formatRecordsDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function RecordsZipCard() {
+  const loaded = useSyncExternalStore(subscribeRecords, getLoadedRecords, getLoadedRecords);
+  const [remote, setRemote] = useState<RecordsRemoteState>({ kind: 'checking' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    (async () => {
+      try {
+        const res = await fetch(RECORDS_ZIP_URL, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+        if (cancelled) return;
+        if (res.status === 404) { setRemote({ kind: 'missing' }); return; }
+        if (!res.ok) { setRemote({ kind: 'unknown' }); return; }
+        const len = Number(res.headers.get('content-length') ?? '');
+        setRemote({ kind: 'available', bytes: Number.isFinite(len) && len > 0 ? len : 0, lastModified: res.headers.get('last-modified') });
+      } catch {
+        if (!cancelled) setRemote({ kind: 'unknown' });
+      }
+    })();
+    return () => { cancelled = true; clearTimeout(timer); controller.abort(); };
+  }, []);
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const rec = await loadRecordsZip(file);
+      clearCachedHolders();
+      toast({
+        title: 'Records ZIP loaded',
+        description: `${rec.cardCount.toLocaleString()} mint numbers, ${rec.holderCount.toLocaleString()} holders.`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read that ZIP.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const updated = remote.kind === 'available' ? formatRecordsDate(remote.lastModified) : null;
+  const remoteDetail = remote.kind === 'available'
+    ? [remote.bytes ? formatBytes(remote.bytes) : null, updated ? `updated ${updated}` : null].filter(Boolean).join(' — ')
+    : '';
+
+  return (
+    <section className="space-y-2 rounded-lg border border-border p-3">
+      <div className="flex items-center gap-2">
+        <HardDrive className="w-4 h-4 text-cheese" />
+        <p className="font-medium">Collection records (holders + mint numbers)</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        A small ZIP with the Top Holders list and every saved mint number. Refreshed automatically
+        on the 10th of each month. Load it here and mint numbers and holders read from your copy first.
+      </p>
+
+      {remote.kind === 'missing' ? (
+        <p className="text-xs text-muted-foreground">
+          The records ZIP hasn't been published yet — it appears after the next monthly refresh as{' '}
+          <span className="font-mono">{RECORDS_ZIP_NAME}</span>.
+        </p>
+      ) : (
+        <Button asChild size="sm" variant="outline" className="w-full h-8">
+          <a href={RECORDS_ZIP_URL} target="_blank" rel="noopener noreferrer">
+            {remote.kind === 'checking'
+              ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+              : <Download className="w-3.5 h-3.5 mr-2" />}
+            Download records ZIP
+            {remoteDetail && <span className="ml-1 opacity-70">({remoteDetail})</span>}
+          </a>
+        </Button>
+      )}
+
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {loaded
+            ? `Loaded — snapshot from ${formatRecordsDate(loaded.generatedAt) ?? 'unknown date'}, ${loaded.cardCount.toLocaleString()} cards, ${loaded.holderCount.toLocaleString()} holders`
+            : 'No records ZIP loaded.'}
+        </p>
+        {loaded && (
+          <Button size="sm" variant="ghost" onClick={() => { clearRecords(); clearCachedHolders(); }} title="Clear loaded records">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+      <Button size="sm" onClick={() => inputRef.current?.click()} disabled={busy}>
+        {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+        {busy ? 'Checking ZIP…' : 'Load records ZIP'}
+      </Button>
+      {error && (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">{error}</p>
+      )}
+      <input ref={inputRef} type="file" accept=".zip,application/zip" className="hidden" onChange={onFile} />
+      <p className="text-[10px] text-muted-foreground">Stays loaded for this browser session only.</p>
+    </section>
+  );
+}
