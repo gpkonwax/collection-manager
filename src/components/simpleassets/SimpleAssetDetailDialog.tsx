@@ -47,7 +47,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const mintLabel = getMintLabel(asset);
   const supplyLines = getMintSupplyLines(asset);
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
-  const isAtomic = asset.source === 'atomicassets';
   const isBridgedAA = isBridgedAsset(asset);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)

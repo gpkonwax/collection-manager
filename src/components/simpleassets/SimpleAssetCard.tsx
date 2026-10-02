@@ -5,7 +5,7 @@ import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
+import { getMintLabel, getMintSupplyLines } from '@/lib/mintPresentation';
 
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
@@ -44,9 +44,6 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const mintLabel = getMintLabel(asset);
   const isMintOne = mintLabel === '#1';
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
-  const isAtomic = asset.source === 'atomicassets';
-  // Bridged AA schemas — their `bridge_mint` is the bridging order, not a real mint.
-  const isBridgedAA = isBridgedAsset(asset);
   const mintTooltip = mintLabel === '#--' ? 'Mint number not available yet' : [`Mint ${mintLabel}`, ...getMintSupplyLines(asset)].join('\n');
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
