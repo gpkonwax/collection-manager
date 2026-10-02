@@ -9,6 +9,7 @@
  */
 import { MIRRORS } from './remoteMirror';
 import { DATA_MIRROR_URL } from './dataMirror';
+import { getLoadedRecords } from './recordsZip';
 
 export interface Holder {
   account: string;
@@ -81,6 +82,15 @@ export async function fetchTopGpkHolders(opts: {
 }): Promise<{ holders: Holder[]; generatedAt: string | null }> {
   const { signal } = opts;
   const limit = opts.limit ?? 500;
+
+  // A user-loaded records ZIP wins over the network mirrors.
+  const fromZip = getLoadedRecords()?.holders;
+  if (fromZip) {
+    const sorted = [...fromZip.holders].sort((a, b) => b.total - a.total).slice(0, limit);
+    cached = { holders: sorted, at: Date.now(), generatedAt: fromZip.generatedAt || null };
+    return { holders: sorted, generatedAt: fromZip.generatedAt || null };
+  }
+
 
   // One attempt per mirror — first successful manifest wins.
   // The dedicated data mirror is tried first (it's tiny and always current).
