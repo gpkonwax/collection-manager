@@ -24,20 +24,21 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
+  const assetId = asset?.id;
 
   useEffect(() => {
-    if (asset) {
+    if (assetId) {
       setShowRawJson(false);
       setMode('tilt');
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
     }
-  }, [asset?.id]);
+  }, [assetId]);
 
   // Push color changes into any registered canvases without remounting them
   useEffect(() => {
     canvasRefs.current.forEach((canvas) => {
-      if (canvas && (canvas as any).__setColor) (canvas as any).__setColor(unifiedColor);
+      if (canvas) (canvas as HTMLCanvasElement & { __setColor?: (color: string) => void }).__setColor?.(unifiedColor);
     });
   }, [unifiedColor]);
 
@@ -117,7 +118,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   canvasRegister={(canvas) => {
                     if (canvas) {
                       if (!canvasRefs.current.includes(canvas)) canvasRefs.current.push(canvas);
-                      (canvas as any).__setColor?.(unifiedColor);
+                      (canvas as HTMLCanvasElement & { __setColor?: (color: string) => void }).__setColor?.(unifiedColor);
                     } else {
                       canvasRefs.current = canvasRefs.current.filter(Boolean);
                     }
