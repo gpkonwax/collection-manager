@@ -226,7 +226,7 @@ export function BackupPanel({ triggerClassName }: Props) {
     <div className="space-y-2 border-t border-border pt-3">
       <div className="flex items-center gap-2">
         <Upload className="w-4 h-4 text-cheese" />
-        <p className="text-sm font-medium text-cheese">Load backup ZIP</p>
+        <p className="text-sm font-medium text-cheese">Load Image Backup Zips</p>
       </div>
       <p className="text-xs text-muted-foreground">
         The ultimate fallback: load a ZIP of the mirror directly from your device. Works fully
@@ -312,7 +312,7 @@ export function BackupPanel({ triggerClassName }: Props) {
           Offline backup
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pr-12 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-cheese" />
@@ -325,11 +325,13 @@ export function BackupPanel({ triggerClassName }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 space-y-5 text-sm">
-
-          {/* All backup ZIP downloads grouped in one container at the top of the
-              scroll area — each ZIP in its own clearly labelled box, and the
-              mirror/status steps below are still reachable by scrolling past. */}
+        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4 text-sm">
+          {/* Two-column layout: every ZIP control on the left, all mirror
+              info on the right, one shared scrollbar — far less scrolling. */}
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+          {/* LEFT: all backup ZIP downloads grouped in one container —
+              each ZIP in its own clearly labelled box. */}
+          <div className="space-y-5 min-w-0">
           <section className="space-y-3 rounded-lg border border-cheese/40 bg-cheese/10 p-3">
             <div className="flex items-center gap-2">
               <Download className="w-4 h-4 text-cheese" />
