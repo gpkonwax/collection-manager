@@ -347,9 +347,10 @@ export function BackupPanel({ triggerClassName }: Props) {
             <RecordsZipCard />
             {!isOfflineBundle() && <OfflineAppCard />}
           </section>
+          </div>
 
-
-
+          {/* RIGHT: all mirror info */}
+          <div className="space-y-5 min-w-0">
           {/* Step 1: built-in primary mirror */}
           <section className="space-y-2 rounded-lg border border-cheese/20 bg-cheese/5 p-3">
             <div className="flex items-center justify-between gap-2">
