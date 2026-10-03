@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import {
   Download,
   HardDrive,
@@ -78,6 +78,10 @@ const STEP_BADGES: Record<MirrorStatus, { label: string; className: string }> = 
 };
 
 const NOT_CONFIGURED_CLASS = 'bg-muted text-muted-foreground';
+
+// Backup ZIP buttons: downloads are cheese-yellow with dark text, loads are green with white text.
+const DOWNLOAD_ZIP_BUTTON_CLASSES = 'bg-cheese text-cheese-foreground hover:bg-cheese/90 font-semibold';
+const LOAD_ZIP_BUTTON_CLASSES = 'bg-emerald-600 text-white hover:bg-emerald-600/90 font-semibold';
 
 export function BackupPanel({ triggerClassName }: Props) {
   const status = useSyncExternalStore(
@@ -215,6 +219,83 @@ export function BackupPanel({ triggerClassName }: Props) {
     });
   };
 
+  // Load controls for the image backup ZIPs, rendered inside the
+  // "1 · Image backup ZIPs" card so download + load sit together, matching
+  // the collection-records card.
+  const loadSection = (
+    <div className="space-y-2 border-t border-border pt-3">
+      <div className="flex items-center gap-2">
+        <Upload className="w-4 h-4 text-cheese" />
+        <p className="text-sm font-medium text-cheese">Load backup ZIP</p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        The ultimate fallback: load a ZIP of the mirror directly from your device. Works fully
+        offline once loaded.
+      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {status.fileCount > 0
+            ? `${status.fileCount.toLocaleString()} files loaded (${formatBytes(status.totalBytes)})`
+            : 'No backup loaded.'}
+        </p>
+        {status.fileCount > 0 && (
+          <Button size="sm" variant="ghost" onClick={onClear} title="Clear loaded backup">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+      <Button
+        size="sm"
+        className={cn('w-full h-8 font-semibold', LOAD_ZIP_BUTTON_CLASSES)}
+        onClick={onPickFile}
+        disabled={busy}
+      >
+        {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+        {busy ? 'Reading ZIP…' : 'Load ZIP part(s)'}
+      </Button>
+      {status.fileCount > 0 && (
+        <div className={cn(
+          'rounded-md border px-2.5 py-2 text-xs',
+          status.coverage === 'complete'
+            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+            : status.coverage === 'checking'
+              ? 'border-border bg-muted/40 text-muted-foreground'
+              : 'border-destructive/30 bg-destructive/10 text-destructive',
+        )}>
+          {status.coverage === 'complete' && 'Complete — safe to use fully offline'}
+          {status.coverage === 'checking' && 'Checking loaded backup coverage…'}
+          {status.coverage === 'incomplete' && `Incomplete — ${status.missingFiles.toLocaleString()} expected image entries missing`}
+          {status.coverage === 'corrupt' && `Corrupt entry detected — ${status.corruptFiles.toLocaleString()} image(s)`}
+          {status.coverage === 'unverified' && 'Loaded, but coverage could not be verified'}
+          <div className="mt-1 text-[10px] opacity-80">
+            {status.parts.map((part) => `${part.name}: ${part.fileCount.toLocaleString()} files`).join(' · ')}
+            {status.expectedFiles != null ? ` · ${status.fileCount.toLocaleString()}/${status.expectedFiles.toLocaleString()} expected` : ''}
+          </div>
+          {status.coverage !== 'complete' && status.coverage !== 'checking' && (
+            <Button type="button" size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={copyBackupReport}>
+              <Copy className="mr-1.5 h-3.5 w-3.5" />
+              Copy report
+            </Button>
+          )}
+        </div>
+      )}
+      <p className="text-[10px] text-muted-foreground">
+        If the backup is split into parts, select all part ZIP files at once.
+      </p>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept=".zip,application/zip"
+        className="hidden"
+        onChange={onFileChange}
+      />
+      <p className="text-[10px] text-muted-foreground">
+        ZIPs stay loaded for this browser session. Images are read from the ZIP only when visible, keeping memory use stable.
+      </p>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -259,6 +340,7 @@ export function BackupPanel({ triggerClassName }: Props) {
               fileCount={status.fileCount}
               totalBytes={status.totalBytes}
               zipInfo={zipInfo}
+              loadSection={loadSection}
             />
             <RecordsZipCard />
             {!isOfflineBundle() && <OfflineAppCard />}
@@ -430,80 +512,6 @@ export function BackupPanel({ triggerClassName }: Props) {
             </div>
           </section>
 
-          {/* Step 3: load ZIP */}
-          <section className="space-y-2 rounded-lg border border-border p-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cheese text-cheese-foreground text-xs font-bold">
-                3
-              </span>
-              <p className="font-medium">Load backup ZIP</p>
-            </div>
-            <p className="text-muted-foreground text-xs">
-              The ultimate fallback: load a ZIP of the mirror directly from your device. Works fully
-              offline once loaded.
-            </p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {status.fileCount > 0
-                    ? `${status.fileCount.toLocaleString()} files loaded (${formatBytes(status.totalBytes)})`
-                    : 'No backup loaded.'}
-                </p>
-              </div>
-              {status.fileCount > 0 && (
-                <Button size="sm" variant="ghost" onClick={onClear} title="Clear loaded backup">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={onPickFile} disabled={busy}>
-                {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                {busy ? 'Reading ZIP…' : 'Load ZIP part(s)'}
-              </Button>
-            </div>
-            {status.fileCount > 0 && (
-              <div className={cn(
-                'rounded-md border px-2.5 py-2 text-xs',
-                status.coverage === 'complete'
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                  : status.coverage === 'checking'
-                    ? 'border-border bg-muted/40 text-muted-foreground'
-                    : 'border-destructive/30 bg-destructive/10 text-destructive',
-              )}>
-                {status.coverage === 'complete' && 'Complete — safe to use fully offline'}
-                {status.coverage === 'checking' && 'Checking loaded backup coverage…'}
-                {status.coverage === 'incomplete' && `Incomplete — ${status.missingFiles.toLocaleString()} expected image entries missing`}
-                {status.coverage === 'corrupt' && `Corrupt entry detected — ${status.corruptFiles.toLocaleString()} image(s)`}
-                {status.coverage === 'unverified' && 'Loaded, but coverage could not be verified'}
-                <div className="mt-1 text-[10px] opacity-80">
-                  {status.parts.map((part) => `${part.name}: ${part.fileCount.toLocaleString()} files`).join(' · ')}
-                  {status.expectedFiles != null ? ` · ${status.fileCount.toLocaleString()}/${status.expectedFiles.toLocaleString()} expected` : ''}
-                </div>
-                {status.coverage !== 'complete' && status.coverage !== 'checking' && (
-                  <Button type="button" size="sm" variant="outline" className="mt-2 h-7 text-xs" onClick={copyBackupReport}>
-                    <Copy className="mr-1.5 h-3.5 w-3.5" />
-                    Copy report
-                  </Button>
-                )}
-              </div>
-            )}
-            <p className="text-[10px] text-muted-foreground">
-              If the backup is split into parts, select all part ZIP files at once.
-            </p>
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              accept=".zip,application/zip"
-              className="hidden"
-              onChange={onFileChange}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              ZIPs stay loaded for this browser session. Images are read from the ZIP only when visible, keeping memory use stable.
-            </p>
-
-          </section>
         </div>
 
       </DialogContent>
@@ -516,6 +524,7 @@ interface RecommendedZipCardProps {
   fileCount: number;
   totalBytes: number;
   zipInfo: ZipManifestInfo | null;
+  loadSection: ReactNode;
 }
 
 function RecommendedZipCard({
@@ -523,6 +532,7 @@ function RecommendedZipCard({
   fileCount,
   totalBytes,
   zipInfo,
+  loadSection,
 }: RecommendedZipCardProps) {
   const options = getZipDownloadUrls(zipInfo);
   // Only offer sources that actually have downloadable parts (or a single-file url).
@@ -549,7 +559,7 @@ function RecommendedZipCard({
 
   if (protectedOnDevice) {
     return (
-      <section className="rounded-md border border-border bg-background/60 p-3 space-y-2">
+      <section className="rounded-md border border-border bg-background/60 p-3 space-y-3">
         <div className="flex items-center gap-2">
           <Download className="w-4 h-4 text-cheese" />
           <p className="font-medium text-cheese">1 · Image backup ZIPs</p>
@@ -559,6 +569,7 @@ function RecommendedZipCard({
           Complete — safe to use fully offline ({fileCount.toLocaleString()} files,{' '}
           {formatBytes(totalBytes)}).
         </div>
+        {loadSection}
       </section>
     );
   }
@@ -602,7 +613,7 @@ function RecommendedZipCard({
       <p className="text-xs text-muted-foreground">
         Recommended — save the offline backup ZIP{hasParts ? ' parts' : ''}{activeTotalLabel ? ` (~${activeTotalLabel} total)` : ''} now while
         everything's working. If every mirror ever goes down, you can load these files
-        back into the app (Step 3 below) and every image still works.
+        back into the app with the Load backup ZIP controls in this card and every image still works.
       </p>
 
       <p className="text-[10px] text-muted-foreground">
@@ -636,7 +647,7 @@ function RecommendedZipCard({
       )}
 
       {activeOption && activeOption.parts.length <= 1 && (
-        <Button asChild size="lg" className="w-full h-11 text-base">
+        <Button asChild size="lg" className={cn('w-full h-11 text-base font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
           <a href={activeOption.url ?? activeOption.parts[0]?.url} target="_blank" rel="noopener noreferrer">
             <Download className="w-4 h-4 mr-2" />
             Download from {activeProviderName}{approxSize ? ` (${approxSize})` : ''}
@@ -675,7 +686,7 @@ function RecommendedZipCard({
                     Part {part.index} — {formatBytes(part.bytes)}
                     {started ? ' (started)' : ''}
                   </span>
-                  <Button asChild size="sm" className="h-7 text-xs ml-auto">
+                  <Button asChild size="sm" className={cn('h-7 text-xs ml-auto font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
                     <a
                       href={part.url}
                       target="_blank"
@@ -698,7 +709,7 @@ function RecommendedZipCard({
 
           {!nextPart && (
             <p className="text-xs text-emerald-400">
-              All {activeParts.length} ZIP part downloads have been started. Keep all files together before loading them in Step 3.
+              All {activeParts.length} ZIP part downloads have been started. Keep all files together before loading them below.
             </p>
           )}
         </div>
@@ -727,6 +738,8 @@ function RecommendedZipCard({
           Verified SHA-256: {shortHash}
         </p>
       )}
+
+      {loadSection}
     </section>
   );
 }
@@ -746,7 +759,7 @@ function OfflineAppCard() {
 
       <p className="text-xs text-muted-foreground">
         A downloadable ZIP of the whole manager is on its way. Once it's ready, you'll unzip it,
-        open <span className="font-mono">open-me.html</span>, and load the image backup ZIP below —
+        open <span className="font-mono">open-me.html</span>, and load the image backup ZIP from the first card above —
         everything image-driven keeps working even if this site, GitHub, and every mirror
         disappear.
       </p>
@@ -754,7 +767,7 @@ function OfflineAppCard() {
       <Button
         size="sm"
         variant="outline"
-        className="w-full h-8"
+        className={cn('w-full h-8 font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}
         disabled
         aria-disabled="true"
         title="Coming soon"
@@ -849,7 +862,7 @@ function RecordsZipCard() {
           <span className="font-mono">{RECORDS_ZIP_NAME}</span>.
         </p>
       ) : (
-        <Button asChild size="sm" variant="outline" className="w-full h-8">
+        <Button asChild size="sm" className={cn('w-full h-8 font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
           <a href={RECORDS_ZIP_URL} target="_blank" rel="noopener noreferrer">
             {remote.kind === 'checking'
               ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
@@ -872,7 +885,7 @@ function RecordsZipCard() {
           </Button>
         )}
       </div>
-      <Button size="sm" onClick={() => inputRef.current?.click()} disabled={busy}>
+      <Button size="sm" className={cn('w-full h-8 font-semibold', LOAD_ZIP_BUTTON_CLASSES)} onClick={() => inputRef.current?.click()} disabled={busy}>
         {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
         {busy ? 'Checking ZIP…' : 'Load records ZIP'}
       </Button>
