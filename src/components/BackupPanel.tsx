@@ -389,9 +389,9 @@ export function BackupPanel({ triggerClassName }: Props) {
             <p className="text-muted-foreground text-xs">
               Used automatically when public IPFS gateways fail. No action needed.
             </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground break-all">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Server className="w-3.5 h-3.5 flex-shrink-0" />
-              {MIRRORS[0].url || 'Not configured'}
+              {getMirrorDisplayLabel(MIRRORS[0])}
             </div>
           </section>
 
@@ -427,9 +427,6 @@ export function BackupPanel({ triggerClassName }: Props) {
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-medium text-xs">{displayLabel}</p>
-                        <p className="text-[10px] text-muted-foreground break-all">
-                          {cfg.url || 'Not configured yet'}
-                        </p>
                         {provider && (
                           <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full ${provider.colorClass}`}>
                             {provider.name}
@@ -509,9 +506,9 @@ export function BackupPanel({ triggerClassName }: Props) {
               <code className="mx-1 text-[10px] bg-muted/60 px-1 rounded">gpk-topps-holders.json</code>
               and ~120 puzzle images, separate from the big image mirror.
             </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground break-all">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Server className="w-3.5 h-3.5 flex-shrink-0" />
-              {DATA_MIRROR_URL || 'Not configured'}
+              Data mirror — Cloudflare Pages
             </div>
           </section>
           </div>
