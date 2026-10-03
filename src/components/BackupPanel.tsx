@@ -613,7 +613,7 @@ function RecommendedZipCard({
       <p className="text-xs text-muted-foreground">
         Recommended — save the offline backup ZIP{hasParts ? ' parts' : ''}{activeTotalLabel ? ` (~${activeTotalLabel} total)` : ''} now while
         everything's working. If every mirror ever goes down, you can load these files
-        back into the app (Step 3 below) and every image still works.
+        back into the app with the Load backup ZIP controls in this card and every image still works.
       </p>
 
       <p className="text-[10px] text-muted-foreground">
@@ -647,7 +647,7 @@ function RecommendedZipCard({
       )}
 
       {activeOption && activeOption.parts.length <= 1 && (
-        <Button asChild size="lg" className="w-full h-11 text-base">
+        <Button asChild size="lg" className={cn('w-full h-11 text-base font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
           <a href={activeOption.url ?? activeOption.parts[0]?.url} target="_blank" rel="noopener noreferrer">
             <Download className="w-4 h-4 mr-2" />
             Download from {activeProviderName}{approxSize ? ` (${approxSize})` : ''}
@@ -686,7 +686,7 @@ function RecommendedZipCard({
                     Part {part.index} — {formatBytes(part.bytes)}
                     {started ? ' (started)' : ''}
                   </span>
-                  <Button asChild size="sm" className="h-7 text-xs ml-auto">
+                  <Button asChild size="sm" className={cn('h-7 text-xs ml-auto font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
                     <a
                       href={part.url}
                       target="_blank"
@@ -709,7 +709,7 @@ function RecommendedZipCard({
 
           {!nextPart && (
             <p className="text-xs text-emerald-400">
-              All {activeParts.length} ZIP part downloads have been started. Keep all files together before loading them in Step 3.
+              All {activeParts.length} ZIP part downloads have been started. Keep all files together before loading them below.
             </p>
           )}
         </div>
@@ -759,7 +759,7 @@ function OfflineAppCard() {
 
       <p className="text-xs text-muted-foreground">
         A downloadable ZIP of the whole manager is on its way. Once it's ready, you'll unzip it,
-        open <span className="font-mono">open-me.html</span>, and load the image backup ZIP below —
+        open <span className="font-mono">open-me.html</span>, and load the image backup ZIP from the first card above —
         everything image-driven keeps working even if this site, GitHub, and every mirror
         disappear.
       </p>
@@ -767,7 +767,7 @@ function OfflineAppCard() {
       <Button
         size="sm"
         variant="outline"
-        className="w-full h-8"
+        className={cn('w-full h-8 font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}
         disabled
         aria-disabled="true"
         title="Coming soon"
@@ -862,7 +862,7 @@ function RecordsZipCard() {
           <span className="font-mono">{RECORDS_ZIP_NAME}</span>.
         </p>
       ) : (
-        <Button asChild size="sm" variant="outline" className="w-full h-8">
+        <Button asChild size="sm" className={cn('w-full h-8 font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
           <a href={RECORDS_ZIP_URL} target="_blank" rel="noopener noreferrer">
             {remote.kind === 'checking'
               ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
@@ -885,7 +885,7 @@ function RecordsZipCard() {
           </Button>
         )}
       </div>
-      <Button size="sm" onClick={() => inputRef.current?.click()} disabled={busy}>
+      <Button size="sm" className={cn('w-full h-8 font-semibold', LOAD_ZIP_BUTTON_CLASSES)} onClick={() => inputRef.current?.click()} disabled={busy}>
         {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
         {busy ? 'Checking ZIP…' : 'Load records ZIP'}
       </Button>
