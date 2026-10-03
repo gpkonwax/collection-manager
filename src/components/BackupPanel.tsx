@@ -514,7 +514,8 @@ export function BackupPanel({ triggerClassName }: Props) {
               {DATA_MIRROR_URL || 'Not configured'}
             </div>
           </section>
-
+          </div>
+          </div>
         </div>
 
       </DialogContent>
