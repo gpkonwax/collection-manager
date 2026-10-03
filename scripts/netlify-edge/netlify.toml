@@ -1,0 +1,16 @@
+# Netlify configuration for the GPK image backup mirror (backup A).
+#
+# Drop this file at the ROOT of the folder you drag-and-drop into Netlify,
+# together with the edge-functions/ folder from this directory.
+#
+# It tells Netlify where the hotlink-guard edge function lives. The function
+# itself declares `path: '/*'`, so it runs in front of every mirrored file.
+
+[build]
+  # Static mirror — nothing to build.
+  publish = "."
+
+[edge_functions]
+  # Folder containing hotlink-guard.ts, relative to this file.
+  # If you copy the edge-functions folder next to this netlify.toml, leave as-is.
+  path = "edge-functions"
