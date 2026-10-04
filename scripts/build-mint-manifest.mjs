@@ -33,6 +33,7 @@
  *   --no-bridged      skip the AtomicAssets bridged-card listing
  *   --fresh           ignore the resumable work file from an interrupted run
  *   --incremental     only look up ids missing from the existing backup (mints never change)
+ *   --no-recent       skip the WAX-history scan for freshly minted SimpleAssets cards
  */
 import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -40,6 +41,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { readRecentSaMints } from './lib/saCreatelog.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -54,6 +56,9 @@ const LIMIT = argVal('--limit') ? parseInt(argVal('--limit'), 10) : Infinity;
 const SKIP_BRIDGED = args.includes('--no-bridged');
 const FRESH = args.includes('--fresh');
 const INCREMENTAL = args.includes('--incremental');
+const SKIP_RECENT = args.includes('--no-recent');
+// Committed SA id list; freshly minted ids are appended here between monthly scans.
+const SA_ID_FILE = path.join(ROOT, 'manifests', 'gpk-sa-asset-ids.txt');
 // Kept outside the repo so the resumable work file is never committed.
 const WORK_FILE = process.env.MINTS_WORK_FILE || path.join(os.tmpdir(), 'gpk-mints-work.ndjson');
 
@@ -213,17 +218,43 @@ async function lookupBatch(ids) {
   }
 }
 
+async function appendSaIdFile(newIds) {
+  if (!newIds.length) return;
+  const p = SA_ID_FILE;
+  const existing = existsSync(p) ? (await fs.readFile(p, 'utf8')) : '';
+  const prefix = existing && !existing.endsWith('\n') ? '\n' : '';
+  await fs.writeFile(p, existing + prefix + newIds.join('\n') + '\n');
+  log(`[SA-new] appended ${newIds.length.toLocaleString()} new ids to ${path.relative(ROOT, p)}`);
+}
+
 async function main() {
   const started = Date.now();
   const { prev, index: prevIndex } = await loadPrevious();
   const saIds = await readSaIds();
+
+  // Fast path for freshly opened SimpleAssets packs: page createlog actions
+  // since the last bookmark, so new cards get mints before the monthly scan.
+  let saCreateCursor = prevIndex?.saCreateCursor || null;
+  let recentIds = [];
+  if (!SKIP_RECENT) {
+    const start = saCreateCursor
+      || new Date(Date.parse(prevIndex?.generatedAt || Date.now()) - 2 * 86_400_000).toISOString();
+    const res = await readRecentSaMints(start, { fetchJson, log });
+    recentIds = res.ids;
+    if (res.complete) saCreateCursor = res.cursor;
+    log(`[SA-new] ${recentIds.length.toLocaleString()} gpk.topps cards minted since ${start}`);
+  }
+  const knownSa = new Set(saIds);
+  const freshSa = recentIds.filter((id) => !knownSa.has(id));
+
   // Incremental runs page only cards bridged since the last saved cursor.
   const startCursors = INCREMENTAL ? (prevIndex?.bridgedCursors || {}) : {};
   const bridgedRes = SKIP_BRIDGED ? { ids: [], cursors: prevIndex?.bridgedCursors || {} } : await readBridgedSaIds(startCursors);
   const bridgedCursors = bridgedRes.cursors;
-  let all = [...new Set([...saIds, ...bridgedRes.ids])];
+  let all = [...new Set([...saIds, ...freshSa, ...bridgedRes.ids])];
   if (Number.isFinite(LIMIT)) all = all.slice(0, LIMIT);
   log(`[mints] ${all.length.toLocaleString()} unique SimpleAssets ids considered`);
+  if (!Number.isFinite(LIMIT)) await appendSaIdFile(freshSa);
 
   const { got, tried } = await loadWork();
   // --incremental: a card's mint never changes, so only look up ids that are
@@ -232,10 +263,13 @@ async function main() {
   if (INCREMENTAL) log(`[mints] incremental: ${todo.length.toLocaleString()} new ids not yet in the backup`);
   if (todo.length === 0 && got.size === 0) {
     log('[mints] nothing new to look up — mint backup left unchanged.');
-    if (prevIndex && JSON.stringify(prevIndex.bridgedCursors || {}) !== JSON.stringify(bridgedCursors)) {
+    const cursorsChanged = JSON.stringify(prevIndex?.bridgedCursors || {}) !== JSON.stringify(bridgedCursors);
+    const saCursorChanged = (prevIndex?.saCreateCursor || null) !== saCreateCursor;
+    if (prevIndex && (cursorsChanged || saCursorChanged)) {
       prevIndex.bridgedCursors = bridgedCursors;
+      if (saCreateCursor) prevIndex.saCreateCursor = saCreateCursor;
       await fs.writeFile(path.join(OUT_DIR, 'index.json'), JSON.stringify(prevIndex, null, 2));
-      log('[mints] saved bridged-card cursor for faster future runs.');
+      log('[mints] saved bookmarks for faster future runs.');
     }
     await fs.rm(WORK_FILE, { force: true });
     return;
@@ -283,7 +317,7 @@ async function main() {
   const STAGE_DIR = `${FINAL_DIR}.tmp`;
   await fs.rm(STAGE_DIR, { recursive: true, force: true });
   await fs.mkdir(STAGE_DIR, { recursive: true });
-  const index = { version: 1, generatedAt: new Date().toISOString(), count: merged.size, shardCount: 0, bridgedCursors, shards: {} };
+  const index = { version: 1, generatedAt: new Date().toISOString(), count: merged.size, shardCount: 0, bridgedCursors, ...(saCreateCursor ? { saCreateCursor } : {}), shards: {} };
   for (const k of [...shards.keys()].sort()) {
     const obj = shards.get(k);
     const sorted = Object.fromEntries(Object.keys(obj).sort().map((id) => [id, obj[id]]));
