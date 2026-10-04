@@ -255,6 +255,14 @@ async function main() {
     log('pack provenance not built yet — skipping manifests/provenance.');
   }
 
+  // Saved SimpleAssets transfers (collect-sa-transfers.mjs)
+  try {
+    await fs.copyFile(path.join(ROOT, 'manifests', 'sa-transfers.json'), path.join(OUT, 'manifests', 'sa-transfers.json'));
+    log('copied saved SimpleAssets transfers');
+  } catch {
+    log('saved SimpleAssets transfers not built yet — skipping.');
+  }
+
   // Records ZIP (built by build-records-zip.mjs) — optional download copy
   try {
     const recordsZip = path.join(ROOT, 'dist-records', 'gpk-records.zip');

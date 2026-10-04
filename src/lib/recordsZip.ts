@@ -29,6 +29,8 @@ export interface LoadedRecords {
   provenance: Map<string, Record<string, unknown>> | null;
   provenanceIndex: RecordsIndex | null;
   provenanceCount: number;
+  /** Saved SimpleAssets transfers; null when the ZIP predates them. */
+  saTransfers: { cursor?: string | null; assets?: Record<string, unknown[]> } | null;
 }
 
 let current: LoadedRecords | null = null;
@@ -52,7 +54,7 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 /** Strip any leading folder so `gpk-records/mints/001.json` → `mints/001.json`. */
 function normalise(path: string): string | null {
   const p = path.replace(/\\/g, '/');
-  const m = p.match(/(?:^|\/)((?:mints|provenance)\/(?:\d{3}|index)\.json|gpk-topps-holders\.json|records-info\.json)$/);
+  const m = p.match(/(?:^|\/)((?:mints|provenance)\/(?:\d{3}|index)\.json|gpk-topps-holders\.json|sa-transfers\.json|records-info\.json)$/);
   return m ? m[1] : null;
 }
 
@@ -103,6 +105,15 @@ export async function loadRecordsZip(file: Blob & { name?: string }): Promise<Lo
     }
   }
 
+  let saTransfers: LoadedRecords['saTransfers'] = null;
+  const saBytes = files.get('sa-transfers.json');
+  if (saBytes) {
+    try {
+      const t = JSON.parse(strFromU8(saBytes));
+      if (t && typeof t.assets === 'object') saTransfers = t;
+    } catch { throw new Error('The saved transfers file inside the ZIP is damaged.'); }
+  }
+
   let holders: HoldersManifest | null = null;
   const holdersBytes = files.get('gpk-topps-holders.json');
   if (holdersBytes) {
@@ -124,6 +135,7 @@ export async function loadRecordsZip(file: Blob & { name?: string }): Promise<Lo
     provenance,
     provenanceIndex,
     provenanceCount: typeof provenanceIndex?.count === 'number' ? provenanceIndex.count : 0,
+    saTransfers,
   };
   listeners.forEach((l) => l());
   return current;
