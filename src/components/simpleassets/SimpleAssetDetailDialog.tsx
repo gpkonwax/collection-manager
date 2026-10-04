@@ -171,7 +171,8 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                   retroScan={retroScan}
                   alt={`${asset.name} - ${label}`}
                   isLandscape={isLandscape}
-                  className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
+                  rotated={isLandscape && !retroScan}
+                  className={isLandscape && !retroScan ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   mode={mode}
                   canvasRegister={(canvas) => {
                     if (canvas) {
