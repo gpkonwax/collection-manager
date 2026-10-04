@@ -22,6 +22,8 @@ export interface SimpleAsset {
   source: 'simpleassets' | 'atomicassets';
   /** Epoch ms when the asset was last transferred (received). Only populated for AtomicAssets. */
   transferredAt?: number;
+  /** Epoch ms when the bridged AtomicAssets card was created, not its original SimpleAssets mint time. */
+  bridgedAt?: number;
   /** True on-chain mint number, resolved from AtomicHub's SimpleAssets mint API. */
   mintNumber?: number;
   /** Where mintNumber came from: self-hosted backup or live AtomicHub. */
