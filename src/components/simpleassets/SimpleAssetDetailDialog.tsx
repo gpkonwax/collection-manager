@@ -258,7 +258,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
               <div className="min-w-0 space-y-1 text-sm text-foreground text-center">
                 <p className="text-xs font-semibold text-cheese">Bridge Information</p>
                 {asset.idata?.bridge_mint && (
-                  <p className="flex items-center gap-2 flex-wrap">
+                  <p className="flex items-center justify-center gap-2 flex-wrap">
                     <span>Bridge Mint:</span>
                     <span
                       className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
@@ -277,6 +277,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 {bridgeDate && <p>Bridged on: {bridgeDate}</p>}
               </div>
             )}
+        </div>
         </div>
         {metaFields.length > 0 && (
           <div className="space-y-2">
