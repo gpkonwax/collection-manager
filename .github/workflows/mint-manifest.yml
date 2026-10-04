@@ -10,11 +10,23 @@ name: Refresh GPK mint numbers
 #
 # Reads the SimpleAssets id list committed by the holders workflow
 # (manifests/gpk-sa-asset-ids.txt), so run that one at least once first.
-# Runs quarterly on the 15th, or any time from the Actions tab.
+#
+# Scheduled twice daily. Like cheesehub's lp-history.yml, each 12-hour slot
+# gets four ticks spread evenly across it, because GitHub's shared cron queue
+# often delays ticks by hours or drops them entirely — incremental runs are
+# cheap no-ops when there is nothing new, so the extra ticks are free.
+# Scheduled runs always use incremental mode; full mode is manual-only.
 
 on:
   schedule:
-    - cron: '0 0 15 1,4,7,10 *'
+    - cron: '47 0 * * *'
+    - cron: '47 3 * * *'
+    - cron: '47 6 * * *'
+    - cron: '47 9 * * *'
+    - cron: '47 12 * * *'
+    - cron: '47 15 * * *'
+    - cron: '47 18 * * *'
+    - cron: '47 21 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -33,7 +45,8 @@ concurrency:
 jobs:
   refresh-mints:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    # Incremental runs take ~5 min; a short timeout kills a hung run fast.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
