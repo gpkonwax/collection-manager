@@ -94,7 +94,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           className="w-full flex justify-center py-1 bg-muted/30 -mb-2"
           title={mintLabel === '#--' ? 'Mint number not available yet' : `Mint ${mintLabel}`}
         >
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
+          <span className="text-base font-bold px-3 py-1 rounded-full bg-background/80 text-cheese border border-border/40">
             {mintLabel}
           </span>
         </div>
@@ -129,9 +129,14 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
-        {supplyLines.length > 0 && (
+        {(mintLabel !== '#--' || supplyLines.length > 0) && (
           <div className="space-y-1 text-sm text-foreground">
             <p className="text-xs font-semibold text-cheese">Mint information</p>
+            {mintLabel !== '#--' && (
+              <p>
+                Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
+              </p>
+            )}
             {supplyLines.map((line) => <p key={line}>{line}</p>)}
           </div>
         )}
