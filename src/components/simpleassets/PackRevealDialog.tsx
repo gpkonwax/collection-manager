@@ -126,8 +126,9 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
 
   return (
     <div className="min-w-0">
+      <div className="relative">
       <div className="relative aspect-[2/3]"
-        style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
+         style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
       <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
         {currentSrc && !exhausted ? (
           <img src={currentSrc} alt={card.name} className="w-full h-full object-contain object-center"
@@ -163,10 +164,11 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
       </div>
       </div>
       {isRevealed && card.mintLabel && (
-        <div className="flex justify-center py-1 mt-2" title={card.mintLabel === '#--' ? 'Mint number not available yet' : `Mint ${card.mintLabel}`}>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">{card.mintLabel}</span>
+        <div className="absolute top-1 left-0 right-0 z-10 flex justify-center pointer-events-none" title={card.mintLabel === '#--' ? 'Mint number not available yet' : `Mint ${card.mintLabel}`}>
+          <span className="pointer-events-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/90 text-cheese border border-border/60 shadow-sm">{card.mintLabel}</span>
         </div>
       )}
+      </div>
     </div>
   );
 }
