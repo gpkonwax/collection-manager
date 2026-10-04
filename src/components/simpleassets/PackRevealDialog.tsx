@@ -161,6 +161,7 @@ function RevealCardImage({ card, isRevealed, packImage }: { card: RevealCard; is
         )}
         <div className="absolute inset-0 border border-zinc-600/30 rounded-sm" />
       </div>
+    </div>
       {isRevealed && card.mintLabel && (
         <div className="flex justify-center py-1 mt-2" title={card.mintLabel === '#--' ? 'Mint number not available yet' : `Mint ${card.mintLabel}`}>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">{card.mintLabel}</span>
