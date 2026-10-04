@@ -1,27 +1,33 @@
 name: Refresh GPK holders manifest
 
-# Rebuilds manifests/gpk-topps-holders.json (the View Wallet "Top Holders"
-# list) on the 10th of every month and republishes it to the Cloudflare Pages
-# data mirror. Can also be run manually from the Actions tab.
+# Monthly (10th, 00:00 UTC = 10:00 AM Brisbane) — ~35 minutes.
+#   1. Scans WAX for gpk.topps holders (View Wallet "Top Holders" list).
+#   2. Rebuilds gpk-records.zip from the fresh holders file + the mint backup
+#      ALREADY committed in manifests/mints (no AtomicHub lookups here — that
+#      lives in the separate "Refresh GPK mint numbers" workflow).
+#   3. Uploads the ZIP to the backup repo release, deploys the data mirror
+#      (if Cloudflare secrets exist) and commits the holders file + the plain
+#      SimpleAssets id list that the mint workflow reads.
 #
-# Required repo secrets for the Cloudflare deploy step:
-#   CF_API_TOKEN   — Cloudflare API token with Account → Cloudflare Pages → Edit
-#   CF_ACCOUNT_ID  — Cloudflare account ID
-# Without them the manifest is still rebuilt and committed to the repo; only
-# the Cloudflare deploy is skipped.
+# Optional repo secrets: CF_API_TOKEN, CF_ACCOUNT_ID (Cloudflare deploy),
+# BACKUP_REPO_TOKEN (records ZIP release upload). Missing ones are skipped.
 
 on:
   schedule:
-    - cron: '0 0 10 * *' # 00:00 UTC on the 10th (10:00 AM Brisbane)
+    - cron: '0 0 10 * *'
   workflow_dispatch:
 
 permissions:
-  contents: write # to commit the refreshed manifest back to the repo
+  contents: write
+
+concurrency:
+  group: gpk-manifests # never run alongside the mint workflow (both commit)
+  cancel-in-progress: false
 
 jobs:
   rebuild-and-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 180 # the WAX scan takes ~30 min; leave headroom
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -32,21 +38,18 @@ jobs:
       - name: Scan WAX chain for gpk.topps holders (~30 min)
         run: node scripts/build-holders-manifest.mjs
 
-      - name: Stage manifest into the repo manifests folder
+      - name: Stage manifest + SimpleAssets id list into the repo
         run: |
           mkdir -p manifests
-          cp mirror-output/manifests/gpk-topps-holders.json \
-             manifests/gpk-topps-holders.json
-
-      - name: Refresh mint-number backup (~10-20 min)
-        # Exit code 2 = some batches failed; previous backup values are kept for
-        # those cards, so publish anyway rather than failing the whole run.
-        run: node scripts/build-mint-manifest.mjs --fresh || [ $? -eq 2 ]
+          cp mirror-output/manifests/gpk-topps-holders.json manifests/gpk-topps-holders.json
+          if [ -f mirror-output/manifests/gpk-sa-asset-ids.txt ]; then
+            cp mirror-output/manifests/gpk-sa-asset-ids.txt manifests/gpk-sa-asset-ids.txt
+          fi
 
       - name: Install fflate for the records ZIP
         run: npm install --no-save fflate@0.8.3
 
-      - name: Build records ZIP (holders + mint numbers)
+      - name: Build records ZIP (fresh holders + committed mint backup)
         run: node scripts/build-records-zip.mjs
 
       - name: Rebuild data-mirror folder + index
@@ -55,7 +58,7 @@ jobs:
       - name: Upload records ZIP to the backup repo's latest release
         env:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
-          BACKUP_REPO: bewbzz/gpkonwaxbackup
+          BACKUP_REPO: gpkonwaxbackup/gpk-backup
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::warning::BACKUP_REPO_TOKEN not set — records ZIP built but not uploaded to the release."
@@ -77,22 +80,22 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::warning::CF_API_TOKEN / CF_ACCOUNT_ID not set — manifest rebuilt and committed, but the Cloudflare deploy was skipped."
+            echo "::warning::CF_API_TOKEN / CF_ACCOUNT_ID not set — Cloudflare deploy skipped."
             exit 0
           fi
           npx --yes wrangler pages deploy scripts/data-mirror-output/gpk-data \
             --project-name gpk-data --branch main
 
-      - name: Commit refreshed manifest to the repo
+      - name: Commit refreshed holders manifest to the repo
         run: |
           git config user.name "gpk-holders-bot"
           git config user.email "actions@github.com"
-          mkdir -p manifests
-          cp mirror-output/manifests/gpk-topps-holders.json manifests/gpk-topps-holders.json
-          git add manifests/gpk-topps-holders.json manifests/mints
+          git add manifests/gpk-topps-holders.json
+          [ -f manifests/gpk-sa-asset-ids.txt ] && git add manifests/gpk-sa-asset-ids.txt
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: refresh gpk-topps holders + mint backup ($(date -u +%Y-%m-%d))"
+            git commit -m "chore: refresh gpk-topps holders ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
             git push
           fi

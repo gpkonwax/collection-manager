@@ -1,0 +1,83 @@
+name: Refresh GPK mint numbers
+
+# Updates the mint-number backup in manifests/mints, separately from the
+# monthly holders run so a slow or rate-limited AtomicHub can never break it.
+#
+#   incremental (default): looks up only cards missing from the backup
+#                          (newly opened packs). Mint numbers never change.
+#   full:                  re-checks every card (slow, ~1-2 h; refreshes the
+#                          circulating/burned counts shown in tooltips).
+#
+# Reads the SimpleAssets id list committed by the holders workflow
+# (manifests/gpk-sa-asset-ids.txt), so run that one at least once first.
+# Runs quarterly on the 15th, or any time from the Actions tab.
+
+on:
+  schedule:
+    - cron: '0 0 15 1,4,7,10 *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'incremental = new cards only, full = re-check every card'
+        type: choice
+        options: [incremental, full]
+        default: incremental
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gpk-manifests
+  cancel-in-progress: false
+
+jobs:
+  refresh-mints:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Look up mint numbers
+        env:
+          MODE: ${{ inputs.mode || 'incremental' }}
+        # Exit code 2 = some batches failed; previous values are kept, so still publish.
+        run: |
+          FLAGS="--fresh"
+          [ "$MODE" = "incremental" ] && FLAGS="$FLAGS --incremental"
+          echo "Mode: $MODE ($FLAGS)"
+          node scripts/build-mint-manifest.mjs $FLAGS || [ $? -eq 2 ]
+
+      - name: Install fflate for the records ZIP
+        run: npm install --no-save fflate@0.8.3
+
+      - name: Build records ZIP (committed holders + updated mints)
+        run: node scripts/build-records-zip.mjs
+
+      - name: Upload records ZIP to the backup repo's latest release
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          BACKUP_REPO: gpkonwaxbackup/gpk-backup
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::BACKUP_REPO_TOKEN not set — records ZIP built but not uploaded."
+            exit 0
+          fi
+          TAG=$(gh release view --repo "$BACKUP_REPO" --json tagName -q .tagName)
+          gh release upload "$TAG" dist-records/gpk-records.zip --repo "$BACKUP_REPO" --clobber
+
+      - name: Commit updated mint backup
+        run: |
+          git config user.name "gpk-mints-bot"
+          git config user.email "actions@github.com"
+          git add manifests/mints
+          if git diff --cached --quiet; then
+            echo "No new mint numbers."
+          else
+            git commit -m "chore: refresh gpk mint backup ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push
+          fi
