@@ -11,6 +11,8 @@ import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
 import type { BinderTemplate } from '@/hooks/useBinderTemplates';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import { RetroScanImage } from '@/components/simpleassets/RetroScanImage';
+import { getRetroFront } from '@/lib/retroScans';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 
@@ -31,15 +33,18 @@ interface SimpleAssetCardProps {
   isReadOnly?: boolean;
   /** When set, a "Trade" button is shown (only used while viewing another wallet with AA assets). */
   onTradeClick?: (asset: SimpleAsset) => void;
+  /** Hidden 1985-scan view: show the original Topps front scan when one exists. */
+  retro?: boolean;
 }
 
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick, retro = false }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const { ref: tiltRef, glareRef, onMouseMove: tiltMouseMove, onMouseLeave: tiltMouseLeave } = useCardTilt({ disabled: isDragging });
   const { getAlert } = usePriceAlerts();
 
+  const retroFront = useMemo(() => (retro ? getRetroFront(asset) : null), [retro, asset.cardid, asset.side, asset.quality]);
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintLabel = getMintLabel(asset);
   const isMintOne = mintLabel === '#1';
@@ -168,12 +173,16 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
             className="aspect-square flex items-center justify-center overflow-hidden pointer-events-none"
             style={isAnimatedGif ? { contain: 'paint', transform: 'translateZ(0)', backfaceVisibility: 'hidden' } : undefined}
           >
-            <IpfsMedia
-              url={asset.image}
-              alt={asset.name}
-              className={cn('w-full h-full')}
-              context="card"
-            />
+            {retroFront ? (
+              <RetroScanImage scan={retroFront} alt={`${asset.name} (1985 scan)`} className="w-full h-full" />
+            ) : (
+              <IpfsMedia
+                url={asset.image}
+                alt={asset.name}
+                className={cn('w-full h-full')}
+                context="card"
+              />
+            )}
           </div>
           <div ref={glareRef} className="absolute inset-0 pointer-events-none z-10" style={{ opacity: 0, transition: 'opacity 0.15s ease', mixBlendMode: 'overlay' }} />
         </div>
@@ -247,6 +256,8 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
     prev.asset.idata?.bridge_total === next.asset.idata?.bridge_total &&
+    prev.asset.cardid === next.asset.cardid &&
+    prev.retro === next.retro &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
     prev.draggable === next.draggable &&
