@@ -215,21 +215,28 @@ async function lookupBatch(ids) {
 
 async function main() {
   const started = Date.now();
+  const { prev, index: prevIndex } = await loadPrevious();
   const saIds = await readSaIds();
-  const bridged = SKIP_BRIDGED ? [] : await readBridgedSaIds();
-  let all = [...new Set([...saIds, ...bridged])];
+  // Incremental runs page only cards bridged since the last saved cursor.
+  const startCursors = INCREMENTAL ? (prevIndex?.bridgedCursors || {}) : {};
+  const bridgedRes = SKIP_BRIDGED ? { ids: [], cursors: prevIndex?.bridgedCursors || {} } : await readBridgedSaIds(startCursors);
+  const bridgedCursors = bridgedRes.cursors;
+  let all = [...new Set([...saIds, ...bridgedRes.ids])];
   if (Number.isFinite(LIMIT)) all = all.slice(0, LIMIT);
-  if (all.length === 0) throw new Error('No asset ids to look up.');
-  log(`[mints] ${all.length.toLocaleString()} unique SimpleAssets ids to look up`);
+  log(`[mints] ${all.length.toLocaleString()} unique SimpleAssets ids considered`);
 
-  const prev = await loadPrevious();
   const { got, tried } = await loadWork();
   // --incremental: a card's mint never changes, so only look up ids that are
   // not in the existing backup yet (newly opened cards).
   const todo = all.filter((id) => !tried.has(id) && !(INCREMENTAL && prev.has(id)));
   if (INCREMENTAL) log(`[mints] incremental: ${todo.length.toLocaleString()} new ids not yet in the backup`);
   if (todo.length === 0 && got.size === 0) {
-    log('[mints] nothing new to look up — backup left unchanged.');
+    log('[mints] nothing new to look up — mint backup left unchanged.');
+    if (prevIndex && JSON.stringify(prevIndex.bridgedCursors || {}) !== JSON.stringify(bridgedCursors)) {
+      prevIndex.bridgedCursors = bridgedCursors;
+      await fs.writeFile(path.join(OUT_DIR, 'index.json'), JSON.stringify(prevIndex, null, 2));
+      log('[mints] saved bridged-card cursor for faster future runs.');
+    }
     await fs.rm(WORK_FILE, { force: true });
     return;
   }
@@ -276,7 +283,7 @@ async function main() {
   const STAGE_DIR = `${FINAL_DIR}.tmp`;
   await fs.rm(STAGE_DIR, { recursive: true, force: true });
   await fs.mkdir(STAGE_DIR, { recursive: true });
-  const index = { version: 1, generatedAt: new Date().toISOString(), count: merged.size, shardCount: 0, shards: {} };
+  const index = { version: 1, generatedAt: new Date().toISOString(), count: merged.size, shardCount: 0, bridgedCursors, shards: {} };
   for (const k of [...shards.keys()].sort()) {
     const obj = shards.get(k);
     const sorted = Object.fromEntries(Object.keys(obj).sort().map((id) => [id, obj[id]]));
