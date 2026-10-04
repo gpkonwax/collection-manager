@@ -115,39 +115,53 @@ async function readSaIds() {
   return [];
 }
 
-/** Original SA ids of every bridged GPK AtomicAssets card, paged by asset_id. */
-async function readBridgedSaIds() {
+/**
+ * Original SA ids of bridged GPK AtomicAssets cards, paged by asset_id.
+ * `cursors` (schema -> next lower_bound) lets incremental runs page only cards
+ * bridged since the last run. Network failures warn and keep what was found,
+ * so a flaky AtomicAssets API never aborts the run.
+ */
+async function readBridgedSaIds(cursors = {}) {
   const out = new Set();
+  const next = { ...cursors };
   for (const schema of BRIDGED_SCHEMAS) {
-    let lower = '';
+    let lower = cursors[schema] || '';
     let pages = 0;
-    for (;;) {
-      const qs = `collection_name=gpk.topps&schema_name=${schema}&limit=1000&order=asc&sort=asset_id${lower ? `&lower_bound=${lower}` : ''}`;
-      let body;
-      let lastErr;
-      for (const base of AA_APIS) {
-        try { body = await fetchJson(`${base}/atomicassets/v1/assets?${qs}`); break; } catch (e) { lastErr = e; }
+    try {
+      for (;;) {
+        const qs = `collection_name=gpk.topps&schema_name=${schema}&limit=1000&order=asc&sort=asset_id${lower ? `&lower_bound=${lower}` : ''}`;
+        let body;
+        let lastErr;
+        for (const base of AA_APIS) {
+          try { body = await fetchJson(`${base}/atomicassets/v1/assets?${qs}`); break; } catch (e) { lastErr = e; }
+        }
+        if (!body) throw lastErr ?? new Error('AtomicAssets API unreachable');
+        const rows = body.data || [];
+        for (const a of rows) {
+          const sa = a.immutable_data?.sassets_id ?? a.data?.sassets_id;
+          if (sa && /^\d+$/.test(String(sa))) out.add(String(sa));
+        }
+        pages++;
+        if (rows.length) {
+          lower = String(BigInt(rows[rows.length - 1].asset_id) + 1n);
+          next[schema] = lower;
+        }
+        process.stdout.write(`\r[AA] ${schema}: page ${pages} · ${out.size.toLocaleString()} bridged ids`);
+        if (rows.length < 1000) break;
       }
-      if (!body) throw lastErr ?? new Error('AtomicAssets API unreachable');
-      const rows = body.data || [];
-      for (const a of rows) {
-        const sa = a.immutable_data?.sassets_id ?? a.data?.sassets_id;
-        if (sa && /^\d+$/.test(String(sa))) out.add(String(sa));
-      }
-      pages++;
-      process.stdout.write(`\r[AA] ${schema}: page ${pages} · ${out.size.toLocaleString()} bridged ids`);
-      if (rows.length < 1000) break;
-      lower = String(BigInt(rows[rows.length - 1].asset_id) + 1n);
+      process.stdout.write('\n');
+    } catch (e) {
+      process.stdout.write('\n');
+      log(`[AA] WARNING: ${schema} listing stopped early (${e.message}); continuing with ids found so far.`);
     }
-    process.stdout.write('\n');
   }
-  return [...out];
+  return { ids: [...out], cursors: next };
 }
 
 async function loadPrevious() {
   const prev = new Map();
   const idx = path.join(OUT_DIR, 'index.json');
-  if (!existsSync(idx)) return prev;
+  if (!existsSync(idx)) return { prev, index: null };
   const index = JSON.parse(await fs.readFile(idx, 'utf8'));
   for (const key of Object.keys(index.shards || {})) {
     const p = path.join(OUT_DIR, `${key}.json`);
@@ -156,7 +170,7 @@ async function loadPrevious() {
     for (const [id, v] of Object.entries(shard)) prev.set(id, v);
   }
   log(`[prev] ${prev.size.toLocaleString()} entries in the existing backup`);
-  return prev;
+  return { prev, index };
 }
 
 async function loadWork() {
