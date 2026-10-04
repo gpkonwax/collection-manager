@@ -108,7 +108,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const mintedOn = formatProvenanceDate(provenance?.t);
   const packLabel = formatPackLabel(provenance?.p, provenance?.n);
   const hasProvenance = !!(openedBy || mintedOn || packLabel);
-  const showMintInfo = mintLabel !== '#--' || supplyLines.length > 0 || hasProvenance || (asset.source === 'atomicassets' && !!asset.idata?._template_id);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
@@ -239,14 +238,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 Series: <Button type="button" variant="link" onClick={() => link.requestNavigation(schemaExplorerUrl)} className="h-auto p-0 text-cheese align-baseline">{seriesLabel}</Button>
               </p>
             </div>
-            {showMintInfo && (
               <div className="min-w-0 space-y-1 text-sm text-foreground">
                 <p className="text-xs font-semibold text-cheese">Mint information</p>
-                {mintLabel !== '#--' && (
-                  <p>
-                    Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
-                  </p>
-                )}
+                <p>
+                  Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
+                </p>
                 {supplyLines.map((line) => <p key={line}>{line}</p>)}
                 {openedBy && (
                   <p>
@@ -257,7 +253,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 {packLabel && <p>Pack: {packLabel}</p>}
                 {Number.isFinite(issued) && issued > 0 && <p>Total issued (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
               </div>
-            )}
             {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
               <div className="min-w-0 space-y-1 text-sm text-foreground">
                 <p className="text-xs font-semibold text-cheese">Bridge Information</p>
