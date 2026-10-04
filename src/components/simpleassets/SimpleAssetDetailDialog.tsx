@@ -46,9 +46,15 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
 
   const images = asset.images;
   const mintLabel = getMintLabel(asset);
-  const supplyLines = getMintSupplyLines(asset);
+  // Source attribution belongs in the grid tooltip, not in this detail section.
+  const supplyLines = getMintSupplyLines(asset).filter((line) => !line.startsWith('Mint number —'));
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
   const isBridgedAA = isBridgedAsset(asset);
+  const bridgedAt = asset.bridgedAt && Number.isFinite(asset.bridgedAt) && asset.bridgedAt > 0
+    ? new Date(asset.bridgedAt) : null;
+  const bridgeDate = bridgedAt && !Number.isNaN(bridgedAt.getTime())
+    ? bridgedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+    : null;
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
@@ -129,30 +135,39 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
-        {(mintLabel !== '#--' || supplyLines.length > 0) && (
-          <div className="space-y-1 text-sm text-foreground">
-            <p className="text-xs font-semibold text-cheese">Mint information</p>
-            {mintLabel !== '#--' && (
-              <p>
-                Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
-              </p>
+        {(mintLabel !== '#--' || supplyLines.length > 0 || (isBridgedAA && (asset.idata?.bridge_mint || bridgeDate))) && (
+          <div className={`grid grid-cols-1 gap-4 ${isBridgedAA ? 'sm:grid-cols-2' : ''}`}>
+            {(mintLabel !== '#--' || supplyLines.length > 0) && (
+              <div className="space-y-1 text-sm text-foreground">
+                <p className="text-xs font-semibold text-cheese">Mint information</p>
+                {mintLabel !== '#--' && (
+                  <p>
+                    Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
+                  </p>
+                )}
+                {supplyLines.map((line) => <p key={line}>{line}</p>)}
+              </div>
             )}
-            {supplyLines.map((line) => <p key={line}>{line}</p>)}
+            {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
+              <div className="space-y-1 text-sm text-foreground">
+                <p className="text-xs font-semibold text-cheese">Bridge Information</p>
+                {asset.idata?.bridge_mint && (
+                  <p className="flex items-center gap-2 flex-wrap">
+                    <span>Bridge Mint:</span>
+                    <span
+                      className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
+                      title="Order of the AtomicAssets copy created by bridging"
+                    >
+                      #{String(asset.idata.bridge_mint)}
+                      {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
+                    </span>
+                  </p>
+                )}
+                {bridgeDate && <p>Bridged on: {bridgeDate}</p>}
+              </div>
+            )}
           </div>
         )}
-        {/* Bridged AtomicAssets bridge mint (green, like the removed green mint) */}
-        {isBridgedAA && asset.idata?.bridge_mint ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-cheese">Bridge Mint</span>
-            <span
-              className="text-sm font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
-              title="Original bridge order from SimpleAssets → AtomicAssets bridging"
-            >
-              #{String(asset.idata.bridge_mint)}
-              {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
-            </span>
-          </div>
-        ) : null}
         {metaFields.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-cheese">Metadata</h4>

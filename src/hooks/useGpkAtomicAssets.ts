@@ -90,6 +90,7 @@ export function useGpkAtomicAssets(account: string | null) {
         const sassetsId = String(raw.immutable_data?.sassets_id ?? raw.data?.sassets_id ?? '');
         const transferredAtRaw = raw.transferred_at_time ?? raw.updated_at_time ?? raw.minted_at_time;
         const transferredAt = transferredAtRaw ? Number(transferredAtRaw) : undefined;
+        const mintedAt = raw.minted_at_time ? Number(raw.minted_at_time) : undefined;
         return {
           id: raw.asset_id, owner: raw.owner, author: 'gpk.topps',
           category: schemaName,
@@ -114,6 +115,7 @@ export function useGpkAtomicAssets(account: string | null) {
           container: [], containerf: [],
           source: 'atomicassets' as const,
           transferredAt: Number.isFinite(transferredAt) ? transferredAt : undefined,
+          bridgedAt: sassetsId && mintedAt && Number.isFinite(mintedAt) && mintedAt > 0 ? mintedAt : undefined,
         };
       });
       parsed.sort((a, b) => {
