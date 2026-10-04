@@ -20,6 +20,13 @@ import promoSeries1Poster from '@/assets/promo-47.webp';
 import promoSeries1Banner from '@/assets/promo-48.webp';
 import promoSeries2Phone from '@/assets/promo-49.webp';
 import promoDigicon from '@/assets/promo-51.webp';
+import promoPackStaking from '@/assets/series-promo-57.webp.asset.json';
+import promoLivestream from '@/assets/series-promo-58.webp.asset.json';
+import promoFoodFightTweet from '@/assets/series-promo-59.webp.asset.json';
+import promoBlockchain from '@/assets/series-promo-60.webp.asset.json';
+import promoExoticCards from '@/assets/series-promo-62.webp.asset.json';
+import promoCardFan from '@/assets/series-promo-63.webp.asset.json';
+import promoFurryFran from '@/assets/series-promo-64.webp.asset.json';
 
 
 
@@ -132,6 +139,18 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
         src: promoSeries1Banner,
         caption: '"Topps cards to the Blockchain!" launch banner for the Topps x WAX partnership.',
       },
+      {
+        src: promoBlockchain.url,
+        caption: 'Garbage Pail Kids, Topps and WAX blockchain partnership artwork featuring Adam Bomb.',
+      },
+      {
+        src: promoFurryFran.url,
+        caption: 'Topps x WAX promotional artwork featuring Furry Fran 12a and original-series cards.',
+      },
+      {
+        src: promoLivestream.url,
+        caption: 'Topps GPK livestream artwork advertising a launch party, guests and pack openings.',
+      },
     ],
     video: {
       title: 'Topps Garbage Pail Kids NFTs are now available on the WAX Blockchain!',
@@ -184,6 +203,14 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       {
         src: promoExoticJettin,
         caption: 'Jettin\' James single-card promotional art from the Exotic campaign.',
+      },
+      {
+        src: promoExoticCards.url,
+        caption: 'Topps x WAX card-fan artwork featuring Schmo Exotic.',
+      },
+      {
+        src: promoPackStaking.url,
+        caption: 'GPK pack opening and R Planet staking artwork, showing Goes Exotic and Series 2 wrappers.',
       },
     ],
     links: [
@@ -265,6 +292,14 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       {
         src: promoSeries2Phone,
         caption: 'Topps app promo showing Leaky Lindsay 45a with the Trade and Sell buttons.',
+      },
+      {
+        src: promoCardFan.url,
+        caption: 'Topps WAX promotional artwork showing a fan of GPK cards including Chrome variants.',
+      },
+      {
+        src: promoPackStaking.url,
+        caption: 'GPK pack opening and R Planet staking artwork, showing Goes Exotic and Series 2 wrappers.',
       },
     ],
     links: [
@@ -387,6 +422,10 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       {
         src: promoFoodFight2,
         caption: 'A second Food Fight promotional frame showing Bobby Wasabi and friends.',
+      },
+      {
+        src: promoFoodFightTweet.url,
+        caption: 'Topps Digital announcement of Food Fight retail boxes at Target and Walmart with WAX redemption cards.',
       },
     ],
     links: [
