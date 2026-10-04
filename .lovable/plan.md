@@ -4,7 +4,7 @@
 Every card's details show who opened the pack it came from, when it was minted, and which pack type, for SimpleAssets and AtomicAssets packs. A one-time scan collects everything back to May 2020. After that, the twice-daily mint workflow adds new openings.
 
 ## What users will see
-- In card details, under **Mint information**: "Opened by: account", "Unpacked on: date" (when the pack was opened), "Minted on: date" and "Pack: name". For packs where opening and minting happen in the same moment, the date shows once as "Unpacked / minted on".
+- In card details, under **Mint information**: "Opened by: account", "Minted on: date" and "Pack: name".
 - Bridged cards still show Bridge Information beside it. Where possible, "Bridged by" comes from the saved records, with the live lookup used only as a fallback.
 - When a card has no record, those lines are hidden. The app never guesses.
 - Works offline once the records ZIP is loaded.
