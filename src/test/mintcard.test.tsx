@@ -83,7 +83,7 @@ describe('mint ribbon', () => {
     const mintHeading = screen.getByText('Mint information');
     const bridgeHeading = screen.getByText('Bridge Information');
     expect(mintHeading.parentElement?.parentElement).toBe(bridgeHeading.parentElement?.parentElement);
-    expect(mintHeading.parentElement?.parentElement).toHaveClass('sm:grid-cols-3');
+    expect(mintHeading.parentElement?.parentElement).toHaveClass('sm:auto-cols-max');
     expect(screen.getByText('Bridge Mint:')).toBeInTheDocument();
     expect(screen.getByText('#39')).toBeInTheDocument();
     expect(screen.getByText('Bridged on: 22 Sept 2026')).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('mint ribbon', () => {
     rerender(<SimpleAssetDetailDialog asset={{ ...base, source: 'simpleassets', id: '123', category: 'five', idata: {} }} open onOpenChange={() => {}} />);
     expect(screen.queryByText('Template ID:')).not.toBeInTheDocument();
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
-    expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:grid-cols-2');
+    expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:auto-cols-max');
     await checkLink('123', 'https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
     await checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
   });
