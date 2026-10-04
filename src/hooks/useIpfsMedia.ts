@@ -463,21 +463,18 @@ export function useIpfsMedia(
   // Track whether this hash has ever successfully rendered in this hook instance
   const hasLoadedRef = useRef(!!cachedLoadedUrl);
 
-  // Mirror-first phase: true while we're attempting the primary static mirror.
-  // Base eligibility — the mirror is reachable and plausibly holds this hash.
+  // Mirror-first phase: true while we're walking our own static mirrors
+  // (primary → backup A → backup B). Public gateways only run afterwards.
   const mirrorEligible = (h: string | null) =>
-    !!h && !!PRIMARY_MIRROR && !mirrorDown && !mirrorMissSet.has(h)
+    !!h && MIRROR_CHAIN.length > 0 && !mirrorDown && !mirrorMissSet.has(h)
     && !getCachedLoadedUrl(h) && !peekThumb(h);
-  // At mount we go mirror-first when explicitly opted in (Pack History) or when
-  // public IPFS is currently measured as degraded.
-  const canTryMirror = (h: string | null) =>
-    mirrorEligible(h)
-    && (mirrorFirst
-      || (context === 'card' && isIpfsDegraded() && shouldMirrorFirstWhileDegraded(h ?? '')));
+  const canTryMirror = (h: string | null) => mirrorEligible(h);
 
   const [mirrorPhase, setMirrorPhase] = useState(() => canTryMirror(hash));
-  // Only one mid-rotation mirror insertion per hash.
-  const mirrorInsertedRef = useRef(false);
+  // Which mirror in MIRROR_CHAIN is being attempted.
+  const [mirrorStep, setMirrorStep] = useState(0);
+  // True once any mirror in the chain merely timed out (vs. answered an error).
+  const mirrorTimedOutRef = useRef(false);
 
   // Reset state when URL or active mirror changes
   useEffect(() => {
@@ -491,7 +488,8 @@ export function useIpfsMedia(
     setNonce(0);
     setVerifiedMirrorUrl(null);
     setMirrorPhase(canTryMirror(hash));
-    mirrorInsertedRef.current = false;
+    setMirrorStep(0);
+    mirrorTimedOutRef.current = false;
     hasLoadedRef.current = !!newCached;
     attemptRef.current += 1;
     if (retryTimerRef.current) {
@@ -505,29 +503,21 @@ export function useIpfsMedia(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [originalUrl, hash, activeMirror, mirrorFirst]);
 
-  const leaveMirrorPhase = useCallback(() => {
-    if (hash) noteMirrorMiss(hash);
+  // Move to the next mirror, or hand over to public gateways after the last one.
+  const nextMirror = useCallback((timedOut: boolean) => {
+    if (timedOut) mirrorTimedOutRef.current = true;
     attemptRef.current += 1;
-    // Rotation resumes from the current gwIdx — no attempts are re-spent.
+    if (mirrorStep + 1 < MIRROR_CHAIN.length) {
+      setMirrorStep(mirrorStep + 1);
+      return;
+    }
+    // Only remember a miss when every mirror actually answered "not found";
+    // timeouts from a busy page must not lock the mirrors out.
+    if (hash && !mirrorTimedOutRef.current) noteMirrorMiss(hash);
     setMirrorPhase(false);
-  }, [hash]);
+  }, [hash, mirrorStep]);
 
-  // Mid-rotation mirror insertion: after a couple of failed gateway attempts for
-  // this hash, try our own mirror instead of walking the remaining gateways.
-  useEffect(() => {
-    if (mirrorPhase || !enabled || failed || !isLoading || !hash) return;
-    if (context !== 'card') return;
-    if (mirrorInsertedRef.current || hasLoadedRef.current) return;
-    if (triedCount < MIRROR_INSERT_AFTER) return;
-    if (!mirrorEligible(hash)) return;
-    mirrorInsertedRef.current = true;
-    attemptRef.current += 1;
-    setMirrorPhase(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [triedCount, mirrorPhase, enabled, failed, isLoading, hash, context]);
-
-
-  // Short timeout for the mirror attempt — fall through to gateways quickly.
+  // Per-mirror timeout.
   useEffect(() => {
     if (!mirrorPhase || !enabled || !hash || hasLoadedRef.current) return;
     if (thumbBlobUrl) return; // served from the byte cache — no mirror miss
@@ -536,10 +526,10 @@ export function useIpfsMedia(
       if (!mountedRef.current) return;
       if (myAttempt !== attemptRef.current) return;
       if (hasLoadedRef.current) return;
-      leaveMirrorPhase();
+      nextMirror(true);
     }, MIRROR_FIRST_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, [mirrorPhase, enabled, hash, leaveMirrorPhase, thumbBlobUrl]);
+  }, [mirrorPhase, mirrorStep, enabled, hash, nextMirror, thumbBlobUrl]);
 
 
   useEffect(() => {
