@@ -7,6 +7,7 @@ import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
 import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount';
 import { getProvenance, formatPackLabel, formatProvenanceDate, type ProvenanceEntry } from '@/lib/provenance';
+import { TradeHistorySection } from './TradeHistorySection';
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
@@ -250,6 +251,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             )}
           </div>
         )}
+        <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} />
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-xs text-muted-foreground">Owner: {asset.owner}</span>
           <Button variant="ghost" size="sm" onClick={() => setShowRawJson(!showRawJson)}>{showRawJson ? 'Hide' : 'Show'} Raw JSON</Button>
