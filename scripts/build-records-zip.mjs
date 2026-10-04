@@ -33,6 +33,17 @@ const files = {};
 for (const f of mintFiles) files[`mints/${f}`] = new Uint8Array(await fs.readFile(path.join(mintsDir, f)));
 const index = JSON.parse(Buffer.from(files['mints/index.json']).toString('utf8'));
 
+// Optional pack-opening provenance (opener, mint date, pack).
+const provDir = path.join(ROOT, 'manifests', 'provenance');
+let provenanceCount = 0;
+if (await exists(path.join(provDir, 'index.json'))) {
+  const provFiles = (await fs.readdir(provDir)).filter((f) => /^(\d{3}|index)\.json$/.test(f));
+  for (const f of provFiles) files[`provenance/${f}`] = new Uint8Array(await fs.readFile(path.join(provDir, f)));
+  provenanceCount = JSON.parse(Buffer.from(files['provenance/index.json']).toString('utf8')).count ?? 0;
+} else {
+  console.warn('[build-records-zip] pack provenance not built yet — ZIP will not include it.');
+}
+
 let holderCount = 0;
 let holdersGeneratedAt = null;
 if (holdersPath) {
@@ -51,6 +62,7 @@ files['records-info.json'] = strToU8(JSON.stringify({
   holdersGeneratedAt,
   cardCount: index.count ?? 0,
   holderCount,
+  provenanceCount,
 }, null, 2));
 
 await fs.mkdir(OUT_DIR, { recursive: true });

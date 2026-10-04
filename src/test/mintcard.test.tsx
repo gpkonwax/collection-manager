@@ -6,6 +6,12 @@ import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 const bridgeLookup = vi.hoisted(() => vi.fn(async (id: string) => (id === '77' ? '3ngqu.wam' : null)));
 vi.mock('@/lib/bridgeAccount', () => ({ fetchBridgeAccount: bridgeLookup, getCachedBridgeAccount: () => undefined }));
+const provenanceLookup = vi.hoisted(() => vi.fn(async (id: string) => {
+  if (id === '100000004390402') return { o: 'dk2au.wam', t: Date.UTC(2020, 4, 12, 13, 54), p: 'series1', n: 5 };
+  if (id === '88') return { b: 'saved.wam' };
+  return null;
+}));
+vi.mock('@/lib/provenance', async (orig) => ({ ...(await orig<typeof import('@/lib/provenance')>()), getProvenance: provenanceLookup }));
 vi.mock('@/components/simpleassets/IpfsMedia', () => ({ IpfsMedia: () => null }));
 vi.mock('@/hooks/useIpfsMedia', () => ({ prefetchIpfsImage: vi.fn() }));
 vi.mock('@/hooks/useCardTilt', () => ({ useCardTilt: () => ({ ref: { current: null }, glareRef: { current: null }, onMouseMove: vi.fn(), onMouseLeave: vi.fn() }) }));
@@ -104,6 +110,26 @@ describe('mint ribbon', () => {
   it('never looks up a bridger for native AtomicAssets cards', () => {
     bridgeLookup.mockClear();
     render(<SimpleAssetDetailDialog asset={{ ...base, id: '77', category: 'foodfight', idata: { bridge_mint: '9' } }} open onOpenChange={() => {}} />);
+    expect(bridgeLookup).not.toHaveBeenCalled();
+  });
+  it('shows pack opener, mint date and pack from saved records, keyed by the original SA id', async () => {
+    render(<SimpleAssetDetailDialog open onOpenChange={() => {}} asset={{ ...base, id: '1100001811339', mintNumber: 1, idata: { bridge_mint: '5', sassets_id: '100000004390402' } }} />);
+    expect(await screen.findByText('dk2au.wam')).toBeInTheDocument();
+    expect(screen.getByText('Opened by:')).toBeInTheDocument();
+    expect(screen.getByText('Minted on: 12 May 2020')).toBeInTheDocument();
+    expect(screen.getByText('Pack: Series 1 (5-card pack)')).toBeInTheDocument();
+  });
+  it('hides pack lines when no record exists', async () => {
+    render(<SimpleAssetDetailDialog open onOpenChange={() => {}} asset={{ ...base, source: 'simpleassets', id: '999', mintNumber: 3 }} />);
+    await waitFor(() => expect(provenanceLookup).toHaveBeenCalledWith('999'));
+    expect(screen.queryByText('Opened by:')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Minted on:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pack:/)).not.toBeInTheDocument();
+  });
+  it('uses a saved bridging account before the live lookup', async () => {
+    bridgeLookup.mockClear();
+    render(<SimpleAssetDetailDialog open onOpenChange={() => {}} asset={{ ...base, id: '88', idata: { bridge_mint: '7', sassets_id: '100000000000001' } }} />);
+    expect(await screen.findByText('saved.wam')).toBeInTheDocument();
     expect(bridgeLookup).not.toHaveBeenCalled();
   });
 });

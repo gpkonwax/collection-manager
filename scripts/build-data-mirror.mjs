@@ -242,6 +242,19 @@ async function main() {
   }
 
 
+  // Pack-opening provenance (built by backfill-pack-provenance.mjs into manifests/provenance/)
+  const provSrc = path.join(ROOT, 'manifests', 'provenance');
+  try {
+    const files = (await fs.readdir(provSrc)).filter((f) => /^(\d{3}|index)\.json$/.test(f));
+    if (files.length) {
+      await fs.mkdir(path.join(OUT, 'manifests', 'provenance'), { recursive: true });
+      for (const f of files) await fs.copyFile(path.join(provSrc, f), path.join(OUT, 'manifests', 'provenance', f));
+      log(`copied pack provenance (${files.length} files) from manifests/provenance`);
+    }
+  } catch {
+    log('pack provenance not built yet — skipping manifests/provenance.');
+  }
+
   // Records ZIP (built by build-records-zip.mjs) — optional download copy
   try {
     const recordsZip = path.join(ROOT, 'dist-records', 'gpk-records.zip');

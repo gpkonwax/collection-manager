@@ -65,6 +65,13 @@ jobs:
           echo "Mode: $MODE ($FLAGS)"
           node scripts/build-mint-manifest.mjs $FLAGS || [ $? -eq 2 ]
 
+      - name: Record new pack openings (opener, mint date, pack)
+        # Only extends parts whose one-time backfill already finished; outages
+        # keep the old bookmarks. Never fails the run.
+        run: |
+          node scripts/backfill-pack-provenance.mjs --incremental --max-minutes 8 \
+            || echo "::warning::Pack provenance update failed — previous records kept."
+
       - name: Install fflate for the records ZIP
         run: npm install --no-save fflate@0.8.3
 
@@ -104,6 +111,7 @@ jobs:
           git config user.name "gpk-mints-bot"
           git config user.email "actions@github.com"
           git add manifests/mints manifests/gpk-sa-asset-ids.txt
+          if [ -d manifests/provenance ]; then git add manifests/provenance; fi
           if git diff --cached --quiet; then
             echo "No new mint numbers."
           else

@@ -119,3 +119,10 @@ bridged AtomicAssets card on AtomicHub's mint endpoint and writes
 the SA id). `build-data-mirror.mjs` publishes them to gpk-data; the offline
 bundle ships them as `.js` files. The separate `mint-manifest.yml` workflow refreshes it (incremental by default: only new cards; choose "full" to re-check all). The monthly holders workflow only rebuilds the records ZIP from the committed shards. Each mint run also scans WAX history (`simpleassets::createlog`, author `gpk.topps`) since the `saCreateCursor` bookmark in `index.json`, so freshly opened SimpleAssets packs get mints within hours; new ids are appended to `manifests/gpk-sa-asset-ids.txt` (skip with `--no-recent`).
 Resumable: re-run without `--fresh` after an interruption.
+
+## Pack-opening provenance
+
+`scripts/backfill-pack-provenance.mjs` records who opened the pack each card came from, when it was minted, and which pack, into `manifests/provenance/` (same 000–999 sharding as the mint backup). Sources: `gpk.topps::getcards` + `createlog` on the full-history Hyperion node `wax.eosdac.io` (SimpleAssets packs since May 2020), `gpkpools1111` "Pack Opening" transfers (Food Fight!, GameStonk!), and `logmint` by `gpkcrashpack` / `burnieunpack` (Crash Gordon, Mittens, Bernventures). It also records the bridging account for cards bridged after its first run.
+
+- One-time: run **Backfill pack provenance** from the Actions tab. Each run works ~5.5 h, commits, and starts the next run until done. It stops chaining if a run makes no progress; just run it again later.
+- Ongoing: **Refresh GPK mint numbers** runs `--incremental` (finished phases only) and bundles the records into `gpk-records.zip`.
