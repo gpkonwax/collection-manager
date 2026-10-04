@@ -5004,5 +5004,10 @@
       "bytes": 15265,
       "sha256": "006e0323cd89cbf748a4f8da2ed3c445a9fd983db99b3c942495fb15e36ec444"
     }
+  },
+  "bridgedCursors": {
+    "series1": "1100002020883",
+    "series2": "1100002250330",
+    "exotic": "1100000189147"
   }
 }

@@ -115,39 +115,53 @@ async function readSaIds() {
   return [];
 }
 
-/** Original SA ids of every bridged GPK AtomicAssets card, paged by asset_id. */
-async function readBridgedSaIds() {
+/**
+ * Original SA ids of bridged GPK AtomicAssets cards, paged by asset_id.
+ * `cursors` (schema -> next lower_bound) lets incremental runs page only cards
+ * bridged since the last run. Network failures warn and keep what was found,
+ * so a flaky AtomicAssets API never aborts the run.
+ */
+async function readBridgedSaIds(cursors = {}) {
   const out = new Set();
+  const next = { ...cursors };
   for (const schema of BRIDGED_SCHEMAS) {
-    let lower = '';
+    let lower = cursors[schema] || '';
     let pages = 0;
-    for (;;) {
-      const qs = `collection_name=gpk.topps&schema_name=${schema}&limit=1000&order=asc&sort=asset_id${lower ? `&lower_bound=${lower}` : ''}`;
-      let body;
-      let lastErr;
-      for (const base of AA_APIS) {
-        try { body = await fetchJson(`${base}/atomicassets/v1/assets?${qs}`); break; } catch (e) { lastErr = e; }
+    try {
+      for (;;) {
+        const qs = `collection_name=gpk.topps&schema_name=${schema}&limit=1000&order=asc&sort=asset_id${lower ? `&lower_bound=${lower}` : ''}`;
+        let body;
+        let lastErr;
+        for (const base of AA_APIS) {
+          try { body = await fetchJson(`${base}/atomicassets/v1/assets?${qs}`); break; } catch (e) { lastErr = e; }
+        }
+        if (!body) throw lastErr ?? new Error('AtomicAssets API unreachable');
+        const rows = body.data || [];
+        for (const a of rows) {
+          const sa = a.immutable_data?.sassets_id ?? a.data?.sassets_id;
+          if (sa && /^\d+$/.test(String(sa))) out.add(String(sa));
+        }
+        pages++;
+        if (rows.length) {
+          lower = String(BigInt(rows[rows.length - 1].asset_id) + 1n);
+          next[schema] = lower;
+        }
+        process.stdout.write(`\r[AA] ${schema}: page ${pages} · ${out.size.toLocaleString()} bridged ids`);
+        if (rows.length < 1000) break;
       }
-      if (!body) throw lastErr ?? new Error('AtomicAssets API unreachable');
-      const rows = body.data || [];
-      for (const a of rows) {
-        const sa = a.immutable_data?.sassets_id ?? a.data?.sassets_id;
-        if (sa && /^\d+$/.test(String(sa))) out.add(String(sa));
-      }
-      pages++;
-      process.stdout.write(`\r[AA] ${schema}: page ${pages} · ${out.size.toLocaleString()} bridged ids`);
-      if (rows.length < 1000) break;
-      lower = String(BigInt(rows[rows.length - 1].asset_id) + 1n);
+      process.stdout.write('\n');
+    } catch (e) {
+      process.stdout.write('\n');
+      log(`[AA] WARNING: ${schema} listing stopped early (${e.message}); continuing with ids found so far.`);
     }
-    process.stdout.write('\n');
   }
-  return [...out];
+  return { ids: [...out], cursors: next };
 }
 
 async function loadPrevious() {
   const prev = new Map();
   const idx = path.join(OUT_DIR, 'index.json');
-  if (!existsSync(idx)) return prev;
+  if (!existsSync(idx)) return { prev, index: null };
   const index = JSON.parse(await fs.readFile(idx, 'utf8'));
   for (const key of Object.keys(index.shards || {})) {
     const p = path.join(OUT_DIR, `${key}.json`);
@@ -156,7 +170,7 @@ async function loadPrevious() {
     for (const [id, v] of Object.entries(shard)) prev.set(id, v);
   }
   log(`[prev] ${prev.size.toLocaleString()} entries in the existing backup`);
-  return prev;
+  return { prev, index };
 }
 
 async function loadWork() {
@@ -201,21 +215,28 @@ async function lookupBatch(ids) {
 
 async function main() {
   const started = Date.now();
+  const { prev, index: prevIndex } = await loadPrevious();
   const saIds = await readSaIds();
-  const bridged = SKIP_BRIDGED ? [] : await readBridgedSaIds();
-  let all = [...new Set([...saIds, ...bridged])];
+  // Incremental runs page only cards bridged since the last saved cursor.
+  const startCursors = INCREMENTAL ? (prevIndex?.bridgedCursors || {}) : {};
+  const bridgedRes = SKIP_BRIDGED ? { ids: [], cursors: prevIndex?.bridgedCursors || {} } : await readBridgedSaIds(startCursors);
+  const bridgedCursors = bridgedRes.cursors;
+  let all = [...new Set([...saIds, ...bridgedRes.ids])];
   if (Number.isFinite(LIMIT)) all = all.slice(0, LIMIT);
-  if (all.length === 0) throw new Error('No asset ids to look up.');
-  log(`[mints] ${all.length.toLocaleString()} unique SimpleAssets ids to look up`);
+  log(`[mints] ${all.length.toLocaleString()} unique SimpleAssets ids considered`);
 
-  const prev = await loadPrevious();
   const { got, tried } = await loadWork();
   // --incremental: a card's mint never changes, so only look up ids that are
   // not in the existing backup yet (newly opened cards).
   const todo = all.filter((id) => !tried.has(id) && !(INCREMENTAL && prev.has(id)));
   if (INCREMENTAL) log(`[mints] incremental: ${todo.length.toLocaleString()} new ids not yet in the backup`);
   if (todo.length === 0 && got.size === 0) {
-    log('[mints] nothing new to look up — backup left unchanged.');
+    log('[mints] nothing new to look up — mint backup left unchanged.');
+    if (prevIndex && JSON.stringify(prevIndex.bridgedCursors || {}) !== JSON.stringify(bridgedCursors)) {
+      prevIndex.bridgedCursors = bridgedCursors;
+      await fs.writeFile(path.join(OUT_DIR, 'index.json'), JSON.stringify(prevIndex, null, 2));
+      log('[mints] saved bridged-card cursor for faster future runs.');
+    }
     await fs.rm(WORK_FILE, { force: true });
     return;
   }
@@ -262,7 +283,7 @@ async function main() {
   const STAGE_DIR = `${FINAL_DIR}.tmp`;
   await fs.rm(STAGE_DIR, { recursive: true, force: true });
   await fs.mkdir(STAGE_DIR, { recursive: true });
-  const index = { version: 1, generatedAt: new Date().toISOString(), count: merged.size, shardCount: 0, shards: {} };
+  const index = { version: 1, generatedAt: new Date().toISOString(), count: merged.size, shardCount: 0, bridgedCursors, shards: {} };
   for (const k of [...shards.keys()].sort()) {
     const obj = shards.get(k);
     const sorted = Object.fromEntries(Object.keys(obj).sort().map((id) => [id, obj[id]]));
