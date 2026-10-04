@@ -245,10 +245,12 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                   Series: <Button type="button" variant="link" onClick={() => link.requestNavigation(schemaExplorerUrl)} className="h-auto p-0 text-cheese align-baseline">{seriesLabel}</Button>
                 </p>
               </div>
+              </div>
             </div>
               <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-2 sm:col-span-2 sm:row-start-1 sm:items-center">
-                <p className="text-xs font-semibold text-cheese">Mint information</p>
-                <div className="space-y-1 text-left">
+                <div className="flex flex-col text-left">
+                  <p className="text-sm font-semibold text-cheese mb-1">Mint information</p>
+                  <div className="space-y-1">
                   <p>
                     Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
                   </p>
@@ -261,12 +263,14 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                   {mintedOn && <p>Minted on: {mintedOn}</p>}
                   {packLabel && <p>Pack: {packLabel}</p>}
                   {Number.isFinite(issued) && issued > 0 && <p>Total issued (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
+                  </div>
+                  </div>
                 </div>
-              </div>
-            {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
+              {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
               <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-3 sm:col-span-2 sm:row-start-1 sm:items-center">
-                <p className="text-xs font-semibold text-cheese">Bridge Information</p>
-                <div className="space-y-1 text-left">
+                <div className="flex flex-col text-left">
+                  <p className="text-sm font-semibold text-cheese mb-1">Bridge Information</p>
+                  <div className="space-y-1">
                   {asset.idata?.bridge_mint && (
                     <p className="flex items-center justify-start gap-2 flex-wrap">
                       <span>Bridge Mint:</span>
@@ -285,6 +289,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                     </p>
                   )}
                   {bridgeDate && <p>Bridged on: {bridgeDate}</p>}
+                </div>
                 </div>
               </div>
             )}
