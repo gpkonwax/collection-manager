@@ -220,8 +220,9 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
+        <div className="bg-muted/30 rounded p-3 sm:p-4">
         <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${isBridgedAA ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-            <div className="min-w-0 space-y-1 text-sm text-foreground">
+            <div className="min-w-0 space-y-1 text-sm text-foreground text-center">
               <p className="text-xs font-semibold text-cheese">Information</p>
               <p className="break-words">
                 NFT ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(explorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{asset.id}</Button>
@@ -238,7 +239,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 Series: <Button type="button" variant="link" onClick={() => link.requestNavigation(schemaExplorerUrl)} className="h-auto p-0 text-cheese align-baseline">{seriesLabel}</Button>
               </p>
             </div>
-              <div className="min-w-0 space-y-1 text-sm text-foreground">
+              <div className="min-w-0 space-y-1 text-sm text-foreground text-center">
                 <p className="text-xs font-semibold text-cheese">Mint information</p>
                 <p>
                   Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
@@ -254,10 +255,10 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 {Number.isFinite(issued) && issued > 0 && <p>Total issued (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
               </div>
             {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
-              <div className="min-w-0 space-y-1 text-sm text-foreground">
+              <div className="min-w-0 space-y-1 text-sm text-foreground text-center">
                 <p className="text-xs font-semibold text-cheese">Bridge Information</p>
                 {asset.idata?.bridge_mint && (
-                  <p className="flex items-center gap-2 flex-wrap">
+                  <p className="flex items-center justify-center gap-2 flex-wrap">
                     <span>Bridge Mint:</span>
                     <span
                       className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
@@ -276,6 +277,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 {bridgeDate && <p>Bridged on: {bridgeDate}</p>}
               </div>
             )}
+        </div>
         </div>
         {metaFields.length > 0 && (
           <div className="space-y-2">
