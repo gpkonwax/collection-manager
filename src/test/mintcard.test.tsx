@@ -149,7 +149,7 @@ describe('mint ribbon', () => {
     expect(await screen.findByText('dk2au.wam')).toBeInTheDocument();
     expect(screen.getByText('Opened by:')).toBeInTheDocument();
     expect(screen.getByText('Minted on: 12 May 2020')).toBeInTheDocument();
-    expect(screen.getByText('Pack: Series 1 (5-card pack)')).toBeInTheDocument();
+    expect(screen.getByText('Pack: GPKFIVE (5 card pack)')).toBeInTheDocument();
   });
   it('hides pack lines when no record exists', async () => {
     render(<SimpleAssetDetailDialog open onOpenChange={() => {}} asset={{ ...base, source: 'simpleassets', id: '999', mintNumber: 3 }} />);
