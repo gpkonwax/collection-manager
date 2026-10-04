@@ -59,13 +59,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
           BACKUP_REPO: bewbzz/gpkonwaxbackup
+        # A failed upload must never fail the run: the ZIP is saved as an
+        # artifact below, and the holders commit (last step) still goes through.
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::warning::BACKUP_REPO_TOKEN not set — records ZIP built but not uploaded to the release."
             exit 0
           fi
-          TAG=$(gh release view --repo "$BACKUP_REPO" --json tagName -q .tagName)
-          gh release upload "$TAG" dist-records/gpk-records.zip --repo "$BACKUP_REPO" --clobber
+          if ! TAG=$(gh release view --repo "$BACKUP_REPO" --json tagName -q .tagName 2>&1); then
+            echo "::warning::Could not read latest release on $BACKUP_REPO: $TAG"
+            exit 0
+          fi
+          if ! gh release upload "$TAG" dist-records/gpk-records.zip --repo "$BACKUP_REPO" --clobber 2>&1; then
+            echo "::warning::Release upload failed — ZIP is still available as the gpk-records artifact."
+            exit 0
+          fi
 
       - name: Keep records ZIP as a workflow artifact
         uses: actions/upload-artifact@v4
