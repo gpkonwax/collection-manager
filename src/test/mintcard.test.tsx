@@ -107,7 +107,7 @@ describe('mint ribbon', () => {
   });
   it('shows linked Information before mint and bridge information, with template ID only for AtomicAssets', async () => {
     const { rerender } = render(<SimpleAssetDetailDialog asset={{ ...base, id: '1099535105066', mintNumber: 9, idata: { _template_id: '363', bridge_mint: '7', bridge_total: '90' } }} open onOpenChange={() => {}} />);
-    const info = screen.getByText('Information').parentElement;
+    const info = screen.getByText('Information').parentElement?.parentElement;
     const columns = info?.parentElement;
     expect(columns?.children[0]).toBe(info);
     expect(columns?.children[1]).toContainElement(screen.getByText('Mint information'));
