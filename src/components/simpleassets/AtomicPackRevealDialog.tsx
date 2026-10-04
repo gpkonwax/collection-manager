@@ -21,6 +21,7 @@ interface RevealCard {
   name: string;
   image: string | null;
   rarity: string;
+  mintLabel?: string;
 }
 
 interface UnboxResultRow {
@@ -41,7 +42,7 @@ interface AtomicPackRevealDialogProps {
   session: Session | null;
   onComplete: (txId?: string | null, reveal?: RevealResult) => void;
   openMode?: PackOpenMode;
-  demoCards?: { asset_id: string; name: string; image: string | null; rarity: string }[];
+  demoCards?: RevealCard[];
   onDemoCollect?: () => void;
   /** Optional tx id of the transfer-to-contract that started the open. Used in stuck-pack reports. */
   transferTxId?: string | null;
@@ -101,6 +102,7 @@ function AtomicRevealCardImage({ card, isRevealed, packImage }: { card: RevealCa
   const currentSrc = card.image ? (gwIdx === 0 ? card.image : swapGateway(card.image, gwIdx)) : null;
 
   return (
+    <div className="min-w-0">
     <div className="relative aspect-[2/3]"
       style={{ transformStyle: 'preserve-3d', transition: 'transform 0.6s ease-out', transform: isRevealed ? 'rotateY(0deg)' : 'rotateY(180deg)' }}>
       <div className="absolute inset-0 border border-border bg-transparent shadow-md" style={{ backfaceVisibility: 'hidden' }}>
@@ -120,6 +122,12 @@ function AtomicRevealCardImage({ card, isRevealed, packImage }: { card: RevealCa
         )}
         <div className="absolute inset-0 border border-zinc-600/30 rounded-sm" />
       </div>
+    </div>
+    {isRevealed && card.mintLabel && (
+      <div className="flex justify-center py-1 mt-2" title={card.mintLabel === '#--' ? 'Mint number not available yet' : `Mint ${card.mintLabel}`}>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">{card.mintLabel}</span>
+      </div>
+    )}
     </div>
   );
 }
