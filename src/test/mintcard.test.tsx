@@ -78,7 +78,7 @@ describe('mint ribbon', () => {
     expect(mintHeading.parentElement?.parentElement).toHaveClass('sm:grid-cols-2');
     expect(screen.getByText('Bridge Mint:')).toBeInTheDocument();
     expect(screen.getByText('#39')).toBeInTheDocument();
-    expect(screen.getByText('Bridged on: 22 Sep 2026')).toBeInTheDocument();
+    expect(screen.getByText('Bridged on: 22 Sept 2026')).toBeInTheDocument();
   });
   it('keeps the bridge mint when no valid bridge date is available', () => {
     render(<SimpleAssetDetailDialog asset={{ ...base, mintNumber: 356, bridgedAt: Number.NaN, idata: { bridge_mint: '203' } }} open onOpenChange={() => {}} />);
