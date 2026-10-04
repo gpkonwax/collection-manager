@@ -53,7 +53,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const bridgedAt = asset.bridgedAt && Number.isFinite(asset.bridgedAt) && asset.bridgedAt > 0
     ? new Date(asset.bridgedAt) : null;
   const bridgeDate = bridgedAt && !Number.isNaN(bridgedAt.getTime())
-    ? bridgedAt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+    ? bridgedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
     : null;
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
