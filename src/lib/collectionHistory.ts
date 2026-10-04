@@ -24,7 +24,6 @@ import promoPackStaking from '@/assets/series-promo-57.png.asset.json';
 import promoLivestream from '@/assets/series-promo-58.png.asset.json';
 import promoFoodFightTweet from '@/assets/series-promo-59.png.asset.json';
 import promoBlockchain from '@/assets/series-promo-60.png.asset.json';
-import promoBlockchainCards from '@/assets/series-promo-61.png.asset.json';
 import promoExoticCards from '@/assets/series-promo-62.png.asset.json';
 import promoCardFan from '@/assets/series-promo-63.png.asset.json';
 import promoFurryFran from '@/assets/series-promo-64.png.asset.json';
@@ -143,10 +142,6 @@ export const COLLECTION_HISTORY: Record<string, CollectionHistory> = {
       {
         src: promoBlockchain.url,
         caption: 'Garbage Pail Kids, Topps and WAX blockchain partnership artwork featuring Adam Bomb.',
-      },
-      {
-        src: promoBlockchainCards.url,
-        caption: 'Topps x WAX “GPK Cards to the Blockchain!” artwork with a fan of original-series cards.',
       },
       {
         src: promoFurryFran.url,
