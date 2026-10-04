@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
@@ -100,7 +100,7 @@ describe('mint ribbon', () => {
     rerender(<SimpleAssetDetailDialog asset={{ ...base, source: 'simpleassets', mintNumber: 22, bridgedAt: Date.UTC(2026, 8, 22), idata: { bridge_mint: '203' } }} open onOpenChange={() => {}} />);
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
   });
-  it('shows linked Information before mint and bridge information, with template ID only for AtomicAssets', () => {
+  it('shows linked Information before mint and bridge information, with template ID only for AtomicAssets', async () => {
     const { rerender } = render(<SimpleAssetDetailDialog asset={{ ...base, id: '1099535105066', mintNumber: 9, idata: { _template_id: '363', bridge_mint: '7', bridge_total: '90' } }} open onOpenChange={() => {}} />);
     const info = screen.getByText('Information').parentElement;
     const columns = info?.parentElement;
@@ -108,21 +108,22 @@ describe('mint ribbon', () => {
     expect(columns?.children[1]).toContainElement(screen.getByText('Mint information'));
     expect(columns?.children[2]).toContainElement(screen.getByText('Bridge Information'));
     expect(screen.getByText('Total issued (AtomicAssets): 90')).toBeInTheDocument();
-    const checkLink = (name: string, url: string) => {
-      screen.getByRole('button', { name }).click();
-      expect(screen.getByText(url)).toBeInTheDocument();
-      screen.getByRole('button', { name: 'Cancel' }).click();
+    const checkLink = async (name: string, url: string) => {
+      fireEvent.click(screen.getByRole('button', { name }));
+      expect(await screen.findByText(url)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByText(url)).not.toBeInTheDocument());
     };
-    checkLink('1099535105066', 'https://atomichub.io/explorer/asset/wax-mainnet/1099535105066');
-    checkLink('363', 'https://atomichub.io/explorer/template/wax-mainnet/gpk.topps/363');
-    checkLink('gpk.topps', 'https://atomichub.io/explorer/collection/wax-mainnet/gpk.topps');
-    checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
+    await checkLink('1099535105066', 'https://atomichub.io/explorer/asset/wax-mainnet/1099535105066');
+    await checkLink('363', 'https://atomichub.io/explorer/template/wax-mainnet/gpk.topps/363');
+    await checkLink('gpk.topps', 'https://atomichub.io/explorer/collection/wax-mainnet/gpk.topps');
+    await checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
     rerender(<SimpleAssetDetailDialog asset={{ ...base, source: 'simpleassets', id: '123', category: 'five', idata: {} }} open onOpenChange={() => {}} />);
     expect(screen.queryByText('Template ID:')).not.toBeInTheDocument();
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
     expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:grid-cols-2');
-    checkLink('123', 'https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
-    checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
+    await checkLink('123', 'https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
+    await checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
   });
   it('shows the bridging account from the mint log, and omits it when unknown', async () => {
     const { rerender } = render(<SimpleAssetDetailDialog asset={{ ...base, id: '77', mintNumber: 5, idata: { bridge_mint: '9' } }} open onOpenChange={() => {}} />);
