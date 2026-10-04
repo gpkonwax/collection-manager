@@ -12,6 +12,7 @@ export function TradeHistorySection({ assetId, isAtomic }: Props) {
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<TradeHistory | null>(null);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => { setOpen(false); setHistory(null); setError(false); }, [assetId]);
 
@@ -23,7 +24,7 @@ export function TradeHistorySection({ assetId, isAtomic }: Props) {
       .then((h) => { if (!cancelled) setHistory(h); })
       .catch((err) => { console.warn('[TradeHistory] lookup failed:', err); if (!cancelled) setError(true); });
     return () => { cancelled = true; };
-  }, [open, isAtomic, assetId, history]);
+  }, [open, isAtomic, assetId, history, attempt]);
 
   return (
     <div className="space-y-2">
@@ -39,7 +40,7 @@ export function TradeHistorySection({ assetId, isAtomic }: Props) {
       {open && isAtomic && error && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Couldn't load trading history right now.</span>
-          <Button variant="outline" size="sm" onClick={() => { setError(false); setHistory(null); setOpen(false); setTimeout(() => setOpen(true), 0); }}>Try again</Button>
+          <Button variant="outline" size="sm" onClick={() => { setError(false); setAttempt((n) => n + 1); }}>Try again</Button>
         </div>
       )}
       {open && isAtomic && !error && !history && <p className="text-xs text-muted-foreground">Loading history…</p>}
