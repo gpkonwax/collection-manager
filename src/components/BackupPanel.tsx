@@ -831,7 +831,7 @@ function RecordsZipCard() {
       clearCachedHolders();
       toast({
         title: 'Records ZIP loaded',
-        description: `${rec.cardCount.toLocaleString()} mint numbers, ${rec.holderCount.toLocaleString()} holders.`,
+        description: `${rec.cardCount.toLocaleString()} mint numbers, ${rec.holderCount.toLocaleString()} holders${rec.provenanceCount ? `, ${rec.provenanceCount.toLocaleString()} pack openings` : ''}.`,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not read that ZIP.');
@@ -877,7 +877,7 @@ function RecordsZipCard() {
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           {loaded
-            ? `Loaded — snapshot from ${formatRecordsDate(loaded.generatedAt) ?? 'unknown date'}, ${loaded.cardCount.toLocaleString()} cards, ${loaded.holderCount.toLocaleString()} holders`
+            ? `Loaded — snapshot from ${formatRecordsDate(loaded.generatedAt) ?? 'unknown date'}, ${loaded.cardCount.toLocaleString()} cards, ${loaded.holderCount.toLocaleString()} holders${loaded.provenanceCount ? `, ${loaded.provenanceCount.toLocaleString()} pack openings` : ''}`
             : 'No records ZIP loaded.'}
         </p>
         {loaded && (

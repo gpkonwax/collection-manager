@@ -6,6 +6,7 @@ import type { ViewMode } from './InteractiveArtwork';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
 import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount';
+import { getProvenance, formatPackLabel, formatProvenanceDate, type ProvenanceEntry } from '@/lib/provenance';
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
@@ -44,13 +45,34 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   }, [unifiedColor]);
 
   const shouldLookupBridger = !!asset && open && isBridgedAsset(asset);
+  // Pack records are keyed by the original SimpleAssets id for bridged copies.
+  const provenanceKey = asset && open
+    ? (isBridgedAsset(asset) ? String(asset.idata?.sassets_id ?? '') : String(asset.id))
+    : '';
+  const [provenance, setProvenance] = useState<ProvenanceEntry | null>(null);
+  useEffect(() => {
+    setProvenance(null);
+    if (!provenanceKey) return;
+    let cancelled = false;
+    getProvenance(provenanceKey)
+      .then((entry) => { if (!cancelled) setProvenance(entry); })
+      .catch((err) => console.warn('[Provenance] pack record lookup failed:', err));
+    return () => { cancelled = true; };
+  }, [provenanceKey]);
+
   const [bridgedBy, setBridgedBy] = useState<string | null>(null);
   useEffect(() => {
     if (!assetId || !shouldLookupBridger) { setBridgedBy(null); return; }
     let cancelled = false;
     setBridgedBy(getCachedBridgeAccount(assetId) ?? null);
-    fetchBridgeAccount(assetId)
-      .then((account) => { if (!cancelled) setBridgedBy(account); })
+    // Saved records first; the live lookup is only a fallback.
+    getProvenance(assetId)
+      .catch(() => null)
+      .then((saved) => {
+        if (cancelled) return null;
+        if (saved?.b) { setBridgedBy(saved.b); return null; }
+        return fetchBridgeAccount(assetId).then((account) => { if (!cancelled) setBridgedBy(account); });
+      })
       .catch((err) => console.warn('[BridgeInfo] bridging account lookup failed:', err));
     return () => { cancelled = true; };
   }, [assetId, shouldLookupBridger]);
@@ -68,6 +90,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const bridgeDate = bridgedAt && !Number.isNaN(bridgedAt.getTime())
     ? bridgedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
     : null;
+  const openedBy = provenance?.o ?? null;
+  const mintedOn = formatProvenanceDate(provenance?.t);
+  const packLabel = formatPackLabel(provenance?.p, provenance?.n);
+  const hasProvenance = !!(openedBy || mintedOn || packLabel);
+  const showMintInfo = mintLabel !== '#--' || supplyLines.length > 0 || hasProvenance;
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
@@ -148,9 +175,9 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
-        {(mintLabel !== '#--' || supplyLines.length > 0 || (isBridgedAA && (asset.idata?.bridge_mint || bridgeDate))) && (
+        {(showMintInfo || (isBridgedAA && (asset.idata?.bridge_mint || bridgeDate))) && (
           <div className={`grid grid-cols-1 gap-4 ${isBridgedAA ? 'sm:grid-cols-2' : ''}`}>
-            {(mintLabel !== '#--' || supplyLines.length > 0) && (
+            {showMintInfo && (
               <div className="space-y-1 text-sm text-foreground">
                 <p className="text-xs font-semibold text-cheese">Mint information</p>
                 {mintLabel !== '#--' && (
@@ -159,6 +186,13 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                   </p>
                 )}
                 {supplyLines.map((line) => <p key={line}>{line}</p>)}
+                {openedBy && (
+                  <p>
+                    Opened by: <span className="font-semibold font-mono text-cheese">{openedBy}</span>
+                  </p>
+                )}
+                {mintedOn && <p>Minted on: {mintedOn}</p>}
+                {packLabel && <p>Pack: {packLabel}</p>}
               </div>
             )}
             {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (

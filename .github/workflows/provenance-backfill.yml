@@ -1,0 +1,59 @@
+name: Backfill pack provenance
+
+# One-time scan of every GPK pack opening since May 2020 (SimpleAssets and
+# AtomicAssets): who opened the pack, when each card was minted, which pack.
+# Writes manifests/provenance/. Each run works for up to ~5.5 hours, commits
+# its progress, then starts the next run itself until the scan is finished.
+# Safe to re-run any time: it resumes from saved bookmarks.
+# After it finishes, "Refresh GPK mint numbers" adds new openings twice a day.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write # lets a run start the next chunk
+
+concurrency:
+  group: gpk-manifests # never alongside the mint/holders workflows (all commit)
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Scan pack openings
+        id: scan
+        run: node scripts/backfill-pack-provenance.mjs --max-minutes 320
+
+      - name: Commit progress
+        id: commit
+        if: always()
+        run: |
+          git config user.name "gpk-provenance-bot"
+          git config user.email "actions@github.com"
+          if [ -d manifests/provenance ]; then git add manifests/provenance; fi
+          if git diff --cached --quiet; then
+            echo "No new provenance records."
+            echo "progress=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "progress=true" >> "$GITHUB_OUTPUT"
+            git commit -m "chore: backfill pack provenance ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push
+          fi
+
+      - name: Start the next chunk
+        # Only chain while each chunk makes progress, so a long node outage
+        # stops the chain instead of looping; re-run by hand afterwards.
+        if: success() && steps.scan.outputs.done != 'true' && steps.commit.outputs.progress == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run provenance-backfill.yml --ref "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"

@@ -25,6 +25,10 @@ export interface LoadedRecords {
   index: RecordsIndex;
   shards: Map<string, Record<string, unknown>>;
   holders: HoldersManifest | null;
+  /** Pack-opening provenance shards; null when the ZIP predates provenance. */
+  provenance: Map<string, Record<string, unknown>> | null;
+  provenanceIndex: RecordsIndex | null;
+  provenanceCount: number;
 }
 
 let current: LoadedRecords | null = null;
@@ -48,7 +52,7 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 /** Strip any leading folder so `gpk-records/mints/001.json` → `mints/001.json`. */
 function normalise(path: string): string | null {
   const p = path.replace(/\\/g, '/');
-  const m = p.match(/(?:^|\/)(mints\/(?:\d{3}|index)\.json|gpk-topps-holders\.json|records-info\.json)$/);
+  const m = p.match(/(?:^|\/)((?:mints|provenance)\/(?:\d{3}|index)\.json|gpk-topps-holders\.json|records-info\.json)$/);
   return m ? m[1] : null;
 }
 
@@ -81,6 +85,24 @@ export async function loadRecordsZip(file: Blob & { name?: string }): Promise<Lo
     try { shards.set(key, JSON.parse(strFromU8(bytes))); } catch { throw new Error(`Mint file ${key}.json is damaged.`); }
   }
 
+  // Optional provenance: verified the same way, but a damaged copy is an error
+  // rather than silently half-loaded.
+  let provenance: Map<string, Record<string, unknown>> | null = null;
+  let provenanceIndex: RecordsIndex | null = null;
+  const provIndexBytes = files.get('provenance/index.json');
+  if (provIndexBytes) {
+    try { provenanceIndex = JSON.parse(strFromU8(provIndexBytes)); } catch { throw new Error('The pack-opening index inside the ZIP is damaged.'); }
+    provenance = new Map();
+    for (const [key, meta] of Object.entries(provenanceIndex?.shards ?? {})) {
+      const bytes = files.get(`provenance/${key}.json`);
+      if (!bytes) throw new Error(`The ZIP is incomplete — pack-opening file ${key}.json is missing.`);
+      if (meta?.sha256 && (await sha256Hex(bytes)) !== meta.sha256) {
+        throw new Error(`Pack-opening file ${key}.json is damaged (checksum mismatch).`);
+      }
+      try { provenance.set(key, JSON.parse(strFromU8(bytes))); } catch { throw new Error(`Pack-opening file ${key}.json is damaged.`); }
+    }
+  }
+
   let holders: HoldersManifest | null = null;
   const holdersBytes = files.get('gpk-topps-holders.json');
   if (holdersBytes) {
@@ -99,6 +121,9 @@ export async function loadRecordsZip(file: Blob & { name?: string }): Promise<Lo
     index,
     shards,
     holders,
+    provenance,
+    provenanceIndex,
+    provenanceCount: typeof provenanceIndex?.count === 'number' ? provenanceIndex.count : 0,
   };
   listeners.forEach((l) => l());
   return current;
@@ -108,4 +133,10 @@ export async function loadRecordsZip(file: Blob & { name?: string }): Promise<Lo
 export function getRecordsShard(key: string): Record<string, unknown> | null {
   if (!current) return null;
   return current.shards.get(key) ?? {};
+}
+
+/** Provenance shard from the loaded ZIP: object, `{}` if none here, or null if the ZIP has no provenance. */
+export function getRecordsProvenanceShard(key: string): Record<string, unknown> | null {
+  if (!current?.provenance) return null;
+  return current.provenance.get(key) ?? {};
 }

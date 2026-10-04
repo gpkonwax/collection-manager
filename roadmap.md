@@ -1,5 +1,8 @@
 # Roadmap
 
+- [x] Pack-opening provenance: opener, mint date and pack in card details; one-time backfill workflow + twice-daily updates; bundled in records ZIP.
+- [ ] Run the "Backfill pack provenance" workflow once on GitHub (blocked: needs the user to start it).
+
 - [x] In card details, hide backup-source mint line; show bridged-card bridge mint and dated bridge information beside mint information (stack on narrow screens).
 
 - [x] Show original mint numbers on pack-history replay cards during reveal, matching the grid; never show bridge-order numbers as originals.
