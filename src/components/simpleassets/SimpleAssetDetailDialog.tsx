@@ -5,6 +5,7 @@ import { ImageWithModes, ArtworkModeControls, DRAW_COLORS } from './InteractiveA
 import type { ViewMode } from './InteractiveArtwork';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
+import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount';
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
@@ -41,6 +42,18 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
       if (canvas) (canvas as HTMLCanvasElement & { __setColor?: (color: string) => void }).__setColor?.(unifiedColor);
     });
   }, [unifiedColor]);
+
+  const shouldLookupBridger = !!asset && open && isBridgedAsset(asset);
+  const [bridgedBy, setBridgedBy] = useState<string | null>(null);
+  useEffect(() => {
+    if (!assetId || !shouldLookupBridger) { setBridgedBy(null); return; }
+    let cancelled = false;
+    setBridgedBy(getCachedBridgeAccount(assetId) ?? null);
+    fetchBridgeAccount(assetId)
+      .then((account) => { if (!cancelled) setBridgedBy(account); })
+      .catch((err) => console.warn('[BridgeInfo] bridging account lookup failed:', err));
+    return () => { cancelled = true; };
+  }, [assetId, shouldLookupBridger]);
 
   if (!asset) return null;
 
@@ -161,6 +174,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
                       #{String(asset.idata.bridge_mint)}
                       {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
                     </span>
+                  </p>
+                )}
+                {bridgedBy && (
+                  <p>
+                    Bridged by: <span className="font-semibold font-mono text-cheese">{bridgedBy}</span>
                   </p>
                 )}
                 {bridgeDate && <p>Bridged on: {bridgeDate}</p>}

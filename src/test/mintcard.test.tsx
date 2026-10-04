@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
+const bridgeLookup = vi.hoisted(() => vi.fn(async (id: string) => (id === '77' ? '3ngqu.wam' : null)));
+vi.mock('@/lib/bridgeAccount', () => ({ fetchBridgeAccount: bridgeLookup, getCachedBridgeAccount: () => undefined }));
 vi.mock('@/components/simpleassets/IpfsMedia', () => ({ IpfsMedia: () => null }));
 vi.mock('@/hooks/useIpfsMedia', () => ({ prefetchIpfsImage: vi.fn() }));
 vi.mock('@/hooks/useCardTilt', () => ({ useCardTilt: () => ({ ref: { current: null }, glareRef: { current: null }, onMouseMove: vi.fn(), onMouseLeave: vi.fn() }) }));
@@ -91,5 +93,17 @@ describe('mint ribbon', () => {
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
     rerender(<SimpleAssetDetailDialog asset={{ ...base, source: 'simpleassets', mintNumber: 22, bridgedAt: Date.UTC(2026, 8, 22), idata: { bridge_mint: '203' } }} open onOpenChange={() => {}} />);
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
+  });
+  it('shows the bridging account from the mint log, and omits it when unknown', async () => {
+    const { rerender } = render(<SimpleAssetDetailDialog asset={{ ...base, id: '77', mintNumber: 5, idata: { bridge_mint: '9' } }} open onOpenChange={() => {}} />);
+    expect(await screen.findByText('3ngqu.wam')).toBeInTheDocument();
+    expect(screen.getByText(/Bridged by:/)).toBeInTheDocument();
+    rerender(<SimpleAssetDetailDialog asset={{ ...base, id: '78', mintNumber: 5, idata: { bridge_mint: '9' } }} open onOpenChange={() => {}} />);
+    await waitFor(() => expect(screen.queryByText(/Bridged by:/)).not.toBeInTheDocument());
+  });
+  it('never looks up a bridger for native AtomicAssets cards', () => {
+    bridgeLookup.mockClear();
+    render(<SimpleAssetDetailDialog asset={{ ...base, id: '77', category: 'foodfight', idata: { bridge_mint: '9' } }} open onOpenChange={() => {}} />);
+    expect(bridgeLookup).not.toHaveBeenCalled();
   });
 });
