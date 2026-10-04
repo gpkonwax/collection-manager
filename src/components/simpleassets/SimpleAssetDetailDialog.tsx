@@ -9,6 +9,14 @@ import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount'
 import { getProvenance, formatPackLabel, formatProvenanceDate, type ProvenanceEntry } from '@/lib/provenance';
 import { TradeHistorySection } from './TradeHistorySection';
 import { getRetroFront, getRetroBack } from '@/lib/retroScans';
+import { ExternalLink } from 'lucide-react';
+import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
+
+const fmtDate = (ms?: number) => {
+  if (!ms || !Number.isFinite(ms) || ms <= 0) return null;
+  const d = new Date(ms);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+};
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
@@ -81,6 +89,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
     return () => { cancelled = true; };
   }, [assetId, shouldLookupBridger]);
 
+  const link = useExternalLinkWarning();
   if (!asset) return null;
 
   const images = asset.images;
@@ -98,10 +107,17 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const mintedOn = formatProvenanceDate(provenance?.t);
   const packLabel = formatPackLabel(provenance?.p, provenance?.n);
   const hasProvenance = !!(openedBy || mintedOn || packLabel);
-  const showMintInfo = mintLabel !== '#--' || supplyLines.length > 0 || hasProvenance;
+  const showMintInfo = mintLabel !== '#--' || supplyLines.length > 0 || hasProvenance || (asset.source === 'atomicassets' && !!asset.idata?._template_id);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
+  const isAA = asset.source === 'atomicassets';
+  const templateId = isAA ? String(asset.idata?._template_id ?? '') : '';
+  const issued = isAA ? Number(asset.idata?.bridge_total) : NaN;
+  const acquiredOn = isAA ? fmtDate(asset.transferredAt) : null;
+  const explorerUrl = isAA
+    ? `https://atomichub.io/explorer/asset/wax-mainnet/${asset.id}`
+    : `https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=${encodeURIComponent(asset.owner)}&lower_bound=${asset.id}&upper_bound=${asset.id}`;
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
 
@@ -129,7 +145,18 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>Asset #{asset.id}</span>
+            <span className="inline-flex items-center gap-1">
+              Asset #{asset.id}
+              <button
+                type="button"
+                onClick={() => link.requestNavigation(explorerUrl)}
+                className="text-cheese hover:opacity-80"
+                title={isAA ? 'View on AtomicHub explorer' : 'View on WAX block explorer'}
+                aria-label={isAA ? 'View on AtomicHub explorer' : 'View on WAX block explorer'}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </button>
+            </span>
             <span aria-hidden>·</span>
             <span>by {asset.author}</span>
             <span aria-hidden>·</span>
@@ -206,6 +233,12 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 )}
                 {mintedOn && <p>Minted on: {mintedOn}</p>}
                 {packLabel && <p>Pack: {packLabel}</p>}
+                {templateId && (
+                  <p>
+                    Template: <span className="font-mono">#{templateId}</span>
+                    {Number.isFinite(issued) && issued > 0 ? ` · Total issued: ${issued.toLocaleString('en-US')}` : ''}
+                  </p>
+                )}
               </div>
             )}
             {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
@@ -265,7 +298,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         )}
         <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} owner={asset.owner} opener={openedBy} />
         <div className="flex items-center justify-between pt-2 border-t border-border">
-          <span className="text-xs text-muted-foreground">Owner: {asset.owner}</span>
+          <span className="text-xs text-muted-foreground">Owner: {asset.owner}{acquiredOn ? ` · Acquired on ${acquiredOn}` : ''}</span>
           <Button variant="ghost" size="sm" onClick={() => setShowRawJson(!showRawJson)}>{showRawJson ? 'Hide' : 'Show'} Raw JSON</Button>
         </div>
         {showRawJson && (
@@ -281,6 +314,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           </div>
         )}
       </DialogContent>
+      <ExternalLinkWarningDialog url={link.pendingUrl} onConfirm={link.confirm} onCancel={link.cancel} />
     </Dialog>
   );
 }
