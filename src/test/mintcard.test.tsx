@@ -82,10 +82,13 @@ describe('mint ribbon', () => {
     expect(screen.queryByText(/Mint number — saved backup/)).not.toBeInTheDocument();
     const mintHeading = screen.getByText('Mint information');
     const bridgeHeading = screen.getByText('Bridge Information');
-    expect(mintHeading.parentElement?.parentElement).toBe(bridgeHeading.parentElement?.parentElement);
-    expect(mintHeading.parentElement?.parentElement).toHaveClass('sm:grid-cols-4');
-    expect(mintHeading.parentElement).toHaveClass('sm:col-start-2', 'sm:col-span-2', 'sm:items-center');
-    expect(bridgeHeading.parentElement).toHaveClass('sm:col-start-3', 'sm:col-span-2', 'sm:items-center');
+    // Each heading sits in a flush-left wrapper inside its column; columns share one grid.
+    expect(mintHeading.parentElement).toHaveClass('text-left');
+    expect(bridgeHeading.parentElement).toHaveClass('text-left');
+    expect(mintHeading.parentElement?.parentElement?.parentElement).toBe(bridgeHeading.parentElement?.parentElement?.parentElement);
+    expect(mintHeading.parentElement?.parentElement?.parentElement).toHaveClass('sm:grid-cols-4');
+    expect(mintHeading.parentElement?.parentElement).toHaveClass('sm:col-start-2', 'sm:col-span-2', 'sm:items-center');
+    expect(bridgeHeading.parentElement?.parentElement).toHaveClass('sm:col-start-3', 'sm:col-span-2', 'sm:items-center');
     expect(screen.getByText('Bridge Mint:')).toBeInTheDocument();
     expect(screen.getByText('#39')).toBeInTheDocument();
     expect(screen.getByText('Bridged on: 22 Sept 2026')).toBeInTheDocument();
@@ -104,7 +107,7 @@ describe('mint ribbon', () => {
   });
   it('shows linked Information before mint and bridge information, with template ID only for AtomicAssets', async () => {
     const { rerender } = render(<SimpleAssetDetailDialog asset={{ ...base, id: '1099535105066', mintNumber: 9, idata: { _template_id: '363', bridge_mint: '7', bridge_total: '90' } }} open onOpenChange={() => {}} />);
-    const info = screen.getByText('Information').parentElement;
+    const info = screen.getByText('Information').parentElement?.parentElement;
     const columns = info?.parentElement;
     expect(columns?.children[0]).toBe(info);
     expect(columns?.children[1]).toContainElement(screen.getByText('Mint information'));
@@ -123,8 +126,9 @@ describe('mint ribbon', () => {
     rerender(<SimpleAssetDetailDialog asset={{ ...base, source: 'simpleassets', id: '123', category: 'five', idata: {} }} open onOpenChange={() => {}} />);
     expect(screen.queryByText('Template ID:')).not.toBeInTheDocument();
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
-    expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:grid-cols-4');
-    expect(screen.getByText('Information').parentElement).toHaveClass('sm:col-start-1', 'sm:col-span-2', 'sm:items-center');
+    expect(screen.getByText('Information').parentElement).toHaveClass('text-left');
+    expect(screen.getByText('Information').parentElement?.parentElement?.parentElement).toHaveClass('sm:grid-cols-4');
+    expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:col-start-1', 'sm:col-span-2', 'sm:items-center');
     await checkLink('123', 'https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
     await checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
   });
