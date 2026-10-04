@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
-import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS, PRIMARY_MIRROR, getPublicGatewayCount } from '@/lib/ipfsGateways';
+import { IPFS_GATEWAYS, extractIpfsHash, IMAGE_LOAD_TIMEOUT, RACE_GATEWAY_COUNT, RACE_TIMEOUT_MS, PRIMARY_MIRROR, BACKUP_MIRROR_A, BACKUP_MIRROR_B, getPublicGatewayCount } from '@/lib/ipfsGateways';
 import {
   acquireLocalMirror,
   getLocalMirrorGeneration,
@@ -81,13 +81,18 @@ export function clearIpfsUrlCache() {
 }
 
 
-// ---- mirror-first (opt-in) session state -------------------------------
-// Hashes known to be absent/slow on the primary mirror this session.
+// ---- mirror-first session state -----------------------------------------
+// Every image tries our own static mirrors first (primary → backup A →
+// backup B); public IPFS gateways are only the fallback.
+const MIRROR_CHAIN = [PRIMARY_MIRROR, BACKUP_MIRROR_A, BACKUP_MIRROR_B].filter(Boolean);
+// Hashes every mirror answered with an error (not in the snapshot) this session.
 const mirrorMissSet = new Set<string>();
-// After this many consecutive mirror failures we assume the mirror is down
-// and skip the mirror attempt entirely for the rest of the session.
-const MIRROR_DOWN_THRESHOLD = 5;
-const MIRROR_FIRST_TIMEOUT_MS = 1500;
+// Only real errors from the whole chain count — a slow, busy page of images
+// queueing behind each other must never lock the mirrors out.
+const MIRROR_DOWN_THRESHOLD = 25;
+// Generous per-mirror timeout: mirrors are reliable, so a timeout usually
+// means the browser is queueing many images, not that the mirror is down.
+const MIRROR_FIRST_TIMEOUT_MS = 8000;
 let mirrorConsecutiveFailures = 0;
 let mirrorDown = false;
 
