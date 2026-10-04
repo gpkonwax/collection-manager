@@ -226,7 +226,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             between centre and edge no matter how long the lines beneath grow. */}
         <div className="bg-muted/30 rounded p-3 sm:p-4">
         <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-4 sm:gap-y-0">
-            <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-1 sm:col-span-2 sm:items-center">
+            <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-1 sm:col-span-2 sm:row-start-1 sm:items-center">
               <p className="text-xs font-semibold text-cheese">Information</p>
               <div className="space-y-1 text-left">
                 <p className="break-words">
@@ -245,7 +245,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 </p>
               </div>
             </div>
-              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-2 sm:col-span-2 sm:items-center">
+              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-2 sm:col-span-2 sm:row-start-1 sm:items-center">
                 <p className="text-xs font-semibold text-cheese">Mint information</p>
                 <div className="space-y-1 text-left">
                   <p>
@@ -263,7 +263,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 </div>
               </div>
             {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
-              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-3 sm:col-span-2 sm:items-center">
+              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-3 sm:col-span-2 sm:row-start-1 sm:items-center">
                 <p className="text-xs font-semibold text-cheese">Bridge Information</p>
                 <div className="space-y-1 text-left">
                   {asset.idata?.bridge_mint && (
