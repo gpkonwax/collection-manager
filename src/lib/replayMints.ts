@@ -6,7 +6,10 @@ import { resolveSaMintsForAssets } from '@/lib/saMintResolver';
 /** Resolve by the original asset identity, never by card title or bridge order. */
 export async function resolveReplayMintLabels(entry: PackHistoryEntry, owned: SimpleAsset[]): Promise<string[]> {
   const byId = new Map(owned.filter((asset) => asset.source === entry.source).map((asset) => [asset.id, asset]));
-  const labels = entry.cards.map((card) => card.id ? getMintLabel(byId.get(String(card.id)) as SimpleAsset) : '#--');
+  const labels = entry.cards.map((card) => {
+    const ownedCard = card.id ? byId.get(String(card.id)) : undefined;
+    return ownedCard ? getMintLabel(ownedCard) : '#--';
+  });
   // A card can have left the wallet since opening; its original SA id is still
   // enough to find the saved mint number without relying on a current owner.
   const missingSa = entry.source === 'simpleassets'

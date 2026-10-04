@@ -35,6 +35,7 @@ export interface RevealCard {
   image: string | null;
   originalImage?: string | null;
   rarity: string;
+  mintLabel?: string;
 }
 
 interface PendingNftRow {
