@@ -560,6 +560,7 @@ export function useIpfsMedia(
   useEffect(() => {
     if (context !== 'detail') { raceDoneRef.current = true; return; }
     raceDoneRef.current = false;
+    if (mirrorPhase) return; // gateways only race after every mirror missed
     if (!enabled || !hash || cachedLoadedUrl || hasLoadedRef.current) {
       raceDoneRef.current = true;
       return;
@@ -582,7 +583,7 @@ export function useIpfsMedia(
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hash, enabled, context]);
+  }, [hash, enabled, context, mirrorPhase]);
 
   // Timeout-based fallback — only when enabled and not yet loaded
   useEffect(() => {
@@ -650,12 +651,12 @@ export function useIpfsMedia(
     if (hasLoadedRef.current) return;
     if (!enabled) return; // ignore cancellations from being disabled
     if (mirrorPhase) {
-      // Mirror doesn't have this file — remember and fall back to gateways.
-      leaveMirrorPhase();
+      // This mirror doesn't have the file — try the next mirror, then gateways.
+      nextMirror(false);
       return;
     }
     advance();
-  }, [advance, enabled, mirrorPhase, leaveMirrorPhase]);
+  }, [advance, enabled, mirrorPhase, nextMirror]);
 
   const usingMirrorFirst = mirrorPhase && enabled && !!hash && !verifiedMirrorUrl && !localMirrorUrl && !cachedLoadedUrl && !thumbBlobUrl;
 
@@ -686,8 +687,8 @@ export function useIpfsMedia(
   } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
   } else if (usingMirrorFirst && hash) {
-    // Opt-in mirror-first attempt (Pack History thumbnails).
-    src = `${PRIMARY_MIRROR}${hash}`;
+    // Mirror-first: our own static mirrors before any public gateway.
+    src = `${MIRROR_CHAIN[Math.min(mirrorStep, MIRROR_CHAIN.length - 1)]}${hash}`;
   } else if (hash) {
     const base = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
     // Append cache-buster only on retry rounds so browsers refetch
