@@ -28,13 +28,15 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Hidden 1985-scan view: show original Topps scans for base Series 1/2 cards. */
   retro?: boolean;
+  /** Called when an account name (opener/bridger) is clicked — opens View Wallet prefilled with it. */
+  onViewAccount?: (account: string) => void;
 }
 
 const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
 
-export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = false }: Props) {
+export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = false, onViewAccount }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
@@ -257,7 +259,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                   {supplyLines.map((line) => <p key={line}>{line}</p>)}
                   {openedBy && (
                     <p>
-                      Opened by: <span className="font-semibold font-mono text-cheese">{openedBy}</span>
+                      Opened by: {onViewAccount ? (
+                        <Button type="button" variant="link" onClick={() => onViewAccount(openedBy)} title={`View ${openedBy}'s wallet`} className="h-auto p-0 font-semibold font-mono text-cheese align-baseline">{openedBy}</Button>
+                      ) : (
+                        <span className="font-semibold font-mono text-cheese">{openedBy}</span>
+                      )}
                     </p>
                   )}
                   {mintedOn && <p>Minted on: {mintedOn}</p>}
@@ -285,7 +291,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                   )}
                   {bridgedBy && (
                     <p>
-                      Bridged by: <span className="font-semibold font-mono text-cheese">{bridgedBy}</span>
+                      Bridged by: {onViewAccount ? (
+                        <Button type="button" variant="link" onClick={() => onViewAccount(bridgedBy)} title={`View ${bridgedBy}'s wallet`} className="h-auto p-0 font-semibold font-mono text-cheese align-baseline">{bridgedBy}</Button>
+                      ) : (
+                        <span className="font-semibold font-mono text-cheese">{bridgedBy}</span>
+                      )}
                     </p>
                   )}
                   {bridgeDate && <p>Bridged on: {bridgeDate}</p>}

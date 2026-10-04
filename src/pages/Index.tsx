@@ -337,6 +337,18 @@ export default function SimpleAssetsPage() {
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showTradesDialog, setShowTradesDialog] = useState(false);
   const [viewWalletSignal, setViewWalletSignal] = useState(0);
+  const [viewWalletPrefill, setViewWalletPrefill] = useState<string | null>(null);
+  const handleViewAccountFromDetail = useCallback((account: string) => {
+    setSelectedAsset(null);
+    if (isConnected && accountName) {
+      // View Wallet popover is available — open it with the account prefilled.
+      setViewWalletPrefill(account);
+      setViewWalletSignal((n) => n + 1);
+    } else {
+      // Read-only / signed-out: no popover, so view the wallet directly.
+      setViewedAccount(account);
+    }
+  }, [isConnected, accountName]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialTheirIds, setComposerInitialTheirIds] = useState<string[]>([]);
   const [composerInitialTheirPackQty, setComposerInitialTheirPackQty] = useState<Record<string, number>>({});
@@ -2595,6 +2607,7 @@ export default function SimpleAssetsPage() {
                 onView={handleViewWallet}
                 onClear={handleClearViewing}
                 openSignal={viewWalletSignal}
+                openAccount={viewWalletPrefill}
               />
               {isViewing && viewedAccount && (
                 <FavoriteAccountButton account={viewedAccount} />
@@ -3547,7 +3560,7 @@ export default function SimpleAssetsPage() {
         </div>
       )}
 
-      <SimpleAssetDetailDialog retro={retroActive} asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
+      <SimpleAssetDetailDialog retro={retroActive} asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} onViewAccount={handleViewAccountFromDetail} />
       <BinderStackDialog
         assets={stackedAssets ?? []}
         open={stackDialogOpen}
