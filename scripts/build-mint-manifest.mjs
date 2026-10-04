@@ -32,6 +32,7 @@
  *   --limit <n>       only look up the first n ids (test runs)
  *   --no-bridged      skip the AtomicAssets bridged-card listing
  *   --fresh           ignore the resumable work file from an interrupted run
+ *   --incremental     only look up ids missing from the existing backup (mints never change)
  */
 import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -52,6 +53,7 @@ const OUT_DIR = path.resolve(ROOT, argVal('--out') || 'manifests/mints');
 const LIMIT = argVal('--limit') ? parseInt(argVal('--limit'), 10) : Infinity;
 const SKIP_BRIDGED = args.includes('--no-bridged');
 const FRESH = args.includes('--fresh');
+const INCREMENTAL = args.includes('--incremental');
 // Kept outside the repo so the resumable work file is never committed.
 const WORK_FILE = process.env.MINTS_WORK_FILE || path.join(os.tmpdir(), 'gpk-mints-work.ndjson');
 
@@ -208,7 +210,15 @@ async function main() {
 
   const prev = await loadPrevious();
   const { got, tried } = await loadWork();
-  const todo = all.filter((id) => !tried.has(id));
+  // --incremental: a card's mint never changes, so only look up ids that are
+  // not in the existing backup yet (newly opened cards).
+  const todo = all.filter((id) => !tried.has(id) && !(INCREMENTAL && prev.has(id)));
+  if (INCREMENTAL) log(`[mints] incremental: ${todo.length.toLocaleString()} new ids not yet in the backup`);
+  if (todo.length === 0 && got.size === 0) {
+    log('[mints] nothing new to look up — backup left unchanged.');
+    await fs.rm(WORK_FILE, { force: true });
+    return;
+  }
   const batches = [];
   for (let i = 0; i < todo.length; i += BATCH_SIZE) batches.push(todo.slice(i, i + BATCH_SIZE));
 

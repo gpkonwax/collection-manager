@@ -117,5 +117,5 @@ attach the ZIP to the release by hand. See `.lovable/plan-offline-bundle.md`.
 bridged AtomicAssets card on AtomicHub's mint endpoint and writes
 `manifests/mints/000.json … 999.json` + `index.json` (shard = last 3 digits of
 the SA id). `build-data-mirror.mjs` publishes them to gpk-data; the offline
-bundle ships them as `.js` files. The monthly holders workflow refreshes it.
+bundle ships them as `.js` files. The separate `mint-manifest.yml` workflow refreshes it (incremental by default: only new cards; choose "full" to re-check all). The monthly holders workflow only rebuilds the records ZIP from the committed shards.
 Resumable: re-run without `--fresh` after an interruption.
