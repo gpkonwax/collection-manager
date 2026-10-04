@@ -20,17 +20,19 @@ describe('mint ribbon', () => {
   it('shows #-- for bridged AA before resolution', () => {
     render(<SimpleAssetCard asset={{ ...base, idata: { mint: '203', bridge_mint: '203' } }} onClick={() => {}} />);
     expect(screen.getByText('#--')).toBeInTheDocument();
+    expect(screen.getByText('Bridge Mint #203')).toBeInTheDocument();
   });
   it('shows the real mint for bridged AA after resolution (mintNumber set)', () => {
     render(<SimpleAssetCard asset={{ ...base, mintNumber: 356, mintSurviving: 398, mintBurned: 0, mintSource: 'backup', idata: { mint: '356', bridge_mint: '203' } }} onClick={() => {}} />);
     expect(screen.getByText('#356')).toBeInTheDocument();
-    expect(screen.queryByText(/Bridge Mint/)).not.toBeInTheDocument();
+    expect(screen.getByText('Bridge Mint #203')).toBeInTheDocument();
     expect(screen.getByTitle(/Total ever minted: 398/)).toHaveAttribute('title', expect.stringContaining('Burned: 0'));
   });
   it('shows the real mint for plain SimpleAssets via idata.mint', () => {
-    render(<SimpleAssetCard asset={{ ...base, source: 'simpleassets', idata: { mint: '42', maxsupply: '100' } }} onClick={() => {}} />);
+    render(<SimpleAssetCard asset={{ ...base, source: 'simpleassets', idata: { mint: '42', maxsupply: '100', bridge_mint: '203' } }} onClick={() => {}} />);
     expect(screen.getByText('#42')).toBeInTheDocument();
     expect(screen.queryByText('#42 / 100')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Bridge Mint/)).not.toBeInTheDocument();
   });
   it('shows only the mint on burned Series 2 SA and bridged AA cards', () => {
     const asset = { ...base, category: 'series2', mintNumber: 1524, mintSurviving: 1281, mintBurned: 246, idata: { mint: '1524', maxsupply: '1281', bridge_mint: '39' } };
@@ -39,7 +41,17 @@ describe('mint ribbon', () => {
     expect(screen.getByTitle(/Total ever minted: 1,527/)).toHaveAttribute('title', expect.stringContaining('Burned: 246'));
     rerender(<SimpleAssetCard asset={{ ...asset, source: 'atomicassets' }} onClick={() => {}} />);
     expect(screen.getByText('#1524')).toBeInTheDocument();
+    expect(screen.getByText('Bridge Mint #39')).toBeInTheDocument();
+  });
+  it('keeps bridge order below the artwork with its total, but never for native AA cards', () => {
+    const { rerender } = render(<SimpleAssetCard asset={{ ...base, mintNumber: 356, idata: { bridge_mint: '203', bridge_total: '500' } }} onClick={() => {}} />);
+    const bridge = screen.getByText('Bridge Mint #203 / 500');
+    expect(bridge).toBeInTheDocument();
+    expect(bridge.closest('.p-3')).toContainElement(bridge);
+    expect(screen.getByText('#356')).toBeInTheDocument();
+    rerender(<SimpleAssetCard asset={{ ...base, category: 'foodfight', mintNumber: 203, idata: { bridge_mint: '203', bridge_total: '500' } }} onClick={() => {}} />);
     expect(screen.queryByText(/Bridge Mint/)).not.toBeInTheDocument();
+    expect(screen.getByText('#203')).toBeInTheDocument();
   });
   it('keeps the ribbon mint-only for Exotic cards', () => {
     render(<SimpleAssetCard asset={{ ...base, category: 'exotic', source: 'simpleassets', mintNumber: 1118, mintSurviving: 1507, mintBurned: 0 }} onClick={() => {}} />);
