@@ -305,7 +305,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
       if (phase === 'landed') {
         schedule(() => {
           const landAudio = new Audio(landSfx);
-          landAudio.volume = 0.75;
+          landAudio.volume = 0.5625; // 25% quieter than the original 0.75
           landAudio.play().catch(() => {});
           onCardDealt(orderedCards[dealIndex].id);
           setFlyTarget(null);
