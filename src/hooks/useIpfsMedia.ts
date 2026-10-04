@@ -104,8 +104,6 @@ let mirrorDown = false;
 // The score must never latch: once the session flips to mirror-first, almost
 // no gateway attempts happen any more, so without decay + re-probing +
 // expiry the app can never notice IPFS recovering.
-/** Try the mirror after this many failed gateway attempts for a single hash. */
-const MIRROR_INSERT_AFTER = 2;
 /** Failure score at which the whole session is considered "IPFS degraded". */
 const DEGRADED_THRESHOLD = 6;
 const DEGRADED_SCORE_MAX = DEGRADED_THRESHOLD * 2;
@@ -717,8 +715,8 @@ export function useIpfsMedia(
         noteMirrorHit();
         setCachedLoadedUrl(hash, src);
         gatewayCache.set(hash, getPublicGatewayCount() % IPFS_GATEWAYS.length);
-        // Persist the bytes so later opens/reloads never touch the network.
-        void putThumb(hash, src);
+        // Persist the bytes only for opt-in consumers (Pack History).
+        if (mirrorFirst) void putThumb(hash, src);
       } else {
         // A public gateway served it — the network is healthy-ish again.
         noteGatewaySuccess();
