@@ -34,16 +34,13 @@ function renderDialog() {
 // is an overlay anchored to the top of the card wrapper, not a block beneath it.
 describe('reveal mint label placement', () => {
   it('renders mint labels as top overlays inside the card wrapper', async () => {
-    const { container } = renderDialog();
-    // Demo flow starts in 'waiting'; force the reveal instead of the 4s timer.
-    const revealNow = await container.ownerDocument.querySelector('button');
-    const revealBtn = Array.from(container.ownerDocument.querySelectorAll('button')).find((b) => b.textContent?.includes('Reveal now'));
-    if (revealBtn) revealBtn.click();
-    void revealNow;
+    renderDialog();
+    // Dialogs portal to document.body; watch there instead of `container`.
+    // Demo flow: 4s waiting timer, then 1.6s staggered flip per card.
     await waitFor(() => {
-      expect(container.textContent).toContain('#203');
-    }, { timeout: 20000 });
-    const pills = Array.from(container.querySelectorAll('span')).filter((s) => s.textContent === '#203');
+      expect(document.body.textContent).toContain('#203');
+    }, { timeout: 25000 });
+    const pills = Array.from(document.body.querySelectorAll('span')).filter((s) => s.textContent === '#203');
     expect(pills.length).toBe(1);
     const pillHolder = pills[0].parentElement!;
     expect(pillHolder.className).toContain('absolute');
