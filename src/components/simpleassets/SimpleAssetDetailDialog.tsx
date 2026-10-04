@@ -9,6 +9,7 @@ import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount'
 import { getProvenance, formatPackLabel, formatProvenanceDate, type ProvenanceEntry } from '@/lib/provenance';
 import { TradeHistorySection } from './TradeHistorySection';
 import { getRetroFront, getRetroBack } from '@/lib/retroScans';
+import { CATEGORY_LABELS, normalizeAssetCategory } from '@/lib/gpkCategories';
 import { ExternalLink } from 'lucide-react';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 
@@ -107,13 +108,17 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const mintedOn = formatProvenanceDate(provenance?.t);
   const packLabel = formatPackLabel(provenance?.p, provenance?.n);
   const hasProvenance = !!(openedBy || mintedOn || packLabel);
-  const showMintInfo = mintLabel !== '#--' || supplyLines.length > 0 || hasProvenance || (asset.source === 'atomicassets' && !!asset.idata?._template_id);
   const metaFields = Object.entries({ ...asset.idata, ...asset.mdata }).filter(
     ([key]) => !['img', 'image', 'icon', 'backimg', 'back', 'img2', 'image2', 'backimage', 'name', ...MINT_KEYS, 'maxsupply', 'max_supply', 'supply', 'bridge_mint', 'bridge_total', '_template_id'].includes(key)
   );
   const isAA = asset.source === 'atomicassets';
   const templateId = isAA ? String(asset.idata?._template_id ?? '') : '';
   const issued = isAA ? Number(asset.idata?.bridge_total) : NaN;
+  const schemaName = isAA ? asset.category : normalizeAssetCategory(asset.category);
+  const seriesLabel = CATEGORY_LABELS[normalizeAssetCategory(asset.category)] ?? asset.category;
+  const collectionExplorerUrl = 'https://atomichub.io/explorer/collection/wax-mainnet/gpk.topps';
+  const schemaExplorerUrl = `https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/${encodeURIComponent(schemaName)}`;
+  const templateExplorerUrl = `https://atomichub.io/explorer/template/wax-mainnet/gpk.topps/${encodeURIComponent(templateId)}`;
   const acquiredOn = isAA ? fmtDate(asset.transferredAt) : null;
   const explorerUrl = isAA
     ? `https://atomichub.io/explorer/asset/wax-mainnet/${asset.id}`
@@ -215,16 +220,29 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
-        {(showMintInfo || (isBridgedAA && (asset.idata?.bridge_mint || bridgeDate))) && (
-          <div className={`grid grid-cols-1 gap-4 ${isBridgedAA ? 'sm:grid-cols-2' : ''}`}>
-            {showMintInfo && (
-              <div className="space-y-1 text-sm text-foreground">
+        <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${isBridgedAA ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+            <div className="min-w-0 space-y-1 text-sm text-foreground">
+              <p className="text-xs font-semibold text-cheese">Information</p>
+              <p className="break-words">
+                NFT ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(explorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{asset.id}</Button>
+              </p>
+              {templateId && (
+                <p className="break-words">
+                  Template ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(templateExplorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{templateId}</Button>
+                </p>
+              )}
+              <p className="break-words">
+                Collection: <Button type="button" variant="link" onClick={() => link.requestNavigation(collectionExplorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">gpk.topps</Button>
+              </p>
+              <p className="break-words">
+                Series: <Button type="button" variant="link" onClick={() => link.requestNavigation(schemaExplorerUrl)} className="h-auto p-0 text-cheese align-baseline">{seriesLabel}</Button>
+              </p>
+            </div>
+              <div className="min-w-0 space-y-1 text-sm text-foreground">
                 <p className="text-xs font-semibold text-cheese">Mint information</p>
-                {mintLabel !== '#--' && (
-                  <p>
-                    Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
-                  </p>
-                )}
+                <p>
+                  Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
+                </p>
                 {supplyLines.map((line) => <p key={line}>{line}</p>)}
                 {openedBy && (
                   <p>
@@ -233,16 +251,10 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 )}
                 {mintedOn && <p>Minted on: {mintedOn}</p>}
                 {packLabel && <p>Pack: {packLabel}</p>}
-                {templateId && (
-                  <p>
-                    Template: <span className="font-mono">#{templateId}</span>
-                    {Number.isFinite(issued) && issued > 0 ? ` · Total issued: ${issued.toLocaleString('en-US')}` : ''}
-                  </p>
-                )}
+                {Number.isFinite(issued) && issued > 0 && <p>Total issued (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
               </div>
-            )}
             {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
-              <div className="space-y-1 text-sm text-foreground">
+              <div className="min-w-0 space-y-1 text-sm text-foreground">
                 <p className="text-xs font-semibold text-cheese">Bridge Information</p>
                 {asset.idata?.bridge_mint && (
                   <p className="flex items-center gap-2 flex-wrap">
@@ -264,8 +276,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 {bridgeDate && <p>Bridged on: {bridgeDate}</p>}
               </div>
             )}
-          </div>
-        )}
+        </div>
         {metaFields.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold text-cheese">Metadata</h4>

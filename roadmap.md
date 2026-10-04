@@ -1,9 +1,10 @@
 # Roadmap
 
 - [x] Pack-opening provenance: opener, mint date and pack in card details; one-time backfill workflow + twice-daily updates; bundled in records ZIP.
-- [ ] Run the "Backfill pack provenance" workflow once on GitHub (blocked: needs the user to start it).
+- [ ] Confirm the user-started "Backfill pack provenance" workflow finishes on GitHub (blocked: external workflow completion).
 
 - [x] In card details, hide backup-source mint line; show bridged-card bridge mint and dated bridge information beside mint information (stack on narrow screens).
+- [x] Add linked Information column before mint and bridge details for NFT ID, template ID, collection and series.
 
 - [x] Show original mint numbers on pack-history replay cards during reveal, matching the grid; never show bridge-order numbers as originals.
 - [x] Favourite accounts feature: star accounts, Favourites section in View Wallet popover, JSON export/import via JSON menu with bulk multi-file drop — done 2026-09-27
