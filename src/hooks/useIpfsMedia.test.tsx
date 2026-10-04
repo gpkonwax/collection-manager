@@ -6,7 +6,7 @@ import {
   resetIpfsHealthState,
   isIpfsDegraded,
 } from './useIpfsMedia';
-import { PRIMARY_MIRROR, PUBLIC_IPFS_GATEWAYS } from '@/lib/ipfsGateways';
+import { PRIMARY_MIRROR, BACKUP_MIRROR_A, BACKUP_MIRROR_B, PUBLIC_IPFS_GATEWAYS } from '@/lib/ipfsGateways';
 
 vi.mock('@/lib/thumbCache', () => ({
   peekThumb: () => null,
@@ -30,31 +30,26 @@ describe('useIpfsMedia adaptive mirror fallback', () => {
     resetIpfsHealthState();
   });
 
-  it('starts on a public gateway for card context', () => {
+  it('starts on the primary mirror for card context', () => {
     const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
-    expect(result.current.src.startsWith(PUBLIC_IPFS_GATEWAYS[0])).toBe(true);
-  });
-
-  it('inserts the primary mirror after two failed gateway attempts', () => {
-    const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
-    fail(result, 1);
-    expect(result.current.src.startsWith(PRIMARY_MIRROR)).toBe(false);
-    fail(result, 1);
     expect(result.current.src).toBe(`${PRIMARY_MIRROR}${HASH}`);
   });
 
-  it('falls through to the remaining gateways when the mirror misses', () => {
+  it('walks primary → backup A → backup B before any public gateway', () => {
     const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
-    fail(result, 2);
-    expect(result.current.src).toBe(`${PRIMARY_MIRROR}${HASH}`);
-    fail(result, 1); // mirror 404
-    expect(result.current.src.startsWith(PRIMARY_MIRROR)).toBe(false);
-    expect(result.current.src.includes(HASH)).toBe(true);
-    // The mirror shortcut is not re-entered mid-rotation for this hash; the
-    // rotation simply continues through the remaining entries (the last of
-    // which is the mirror slot at the tail of the rotation list).
     fail(result, 1);
-    expect(result.current.src.includes(HASH)).toBe(true);
+    expect(result.current.src).toBe(`${BACKUP_MIRROR_A}${HASH}`);
+    fail(result, 1);
+    expect(result.current.src).toBe(`${BACKUP_MIRROR_B}${HASH}`);
+    fail(result, 1);
+    expect(PUBLIC_IPFS_GATEWAYS.some((g) => result.current.src.startsWith(g))).toBe(true);
+  });
+
+  it('skips the mirrors for a hash every mirror reported missing', () => {
+    const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
+    fail(result, 3);
+    const { result: again } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
+    expect(PUBLIC_IPFS_GATEWAYS.some((g) => again.current.src.startsWith(g))).toBe(true);
   });
 
 
