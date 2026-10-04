@@ -58,7 +58,7 @@ jobs:
       - name: Upload records ZIP to the backup repo's latest release
         env:
           GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
-          BACKUP_REPO: gpkonwaxbackup/gpk-backup
+          BACKUP_REPO: bewbzz/gpkonwaxbackup
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::warning::BACKUP_REPO_TOKEN not set — records ZIP built but not uploaded to the release."
