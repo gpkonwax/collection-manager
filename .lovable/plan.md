@@ -1,7 +1,7 @@
 # Card detail mint and bridge information
 
 - Remove the “Mint number — saved backup (date)” line from **Mint information** in card details, while keeping the original mint number and supply figures there. Leave the grid’s mint tooltip and the backup lookup unchanged.
-- Give bridged cards their own **Bridge Information** section below Mint information, with the existing bridge mint and, when available, the date the AtomicAssets version was created. Do not show this section for SimpleAssets or native AtomicAssets cards.
+- Give bridged cards their own **Bridge Information** section to the right of Mint information on wider screens (stacked beneath it on narrow screens), with the existing bridge mint and, when available, the date the AtomicAssets version was created. Do not show this section for SimpleAssets or native AtomicAssets cards.
 - If the bridge date is unavailable or invalid, show the bridge mint without inventing a date. Keep the original mint and bridge mint clearly distinct.
 - Check bridged, unbridged, dated, and undated cards in tests and in the card detail view.
 
