@@ -251,7 +251,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
             )}
           </div>
         )}
-        <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} />
+        <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} owner={asset.owner} opener={openedBy} />
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-xs text-muted-foreground">Owner: {asset.owner}</span>
           <Button variant="ghost" size="sm" onClick={() => setShowRawJson(!showRawJson)}>{showRawJson ? 'Hide' : 'Show'} Raw JSON</Button>

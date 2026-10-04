@@ -2,19 +2,50 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
 import { WAX_EXPLORER } from '@/lib/waxConfig';
+import { fetchIncomingSaTransfer, getSavedSaTransfers, type IncomingResult, type SaTransfer } from '@/lib/saTransfers';
 
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-interface Props { assetId: string; isAtomic: boolean }
+interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null }
 
-export function TradeHistorySection({ assetId, isAtomic }: Props) {
+interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[] }
+
+function TransferRow({ t }: { t: SaTransfer }) {
+  return (
+    <div className="bg-muted/30 rounded px-2 py-1">
+      <div className="flex justify-between gap-2">
+        <span>{fmtDate(t.time)}</span>
+        {t.txid && <a href={`${WAX_EXPLORER}${t.txid}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
+      </div>
+      <p className="font-mono break-all">{t.from} → {t.to}</p>
+      {t.memo && <p className="text-muted-foreground break-all">“{t.memo}”</p>}
+    </div>
+  );
+}
+
+export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props) {
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<TradeHistory | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [saHistory, setSaHistory] = useState<SaHistory | null>(null);
+  const heldByOpener = !!owner && !!opener && owner === opener;
 
-  useEffect(() => { setOpen(false); setHistory(null); setError(false); }, [assetId]);
+  useEffect(() => { setOpen(false); setHistory(null); setSaHistory(null); setError(false); }, [assetId, owner]);
+
+  useEffect(() => {
+    if (!open || isAtomic || saHistory) return;
+    let cancelled = false;
+    setError(false);
+    Promise.all([
+      getSavedSaTransfers(assetId),
+      heldByOpener || !owner ? Promise.resolve(null) : fetchIncomingSaTransfer(assetId, owner),
+    ])
+      .then(([saved, incoming]) => { if (!cancelled) setSaHistory({ saved, incoming }); })
+      .catch((err) => { console.warn('[TradeHistory] SimpleAssets lookup failed:', err); if (!cancelled) setError(true); });
+    return () => { cancelled = true; };
+  }, [open, isAtomic, assetId, owner, heldByOpener, saHistory, attempt]);
 
   useEffect(() => {
     if (!open || !isAtomic || history) return;
@@ -32,10 +63,32 @@ export function TradeHistorySection({ assetId, isAtomic }: Props) {
         <h4 className="text-sm font-semibold text-cheese">Trading history</h4>
         <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)}>{open ? 'Hide' : 'Show'} history</Button>
       </div>
-      {open && !isAtomic && (
-        <p className="text-xs text-muted-foreground">
-          Sales and transfers of SimpleAssets cards aren't tracked by today's WAX market services. Full history is available once a card is bridged to AtomicAssets.
-        </p>
+      {open && !isAtomic && error && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Couldn't load ownership history right now.</span>
+          <Button variant="outline" size="sm" onClick={() => { setError(false); setSaHistory(null); setAttempt((n) => n + 1); }}>Try again</Button>
+        </div>
+      )}
+      {open && !isAtomic && !error && !saHistory && <p className="text-xs text-muted-foreground">Loading history…</p>}
+      {open && !isAtomic && saHistory && (
+        <div className="space-y-2 text-xs text-foreground">
+          <div className="space-y-1">
+            <p className="font-semibold text-cheese">How the current owner got it</p>
+            {heldByOpener && <p>Still owned by <span className="font-mono text-cheese">{opener}</span>, who opened the pack it came in.</p>}
+            {saHistory.incoming?.kind === 'found' && <TransferRow t={saHistory.incoming.transfer} />}
+            {saHistory.incoming?.kind === 'none' && <p className="text-muted-foreground">No transfer to the current owner found — it was likely opened by them.</p>}
+            {saHistory.incoming?.kind === 'unknown' && !heldByOpener && <p className="text-muted-foreground">Not found among the current owner's 500 most recent transfers.</p>}
+          </div>
+          {saHistory.saved.length > 0 && (
+            <div className="space-y-1">
+              <p className="font-semibold text-cheese">Recorded transfers and trades ({saHistory.saved.length})</p>
+              {saHistory.saved.map((t) => <TransferRow key={`${t.txid}-${t.from}-${t.to}`} t={t} />)}
+            </div>
+          )}
+          <p className="text-muted-foreground">
+            Sale prices of SimpleAssets cards aren't tracked by today's WAX market services. New transfers and trades are recorded twice daily from October 2026.
+          </p>
+        </div>
       )}
       {open && isAtomic && error && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

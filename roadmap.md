@@ -21,3 +21,4 @@
 - [x] In the default grid, sort duplicate cards by original mint number ascending, with unresolved copies last.
 - [x] Records ZIP: download + load in Offline Backup, rebuilt and released monthly
 - [x] Card details: live trading history (sales + transfers) for AtomicAssets cards
+- [x] SimpleAssets ownership history: live incoming transfer + twice-daily transfer recorder
