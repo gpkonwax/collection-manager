@@ -220,15 +220,16 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
-        {/* Headings are the spacing anchor: each column shrinks to its heading and hangs
-            centred at the quarter points (25% / 50% / 75%), so the Mint heading always sits
-            directly beneath the artwork toggles and the side headings stay equidistant
-            between centre and edge no matter how long the lines beneath grow. */}
+        {/* Headings anchor the spacing: each column hangs centred at the quarter points
+            (25% / 50% / 75%), so the Mint heading always sits directly beneath the artwork
+            toggles and the side headings stay equidistant between centre and edge. Each
+            heading is flush-left above its own lines. */}
         <div className="bg-muted/30 rounded p-3 sm:p-4">
         <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-4 sm:gap-y-0">
             <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-1 sm:col-span-2 sm:row-start-1 sm:items-center">
-              <p className="text-xs font-semibold text-cheese">Information</p>
-              <div className="space-y-1 text-left">
+              <div className="flex flex-col text-left">
+                <p className="text-sm font-semibold text-cheese mb-1">Information</p>
+                <div className="space-y-1">
                 <p className="break-words">
                   NFT ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(explorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{asset.id}</Button>
                 </p>
