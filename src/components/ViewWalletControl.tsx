@@ -37,6 +37,8 @@ interface ViewWalletControlProps {
   onClear: () => void;
   /** Increment this number to programmatically open the popover (e.g. from a link in another dialog). */
   openSignal?: number;
+  /** Account name to prefill into the search box when the popover is opened via openSignal. */
+  openAccount?: string | null;
 }
 
 // WAX account naming rules: a-z, 1-5, and '.', length 1..12, no leading/trailing/double dots.
@@ -86,7 +88,7 @@ function formatSnapshotDate(iso: string | null): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-export function ViewWalletControl({ currentAccount, viewedAccount, onView, onClear, openSignal }: ViewWalletControlProps) {
+export function ViewWalletControl({ currentAccount, viewedAccount, onView, onClear, openSignal, openAccount }: ViewWalletControlProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -129,10 +131,14 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
   useEffect(() => {
     if (openSignal && openSignal > 0) {
       setOpen(true);
+      if (openAccount) {
+        setValue(openAccount);
+        setError(null);
+      }
       // Focus the input shortly after the popover opens.
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [openSignal]);
+  }, [openSignal, openAccount]);
 
   const favoriteSet = useMemo(() => new Set(favorites.map((f) => f.account)), [favorites]);
 
