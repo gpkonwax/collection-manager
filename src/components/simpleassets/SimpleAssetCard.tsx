@@ -5,7 +5,7 @@ import { prefetchIpfsImage } from '@/hooks/useIpfsMedia';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Bell, BellRing, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getMintLabel, getMintSupplyLines } from '@/lib/mintPresentation';
+import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
 
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceAlertDialog } from '@/components/simpleassets/PriceAlertDialog';
@@ -44,6 +44,7 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const mintLabel = getMintLabel(asset);
   const isMintOne = mintLabel === '#1';
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
+  const isBridgedAA = isBridgedAsset(asset);
   const mintTooltip = mintLabel === '#--' ? 'Mint number not available yet' : [`Mint ${mintLabel}`, ...getMintSupplyLines(asset)].join('\n');
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
@@ -204,8 +205,17 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
           </div>
           <span className="text-[10px] text-muted-foreground">#{asset.id}</span>
         </div>
-        {hasContained && (
+        {((isBridgedAA && asset.idata?.bridge_mint) || hasContained) && (
           <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+            {isBridgedAA && asset.idata?.bridge_mint ? (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium bright-bridge-mint"
+                title="Original bridge order mint from SimpleAssets → AtomicAssets bridging"
+              >
+                Bridge Mint #{String(asset.idata.bridge_mint)}
+                {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
+              </span>
+            ) : null}
             {hasContained && <span className="text-[10px] text-muted-foreground" title="Contains attached assets">📎</span>}
           </div>
         )}
@@ -236,6 +246,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.idata?.mint === next.asset.idata?.mint &&
     prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
+    prev.asset.idata?.bridge_total === next.asset.idata?.bridge_total &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
     prev.draggable === next.draggable &&
