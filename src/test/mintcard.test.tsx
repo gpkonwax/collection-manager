@@ -66,6 +66,7 @@ describe('mint ribbon', () => {
   });
   it('shows a separate supply breakdown in the details', () => {
     render(<SimpleAssetDetailDialog asset={{ ...base, category: 'series2', mintNumber: 1524, mintSurviving: 1281, mintBurned: 246, mintSource: 'backup', idata: { bridge_mint: '39' } }} open onOpenChange={() => {}} />);
+    expect(screen.getByText('Mint number: #1524')).toBeInTheDocument();
     expect(screen.getByText('Total ever minted: 1,527')).toBeInTheDocument();
     expect(screen.getByText('In circulation: 1,281')).toBeInTheDocument();
     expect(screen.getByText('Burned: 246')).toBeInTheDocument();
