@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] In card details, hide backup-source mint line; show bridged-card bridge mint and dated bridge information beside mint information (stack on narrow screens).
+- [x] In card details, hide backup-source mint line; show bridged-card bridge mint and dated bridge information beside mint information (stack on narrow screens).
 
 - [x] Show original mint numbers on pack-history replay cards during reveal, matching the grid; never show bridge-order numbers as originals.
 - [x] Favourite accounts feature: star accounts, Favourites section in View Wallet popover, JSON export/import via JSON menu with bulk multi-file drop — done 2026-09-27
