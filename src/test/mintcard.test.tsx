@@ -65,12 +65,31 @@ describe('mint ribbon', () => {
     expect(screen.getByTitle(/Total ever minted: 1,527/)).toBeInTheDocument();
   });
   it('shows a separate supply breakdown in the details', () => {
-    render(<SimpleAssetDetailDialog asset={{ ...base, category: 'series2', mintNumber: 1524, mintSurviving: 1281, mintBurned: 246, mintSource: 'backup', idata: { bridge_mint: '39' } }} open onOpenChange={() => {}} />);
+    render(<SimpleAssetDetailDialog asset={{ ...base, category: 'series2', mintNumber: 1524, mintSurviving: 1281, mintBurned: 246, mintSource: 'backup', mintBackupDate: '2026-10-02T00:00:00Z', bridgedAt: Date.UTC(2026, 8, 22, 13), idata: { bridge_mint: '39' } }} open onOpenChange={() => {}} />);
     expect(screen.getByText('Mint number:')).toBeInTheDocument();
     expect(screen.getAllByText('#1524').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Total ever minted: 1,527')).toBeInTheDocument();
     expect(screen.getByText('In circulation: 1,281')).toBeInTheDocument();
     expect(screen.getByText('Burned: 246')).toBeInTheDocument();
-    expect(screen.getByText('Bridge Mint')).toBeInTheDocument();
+    expect(screen.queryByText(/Mint number — saved backup/)).not.toBeInTheDocument();
+    const mintHeading = screen.getByText('Mint information');
+    const bridgeHeading = screen.getByText('Bridge Information');
+    expect(mintHeading.parentElement?.parentElement).toBe(bridgeHeading.parentElement?.parentElement);
+    expect(mintHeading.parentElement?.parentElement).toHaveClass('sm:grid-cols-2');
+    expect(screen.getByText('Bridge Mint:')).toBeInTheDocument();
+    expect(screen.getByText('#39')).toBeInTheDocument();
+    expect(screen.getByText('Bridged on: 22 Sep 2026')).toBeInTheDocument();
+  });
+  it('keeps the bridge mint when no valid bridge date is available', () => {
+    render(<SimpleAssetDetailDialog asset={{ ...base, mintNumber: 356, bridgedAt: Number.NaN, idata: { bridge_mint: '203' } }} open onOpenChange={() => {}} />);
+    expect(screen.getByText('Bridge Information')).toBeInTheDocument();
+    expect(screen.getByText('#203')).toBeInTheDocument();
+    expect(screen.queryByText(/Bridged on:/)).not.toBeInTheDocument();
+  });
+  it('does not show bridge information for native AtomicAssets or SimpleAssets', () => {
+    const { rerender } = render(<SimpleAssetDetailDialog asset={{ ...base, category: 'foodfight', mintNumber: 22, bridgedAt: Date.UTC(2026, 8, 22), idata: { bridge_mint: '203' } }} open onOpenChange={() => {}} />);
+    expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
+    rerender(<SimpleAssetDetailDialog asset={{ ...base, source: 'simpleassets', mintNumber: 22, bridgedAt: Date.UTC(2026, 8, 22), idata: { bridge_mint: '203' } }} open onOpenChange={() => {}} />);
+    expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
   });
 });
