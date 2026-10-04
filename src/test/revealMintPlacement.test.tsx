@@ -1,6 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, beforeAll } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { PackRevealDialog, type RevealCard } from '@/components/simpleassets/PackRevealDialog';
+
+beforeAll(() => {
+  // jsdom doesn't implement media playback; the reveal dialog plays sounds.
+  window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
+  window.HTMLMediaElement.prototype.pause = vi.fn();
+});
 
 const demoCards: RevealCard[] = [
   { asset_id: 'demo-1', name: 'Card A', image: null, rarity: '', mintLabel: '#203' },
