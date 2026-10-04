@@ -56,7 +56,8 @@ jobs:
 
       - name: Look up mint numbers
         env:
-          MODE: ${{ inputs.mode || 'incremental' }}
+          # Scheduled runs are always incremental; full mode is manual-only.
+          MODE: ${{ github.event_name == 'schedule' && 'incremental' || (inputs.mode || 'incremental') }}
         # Exit code 2 = some batches failed; previous values are kept, so still publish.
         run: |
           FLAGS="--fresh"
