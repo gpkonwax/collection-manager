@@ -864,7 +864,7 @@ export default function SimpleAssetsPage() {
     return () => { cancelled = true; };
   }, [replayEntry, assets]);
 
-  const replayRevealCards = useMemo<RevealCard[]>(() => {
+  const replayOrder = useMemo(() => {
     if (!replayEntry) return [];
     // Shuffle the reveal order so each replay of the same pack feels fresh.
     // Keys stay tied to the card's original index so they remain unique.
@@ -873,7 +873,13 @@ export default function SimpleAssetsPage() {
       const j = Math.floor(Math.random() * (i + 1));
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
-    return indices.map((idx) => {
+    return indices;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayEntry, replayShuffleKey]);
+
+  const replayRevealCards = useMemo<RevealCard[]>(() => {
+    if (!replayEntry) return [];
+    return replayOrder.map((idx) => {
       const c = replayEntry.cards[idx];
       return {
         asset_id: `replay-${replayEntry.txId}-${idx}`,
@@ -884,8 +890,7 @@ export default function SimpleAssetsPage() {
         mintLabel: replayMintLabels[idx] ?? '#--',
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [replayEntry, replayShuffleKey, replayMintLabels]);
+  }, [replayEntry, replayOrder, replayMintLabels]);
 
   const handleReplayRequest = useCallback((entry: PackHistoryEntry) => {
     if (replayBusy) {
