@@ -20,13 +20,13 @@ import promoSeries1Poster from '@/assets/promo-47.webp';
 import promoSeries1Banner from '@/assets/promo-48.webp';
 import promoSeries2Phone from '@/assets/promo-49.webp';
 import promoDigicon from '@/assets/promo-51.webp';
-import promoPackStaking from '@/assets/series-promo-57.png.asset.json';
-import promoLivestream from '@/assets/series-promo-58.png.asset.json';
-import promoFoodFightTweet from '@/assets/series-promo-59.png.asset.json';
-import promoBlockchain from '@/assets/series-promo-60.png.asset.json';
-import promoExoticCards from '@/assets/series-promo-62.png.asset.json';
-import promoCardFan from '@/assets/series-promo-63.png.asset.json';
-import promoFurryFran from '@/assets/series-promo-64.png.asset.json';
+import promoPackStaking from '@/assets/series-promo-57.webp.asset.json';
+import promoLivestream from '@/assets/series-promo-58.webp.asset.json';
+import promoFoodFightTweet from '@/assets/series-promo-59.webp.asset.json';
+import promoBlockchain from '@/assets/series-promo-60.webp.asset.json';
+import promoExoticCards from '@/assets/series-promo-62.webp.asset.json';
+import promoCardFan from '@/assets/series-promo-63.webp.asset.json';
+import promoFurryFran from '@/assets/series-promo-64.webp.asset.json';
 
 
 
