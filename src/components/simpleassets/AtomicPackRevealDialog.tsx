@@ -303,6 +303,15 @@ export function AtomicPackRevealDialog({
     return () => clearTimeout(timer);
   }, [open, phase, isDemo, demoCards]);
 
+  useEffect(() => {
+    if (!isDemo || !demoCards) return;
+    const labels = new Map(demoCards.map((card) => [card.asset_id, card.mintLabel]));
+    setNewCards((current) => current.map((card) => {
+      const label = labels.get(card.asset_id);
+      return label && card.mintLabel !== label ? { ...card, mintLabel: label } : card;
+    }));
+  }, [isDemo, demoCards]);
+
   // Snapshot asset IDs before opening so we can detect new ones for unbox_nft
   const preOpenAssetIdsRef = useRef<Set<string>>(new Set());
   

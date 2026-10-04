@@ -440,6 +440,17 @@ export function PackRevealDialog({
     return () => clearTimeout(timer);
   }, [open, phase, demoCards]);
 
+  // A backup mint may resolve after the reveal has begun; update the labels
+  // without restarting the flip animation or replacing the revealed artwork.
+  useEffect(() => {
+    if (!isDemo || !demoCards) return;
+    const labels = new Map(demoCards.map((card) => [card.asset_id, card.mintLabel]));
+    setNewCards((current) => current.map((card) => {
+      const label = labels.get(card.asset_id);
+      return label && card.mintLabel !== label ? { ...card, mintLabel: label } : card;
+    }));
+  }, [isDemo, demoCards]);
+
   // Real polling
   useEffect(() => {
     if (!open || !accountName || (demoCards && demoCards.length > 0)) return;
