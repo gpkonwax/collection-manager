@@ -3205,7 +3205,7 @@ export default function SimpleAssetsPage() {
                   aria-pressed={retroOn}
                   onClick={() => setRetroOn((v) => !v)}
                   title="Show the original 1985 Topps card scans (from geepeekay.com)"
-                  className={`h-9 animate-fade-in ${retroOn ? 'border-cheese bg-cheese/20 text-cheese' : 'border-cheese/40 text-muted-foreground hover:text-cheese'}`}
+                  className={`h-9 ${retroOn ? 'border-cheese bg-cheese/20 text-cheese' : 'border-cheese/40 text-muted-foreground hover:text-cheese'}`}
                 >
                   📼 1985 Scans{retroOn ? ' · On' : ''}
                 </Button>
