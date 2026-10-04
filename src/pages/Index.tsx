@@ -30,6 +30,7 @@ import { fetchPendingNfts, fetchPendingNftsDetailed, PackRevealDialog, type Reve
 import { AtomicPackRevealDialog } from '@/components/simpleassets/AtomicPackRevealDialog';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import { matchRevealedAssets, type RevealResult, type RevealMatcher } from '@/lib/packReveal';
+import { resolveReplayMintLabels } from '@/lib/replayMints';
 import { getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardImages';
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { preloadRevealImage } from '@/lib/revealImageSources';
@@ -539,6 +540,7 @@ export default function SimpleAssetsPage() {
   const [packHistoryRefresh, setPackHistoryRefresh] = useState(0);
   const [replayEntry, setReplayEntry] = useState<PackHistoryEntry | null>(null);
   const [replayShuffleKey, setReplayShuffleKey] = useState(0);
+  const [replayMintLabels, setReplayMintLabels] = useState<string[]>([]);
   const [packHistoryCount, setPackHistoryCount] = useState(0);
 
   // NOTE: visibleCount is grown to cover dealing cards in an effect further
@@ -853,7 +855,16 @@ export default function SimpleAssetsPage() {
 
   const replayBusy = dealingCards.length > 0 || preparingDeal !== null || replayEntry !== null;
 
-  const replayRevealCards = useMemo<RevealCard[]>(() => {
+  useEffect(() => {
+    if (!replayEntry) return;
+    let cancelled = false;
+    resolveReplayMintLabels(replayEntry, assetsRef.current).then((labels) => {
+      if (!cancelled) setReplayMintLabels(labels);
+    }).catch(() => { /* The reveal can proceed with unresolved mints. */ });
+    return () => { cancelled = true; };
+  }, [replayEntry, assets]);
+
+  const replayOrder = useMemo(() => {
     if (!replayEntry) return [];
     // Shuffle the reveal order so each replay of the same pack feels fresh.
     // Keys stay tied to the card's original index so they remain unique.
@@ -862,7 +873,13 @@ export default function SimpleAssetsPage() {
       const j = Math.floor(Math.random() * (i + 1));
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
-    return indices.map((idx) => {
+    return indices;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayEntry, replayShuffleKey]);
+
+  const replayRevealCards = useMemo<RevealCard[]>(() => {
+    if (!replayEntry) return [];
+    return replayOrder.map((idx) => {
       const c = replayEntry.cards[idx];
       return {
         asset_id: `replay-${replayEntry.txId}-${idx}`,
@@ -870,10 +887,10 @@ export default function SimpleAssetsPage() {
         image: c.image,
         originalImage: c.image,
         rarity: c.variant || '',
+        mintLabel: replayMintLabels[idx] ?? '#--',
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [replayEntry, replayShuffleKey]);
+  }, [replayEntry, replayOrder, replayMintLabels]);
 
   const handleReplayRequest = useCallback((entry: PackHistoryEntry) => {
     if (replayBusy) {
@@ -881,6 +898,7 @@ export default function SimpleAssetsPage() {
       return;
     }
     setShowPackHistory(false);
+    setReplayMintLabels([]);
     setReplayShuffleKey((k) => k + 1);
     setReplayEntry(entry);
   }, [replayBusy]);
