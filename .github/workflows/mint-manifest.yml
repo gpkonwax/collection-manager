@@ -87,7 +87,7 @@ jobs:
         run: |
           git config user.name "gpk-mints-bot"
           git config user.email "actions@github.com"
-          git add manifests/mints
+          git add manifests/mints manifests/gpk-sa-asset-ids.txt
           if git diff --cached --quiet; then
             echo "No new mint numbers."
           else
