@@ -221,7 +221,8 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
         <div className="bg-muted/30 rounded p-3 sm:p-4">
-        <div className={`grid grid-cols-1 gap-4 sm:gap-6 ${isBridgedAA ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+        <div className="flex justify-center">
+        <div className={`grid grid-cols-1 gap-4 sm:grid-flow-col sm:auto-cols-max sm:gap-10`}>
             <div className="min-w-0 space-y-1 text-sm text-foreground text-left">
               <p className="text-xs font-semibold text-cheese">Information</p>
               <p className="break-words">
