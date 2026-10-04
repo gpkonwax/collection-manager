@@ -8,6 +8,7 @@ import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPres
 import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount';
 import { getProvenance, formatPackLabel, formatProvenanceDate, type ProvenanceEntry } from '@/lib/provenance';
 import { TradeHistorySection } from './TradeHistorySection';
+import { getRetroFront, getRetroBack } from '@/lib/retroScans';
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
@@ -16,13 +17,15 @@ interface Props {
   asset: SimpleAsset | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Hidden 1985-scan view: show original Topps scans for base Series 1/2 cards. */
+  retro?: boolean;
 }
 
 const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
 
-export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
+export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = false }: Props) {
   const [showRawJson, setShowRawJson] = useState(false);
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
@@ -102,7 +105,13 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
 
-  const hasLandscapeBack = isSeries1 && images.length > 1;
+  const retroScans = retro ? [getRetroFront(asset), getRetroBack(asset)] : [null, null];
+  const isLandscapeAt = (i: number) => {
+    if (i !== 1) return false;
+    const scan = retroScans[1];
+    return scan ? scan.landscape : isSeries1;
+  };
+  const hasLandscapeBack = images.length > 1 && isLandscapeAt(1);
   const modalMaxWidth = hasLandscapeBack ? 'sm:max-w-[1100px]' : 'sm:max-w-[900px]';
 
   const clearAllCanvases = () => {
@@ -149,15 +158,17 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange }: Props) {
           {images.map((imgUrl, i) => {
             const label = IMAGE_LABELS[i] || `Image ${i + 1}`;
             const isBack = i === 1;
-            const isLandscape = isBack && isSeries1;
+            const isLandscape = isBack && isLandscapeAt(i);
+            const retroScan = retroScans[i] ?? null;
 
             return (
               <div key={i} className="space-y-1 shrink-0" style={{ width: isLandscape ? '500px' : '400px' }}>
                 <div className="flex items-center justify-center gap-1.5">
-                  <p className="text-xs font-semibold text-cheese text-center">{label}</p>
+                  <p className="text-xs font-semibold text-cheese text-center">{label}{retroScan ? ' · 1985 scan' : ''}</p>
                 </div>
                 <ImageWithModes
                   url={imgUrl}
+                  retroScan={retroScan}
                   alt={`${asset.name} - ${label}`}
                   isLandscape={isLandscape}
                   className={isLandscape ? 'rotate-90 scale-[1.33] origin-center' : ''}
