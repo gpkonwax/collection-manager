@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { IpfsMedia } from './IpfsMedia';
+import { RetroScanImage } from './RetroScanImage';
+import type { RetroScan } from '@/lib/retroScans';
 import { useCardTilt } from '@/hooks/useCardTilt';
 import { Move3d, Search, Pencil, Eraser } from 'lucide-react';
 
@@ -110,13 +112,15 @@ function DrawCanvas({ canvasRegister, active }: {
   );
 }
 
-export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasRegister }: {
+export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasRegister, retroScan }: {
   url: string;
   alt: string;
   isLandscape: boolean;
   className?: string;
   mode: ViewMode;
   canvasRegister?: (canvas: HTMLCanvasElement | null) => void;
+  /** When set, show this original 1985 scan instead of the NFT artwork. */
+  retroScan?: RetroScan | null;
 }) {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -124,7 +128,8 @@ export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasR
   const containerRef = useRef<HTMLDivElement>(null);
   const [displayedUrl, setDisplayedUrl] = useState<string | null>(null);
   const resolvedUrl = displayedUrl;
-  useEffect(() => { setDisplayedUrl(null); }, [url]);
+  const sourceKey = retroScan?.src ?? url;
+  useEffect(() => { setDisplayedUrl(null); }, [sourceKey]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -141,7 +146,7 @@ export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasR
       el.removeEventListener('load', sync, true);
       el.removeEventListener('error', onError, true);
     };
-  }, [url]);
+  }, [sourceKey]);
 
   const tiltActive = mode === 'tilt';
   const { ref: tiltRef, glareRef, onMouseMove: tiltMove, onMouseLeave: tiltLeave } = useCardTilt({ disabled: !tiltActive, landscape: isLandscape });
@@ -191,13 +196,17 @@ export function ImageWithModes({ url, alt, isLandscape, className, mode, canvasR
         className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center relative"
         style={{ transformStyle: tiltActive ? 'preserve-3d' : undefined, willChange: tiltActive ? 'transform' : undefined }}
       >
-        <IpfsMedia
-          url={url}
-          alt={alt}
-          className={`w-full h-full ${className || ''}`}
-          context="detail"
-          showSkeleton
-        />
+        {retroScan ? (
+          <RetroScanImage scan={retroScan} alt={alt} className={`w-full h-full ${className || ''}`} />
+        ) : (
+          <IpfsMedia
+            url={url}
+            alt={alt}
+            className={`w-full h-full ${className || ''}`}
+            context="detail"
+            showSkeleton
+          />
+        )}
         <div
           ref={glareRef}
           aria-hidden
