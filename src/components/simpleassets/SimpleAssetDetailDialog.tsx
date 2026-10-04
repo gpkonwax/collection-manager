@@ -220,65 +220,73 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
+        {/* Headings are the spacing anchor: each column shrinks to its heading and hangs
+            centred at the quarter points (25% / 50% / 75%), so the Mint heading always sits
+            directly beneath the artwork toggles and the side headings stay equidistant
+            between centre and edge no matter how long the lines beneath grow. */}
         <div className="bg-muted/30 rounded p-3 sm:p-4">
-        <div className="flex justify-center">
-        <div className={`grid grid-cols-1 gap-4 sm:grid-flow-col sm:auto-cols-max sm:gap-10`}>
-            <div className="min-w-0 space-y-1 text-sm text-foreground text-left">
+        <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-4 sm:gap-y-0">
+            <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-1 sm:col-span-2 sm:items-center">
               <p className="text-xs font-semibold text-cheese">Information</p>
-              <p className="break-words">
-                NFT ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(explorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{asset.id}</Button>
-              </p>
-              {templateId && (
+              <div className="space-y-1 text-left">
                 <p className="break-words">
-                  Template ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(templateExplorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{templateId}</Button>
+                  NFT ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(explorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{asset.id}</Button>
                 </p>
-              )}
-              <p className="break-words">
-                Collection: <Button type="button" variant="link" onClick={() => link.requestNavigation(collectionExplorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">gpk.topps</Button>
-              </p>
-              <p className="break-words">
-                Series: <Button type="button" variant="link" onClick={() => link.requestNavigation(schemaExplorerUrl)} className="h-auto p-0 text-cheese align-baseline">{seriesLabel}</Button>
-              </p>
-            </div>
-              <div className="min-w-0 space-y-1 text-sm text-foreground text-left">
-                <p className="text-xs font-semibold text-cheese">Mint information</p>
-                <p>
-                  Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
-                </p>
-                {supplyLines.map((line) => <p key={line}>{line}</p>)}
-                {openedBy && (
-                  <p>
-                    Opened by: <span className="font-semibold font-mono text-cheese">{openedBy}</span>
+                {templateId && (
+                  <p className="break-words">
+                    Template ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(templateExplorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{templateId}</Button>
                   </p>
                 )}
-                {mintedOn && <p>Minted on: {mintedOn}</p>}
-                {packLabel && <p>Pack: {packLabel}</p>}
-                {Number.isFinite(issued) && issued > 0 && <p>Total issued (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
+                <p className="break-words">
+                  Collection: <Button type="button" variant="link" onClick={() => link.requestNavigation(collectionExplorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">gpk.topps</Button>
+                </p>
+                <p className="break-words">
+                  Series: <Button type="button" variant="link" onClick={() => link.requestNavigation(schemaExplorerUrl)} className="h-auto p-0 text-cheese align-baseline">{seriesLabel}</Button>
+                </p>
+              </div>
+            </div>
+              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-2 sm:col-span-2 sm:items-center">
+                <p className="text-xs font-semibold text-cheese">Mint information</p>
+                <div className="space-y-1 text-left">
+                  <p>
+                    Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
+                  </p>
+                  {supplyLines.map((line) => <p key={line}>{line}</p>)}
+                  {openedBy && (
+                    <p>
+                      Opened by: <span className="font-semibold font-mono text-cheese">{openedBy}</span>
+                    </p>
+                  )}
+                  {mintedOn && <p>Minted on: {mintedOn}</p>}
+                  {packLabel && <p>Pack: {packLabel}</p>}
+                  {Number.isFinite(issued) && issued > 0 && <p>Total issued (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
+                </div>
               </div>
             {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
-              <div className="min-w-0 space-y-1 text-sm text-foreground text-left">
+              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-3 sm:col-span-2 sm:items-center">
                 <p className="text-xs font-semibold text-cheese">Bridge Information</p>
-                {asset.idata?.bridge_mint && (
-                  <p className="flex items-center justify-start gap-2 flex-wrap">
-                    <span>Bridge Mint:</span>
-                    <span
-                      className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
-                      title="Order of the AtomicAssets copy created by bridging"
-                    >
-                      #{String(asset.idata.bridge_mint)}
-                      {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
-                    </span>
-                  </p>
-                )}
-                {bridgedBy && (
-                  <p>
-                    Bridged by: <span className="font-semibold font-mono text-cheese">{bridgedBy}</span>
-                  </p>
-                )}
-                {bridgeDate && <p>Bridged on: {bridgeDate}</p>}
+                <div className="space-y-1 text-left">
+                  {asset.idata?.bridge_mint && (
+                    <p className="flex items-center justify-start gap-2 flex-wrap">
+                      <span>Bridge Mint:</span>
+                      <span
+                        className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400"
+                        title="Order of the AtomicAssets copy created by bridging"
+                      >
+                        #{String(asset.idata.bridge_mint)}
+                        {asset.idata.bridge_total ? ` / ${String(asset.idata.bridge_total)}` : ''}
+                      </span>
+                    </p>
+                  )}
+                  {bridgedBy && (
+                    <p>
+                      Bridged by: <span className="font-semibold font-mono text-cheese">{bridgedBy}</span>
+                    </p>
+                  )}
+                  {bridgeDate && <p>Bridged on: {bridgeDate}</p>}
+                </div>
               </div>
             )}
-        </div>
         </div>
         </div>
         {metaFields.length > 0 && (
