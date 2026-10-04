@@ -302,6 +302,12 @@ export default function SimpleAssetsPage() {
   const [collectionHistoryOpen, setCollectionHistoryOpen] = useState(false);
   const [sourceFilter, setSourceFilter] = useState('all');
   const [variantFilter, setVariantFilter] = useState<string[]>(['all']);
+  // Hidden 1985-scan view: only offered for Series 1/2 with exactly the Base variant selected.
+  const retroEligible = (categoryFilter === 'series1' || categoryFilter === 'series2')
+    && variantFilter.length === 1 && variantFilter[0].toLowerCase() === 'base';
+  const [retroOn, setRetroOn] = useState(false);
+  useEffect(() => { if (!retroEligible) setRetroOn(false); }, [retroEligible]);
+  const retroActive = retroEligible && retroOn;
   type SortMode = 'natural' | 'name' | 'variant' | 'newest';
   const [sortMode, setSortMode] = useState<SortMode>('natural');
   const [viewMode, setViewMode] = useState<ViewMode>('classic');
@@ -1833,6 +1839,7 @@ export default function SimpleAssetsPage() {
           priceAlertTemplate={template}
           isReadOnly={isViewing}
           onTradeClick={handleTradeFromCard}
+          retro={retroActive}
         />
       );
     }
@@ -2159,6 +2166,7 @@ export default function SimpleAssetsPage() {
                   onSelect={toggleSelection}
                   isReadOnly={isViewing}
                   onTradeClick={handleTradeFromCard}
+          retro={retroActive}
                 />
               );
             })}
@@ -2387,6 +2395,7 @@ export default function SimpleAssetsPage() {
                 
                 isReadOnly={isViewing}
                 onTradeClick={handleTradeFromCard}
+          retro={retroActive}
               />
             );
           })}
@@ -3188,6 +3197,19 @@ export default function SimpleAssetsPage() {
                   className="w-full sm:w-[180px]"
                 />
               )}
+              {retroEligible && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-pressed={retroOn}
+                  onClick={() => setRetroOn((v) => !v)}
+                  title="Show the original 1985 Topps card scans (from geepeekay.com)"
+                  className={`h-9 animate-fade-in ${retroOn ? 'border-cheese bg-cheese/20 text-cheese' : 'border-cheese/40 text-muted-foreground hover:text-cheese'}`}
+                >
+                  📼 1985 Scans{retroOn ? ' · On' : ''}
+                </Button>
+              )}
 
             </div>
 
@@ -3525,7 +3547,7 @@ export default function SimpleAssetsPage() {
         </div>
       )}
 
-      <SimpleAssetDetailDialog asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
+      <SimpleAssetDetailDialog retro={retroActive} asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} />
       <BinderStackDialog
         assets={stackedAssets ?? []}
         open={stackDialogOpen}
