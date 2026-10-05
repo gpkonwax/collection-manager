@@ -25,6 +25,10 @@ import poweredBySimpleAssets from '@/assets/powered-by-simpleassets.png.asset.js
 import waxLogo from '@/assets/wax-logo.png.asset.json';
 import waxLogoWhite from '@/assets/wax-logo-white.png.asset.json';
 
+// Asset pointers are root-relative to Lovable hosting. GitHub Pages has no
+// /__l5e/assets-v1/ handler, so resolve these logos against their real host.
+const hostedLogoUrl = (path: string) => new URL(path, 'https://pack-magic-reimagined.lovable.app').href;
+
 interface Props {
   asset: SimpleAsset | null;
   open: boolean;
@@ -242,7 +246,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full left-[10%] ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
         >
           <img
-            src={isAA ? atomicAssetsLogo : poweredBySimpleAssets.url}
+            src={isAA ? atomicAssetsLogo : hostedLogoUrl(poweredBySimpleAssets.url)}
             alt={isAA ? 'AtomicAssets' : 'Powered by Simple Assets'}
             className={isAA ? 'h-16 w-16 object-contain' : 'h-[127%] w-[127%] max-w-none shrink-0 object-cover'}
           />
@@ -342,12 +346,12 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             Absolutely positioned so the column layout never shifts (3 or 2 columns).
             Black lettering in bright mode, white lettering in dark mode for contrast. */}
         <img
-          src={waxLogo.url}
+          src={hostedLogoUrl(waxLogo.url)}
           alt="WAX"
           className="hidden sm:block dark:hidden absolute bottom-2 right-4 h-9 w-auto pointer-events-none"
         />
         <img
-          src={waxLogoWhite.url}
+          src={hostedLogoUrl(waxLogoWhite.url)}
           alt="WAX"
           className="hidden dark:sm:block absolute bottom-2 right-4 h-9 w-auto pointer-events-none"
         />
