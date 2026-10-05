@@ -17,7 +17,6 @@
  * geepeekay URL as a last-resort <img onError> fallback. When the data mirror
  * is NOT configured yet we use geepeekay directly (no wasted 404s).
  */
-import { MIRRORS } from './remoteMirror';
 
 /**
  * Base URL of the dedicated data mirror (Cloudflare Pages, e.g.
@@ -47,12 +46,14 @@ export function isDataMirrorConfigured(): boolean {
  */
 export const GITHUB_RAW_MIRROR_URL = 'https://raw.githubusercontent.com/gpkonwax/collection-manager/main/';
 
+/**
+ * Bases for record files (mint shards, provenance, transfers, holders).
+ * Only the data mirror and raw GitHub hold these — the image mirrors never do,
+ * so probing them just produces 404s and delays mint numbers.
+ */
 export function getDataMirrorBases(): string[] {
   const bases: string[] = [];
   if (isDataMirrorConfigured()) bases.push(DATA_MIRROR_URL);
-  for (const m of MIRRORS) {
-    if (m.url && /^https:\/\//i.test(m.url) && m.url !== DATA_MIRROR_URL) bases.push(m.url);
-  }
   if (!bases.includes(GITHUB_RAW_MIRROR_URL)) bases.push(GITHUB_RAW_MIRROR_URL);
   return bases;
 }

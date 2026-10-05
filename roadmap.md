@@ -23,3 +23,4 @@
 - [x] Records ZIP: download + load in Offline Backup, rebuilt and released monthly
 - [x] Card details: live trading history (sales + transfers) for AtomicAssets cards
 - [x] SimpleAssets ownership history: live incoming transfer + twice-daily transfer recorder
+- [x] Stop requesting mint/record files from the 3 image backups (data site + raw GitHub only).
