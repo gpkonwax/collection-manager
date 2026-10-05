@@ -35,9 +35,11 @@ interface SimpleAssetCardProps {
   onTradeClick?: (asset: SimpleAsset) => void;
   /** Hidden 1985-scan view: show the original Topps front scan when one exists. */
   retro?: boolean;
+  /** Freshly minted/collected card whose mint number is still awaiting the next index tick. */
+  freshMint?: boolean;
 }
 
-function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick, retro = false }: SimpleAssetCardProps) {
+function SimpleAssetCardComponent({ asset, onClick, draggable, className, selectionMode, selected, stackCount, onSelect, onDragStart, onDragOver, onDrop, onDragEnd, priceAlertTemplate, isReadOnly, onTradeClick, retro = false, freshMint = false }: SimpleAssetCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
@@ -48,9 +50,15 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
   const isAnimatedGif = useMemo(() => asset.image?.toLowerCase().includes('.gif'), [asset.image]);
   const mintLabel = getMintLabel(asset);
   const isMintOne = mintLabel === '#1';
+  // A freshly collected card whose mint hasn't resolved yet is syncing, not unknown.
+  const mintSyncing = freshMint && mintLabel === '#--';
   const hasContained = (asset.container?.length ?? 0) > 0 || (asset.containerf?.length ?? 0) > 0;
   const isBridgedAA = isBridgedAsset(asset);
-  const mintTooltip = mintLabel === '#--' ? 'Mint number not available yet' : [`Mint ${mintLabel}`, ...getMintSupplyLines(asset)].join('\n');
+  const mintTooltip = mintSyncing
+    ? 'Newly minted — the mint number appears after the next mint backup index tick'
+    : mintLabel === '#--'
+      ? 'Mint number not available yet'
+      : [`Mint ${mintLabel}`, ...getMintSupplyLines(asset)].join('\n');
 
   const effectiveSelectionMode = selectionMode && !isReadOnly;
   const alert = priceAlertTemplate ? getAlert(priceAlertTemplate.templateId) : undefined;
@@ -147,8 +155,15 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         className="w-full flex justify-center py-1 mt-2"
         title={mintTooltip}
       >
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
-          {mintLabel}
+        <span
+          className={cn(
+            'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+            mintSyncing
+              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 animate-pulse'
+              : 'bg-background/80 text-cheese border-border/40'
+          )}
+        >
+          {mintSyncing ? 'New Mint (Syncing)' : mintLabel}
         </span>
       </div>
       {effectiveSelectionMode && (
@@ -257,6 +272,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
     prev.asset.idata?.bridge_total === next.asset.idata?.bridge_total &&
     prev.asset.cardid === next.asset.cardid &&
+    prev.freshMint === next.freshMint &&
     prev.retro === next.retro &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&

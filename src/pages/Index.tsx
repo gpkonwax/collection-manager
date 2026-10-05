@@ -35,6 +35,7 @@ import { getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardIm
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { preloadRevealImage } from '@/lib/revealImageSources';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
+import { recordFreshMints, getFreshMintIds } from '@/lib/freshMints';
 
 /**
  * Preload one image URL mirror-first: local ZIP → configured mirrors (raced
@@ -322,6 +323,10 @@ export default function SimpleAssetsPage() {
   });
 
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+
+  // Freshly minted (newly collected) cards whose mint number is still syncing.
+  const [freshMintVersion, setFreshMintVersion] = useState(0);
+  const freshMintIds = useMemo(() => new Set(getFreshMintIds()), [freshMintVersion]);
 
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
@@ -832,6 +837,10 @@ export default function SimpleAssetsPage() {
       });
       preparingDealCancelRef.current = null;
       setPreparingDeal(null);
+      // Mark these as freshly minted so the grid shows "New Mint (Syncing)"
+      // until their true mint number arrives with the next backup index tick.
+      recordFreshMints(matched.map((a) => a.id));
+      setFreshMintVersion((v) => v + 1);
       setDealingCards([...matched].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
@@ -1094,6 +1103,9 @@ export default function SimpleAssetsPage() {
         });
         preparingDealCancelRef.current = null;
         setPreparingDeal(null);
+        // Recovered cards are freshly minted too — label them until mints sync.
+        recordFreshMints(matched.map((a) => a.id));
+        setFreshMintVersion((v) => v + 1);
         setPendingSuccessInfo({ txId: lastTxId, count: matched.length });
         setDealingCards([...matched].reverse());
         setDealtIds(new Set());
@@ -1882,13 +1894,14 @@ export default function SimpleAssetsPage() {
           isReadOnly={isViewing}
           onTradeClick={handleTradeFromCard}
           retro={retroActive}
+          freshMint={freshMintIds.has(asset.id)}
         />
       );
     }
     return (
       <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} isReadOnly={isViewing} />
     );
-  }, [selectionMode, selectedIds, toggleSelection, isViewing]);
+  }, [selectionMode, selectedIds, toggleSelection, isViewing, retroActive, freshMintIds]);
 
   const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -2209,6 +2222,7 @@ export default function SimpleAssetsPage() {
                   isReadOnly={isViewing}
                   onTradeClick={handleTradeFromCard}
           retro={retroActive}
+                  freshMint={freshMintIds.has(asset.id)}
                 />
               );
             })}
@@ -2438,6 +2452,7 @@ export default function SimpleAssetsPage() {
                 isReadOnly={isViewing}
                 onTradeClick={handleTradeFromCard}
           retro={retroActive}
+                freshMint={freshMintIds.has(asset.id)}
               />
             );
           })}
