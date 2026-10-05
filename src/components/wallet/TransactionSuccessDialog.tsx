@@ -33,7 +33,8 @@ export function TransactionSuccessDialog({
 
   const handleViewOnExplorer = () => {
     if (txId) {
-      window.open(`https://wax.bloks.io/transaction/${txId}`, '_blank');
+      // wax.bloks.io now redirects to the XPR Network explorer; waxblock.io stays on WAX.
+      window.open(`https://waxblock.io/transaction/${txId}`, '_blank');
     }
   };
 
