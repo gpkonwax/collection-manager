@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { formatPackLabel } from '@/lib/provenance';
+import { recordFreshMints, getFreshMintIds, isFreshMintId, __resetFreshMintsForTests } from '@/lib/freshMints';
 
 const bridgeLookup = vi.hoisted(() => vi.fn(async (id: string) => (id === '77' ? '3ngqu.wam' : null)));
 vi.mock('@/lib/bridgeAccount', () => ({ fetchBridgeAccount: bridgeLookup, getCachedBridgeAccount: () => undefined }));
