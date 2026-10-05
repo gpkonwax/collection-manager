@@ -272,7 +272,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                   )}
                   {mintedOn && <p>Minted on: {mintedOn}</p>}
                   {packLabel && <p>Pack: {packLabel}</p>}
-                  {Number.isFinite(issued) && issued > 0 && <p>Total issued (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
+                  {Number.isFinite(issued) && issued > 0 && <p>Total bridged (AtomicAssets): {issued.toLocaleString('en-US')}</p>}
                   </div>
                   </div>
                 </div>
