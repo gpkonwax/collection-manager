@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import { formatPackLabel } from '@/lib/provenance';
 
 const bridgeLookup = vi.hoisted(() => vi.fn(async (id: string) => (id === '77' ? '3ngqu.wam' : null)));
 vi.mock('@/lib/bridgeAccount', () => ({ fetchBridgeAccount: bridgeLookup, getCachedBridgeAccount: () => undefined }));
@@ -25,6 +26,16 @@ const base: SimpleAsset = {
 };
 
 describe('mint ribbon', () => {
+  it('shows precise pack codes only when the saved opening size identifies a pack', () => {
+    expect(formatPackLabel('series1', 5)).toBe('GPKFIVE (5 card pack)');
+    expect(formatPackLabel('series1', 30)).toBe('GPKMEGA (30 card pack)');
+    expect(formatPackLabel('series2', 8)).toBe('GPKTWOA (8 card pack)');
+    expect(formatPackLabel('series2', 25)).toBe('GPKTWOB (25 card pack)');
+    expect(formatPackLabel('series2', 55)).toBe('GPKTWOC (55 card pack)');
+    expect(formatPackLabel('exotic', 5)).toBe('EXOFIVE (5 card pack)');
+    expect(formatPackLabel('exotic', 25)).toBe('EXOMEGA (25 card pack)');
+    expect(formatPackLabel('series1', 3)).toBe('Series 1 (3-card pack)');
+  });
   it('shows #-- for bridged AA before resolution', () => {
     render(<SimpleAssetCard asset={{ ...base, idata: { mint: '203', bridge_mint: '203' } }} onClick={() => {}} />);
     expect(screen.getByText('#--')).toBeInTheDocument();
