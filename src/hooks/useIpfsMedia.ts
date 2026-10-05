@@ -525,7 +525,7 @@ export function useIpfsMedia(
 
   // Per-mirror timeout.
   useEffect(() => {
-    if (!mirrorPhase || !enabled || !hash || hasLoadedRef.current) return;
+    if (!mirrorPhase || !pathsReady || !enabled || !hash || hasLoadedRef.current) return;
     if (thumbBlobUrl) return; // served from the byte cache — no mirror miss
     const myAttempt = attemptRef.current;
     const t = setTimeout(() => {
