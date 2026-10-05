@@ -106,6 +106,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const bridgeDate = bridgedAt && !Number.isNaN(bridgedAt.getTime())
     ? bridgedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
     : null;
+  const showBridge = isBridgedAA && !!(asset.idata?.bridge_mint || bridgeDate);
   const openedBy = provenance?.o ?? null;
   const mintedOn = formatProvenanceDate(provenance?.t);
   const packLabel = formatPackLabel(provenance?.p, provenance?.n);
