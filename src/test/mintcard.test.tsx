@@ -178,3 +178,56 @@ describe('mint ribbon', () => {
     expect(bridgeLookup).not.toHaveBeenCalled();
   });
 });
+
+describe('fresh mint syncing pill', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    __resetFreshMintsForTests();
+  });
+
+  it('shows "New Mint (Syncing)" instead of #-- for a freshly collected unresolved card', () => {
+    render(<SimpleAssetCard asset={{ ...base, source: 'simpleassets' }} freshMint onClick={() => {}} />);
+    expect(screen.getByText('New Mint (Syncing)')).toBeInTheDocument();
+    expect(screen.queryByText('#--')).not.toBeInTheDocument();
+    // The pill explains why the mint number is missing.
+    expect(screen.getByTitle('Newly minted — the mint number appears after the next mint backup index tick')).toBeInTheDocument();
+  });
+
+  it('shows the real mint, not the pill, once the index tick resolves it', () => {
+    render(<SimpleAssetCard asset={{ ...base, source: 'simpleassets', mintNumber: 356, mintSurviving: 398, mintBurned: 0, mintSource: 'backup' }} freshMint onClick={() => {}} />);
+    expect(screen.getByText('#356')).toBeInTheDocument();
+    expect(screen.queryByText('New Mint (Syncing)')).not.toBeInTheDocument();
+  });
+
+  it('never shows the pill for cards that were not freshly collected', () => {
+    render(<SimpleAssetCard asset={{ ...base, source: 'simpleassets' }} onClick={() => {}} />);
+    expect(screen.getByText('#--')).toBeInTheDocument();
+    expect(screen.queryByText('New Mint (Syncing)')).not.toBeInTheDocument();
+  });
+
+  it('keeps the pill while a freshly collected card re-renders after resolution arrives', () => {
+    const { rerender } = render(<SimpleAssetCard asset={{ ...base, source: 'simpleassets' }} freshMint onClick={() => {}} />);
+    expect(screen.getByText('New Mint (Syncing)')).toBeInTheDocument();
+    rerender(<SimpleAssetCard asset={{ ...base, source: 'simpleassets', mintNumber: 1524, mintSurviving: 1281, mintBurned: 246 }} freshMint onClick={() => {}} />);
+    expect(screen.getByText('#1524')).toBeInTheDocument();
+    expect(screen.queryByText('New Mint (Syncing)')).not.toBeInTheDocument();
+  });
+
+  it('records freshly collected ids and expires them after the TTL', () => {
+    expect(isFreshMintId('100000004478015')).toBe(false);
+    recordFreshMints(['100000004478015', '100000004478016']);
+    expect(isFreshMintId('100000004478015')).toBe(true);
+    expect(getFreshMintIds()).toContain('100000004478016');
+    // Re-recording is idempotent and empty calls are ignored.
+    recordFreshMints(['100000004478015']);
+    recordFreshMints([]);
+    expect(getFreshMintIds().length).toBe(2);
+    // Simulate expiry: backdate the stored timestamp beyond the TTL.
+    const raw = localStorage.getItem('gpk_fresh_mints_v1')!;
+    const map = JSON.parse(raw) as Record<string, number>;
+    map['100000004478015'] = Date.now() - 8 * 24 * 60 * 60 * 1000;
+    localStorage.setItem('gpk_fresh_mints_v1', JSON.stringify(map));
+    expect(isFreshMintId('100000004478015')).toBe(false);
+    expect(isFreshMintId('100000004478016')).toBe(true);
+  });
+});
