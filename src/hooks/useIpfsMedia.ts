@@ -707,6 +707,7 @@ export function useIpfsMedia(
 
 
   const onLoadFinal = useCallback(() => {
+    if (src === '/placeholder.svg') return; // waiting state, not a real image
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
