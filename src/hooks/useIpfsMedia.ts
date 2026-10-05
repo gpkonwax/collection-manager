@@ -707,7 +707,7 @@ export function useIpfsMedia(
 
 
   const onLoadFinal = useCallback(() => {
-    if (src === '/placeholder.svg') return; // waiting state, not a real image
+    if (usingMirrorFirst && hash && !pathsReady) return; // waiting for the mirror path map
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
