@@ -1901,7 +1901,7 @@ export default function SimpleAssetsPage() {
     return (
       <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} isReadOnly={isViewing} />
     );
-  }, [selectionMode, selectedIds, toggleSelection, isViewing]);
+  }, [selectionMode, selectedIds, toggleSelection, isViewing, retroActive, freshMintIds]);
 
   const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
