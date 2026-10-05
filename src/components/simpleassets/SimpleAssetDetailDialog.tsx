@@ -234,7 +234,16 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
             <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 ${showBridge ? 'sm:col-start-1 sm:col-span-2' : 'sm:col-start-1 sm:col-span-4'}`}>
               <div className="flex flex-col text-left">
-                <p className="text-sm font-semibold text-cheese mb-1">Information</p>
+                <div className="relative">
+                  {/* Absolutely positioned so the badge never shifts the column layout (2 or 3 columns). */}
+                  <img
+                    src={isAA ? atomicAssetsLogo : simpleAssetsLogo}
+                    alt={isAA ? 'AtomicAssets' : 'SimpleAssets'}
+                    title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
+                    className={`absolute right-full top-1/2 -translate-y-1/2 mr-1.5 h-4 w-4 rounded-full object-contain shrink-0 ${isAA ? '' : 'bg-white p-[1px]'}`}
+                  />
+                  <p className="text-sm font-semibold text-cheese mb-1">Information</p>
+                </div>
                 <div className="space-y-1">
                 <p className="break-words">
                   NFT ID: <Button type="button" variant="link" onClick={() => link.requestNavigation(explorerUrl)} className="h-auto p-0 font-mono text-cheese align-baseline">{asset.id}</Button>
