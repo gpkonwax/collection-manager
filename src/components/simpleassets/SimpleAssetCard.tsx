@@ -270,8 +270,9 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.idata?.mint === next.asset.idata?.mint &&
     prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
-    prev.idata?.bridge_total === next.asset.idata?.bridge_total &&
+    prev.asset.idata?.bridge_total === next.asset.idata?.bridge_total &&
     prev.asset.cardid === next.asset.cardid &&
+    prev.freshMint === next.freshMint &&
     prev.retro === next.retro &&
     prev.selectionMode === next.selectionMode &&
     prev.selected === next.selected &&
