@@ -1317,6 +1317,36 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, packs, atomicPacks]);
 
+  /** Asset counts per category (respecting the source filter), for the category dropdown. */
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    let total = 0;
+    for (const a of assets) {
+      if (a.category === 'packs') continue;
+      if (sourceFilter !== 'all' && a.source !== sourceFilter) continue;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      counts.set(effectiveCategory, (counts.get(effectiveCategory) ?? 0) + 1);
+      total += 1;
+    }
+    counts.set('all', total);
+    return counts;
+  }, [assets, sourceFilter]);
+
+  /** Asset counts per variant within the selected category, for the variant dropdown. */
+  const variantCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (categoryFilter === 'all') return counts;
+    for (const a of assets) {
+      if (a.category === 'packs') continue;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      if (effectiveCategory !== categoryFilter) continue;
+      if (sourceFilter !== 'all' && a.source !== sourceFilter) continue;
+      const v = (a.quality || '').toLowerCase();
+      if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    return counts;
+  }, [assets, categoryFilter, sourceFilter]);
+
   /** Variants present in the currently selected category (before variant filtering). */
   const categoryVariantOptions = useMemo(() => {
     if (categoryFilter === 'all') return [];
@@ -3170,8 +3200,8 @@ export default function SimpleAssetsPage() {
               <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setVariantFilter(['all']); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent className="max-h-none overflow-visible">
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
+                  <SelectItem value="all">All Categories ({categoryCounts.get('all') ?? 0})</SelectItem>
+                  {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c} ({categoryCounts.get(c) ?? 0})</SelectItem>)}
                 </SelectContent>
               </Select>
               {getCollectionHistory(categoryFilter) && (
@@ -3205,6 +3235,7 @@ export default function SimpleAssetsPage() {
                 <VariantFilterPopover
                   category={categoryFilter}
                   variants={categoryVariantOptions}
+                  counts={variantCounts}
                   value={variantFilter}
                   onChange={setVariantFilter}
                   className="w-full sm:w-[180px]"
