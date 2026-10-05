@@ -35,6 +35,7 @@ import { getGpkCategoryForBoxtype, resolvePendingGpkCard } from '@/lib/gpkCardIm
 import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { preloadRevealImage } from '@/lib/revealImageSources';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
+import { recordFreshMints, getFreshMintIds } from '@/lib/freshMints';
 
 /**
  * Preload one image URL mirror-first: local ZIP → configured mirrors (raced
