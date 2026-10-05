@@ -155,8 +155,15 @@ function SimpleAssetCardComponent({ asset, onClick, draggable, className, select
         className="w-full flex justify-center py-1 mt-2"
         title={mintTooltip}
       >
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-background/80 text-cheese border border-border/40">
-          {mintLabel}
+        <span
+          className={cn(
+            'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+            mintSyncing
+              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 animate-pulse'
+              : 'bg-background/80 text-cheese border-border/40'
+          )}
+        >
+          {mintSyncing ? 'New Mint (Syncing)' : mintLabel}
         </span>
       </div>
       {effectiveSelectionMode && (
@@ -263,7 +270,7 @@ export const SimpleAssetCard = memo(SimpleAssetCardComponent, (prev, next) => {
     prev.asset.idata?.mint === next.asset.idata?.mint &&
     prev.asset.idata?.maxsupply === next.asset.idata?.maxsupply &&
     prev.asset.idata?.bridge_mint === next.asset.idata?.bridge_mint &&
-    prev.asset.idata?.bridge_total === next.asset.idata?.bridge_total &&
+    prev.idata?.bridge_total === next.asset.idata?.bridge_total &&
     prev.asset.cardid === next.asset.cardid &&
     prev.retro === next.retro &&
     prev.selectionMode === next.selectionMode &&
