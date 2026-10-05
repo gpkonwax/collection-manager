@@ -738,7 +738,7 @@ export function useIpfsMedia(
       }
 
     }
-  }, [hash, gwIdx, src, usingMirrorFirst, mirrorFirst]);
+  }, [hash, gwIdx, src, usingMirrorFirst, mirrorFirst, pathsReady]);
 
 
   return {
