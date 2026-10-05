@@ -21,6 +21,7 @@ const fmtDate = (ms?: number) => {
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
+import poweredBySimpleAssets from '@/assets/powered-by-simpleassets.png.asset.json';
 
 interface Props {
   asset: SimpleAsset | null;
