@@ -251,7 +251,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
               </div>
               </div>
             </div>
-              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-2 sm:col-span-2 sm:row-start-1 sm:items-center">
+              <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center ${showBridge ? 'sm:col-start-2 sm:col-span-2' : 'sm:col-start-3 sm:col-span-4'}`}>
                 <div className="flex flex-col text-left">
                   <p className="text-sm font-semibold text-cheese mb-1">Mint information</p>
                   <div className="space-y-1">
