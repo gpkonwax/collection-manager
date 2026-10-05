@@ -106,6 +106,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const bridgeDate = bridgedAt && !Number.isNaN(bridgedAt.getTime())
     ? bridgedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
     : null;
+  const showBridge = isBridgedAA && !!(asset.idata?.bridge_mint || bridgeDate);
   const openedBy = provenance?.o ?? null;
   const mintedOn = formatProvenanceDate(provenance?.t);
   const packLabel = formatPackLabel(provenance?.p, provenance?.n);
@@ -222,13 +223,14 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           })}
         </div>
         <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
-        {/* Headings anchor the spacing: each column hangs centred at the quarter points
-            (25% / 50% / 75%), so the Mint heading always sits directly beneath the artwork
-            toggles and the side headings stay equidistant between centre and edge. Each
-            heading is flush-left above its own lines. */}
+        {/* Headings anchor the spacing: with all three columns each hangs centred at the
+            quarter points (25% / 50% / 75%), so the Mint heading always sits directly beneath
+            the artwork toggles and the side headings stay equidistant between centre and edge.
+            With only two columns (no bridge information) they hang at the third points
+            (33.3% / 66.7%) via a 6-track grid. Each heading is flush-left above its own lines. */}
         <div className="bg-muted/30 rounded p-3 sm:p-4">
-        <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-4 sm:gap-y-0">
-            <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-1 sm:col-span-2 sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10">
+        <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
+            <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 ${showBridge ? 'sm:col-start-1 sm:col-span-2' : 'sm:col-start-1 sm:col-span-4'}`}>
               <div className="flex flex-col text-left">
                 <p className="text-sm font-semibold text-cheese mb-1">Information</p>
                 <div className="space-y-1">
@@ -249,7 +251,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
               </div>
               </div>
             </div>
-              <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-2 sm:col-span-2 sm:row-start-1 sm:items-center">
+              <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center ${showBridge ? 'sm:col-start-2 sm:col-span-2' : 'sm:col-start-3 sm:col-span-4'}`}>
                 <div className="flex flex-col text-left">
                   <p className="text-sm font-semibold text-cheese mb-1">Mint information</p>
                   <div className="space-y-1">
