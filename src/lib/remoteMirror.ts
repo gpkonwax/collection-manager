@@ -256,6 +256,36 @@ export function getPinnedManifestSync(): PinnedManifest | null {
   return null;
 }
 
+/**
+ * IPFS key → on-mirror path for files stored somewhere other than their key
+ * (e.g. AtomicAssets art lives under `atomic/` with an added extension).
+ * Filled once the pinned manifest loads; until then lookups return the key.
+ */
+let mirrorPathMap: Map<string, string> | null = null;
+let mirrorPathPromise: Promise<void> | null = null;
+
+export function loadMirrorPathMap(): Promise<void> {
+  if (mirrorPathPromise) return mirrorPathPromise;
+  mirrorPathPromise = loadPinnedManifest().then((m) => {
+    const map = new Map<string, string>();
+    if (m) {
+      for (const [key, entry] of Object.entries(m.files)) {
+        if (entry.path && entry.path !== key) map.set(key, entry.path);
+      }
+    }
+    mirrorPathMap = map;
+  });
+  return mirrorPathPromise;
+}
+
+export function isMirrorPathMapReady(): boolean {
+  return mirrorPathMap !== null;
+}
+
+export function getMirrorPath(ipfsPath: string): string {
+  return mirrorPathMap?.get(ipfsPath) ?? ipfsPath;
+}
+
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   if (typeof crypto === 'undefined' || !crypto.subtle) {
     throw new Error('crypto.subtle is unavailable');
