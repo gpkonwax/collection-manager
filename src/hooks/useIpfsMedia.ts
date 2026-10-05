@@ -8,7 +8,7 @@ import {
   resolveLocalMirror,
   subscribeLocalMirror,
 } from '@/lib/localMirror';
-import { fetchVerifiedMirrorFile, getRemoteMirrorState, subscribeRemoteMirror, MIRRORS } from '@/lib/remoteMirror';
+import { fetchVerifiedMirrorFile, getRemoteMirrorState, subscribeRemoteMirror, MIRRORS, loadMirrorPathMap, isMirrorPathMapReady, getMirrorPath } from '@/lib/remoteMirror';
 import { peekThumb, getThumb, putThumb, isKnownThumbMiss } from '@/lib/thumbCache';
 
 // Module-level cache: maps IPFS hash → index of last successful gateway
@@ -347,6 +347,14 @@ export function useIpfsMedia(
 
 
   const hash = originalUrl ? extractIpfsHash(originalUrl) : null;
+  // Mirror files may live under a different path (e.g. atomic/<cid>.jpg); wait for the map.
+  const [pathsReady, setPathsReady] = useState(isMirrorPathMapReady);
+  useEffect(() => {
+    if (pathsReady) return;
+    let alive = true;
+    loadMirrorPathMap().then(() => { if (alive) setPathsReady(true); });
+    return () => { alive = false; };
+  }, [pathsReady]);
 
   // Every completed ZIP batch increments this generation. Unlike the old 0/1
   // snapshot, parts loaded after the first one always wake previously-failed cards.
@@ -684,9 +692,11 @@ export function useIpfsMedia(
     src = '/placeholder.svg';
   } else if (failed || !originalUrl) {
     src = '/placeholder.svg';
+  } else if (usingMirrorFirst && hash && !pathsReady) {
+    src = '/placeholder.svg';
   } else if (usingMirrorFirst && hash) {
     // Mirror-first: our own static mirrors before any public gateway.
-    src = `${MIRROR_CHAIN[Math.min(mirrorStep, MIRROR_CHAIN.length - 1)]}${hash}`;
+    src = `${MIRROR_CHAIN[Math.min(mirrorStep, MIRROR_CHAIN.length - 1)]}${getMirrorPath(hash)}`;
   } else if (hash) {
     const base = `${IPFS_GATEWAYS[gwIdx]}${hash}`;
     // Append cache-buster only on retry rounds so browsers refetch
