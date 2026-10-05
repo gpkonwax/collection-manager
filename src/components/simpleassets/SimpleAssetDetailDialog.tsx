@@ -230,7 +230,19 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             the artwork toggles and the side headings stay equidistant between centre and edge.
             With only two columns (no bridge information) they hang at the third points
             (33.3% / 66.7%) via a 6-track grid. Each heading is flush-left above its own lines. */}
-        <div className="bg-muted/30 rounded p-3 sm:p-4">
+        <div className="bg-muted/30 rounded p-3 sm:p-4 relative">
+        {/* Large circular source badge sits in the empty left gutter of the panel (sm+),
+            absolutely positioned so the column layout never shifts whether there are 3 or 2 columns. */}
+        <span
+          title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
+          className={`hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
+        >
+          <img
+            src={isAA ? atomicAssetsLogo : simpleAssetsLogo}
+            alt={isAA ? 'AtomicAssets' : 'SimpleAssets'}
+            className="h-16 w-16 object-contain"
+          />
+        </span>
         <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
             <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 ${showBridge ? 'sm:col-start-1 sm:col-span-2' : 'sm:col-start-1 sm:col-span-4'}`}>
               <div className="flex flex-col text-left">
