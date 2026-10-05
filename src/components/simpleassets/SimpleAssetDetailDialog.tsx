@@ -235,13 +235,18 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 ${showBridge ? 'sm:col-start-1 sm:col-span-2' : 'sm:col-start-1 sm:col-span-4'}`}>
               <div className="flex flex-col text-left">
                 <div className="relative">
-                  {/* Absolutely positioned so the badge never shifts the column layout (2 or 3 columns). */}
-                  <img
-                    src={isAA ? atomicAssetsLogo : simpleAssetsLogo}
-                    alt={isAA ? 'AtomicAssets' : 'SimpleAssets'}
+                  {/* Absolutely positioned so the badge never shifts the column layout (2 or 3 columns).
+                      Circular chip with the logo scaled inside so wide artwork is never clipped into an oval. */}
+                  <span
                     title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
-                    className={`absolute right-full top-1/2 -translate-y-1/2 mr-1.5 h-4 w-4 rounded-full object-contain shrink-0 ${isAA ? '' : 'bg-white p-[1px]'}`}
-                  />
+                    className={`absolute right-full top-1/2 -translate-y-1/2 mr-1.5 flex h-4 w-4 items-center justify-center overflow-hidden rounded-full shrink-0 ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
+                  >
+                    <img
+                      src={isAA ? atomicAssetsLogo : simpleAssetsLogo}
+                      alt={isAA ? 'AtomicAssets' : 'SimpleAssets'}
+                      className="h-3 w-3 object-contain"
+                    />
+                  </span>
                   <p className="text-sm font-semibold text-cheese mb-1">Information</p>
                 </div>
                 <div className="space-y-1">
