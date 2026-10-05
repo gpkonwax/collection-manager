@@ -48,14 +48,13 @@ export const GITHUB_RAW_MIRROR_URL = 'https://raw.githubusercontent.com/gpkonwax
 
 /**
  * Bases for record files (mint shards, provenance, transfers, holders).
- * Only the data mirror and raw GitHub hold these — the image mirrors never do,
- * so probing them just produces 404s and delays mint numbers.
+ * Only raw GitHub holds these — the data mirror carries static artwork and
+ * the holders manifest, but the 1,000 mint shards are never deployed there
+ * (the Cloudflare deploy step is skipped), so probing it just produced ~1,000
+ * 404s before raw GitHub answered. Image mirrors never carry records either.
  */
 export function getDataMirrorBases(): string[] {
-  const bases: string[] = [];
-  if (isDataMirrorConfigured()) bases.push(DATA_MIRROR_URL);
-  if (!bases.includes(GITHUB_RAW_MIRROR_URL)) bases.push(GITHUB_RAW_MIRROR_URL);
-  return bases;
+  return [GITHUB_RAW_MIRROR_URL];
 }
 
 /**
