@@ -232,10 +232,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             (33.3% / 66.7%) via a 6-track grid. Each heading is flush-left above its own lines. */}
         <div className="bg-muted/30 rounded p-3 sm:p-4 relative">
         {/* Large circular source badge sits in the empty left gutter of the panel (sm+),
-            absolutely positioned so the column layout never shifts whether there are 3 or 2 columns. */}
+            absolutely positioned so the column layout never shifts whether there are 3 or 2 columns.
+            Centred at 10% of the panel for the 3-column (25/50/75) layout and 15% for the 2-column (33/66) layout. */}
         <span
           title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
-          className={`hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
+          className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full ${showBridge ? 'left-[10%]' : 'left-[15%]'} ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
         >
           <img
             src={isAA ? atomicAssetsLogo : simpleAssetsLogo}
