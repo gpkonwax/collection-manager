@@ -105,6 +105,15 @@ describe('mint ribbon', () => {
     expect(screen.getByText('#39')).toBeInTheDocument();
     expect(screen.getByText('Bridged on: 22 Sept 2026')).toBeInTheDocument();
   });
+  it('loads both WAX logos from the asset host instead of GitHub Pages', () => {
+    render(<SimpleAssetDetailDialog asset={base} open onOpenChange={() => {}} />);
+    const logos = screen.getAllByAltText('WAX');
+    expect(logos).toHaveLength(2);
+    expect(logos.map((logo) => logo.getAttribute('src'))).toEqual([
+      'https://pack-magic-reimagined.lovable.app/__l5e/assets-v1/692d427d-5263-4f10-af87-dd4a708f4f82/wax-logo.png',
+      'https://pack-magic-reimagined.lovable.app/__l5e/assets-v1/95da3245-a474-49b6-8336-5de40e000a28/wax-logo-white.png',
+    ]);
+  });
   it('keeps the bridge mint when no valid bridge date is available', () => {
     render(<SimpleAssetDetailDialog asset={{ ...base, mintNumber: 356, bridgedAt: Number.NaN, idata: { bridge_mint: '203' } }} open onOpenChange={() => {}} />);
     expect(screen.getByText('Bridge Information')).toBeInTheDocument();

@@ -14,3 +14,4 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Show 1985 retro scans only through src/lib/retroScans.ts (base Series 1/2, unambiguous geepeekay files only, data mirror retro/ first then geepeekay), behind a session-only switch offered when exactly Base is filtered, so missing or ambiguous scans fall back to NFT artwork.
 - Keep card-detail explorer destinations source-aware (AtomicHub for AtomicAssets IDs, WAX Explorer for SimpleAssets IDs), and route external links through the existing warning so unindexed SimpleAssets never lead to missing AtomicHub asset pages.
 - Fetch record files (mint shards, provenance, transfers, holders) only from a loaded records ZIP and raw GitHub, never the data mirror or image mirrors, because neither carries them and 404 probes delay mint numbers.
+- Resolve Lovable-hosted detail logo pointers against the published asset host, because GitHub Pages cannot serve root-relative /__l5e/assets-v1/ paths.
