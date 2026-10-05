@@ -22,6 +22,8 @@ const fmtDate = (ms?: number) => {
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 import poweredBySimpleAssets from '@/assets/powered-by-simpleassets.png.asset.json';
+import waxLogo from '@/assets/wax-logo.png.asset.json';
+import waxLogoWhite from '@/assets/wax-logo-white.png.asset.json';
 
 interface Props {
   asset: SimpleAsset | null;
@@ -336,6 +338,19 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
               </div>
             )}
         </div>
+        {/* WAX watermark in the bottom-right of the panel, exactly where the user drew it.
+            Absolutely positioned so the column layout never shifts (3 or 2 columns).
+            Black lettering in bright mode, white lettering in dark mode for contrast. */}
+        <img
+          src={waxLogo.url}
+          alt="WAX"
+          className="hidden sm:block dark:hidden absolute bottom-2 right-4 h-9 w-auto pointer-events-none"
+        />
+        <img
+          src={waxLogoWhite.url}
+          alt="WAX"
+          className="hidden dark:sm:block absolute bottom-2 right-4 h-9 w-auto pointer-events-none"
+        />
         </div>
         {metaFields.length > 0 && (
           <div className="space-y-2">
