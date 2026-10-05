@@ -91,8 +91,20 @@ const PACK_NAMES: Record<string, string> = {
   bernventures: 'Bernventures',
 };
 
+const PACK_CODES: Record<string, Record<number, string>> = {
+  series1: { 5: 'GPKFIVE', 30: 'GPKMEGA' },
+  five: { 5: 'GPKFIVE', 30: 'GPKMEGA' },
+  series2: { 8: 'GPKTWOA', 25: 'GPKTWOB', 55: 'GPKTWOC' },
+  gpktwoa: { 8: 'GPKTWOA', 25: 'GPKTWOB', 55: 'GPKTWOC' },
+  gpktwob: { 8: 'GPKTWOA', 25: 'GPKTWOB', 55: 'GPKTWOC' },
+  gpktwoc: { 8: 'GPKTWOA', 25: 'GPKTWOB', 55: 'GPKTWOC' },
+  exotic: { 5: 'EXOFIVE', 25: 'EXOMEGA' },
+};
+
 export function formatPackLabel(p?: string, n?: number): string | null {
   if (!p) return null;
+  const code = n ? PACK_CODES[p.toLowerCase()]?.[n] : undefined;
+  if (code) return `${code} (${n} card pack)`;
   const name = PACK_NAMES[p] ?? p;
   return n ? `${name} (${n}-card pack)` : name;
 }
