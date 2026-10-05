@@ -92,7 +92,7 @@ export async function fetchTopGpkHolders(opts: {
 
 
   // One attempt per mirror — first successful manifest wins.
-  // Record files live only on the data mirror and raw GitHub — never on the
+  // Record files live only on raw GitHub — never on the data mirror or the
   // image mirrors (which would just 404).
   const baseUrls = getDataMirrorBases();
   const attempts = baseUrls.map((u) => fetchManifestFrom(u, signal));
