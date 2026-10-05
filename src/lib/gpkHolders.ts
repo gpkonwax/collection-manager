@@ -7,8 +7,7 @@
  *   sa = SimpleAssets rows where author == 'gpk.topps'
  *   aa = AtomicAssets collection_name == 'gpk.topps'
  */
-import { MIRRORS } from './remoteMirror';
-import { DATA_MIRROR_URL } from './dataMirror';
+import { getDataMirrorBases } from './dataMirror';
 import { getLoadedRecords } from './recordsZip';
 
 export interface Holder {
@@ -93,10 +92,9 @@ export async function fetchTopGpkHolders(opts: {
 
 
   // One attempt per mirror — first successful manifest wins.
-  // The dedicated data mirror is tried first (it's tiny and always current).
-  const baseUrls = [DATA_MIRROR_URL, ...MIRRORS.map((m) => m.url)].filter(
-    (u): u is string => !!u && /^https:\/\//i.test(u),
-  );
+  // Record files live only on the data mirror and raw GitHub — never on the
+  // image mirrors (which would just 404).
+  const baseUrls = getDataMirrorBases();
   const attempts = baseUrls.map((u) => fetchManifestFrom(u, signal));
   if (attempts.length === 0) {
     throw new HoldersManifestError('network', 'No mirrors configured');
