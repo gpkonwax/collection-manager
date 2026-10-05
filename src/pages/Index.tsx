@@ -837,6 +837,10 @@ export default function SimpleAssetsPage() {
       });
       preparingDealCancelRef.current = null;
       setPreparingDeal(null);
+      // Mark these as freshly minted so the grid shows "New Mint (Syncing)"
+      // until their true mint number arrives with the next backup index tick.
+      recordFreshMints(matched.map((a) => a.id));
+      setFreshMintVersion((v) => v + 1);
       setDealingCards([...matched].reverse());
       setDealtIds(new Set());
       setPendingSuccessInfo({ txId: isUnboxNft ? null : (txId ?? null), count: matched.length });
@@ -1099,6 +1103,9 @@ export default function SimpleAssetsPage() {
         });
         preparingDealCancelRef.current = null;
         setPreparingDeal(null);
+        // Recovered cards are freshly minted too — label them until mints sync.
+        recordFreshMints(matched.map((a) => a.id));
+        setFreshMintVersion((v) => v + 1);
         setPendingSuccessInfo({ txId: lastTxId, count: matched.length });
         setDealingCards([...matched].reverse());
         setDealtIds(new Set());
