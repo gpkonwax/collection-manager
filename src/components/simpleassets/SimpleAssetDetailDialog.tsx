@@ -242,7 +242,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           <img
             src={isAA ? atomicAssetsLogo : poweredBySimpleAssets.url}
             alt={isAA ? 'AtomicAssets' : 'Powered by Simple Assets'}
-            className={isAA ? 'h-16 w-16 object-contain' : 'h-24 w-24 object-cover'}
+            className={isAA ? 'h-16 w-16 object-contain' : 'h-[127%] w-[127%] max-w-none shrink-0 object-cover'}
           />
         </span>
         <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
