@@ -142,7 +142,7 @@ describe('mint ribbon', () => {
     expect(screen.getByText('Information').parentElement?.parentElement?.parentElement).toHaveClass('sm:grid-cols-6');
     expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:col-start-1', 'sm:col-span-4', 'sm:items-center');
     expect(screen.getByText('Mint information').parentElement?.parentElement).toHaveClass('sm:col-start-3', 'sm:col-span-4', 'sm:items-center');
-    await checkLink('123', 'https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
+    await checkLink('123', 'https://waxblock.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
     await checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
   });
   it('shows the bridging account from the mint log, and omits it when unknown', async () => {
