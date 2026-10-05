@@ -1894,6 +1894,7 @@ export default function SimpleAssetsPage() {
           isReadOnly={isViewing}
           onTradeClick={handleTradeFromCard}
           retro={retroActive}
+          freshMint={freshMintIds.has(asset.id)}
         />
       );
     }
@@ -2221,6 +2222,7 @@ export default function SimpleAssetsPage() {
                   isReadOnly={isViewing}
                   onTradeClick={handleTradeFromCard}
           retro={retroActive}
+                  freshMint={freshMintIds.has(asset.id)}
                 />
               );
             })}
@@ -2450,6 +2452,7 @@ export default function SimpleAssetsPage() {
                 isReadOnly={isViewing}
                 onTradeClick={handleTradeFromCard}
           retro={retroActive}
+                freshMint={freshMintIds.has(asset.id)}
               />
             );
           })}
