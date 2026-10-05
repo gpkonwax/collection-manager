@@ -119,9 +119,9 @@ describe('mint ribbon', () => {
   });
   it('shows linked Information before mint and bridge information, with template ID only for AtomicAssets', async () => {
     const { rerender } = render(<SimpleAssetDetailDialog asset={{ ...base, id: '1099535105066', mintNumber: 9, idata: { _template_id: '363', bridge_mint: '7', bridge_total: '90' } }} open onOpenChange={() => {}} />);
-    const info = screen.getByText('Information').parentElement?.parentElement;
-    const columns = info?.parentElement;
-    expect(columns?.children[0]).toBe(info);
+    const infoColumn = screen.getByText('Information').closest('[class*="sm:col-start-1"]');
+    const columns = infoColumn?.parentElement;
+    expect(columns?.children[0]).toBe(infoColumn);
     expect(columns?.children[1]).toContainElement(screen.getByText('Mint information'));
     expect(columns?.children[2]).toContainElement(screen.getByText('Bridge Information'));
     expect(screen.getByText('Total bridged (AtomicAssets): 90')).toBeInTheDocument();
@@ -138,10 +138,10 @@ describe('mint ribbon', () => {
     rerender(<SimpleAssetDetailDialog asset={{ ...base, source: 'simpleassets', id: '123', category: 'five', idata: {} }} open onOpenChange={() => {}} />);
     expect(screen.queryByText('Template ID:')).not.toBeInTheDocument();
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
-    expect(screen.getByText('Information').parentElement).toHaveClass('text-left');
+    expect(screen.getByText('Information').closest('.text-left')).not.toBeNull();
     // Two-column layout: Information and Mint information hang at the third points (33.3% / 66.7%).
-    expect(screen.getByText('Information').parentElement?.parentElement?.parentElement).toHaveClass('sm:grid-cols-6');
-    expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:col-start-1', 'sm:col-span-4', 'sm:items-center');
+    expect(screen.getByText('Information').closest('[class*="sm:grid-cols-6"]')).not.toBeNull();
+    expect(screen.getByText('Information').closest('[class*="sm:col-start-1"]')).toHaveClass('sm:col-start-1', 'sm:col-span-4', 'sm:items-center');
     expect(screen.getByText('Mint information').parentElement?.parentElement).toHaveClass('sm:col-start-3', 'sm:col-span-4', 'sm:items-center');
     await checkLink('123', 'https://waxblock.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
     await checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
