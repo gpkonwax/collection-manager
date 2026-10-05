@@ -123,7 +123,7 @@ describe('mint ribbon', () => {
     expect(columns?.children[0]).toBe(info);
     expect(columns?.children[1]).toContainElement(screen.getByText('Mint information'));
     expect(columns?.children[2]).toContainElement(screen.getByText('Bridge Information'));
-    expect(screen.getByText('Total issued (AtomicAssets): 90')).toBeInTheDocument();
+    expect(screen.getByText('Total bridged (AtomicAssets): 90')).toBeInTheDocument();
     const checkLink = async (name: string, url: string) => {
       fireEvent.click(screen.getByRole('button', { name }));
       expect(await screen.findByText(url)).toBeInTheDocument();
