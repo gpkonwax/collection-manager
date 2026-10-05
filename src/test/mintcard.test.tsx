@@ -138,8 +138,10 @@ describe('mint ribbon', () => {
     expect(screen.queryByText('Template ID:')).not.toBeInTheDocument();
     expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
     expect(screen.getByText('Information').parentElement).toHaveClass('text-left');
-    expect(screen.getByText('Information').parentElement?.parentElement?.parentElement).toHaveClass('sm:grid-cols-4');
-    expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:col-start-1', 'sm:col-span-2', 'sm:items-center');
+    // Two-column layout: Information and Mint information hang at the third points (33.3% / 66.7%).
+    expect(screen.getByText('Information').parentElement?.parentElement?.parentElement).toHaveClass('sm:grid-cols-6');
+    expect(screen.getByText('Information').parentElement?.parentElement).toHaveClass('sm:col-start-1', 'sm:col-span-4', 'sm:items-center');
+    expect(screen.getByText('Mint information').parentElement?.parentElement).toHaveClass('sm:col-start-3', 'sm:col-span-4', 'sm:items-center');
     await checkLink('123', 'https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=x&lower_bound=123&upper_bound=123');
     await checkLink('Series 1', 'https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/series1');
   });
