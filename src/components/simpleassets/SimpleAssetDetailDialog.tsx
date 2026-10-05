@@ -234,15 +234,15 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         <div className="bg-muted/30 rounded p-3 sm:p-4 relative">
         {/* Large circular source badge sits in the empty left gutter of the panel (sm+),
             absolutely positioned so the column layout never shifts whether there are 3 or 2 columns.
-            Centred at 10% of the panel for the 3-column (25/50/75) layout and 15% for the 2-column (33/66) layout. */}
+            Both badges are centred at 10% of the panel; SimpleAssets uses the full Powered-by seal. */}
         <span
           title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
-          className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full ${showBridge ? 'left-[10%]' : 'left-[15%]'} ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
+          className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full left-[10%] ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
         >
           <img
-            src={isAA ? atomicAssetsLogo : simpleAssetsLogo}
-            alt={isAA ? 'AtomicAssets' : 'SimpleAssets'}
-            className="h-16 w-16 object-contain"
+            src={isAA ? atomicAssetsLogo : poweredBySimpleAssets.url}
+            alt={isAA ? 'AtomicAssets' : 'Powered by Simple Assets'}
+            className={isAA ? 'h-16 w-16 object-contain' : 'h-24 w-24 object-cover'}
           />
         </span>
         <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
