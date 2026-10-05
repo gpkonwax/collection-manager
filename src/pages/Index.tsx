@@ -324,6 +324,10 @@ export default function SimpleAssetsPage() {
 
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
+  // Freshly minted (newly collected) cards whose mint number is still syncing.
+  const [freshMintVersion, setFreshMintVersion] = useState(0);
+  const freshMintIds = useMemo(() => new Set(getFreshMintIds()), [freshMintVersion]);
+
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
   }, [search, categoryFilter, sourceFilter, variantFilter, viewMode, sortMode]);
