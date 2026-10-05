@@ -15,6 +15,13 @@ vi.mock('@/lib/thumbCache', () => ({
   isKnownThumbMiss: () => true,
 }));
 
+vi.mock('@/lib/remoteMirror', async (orig) => ({
+  ...(await orig<typeof import('@/lib/remoteMirror')>()),
+  loadMirrorPathMap: async () => {},
+  isMirrorPathMapReady: () => true,
+  getMirrorPath: (p: string) => (p === 'QmAtomicBack' ? 'atomic/QmAtomicBack.jpg' : p),
+}));
+
 const HASH = 'QmTestHash000000000000000000000000000000000001';
 const URL = `ipfs://${HASH}`;
 
@@ -33,6 +40,11 @@ describe('useIpfsMedia adaptive mirror fallback', () => {
   it('starts on the primary mirror for card context', () => {
     const { result } = renderHook(() => useIpfsMedia(URL, { context: 'card' }));
     expect(result.current.src).toBe(`${PRIMARY_MIRROR}${HASH}`);
+  });
+
+  it('uses the mirror path for files stored under atomic/', () => {
+    const { result } = renderHook(() => useIpfsMedia('ipfs://QmAtomicBack', { context: 'card' }));
+    expect(result.current.src).toBe(`${PRIMARY_MIRROR}atomic/QmAtomicBack.jpg`);
   });
 
   it('walks primary → backup A → backup B before any public gateway', () => {
