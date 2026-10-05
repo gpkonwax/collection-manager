@@ -14,15 +14,18 @@ interface VariantFilterPopoverProps {
   size?: 'sm' | 'default';
   /** Optional explicit option list (e.g. derived from the wallet's assets). */
   variants?: VariantOption[];
+  /** Optional asset counts per variant value, shown next to each option. */
+  counts?: Map<string, number>;
 }
 
-export function VariantFilterPopover({ category, value, onChange, className, size = 'sm', variants: variantsProp }: VariantFilterPopoverProps) {
+export function VariantFilterPopover({ category, value, onChange, className, size = 'sm', variants: variantsProp, counts }: VariantFilterPopoverProps) {
   const variants = variantsProp ?? getVariantsForCategory(category);
   if (variants.length < 2) return null;
 
   const isAll = value.includes('all');
   const toggleVariant = (val: string) => onChange(nextVariantFilter(value, val, variants));
   const label = variantFilterLabel(value, variants);
+  const totalCount = counts ? variants.reduce((sum, v) => sum + (counts.get(v.value) ?? 0), 0) : null;
 
   return (
     <Popover>

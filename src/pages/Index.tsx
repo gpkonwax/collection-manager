@@ -3235,6 +3235,7 @@ export default function SimpleAssetsPage() {
                 <VariantFilterPopover
                   category={categoryFilter}
                   variants={categoryVariantOptions}
+                  counts={variantCounts}
                   value={variantFilter}
                   onChange={setVariantFilter}
                   className="w-full sm:w-[180px]"
