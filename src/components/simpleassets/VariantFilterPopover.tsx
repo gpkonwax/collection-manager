@@ -45,7 +45,7 @@ export function VariantFilterPopover({ category, value, onChange, className, siz
       <PopoverContent className="w-[200px] p-2 max-h-[300px] overflow-y-auto" align="start">
         <label className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
           <Checkbox checked={isAll} onCheckedChange={() => toggleVariant('all')} />
-          All Variants
+          All Variants{totalCount !== null ? ` (${totalCount})` : ''}
         </label>
         <div className="my-1 h-px bg-border" />
         {variants.map(v => {
@@ -53,7 +53,7 @@ export function VariantFilterPopover({ category, value, onChange, className, siz
           const row = (
             <label className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer hover:bg-accent text-sm">
               <Checkbox checked={isAll || value.includes(v.value)} onCheckedChange={() => toggleVariant(v.value)} />
-              {v.label}
+              {v.label}{counts ? ` (${counts.get(v.value) ?? 0})` : ''}
             </label>
           );
           if (!description) return <div key={v.value}>{row}</div>;
