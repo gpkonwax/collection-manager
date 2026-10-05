@@ -535,7 +535,7 @@ export function useIpfsMedia(
       nextMirror(true);
     }, MIRROR_FIRST_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, [mirrorPhase, mirrorStep, enabled, hash, nextMirror, thumbBlobUrl]);
+  }, [mirrorPhase, pathsReady, mirrorStep, enabled, hash, nextMirror, thumbBlobUrl]);
 
 
   useEffect(() => {
