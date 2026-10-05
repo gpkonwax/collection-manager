@@ -3200,8 +3200,8 @@ export default function SimpleAssetsPage() {
               <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setVariantFilter(['all']); }}>
                 <SelectTrigger className="w-full sm:w-[180px] border-cheese/50 text-cheese theme-bright-border theme-bright-text theme-bright-fill"><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent className="max-h-none overflow-visible">
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>)}
+                  <SelectItem value="all">All Categories ({categoryCounts.get('all') ?? 0})</SelectItem>
+                  {categories.map((c) => <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c} ({categoryCounts.get(c) ?? 0})</SelectItem>)}
                 </SelectContent>
               </Select>
               {getCollectionHistory(categoryFilter) && (
