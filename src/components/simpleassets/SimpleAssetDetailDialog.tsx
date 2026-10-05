@@ -123,9 +123,11 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const schemaExplorerUrl = `https://atomichub.io/explorer/schema/wax-mainnet/gpk.topps/${encodeURIComponent(schemaName)}`;
   const templateExplorerUrl = `https://atomichub.io/explorer/template/wax-mainnet/gpk.topps/${encodeURIComponent(templateId)}`;
   const acquiredOn = isAA ? fmtDate(asset.transferredAt) : null;
+  // wax.bloks.io now redirects to the XPR Network explorer, so SimpleAssets records
+  // go to waxblock.io, which stays on the WAX blockchain.
   const explorerUrl = isAA
     ? `https://atomichub.io/explorer/asset/wax-mainnet/${asset.id}`
-    : `https://wax.bloks.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=${encodeURIComponent(asset.owner)}&lower_bound=${asset.id}&upper_bound=${asset.id}`;
+    : `https://waxblock.io/account/simpleassets?loadContract=true&tab=Tables&table=sassets&scope=${encodeURIComponent(asset.owner)}&lower_bound=${asset.id}&upper_bound=${asset.id}`;
   const hasContainer = asset.container.length > 0;
   const hasContainerf = asset.containerf.length > 0;
 
