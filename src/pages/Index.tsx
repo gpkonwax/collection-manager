@@ -1317,6 +1317,36 @@ export default function SimpleAssetsPage() {
     });
   }, [assets, packs, atomicPacks]);
 
+  /** Asset counts per category (respecting the source filter), for the category dropdown. */
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    let total = 0;
+    for (const a of assets) {
+      if (a.category === 'packs') continue;
+      if (sourceFilter !== 'all' && a.source !== sourceFilter) continue;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      counts.set(effectiveCategory, (counts.get(effectiveCategory) ?? 0) + 1);
+      total += 1;
+    }
+    counts.set('all', total);
+    return counts;
+  }, [assets, sourceFilter]);
+
+  /** Asset counts per variant within the selected category, for the variant dropdown. */
+  const variantCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (categoryFilter === 'all') return counts;
+    for (const a of assets) {
+      if (a.category === 'packs') continue;
+      const effectiveCategory = SCHEMA_TO_CATEGORY[a.category] || a.category;
+      if (effectiveCategory !== categoryFilter) continue;
+      if (sourceFilter !== 'all' && a.source !== sourceFilter) continue;
+      const v = (a.quality || '').toLowerCase();
+      if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    return counts;
+  }, [assets, categoryFilter, sourceFilter]);
+
   /** Variants present in the currently selected category (before variant filtering). */
   const categoryVariantOptions = useMemo(() => {
     if (categoryFilter === 'all') return [];
