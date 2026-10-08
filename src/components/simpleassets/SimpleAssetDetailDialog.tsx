@@ -242,9 +242,9 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         <div className="bg-muted/30 rounded p-3 sm:p-4 relative">
         {/* Large source badge sits in the empty left gutter of the panel (sm+), absolutely
             positioned so the column layout never shifts whether there are 3 or 2 columns.
-            Both badges share the same 96px footprint centred at 10% of the panel: SimpleAssets
-            keeps the full Powered-by seal in a white circle, AtomicAssets is the bare wordmark
-            (white letters in dark mode, navy-lettered twin in bright mode) with no circle. */}
+            Both badges are centred at 10% of the panel: SimpleAssets keeps the full Powered-by
+            seal in a white circle, AtomicAssets is the bare wordmark (no circle) at 128px —
+            white letters in dark mode, navy-lettered twin in bright mode. */}
         <span
           title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
           className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center left-[10%] ${isAA ? '' : 'overflow-hidden rounded-full bg-white'}`}
@@ -254,12 +254,12 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
               <img
                 src={hostedLogoUrl(atomicAssetsWordmark.url)}
                 alt="AtomicAssets"
-                className="hidden dark:block h-auto w-24 max-w-none shrink-0"
+                className="hidden dark:block h-auto w-32 max-w-none shrink-0"
               />
               <img
                 src={hostedLogoUrl(atomicAssetsWordmarkDark.url)}
                 alt="AtomicAssets"
-                className="dark:hidden h-auto w-24 max-w-none shrink-0"
+                className="dark:hidden h-auto w-32 max-w-none shrink-0"
               />
             </>
           ) : (
