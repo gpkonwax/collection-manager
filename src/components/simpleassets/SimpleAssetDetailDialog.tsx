@@ -21,6 +21,7 @@ const fmtDate = (ms?: number) => {
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
 import atomicAssetsWordmark from '@/assets/atomicassets.svg.asset.json';
+import atomicAssetsWordmarkDark from '@/assets/atomicassets-dark.svg.asset.json';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 import poweredBySimpleAssets from '@/assets/powered-by-simpleassets.png.asset.json';
 import waxLogo from '@/assets/wax-logo.png.asset.json';
@@ -239,18 +240,35 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             With only two columns (no bridge information) they hang at the third points
             (33.3% / 66.7%) via a 6-track grid. Each heading is flush-left above its own lines. */}
         <div className="bg-muted/30 rounded p-3 sm:p-4 relative">
-        {/* Large circular source badge sits in the empty left gutter of the panel (sm+),
-            absolutely positioned so the column layout never shifts whether there are 3 or 2 columns.
-            Both badges are centred at 10% of the panel; SimpleAssets uses the full Powered-by seal. */}
+        {/* Large source badge sits in the empty left gutter of the panel (sm+), absolutely
+            positioned so the column layout never shifts whether there are 3 or 2 columns.
+            Both badges share the same 96px footprint centred at 10% of the panel: SimpleAssets
+            keeps the full Powered-by seal in a white circle, AtomicAssets is the bare wordmark
+            (white letters in dark mode, navy-lettered twin in bright mode) with no circle. */}
         <span
           title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
-          className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full left-[10%] ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
+          className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center left-[10%] ${isAA ? '' : 'overflow-hidden rounded-full bg-white'}`}
         >
-          <img
-            src={isAA ? hostedLogoUrl(atomicAssetsWordmark.url) : hostedLogoUrl(poweredBySimpleAssets.url)}
-            alt={isAA ? 'AtomicAssets' : 'Powered by Simple Assets'}
-            className={isAA ? 'h-10 w-20 object-contain' : 'h-[127%] w-[127%] max-w-none shrink-0 object-cover'}
-          />
+          {isAA ? (
+            <>
+              <img
+                src={hostedLogoUrl(atomicAssetsWordmark.url)}
+                alt="AtomicAssets"
+                className="hidden dark:block h-auto w-24 max-w-none shrink-0"
+              />
+              <img
+                src={hostedLogoUrl(atomicAssetsWordmarkDark.url)}
+                alt="AtomicAssets"
+                className="dark:hidden h-auto w-24 max-w-none shrink-0"
+              />
+            </>
+          ) : (
+            <img
+              src={hostedLogoUrl(poweredBySimpleAssets.url)}
+              alt="Powered by Simple Assets"
+              className="h-[127%] w-[127%] max-w-none shrink-0 object-cover"
+            />
+          )}
         </span>
         <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
             <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 ${showBridge ? 'sm:col-start-1 sm:col-span-2' : 'sm:col-start-1 sm:col-span-4'}`}>
