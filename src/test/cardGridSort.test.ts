@@ -41,3 +41,23 @@ describe('natural grid ordering', () => {
     expect(cards.sort(compareNaturalCards).map((asset) => asset.id)).toEqual(['2', '1']);
   });
 });
+
+describe('binder stack ordering by original mint', () => {
+  it('puts the lowest original mint first across SA and AA copies, unresolved last', () => {
+    const cards = [
+      card('aa1', 120, { source: 'atomicassets', idata: { bridge_mint: '1' } }),
+      card('sa1', 5),
+      card('aa2', undefined, { source: 'atomicassets', idata: { bridge_mint: '2' } }),
+      card('sa2', 42),
+    ];
+    expect(cards.sort(compareByOriginalMint).map((asset) => asset.id)).toEqual(['sa1', 'sa2', 'aa1', 'aa2']);
+  });
+
+  it('never uses the bridge mint as the sort key', () => {
+    const cards = [
+      card('aa', 900, { source: 'atomicassets', idata: { bridge_mint: '1' } }),
+      card('sa', 7),
+    ];
+    expect(cards.sort(compareByOriginalMint).map((asset) => asset.id)).toEqual(['sa', 'aa']);
+  });
+});
