@@ -247,7 +247,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             white letters in dark mode, navy-lettered twin in bright mode. */}
         <span
           title={isAA ? 'AtomicAssets asset' : 'SimpleAssets asset'}
-          className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center left-[10%] ${isAA ? '' : 'overflow-hidden rounded-full bg-white'}`}
+          className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 items-center justify-center left-[10%] ${isAA ? 'w-32' : 'w-24 overflow-hidden rounded-full bg-white'}`}
         >
           {isAA ? (
             <>
