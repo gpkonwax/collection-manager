@@ -15,3 +15,4 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Keep card-detail explorer destinations source-aware (AtomicHub for AtomicAssets IDs, WAX Explorer for SimpleAssets IDs), and route external links through the existing warning so unindexed SimpleAssets never lead to missing AtomicHub asset pages.
 - Fetch record files (mint shards, provenance, transfers, holders) only from a loaded records ZIP and raw GitHub, never the data mirror or image mirrors, because neither carries them and 404 probes delay mint numbers.
 - Resolve Lovable-hosted detail logo pointers against the published asset host, because GitHub Pages cannot serve root-relative /__l5e/assets-v1/ paths.
+- Keep the card-detail AtomicAssets badge as a bare wordmark with a navy-lettered twin for bright mode, because white letters vanish on the light panel once the navy circle backing is gone.
