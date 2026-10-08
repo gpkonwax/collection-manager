@@ -1467,7 +1467,7 @@ export default function SimpleAssetsPage() {
       const byKey = ownedByCardKey.get(`${template.cardid}:${template.quality.toLowerCase()}:${template.variant.toLowerCase()}`);
       // Merge (atomic + simpleasset) sources; dedupe by asset id. byTid first so the
       // primary rendered card keeps its previous identity when both exist.
-      const merged: SimpleAsset[] = [];
+       const merged: SimpleAsset[] = [];
       const seenIds = new Set<string>();
       const pushAll = (arr?: SimpleAsset[]) => {
         if (!arr) return;
@@ -1475,6 +1475,10 @@ export default function SimpleAssetsPage() {
       };
       pushAll(byTid);
       pushAll(byKey);
+      // Order copies by original mint (never bridge mint) so the top card of the
+      // stack — and the modal's left-to-right, top-to-bottom layout — starts
+      // with the lowest #mint. Unresolved mints (#--) go last.
+      merged.sort(compareByOriginalMint);
       const owned = merged.length ? merged : null;
       return { template, owned };
     });
