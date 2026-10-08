@@ -95,7 +95,7 @@ import { toast } from 'sonner';
 import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
-import { compareNaturalCards } from '@/lib/cardGridSort';
+import { compareNaturalCards, compareByOriginalMint } from '@/lib/cardGridSort';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';

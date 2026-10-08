@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import { compareNaturalCards } from '@/lib/cardGridSort';
+import { compareNaturalCards, compareByOriginalMint } from '@/lib/cardGridSort';
 
 const card = (id: string, mintNumber?: number, overrides: Partial<SimpleAsset> = {}): SimpleAsset => ({
   id, owner: 'collector', author: 'gpk.topps', category: 'series2', name: 'Card',
