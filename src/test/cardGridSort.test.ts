@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import { compareNaturalCards } from '@/lib/cardGridSort';
+import { compareNaturalCards, compareByOriginalMint } from '@/lib/cardGridSort';
 
 const card = (id: string, mintNumber?: number, overrides: Partial<SimpleAsset> = {}): SimpleAsset => ({
   id, owner: 'collector', author: 'gpk.topps', category: 'series2', name: 'Card',
@@ -39,5 +39,25 @@ describe('natural grid ordering', () => {
     const cards = [card('1', undefined, { source: 'atomicassets', category: 'foodfightb', idata: { bridge_mint: '80' } }),
       card('2', undefined, { source: 'simpleassets', category: 'foodfightb', idata: { mint: '12' } })];
     expect(cards.sort(compareNaturalCards).map((asset) => asset.id)).toEqual(['2', '1']);
+  });
+});
+
+describe('binder stack ordering by original mint', () => {
+  it('puts the lowest original mint first across SA and AA copies, unresolved last', () => {
+    const cards = [
+      card('aa1', 120, { source: 'atomicassets', idata: { bridge_mint: '1' } }),
+      card('sa1', 5),
+      card('aa2', undefined, { source: 'atomicassets', idata: { bridge_mint: '2' } }),
+      card('sa2', 42),
+    ];
+    expect(cards.sort(compareByOriginalMint).map((asset) => asset.id)).toEqual(['sa1', 'sa2', 'aa1', 'aa2']);
+  });
+
+  it('never uses the bridge mint as the sort key', () => {
+    const cards = [
+      card('aa', 900, { source: 'atomicassets', idata: { bridge_mint: '1' } }),
+      card('sa', 7),
+    ];
+    expect(cards.sort(compareByOriginalMint).map((asset) => asset.id)).toEqual(['sa', 'aa']);
   });
 });
