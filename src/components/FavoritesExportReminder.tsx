@@ -13,15 +13,17 @@ const REMINDED_KEY = 'gpk:fav-export-reminded';
  */
 export function FavoritesExportReminder() {
   const [open, setOpen] = useState(false);
+  const [addedAccount, setAddedAccount] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { type?: string } | undefined;
+      const detail = (e as CustomEvent).detail as { type?: string; account?: string } | undefined;
       if (detail?.type !== 'added') return;
       try {
         if (sessionStorage.getItem(REMINDED_KEY)) return;
         sessionStorage.setItem(REMINDED_KEY, '1');
       } catch { /* sessionStorage unavailable — still show once */ }
+      setAddedAccount(detail?.account ?? null);
       setOpen(true);
     };
     window.addEventListener(FAVORITES_CHANGED_EVENT, handler);
@@ -52,6 +54,11 @@ export function FavoritesExportReminder() {
           </DialogTitle>
           <DialogDescription asChild>
             <div className="space-y-2 pt-1 text-sm text-muted-foreground">
+              <p>
+                {addedAccount
+                  ? <><span className="font-semibold text-foreground">{addedAccount}</span> has been added to your favourites — it's already in your list, nothing else to do.</>
+                  : 'That account has been added to your favourites — it\'s already in your list, nothing else to do.'}
+              </p>
               <p>
                 Your favourite accounts are saved only in this browser. If you clear your browser
                 data or switch devices, the list is lost.

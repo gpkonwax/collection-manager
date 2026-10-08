@@ -24,3 +24,5 @@
 - [x] Card details: live trading history (sales + transfers) for AtomicAssets cards
 - [x] SimpleAssets ownership history: live incoming transfer + twice-daily transfer recorder
 - [x] Stop requesting mint/record files from the 3 image backups (data site + raw GitHub only).
+- [x] NFT detail: AtomicAssets badge uses the new white ATOMICASSETS wordmark SVG (hosted asset, GitHub-Pages-safe URL).
+- [x] Favourites backup popup now states the starred account was already added — no re-import needed.
