@@ -20,6 +20,7 @@ const fmtDate = (ms?: number) => {
 };
 
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
+import atomicAssetsWordmark from '@/assets/atomicassets.svg.asset.json';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
 import poweredBySimpleAssets from '@/assets/powered-by-simpleassets.png.asset.json';
 import waxLogo from '@/assets/wax-logo.png.asset.json';
@@ -246,9 +247,9 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
           className={`hidden sm:flex absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-24 w-24 items-center justify-center overflow-hidden rounded-full left-[10%] ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
         >
           <img
-            src={isAA ? atomicAssetsLogo : hostedLogoUrl(poweredBySimpleAssets.url)}
+            src={isAA ? hostedLogoUrl(atomicAssetsWordmark.url) : hostedLogoUrl(poweredBySimpleAssets.url)}
             alt={isAA ? 'AtomicAssets' : 'Powered by Simple Assets'}
-            className={isAA ? 'h-16 w-16 object-contain' : 'h-[127%] w-[127%] max-w-none shrink-0 object-cover'}
+            className={isAA ? 'h-10 w-20 object-contain' : 'h-[127%] w-[127%] max-w-none shrink-0 object-cover'}
           />
         </span>
         <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
@@ -262,9 +263,9 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                     className={`sm:hidden absolute right-full top-1/2 -translate-y-1/2 mr-1.5 flex h-4 w-4 items-center justify-center overflow-hidden rounded-full shrink-0 ${isAA ? 'bg-[#1A1E3E]' : 'bg-white'}`}
                   >
                     <img
-                      src={isAA ? atomicAssetsLogo : simpleAssetsLogo}
+                      src={isAA ? hostedLogoUrl(atomicAssetsWordmark.url) : simpleAssetsLogo}
                       alt={isAA ? 'AtomicAssets' : 'SimpleAssets'}
-                      className="h-3 w-3 object-contain"
+                      className={isAA ? 'h-2.5 w-5 object-contain' : 'h-3 w-3 object-contain'}
                     />
                   </span>
                   <p className="text-sm font-semibold text-cheese mb-1">Information</p>
