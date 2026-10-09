@@ -20,6 +20,7 @@ import { useGpkAtomicPacks } from '@/hooks/useGpkAtomicPacks';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { MissingCardPlaceholder } from '@/components/simpleassets/MissingCardPlaceholder';
 import { AlertsManagerPopover } from '@/components/simpleassets/AlertsManagerPopover';
+import { SelectionCheckboxes } from '@/components/simpleassets/SelectionCheckboxes';
 import { useBinderTemplates } from '@/hooks/useBinderTemplates';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
