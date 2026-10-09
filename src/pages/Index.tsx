@@ -1974,38 +1974,12 @@ export default function SimpleAssetsPage() {
 
   const renderSelectAllCheckbox = (visibleIds: string[]) => {
     if (!selectionMode) return null;
-    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
-    const first20 = visibleIds.slice(0, MAX_BRIDGE_PER_TX);
-    const first20Selected = first20.length > 0 && first20.every(id => selectedIds.has(id));
     return (
-      <div className="flex items-center gap-4">
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <Checkbox
-            checked={allSelected}
-            onCheckedChange={(checked) => {
-              if (checked) {
-                setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
-              } else {
-                setSelectedIds(new Set());
-              }
-            }}
-          />
-          <span className="text-sm text-cheese">Select All</span>
-        </label>
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <Checkbox
-            checked={first20Selected}
-            onCheckedChange={(checked) => {
-              if (checked) {
-                setSelectedIds(new Set(first20));
-              } else {
-                setSelectedIds(prev => { const next = new Set(prev); first20.forEach(id => next.delete(id)); return next; });
-              }
-            }}
-          />
-          <span className="text-sm text-cheese">Select 20</span>
-        </label>
-      </div>
+      <SelectionCheckboxes
+        visibleIds={visibleIds}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+      />
     );
   };
 
