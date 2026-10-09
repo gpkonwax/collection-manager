@@ -70,6 +70,8 @@ import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { BridgeDialog } from '@/components/simpleassets/BridgeDialog';
+import { getBridgeEligibility } from '@/lib/bridgeActions';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { BannerAd } from '@/components/BannerAd';
 import { BackupPanel } from '@/components/BackupPanel';
@@ -1966,15 +1968,6 @@ export default function SimpleAssetsPage() {
           <CheckSquare className="h-4 w-4 mr-1" />
           {selectionMode ? 'Cancel Select' : 'Select'}
         </Button>
-        <Button
-          onClick={() => setBridgeDialogOpen(true)}
-          variant="outline"
-          size="sm"
-          className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10"
-        >
-          <ArrowLeftRight className="h-4 w-4 mr-1" />
-          Bridge
-        </Button>
       </>
     );
   };
@@ -3682,8 +3675,9 @@ export default function SimpleAssetsPage() {
       <BridgeDialog
         open={bridgeDialogOpen}
         onOpenChange={setBridgeDialogOpen}
-        assets={assets}
+        selectedAssets={selectedAssets}
         onSuccess={(txId, direction, count) => {
+          clearSelection();
           refetchSa();
           refetchAa();
           setSuccessDialog({
@@ -3697,20 +3691,45 @@ export default function SimpleAssetsPage() {
         }}
       />
 
-      {selectionMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-cheese/50 rounded-lg shadow-2xl px-6 py-3 flex items-center gap-4">
-          <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
-          <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-primary-foreground" onClick={() => setTransferDialogOpen(true)}>
-            <Send className="h-4 w-4 mr-1" />Transfer
+      {selectionMode && selectedIds.size > 0 && (() => {
+        const bridge = getBridgeEligibility(selectedAssets);
+        const bridgeButton = (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!bridge.direction}
+            onClick={() => setBridgeDialogOpen(true)}
+            className="border-cheese/50 text-cheese hover:bg-cheese/10 disabled:opacity-50"
+          >
+            <ArrowLeftRight className="h-4 w-4 mr-1" />
+            {bridge.direction === 'to-sa' ? 'Bridge to SA' : bridge.direction === 'to-aa' ? 'Bridge to AA' : 'Bridge'}
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => setBurnDialogOpen(true)}>
-            <Flame className="h-4 w-4 mr-1" />Burn
-          </Button>
-          <Button size="sm" variant="ghost" onClick={clearSelection}>
-            <X className="h-4 w-4 mr-1" />Cancel
-          </Button>
-        </div>
-      )}
+        );
+        return (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-cheese/50 rounded-lg shadow-2xl px-6 py-3 flex items-center gap-4">
+            <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+            <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-primary-foreground" onClick={() => setTransferDialogOpen(true)}>
+              <Send className="h-4 w-4 mr-1" />Transfer
+            </Button>
+            {bridge.direction ? bridgeButton : (
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="cursor-not-allowed" aria-label={bridge.reason}>{bridgeButton}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>{bridge.reason}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <Button size="sm" variant="destructive" onClick={() => setBurnDialogOpen(true)}>
+              <Flame className="h-4 w-4 mr-1" />Burn
+            </Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection}>
+              <X className="h-4 w-4 mr-1" />Cancel
+            </Button>
+          </div>
+        );
+      })()}
 
     </div>
   );
