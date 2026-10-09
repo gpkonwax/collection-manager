@@ -1,0 +1,82 @@
+name: Backfill SimpleAssets market history
+
+# One-time scan of every GPK SimpleAssets market and ownership event since
+# May 2020: sales (GPK market, SimpleMarket, Myth.Market), listings, fees,
+# transfers, gift offers/claims, burns, bridging and pack-token moves.
+# Results live on the "sa-history" branch (force-pushed, one commit), not main.
+# Each run works ~5 hours, saves, then starts the next run itself until done.
+# Safe to re-run any time: it resumes from saved bookmarks. After it finishes,
+# "Refresh GPK mint numbers" adds new events twice a day. Re-running it after
+# completion only re-checks weekly counts and refetches any gaps.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write # lets a run start the next chunk
+
+concurrency:
+  group: gpk-manifests # never alongside the mint/holders workflows
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore saved history
+        run: bash scripts/sa-history-branch.sh restore
+
+      - name: Fingerprint before
+        id: before
+        run: echo "sum=$(cat manifests/sa-history/index.json 2>/dev/null | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Scan history
+        id: scan
+        run: node scripts/backfill-sa-history.mjs --max-minutes 300 --verify
+
+      - name: Install fflate
+        if: always()
+        run: npm install --no-save fflate@0.8.3
+
+      - name: Build card timelines, summary and ZIP
+        id: views
+        if: always()
+        run: |
+          if [ -f manifests/sa-history/index.json ]; then
+            node scripts/build-sa-history-views.mjs --zip
+            echo "sum=$(sha256sum manifests/sa-history/index.json | cut -c1-16)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish history branch
+        id: publish
+        if: always() && steps.views.outputs.sum != '' && steps.views.outputs.sum != steps.before.outputs.sum
+        run: |
+          bash scripts/sa-history-branch.sh publish
+          echo "progress=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload history ZIP to the backup repo's latest release
+        if: always() && steps.publish.outputs.progress == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+          BACKUP_REPO: bewbzz/gpkonwaxbackup
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "::warning::BACKUP_REPO_TOKEN not set — history ZIP not uploaded."; exit 0; fi
+          TAG=$(gh release view --repo "$BACKUP_REPO" --json tagName -q .tagName 2>&1) || { echo "::warning::No release on $BACKUP_REPO: $TAG"; exit 0; }
+          gh release upload "$TAG" dist-sa-history/gpk-sa-history.zip --repo "$BACKUP_REPO" --clobber \
+            || echo "::warning::History ZIP upload failed — the sa-history branch still has everything."
+
+      - name: Start the next chunk
+        # Only chain while each chunk makes progress, so a long node outage
+        # stops the chain instead of looping; re-run by hand afterwards.
+        if: success() && steps.scan.outputs.done != 'true' && steps.publish.outputs.progress == 'true'
+        run: gh workflow run sa-history-backfill.yml --ref "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"
