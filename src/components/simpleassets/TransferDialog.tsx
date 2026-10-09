@@ -95,7 +95,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[92dvh] max-h-[1600px] w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-3xl">
+      <DialogContent className="flex h-[46dvh] max-h-[800px] w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Transfer {selectedAssets.length} NFT{selectedAssets.length !== 1 ? 's' : ''}</DialogTitle>
           <DialogDescription>
