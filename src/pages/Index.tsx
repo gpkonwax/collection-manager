@@ -69,6 +69,7 @@ import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccess
 import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
+import { BridgeDialog } from '@/components/simpleassets/BridgeDialog';
 
 import { BannerAd } from '@/components/BannerAd';
 import { BackupPanel } from '@/components/BackupPanel';
@@ -336,6 +337,7 @@ export default function SimpleAssetsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [burnDialogOpen, setBurnDialogOpen] = useState(false);
+  const [bridgeDialogOpen, setBridgeDialogOpen] = useState(false);
   
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
@@ -1954,15 +1956,26 @@ export default function SimpleAssetsPage() {
   const renderSelectButton = () => {
     if (isViewing) return null;
     return (
-      <Button
-        onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
-        variant="outline"
-        size="sm"
-        className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
-      >
-        <CheckSquare className="h-4 w-4 mr-1" />
-        {selectionMode ? 'Cancel Select' : 'Select'}
-      </Button>
+      <>
+        <Button
+          onClick={() => { if (selectionMode) clearSelection(); else setSelectionMode(true); }}
+          variant="outline"
+          size="sm"
+          className={`whitespace-nowrap ${selectionMode ? 'bg-cheese text-primary-foreground hover:bg-cheese/90' : 'border-cheese/50 text-cheese hover:bg-cheese/10'}`}
+        >
+          <CheckSquare className="h-4 w-4 mr-1" />
+          {selectionMode ? 'Cancel Select' : 'Select'}
+        </Button>
+        <Button
+          onClick={() => setBridgeDialogOpen(true)}
+          variant="outline"
+          size="sm"
+          className="whitespace-nowrap border-cheese/50 text-cheese hover:bg-cheese/10"
+        >
+          <ArrowLeftRight className="h-4 w-4 mr-1" />
+          Bridge
+        </Button>
+      </>
     );
   };
 
@@ -3664,6 +3677,23 @@ export default function SimpleAssetsPage() {
           refetchSa();
           refetchAa();
           setSuccessDialog({ open: true, title: 'NFTs Burned!', description: `Successfully burned ${selectedAssets.length} NFT(s).`, txId });
+        }}
+      />
+      <BridgeDialog
+        open={bridgeDialogOpen}
+        onOpenChange={setBridgeDialogOpen}
+        assets={assets}
+        onSuccess={(txId, direction, count) => {
+          refetchSa();
+          refetchAa();
+          setSuccessDialog({
+            open: true,
+            title: 'Bridge Complete!',
+            description: direction === 'to-aa'
+              ? `Successfully bridged ${count} card${count !== 1 ? 's' : ''} to AtomicAssets.`
+              : `Successfully bridged ${count} card${count !== 1 ? 's' : ''} back to SimpleAssets.`,
+            txId,
+          });
         }}
       />
 
