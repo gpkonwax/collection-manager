@@ -48,7 +48,9 @@ describe('BridgeDialog', () => {
 
   it('lists only bridged AtomicAssets cards on the To SimpleAssets tab', () => {
     renderDialog([saCard, bridgedAa, nativeAa]);
-    fireEvent.click(screen.getByRole('tab', { name: /To SimpleAssets/ }));
+    const tab = screen.getByRole('tab', { name: /To SimpleAssets/ });
+    fireEvent.mouseDown(tab);
+    fireEvent.click(tab);
     expect(screen.getByText('Bridged AA Card')).toBeTruthy();
     expect(screen.queryByText('SA Card')).toBeNull();
     // Native AtomicAssets cards were never bridged from SA, so they cannot go back.
