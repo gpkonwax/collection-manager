@@ -16,6 +16,14 @@ export function compareByOriginalMint(a: SimpleAsset, b: SimpleAsset): number {
 
 /** Natural grid order: card number, side, variant, then original mint for copies of one card. */
 export function compareNaturalCards(a: SimpleAsset, b: SimpleAsset): number {
+  // Match card identity before parsing its number: some collections use
+  // non-numeric IDs, and metadata casing can differ across SA and AA copies.
+  const sameCard = a.category.toLowerCase() === b.category.toLowerCase() &&
+    a.cardid.toLowerCase() === b.cardid.toLowerCase() &&
+    (a.side || '').toLowerCase() === (b.side || '').toLowerCase() &&
+    a.quality.toLowerCase() === b.quality.toLowerCase();
+  if (sameCard) return compareByOriginalMint(a, b);
+
   const numA = parseInt(a.cardid, 10);
   const numB = parseInt(b.cardid, 10);
   if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
