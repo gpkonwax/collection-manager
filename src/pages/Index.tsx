@@ -8,7 +8,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
 import { MissingPuzzlePiecePlaceholder } from '@/components/simpleassets/MissingPuzzlePiecePlaceholder';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BackgroundDecorations } from '@/components/BackgroundDecorations';
@@ -21,6 +20,7 @@ import { useGpkAtomicPacks } from '@/hooks/useGpkAtomicPacks';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import { MissingCardPlaceholder } from '@/components/simpleassets/MissingCardPlaceholder';
 import { AlertsManagerPopover } from '@/components/simpleassets/AlertsManagerPopover';
+import { SelectionCheckboxes } from '@/components/simpleassets/SelectionCheckboxes';
 import { useBinderTemplates } from '@/hooks/useBinderTemplates';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
@@ -1974,21 +1974,12 @@ export default function SimpleAssetsPage() {
 
   const renderSelectAllCheckbox = (visibleIds: string[]) => {
     if (!selectionMode) return null;
-    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
     return (
-      <label className="flex items-center gap-1.5 cursor-pointer">
-        <Checkbox
-          checked={allSelected}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              setSelectedIds(prev => { const next = new Set(prev); visibleIds.forEach(id => next.add(id)); return next; });
-            } else {
-              setSelectedIds(new Set());
-            }
-          }}
-        />
-        <span className="text-sm text-cheese">Select All</span>
-      </label>
+      <SelectionCheckboxes
+        visibleIds={visibleIds}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+      />
     );
   };
 
