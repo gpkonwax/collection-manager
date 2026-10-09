@@ -16,3 +16,6 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Fetch record files (mint shards, provenance, transfers, holders) only from a loaded records ZIP and raw GitHub, never the data mirror or image mirrors, because neither carries them and 404 probes delay mint numbers.
 - Resolve Lovable-hosted detail logo pointers against the published asset host, because GitHub Pages cannot serve root-relative /__l5e/assets-v1/ paths.
 - Keep the card-detail AtomicAssets badge as a bare wordmark with a navy-lettered twin for bright mode, because white letters vanish on the light panel once the navy circle backing is gone.
+
+## Bridge Frontend
+- BridgeDialog (collection manager) bridges both ways via atomicbridge: SA->AA uses simpleassets::offer memo "swap" (contract claims inline); AA->SA uses atomicassets::transfer to atomicbridge (memo ignored, "unbridge" used descriptively). Only AA cards with immutable sassets_id may go back — mirrors the contract swap-record lookup. Cards are never burned; bridge holds custody. Max 20 cards per tx.
