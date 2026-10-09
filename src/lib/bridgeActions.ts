@@ -95,3 +95,29 @@ export function validateBridge(assetIds: string[]): BridgeValidation {
   }
   return { ok: true };
 }
+
+export type BridgeDirection = 'to-aa' | 'to-sa';
+
+export interface BridgeEligibility {
+  direction: BridgeDirection | null;
+  reason?: string;
+}
+
+export const BRIDGE_MIXED_REASON = 'Select only SimpleAssets or only AtomicAssets cards to bridge.';
+export const BRIDGE_NATIVE_AA_REASON = 'Only cards originally bridged from SimpleAssets can go back.';
+export const BRIDGE_CAP_REASON = `The bridge handles at most ${MAX_BRIDGE_PER_TX} cards per transaction.`;
+
+/** Decide whether a grid selection can be bridged, and in which direction. */
+export function getBridgeEligibility(
+  assets: Array<{ source?: string; idata?: Record<string, unknown> }>,
+): BridgeEligibility {
+  if (assets.length === 0) return { direction: null, reason: 'Select at least one card' };
+  const allSa = assets.every((a) => a.source === 'simpleassets');
+  const allAa = assets.every((a) => a.source === 'atomicassets');
+  if (!allSa && !allAa) return { direction: null, reason: BRIDGE_MIXED_REASON };
+  if (allAa && !assets.every((a) => isUnbridgeable(a.idata ?? {}))) {
+    return { direction: null, reason: BRIDGE_NATIVE_AA_REASON };
+  }
+  if (assets.length > MAX_BRIDGE_PER_TX) return { direction: null, reason: BRIDGE_CAP_REASON };
+  return { direction: allSa ? 'to-aa' : 'to-sa' };
+}
