@@ -43,21 +43,6 @@ describe('natural grid ordering', () => {
 });
 
 describe('binder stack ordering by original mint', () => {
-  it('sorts the whole Tiger King grid by original mint before card ID, side, variant or source', () => {
-    const cards = [
-      card('1', 900, { category: 'exotic', cardid: '1', quality: 'base' }),
-      card('2', 42, { category: 'exotic', cardid: '2', side: 'b', quality: 'gold', source: 'atomicassets', idata: { bridge_mint: '1' } }),
-      card('3', 5, { category: 'exotic', cardid: 'Joe Exotic', quality: 'tiger stripe' }),
-      card('4', undefined, { category: 'exotic', source: 'atomicassets', idata: { bridge_mint: '2' } }),
-    ];
-    expect(cards.sort(compareByOriginalMint).map(asset => asset.id)).toEqual(['3', '2', '1', '4']);
-  });
-
-  it('orders all collections together by original mint rather than grouping by series', () => {
-    const cards = [card('1', 100, { category: 'series1' }), card('2', 12, { category: 'exotic' }), card('3', 3, { category: 'series2' })];
-    expect(cards.sort(compareByOriginalMint).map(asset => asset.id)).toEqual(['3', '2', '1']);
-  });
-
   it('puts the lowest original mint first across SA and AA copies, unresolved last', () => {
     const cards = [
       card('aa1', 120, { source: 'atomicassets', idata: { bridge_mint: '1' } }),

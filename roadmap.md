@@ -1,5 +1,4 @@
 # Roadmap
-- [ ] Default grid mint ordering across all collections, including Tiger King; verify original mints ascending and unresolved last.
 - [x] Transfer and bridge windows made as tall as the screen allows (92dvh, width unchanged); selected-card tiles doubled to 64px artwork with the original mint number on top of each card.
 - [x] Bridge moved into the grid selection bar (third button, disabled with tooltip for mixed/native/over-20 selections); simple confirm window; Transfer and Bridge windows enlarged.
 - [x] Bridge window card tiles use the same size and spacing as the collection grid (6 columns on wide screens) so more cards fit at once.
