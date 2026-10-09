@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { SelectedAssetGrid } from '@/components/simpleassets/SelectedAssetGrid';
 import {
   Dialog,
   DialogContent,
@@ -95,7 +95,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-3xl">
+      <DialogContent className="flex h-[92dvh] max-h-[1600px] w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Transfer {selectedAssets.length} NFT{selectedAssets.length !== 1 ? 's' : ''}</DialogTitle>
           <DialogDescription>
@@ -104,18 +104,11 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[50vh]">
-          <div className="flex flex-wrap gap-2 p-1">
-            {selectedAssets.map(asset => (
-              <div key={asset.id} className="flex items-center gap-1.5 bg-muted/50 rounded px-2 py-1">
-                <IpfsMedia url={asset.images?.[0] || asset.image} alt={asset.name} className="w-8 h-8 rounded object-contain" context="card" />
-                <span className="text-xs truncate max-w-[100px]">{asset.name}</span>
-              </div>
-            ))}
-          </div>
+        <ScrollArea className="min-h-0 flex-1">
+          <SelectedAssetGrid assets={selectedAssets} />
         </ScrollArea>
 
-        <div className="space-y-3 mt-2">
+        <div className="mt-2 shrink-0 space-y-3">
           <div>
             <label className="text-sm font-medium text-foreground">Recipient</label>
             <Input
@@ -142,7 +135,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
         <Button
           onClick={handleSend}
           disabled={!isValidRecipient || isSending || selectedAssets.length === 0}
-          className="w-full mt-2 bg-cheese hover:bg-cheese/90 text-primary-foreground"
+          className="w-full shrink-0 mt-2 bg-cheese hover:bg-cheese/90 text-primary-foreground"
         >
           {isSending ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
