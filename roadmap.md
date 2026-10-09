@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Remove Binder selection and transfer/burn/bridge controls, clear selections when entering Binder, and verify other views remain unchanged.
 - [x] Native AtomicAssets detail: show live template minted/circulating/burned counts and hide bridged totals; 29 tests passed and real Crash Gordon supply verified in the detail window.
 - [x] Transfer and bridge windows made as tall as the screen allows (92dvh, width unchanged); selected-card tiles doubled to 64px artwork with the original mint number on top of each card.
 - [x] Bridge moved into the grid selection bar (third button, disabled with tooltip for mixed/native/over-20 selections); simple confirm window; Transfer and Bridge windows enlarged.
