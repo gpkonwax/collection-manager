@@ -90,7 +90,11 @@ export function BurnDialog({ open, onOpenChange, selectedAssets, onSuccess }: Bu
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) setConfirmation(''); onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <Flame className="h-5 w-5" />
