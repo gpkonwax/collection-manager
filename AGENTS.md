@@ -19,4 +19,5 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 
 ## Bridge Frontend
 - Bridging starts from the grid selection bar (beside Transfer/Burn) and BridgeDialog only confirms the selection; eligibility comes from getBridgeEligibility in bridgeActions.ts so the bar and dialog never disagree.
+- Selected-card tiles in the transfer and bridge windows come from the shared SelectedAssetGrid (64px artwork, original mint number on top via getMintLabel) so both flows show the same card identity and mint as the grid ribbon.
 - BridgeDialog bridges both ways via atomicbridge: SA->AA uses simpleassets::offer memo "swap" (contract claims inline); AA->SA uses atomicassets::transfer to atomicbridge (memo ignored, "unbridge" used descriptively). Only AA cards with immutable sassets_id may go back — mirrors the contract swap-record lookup. Cards are never burned; bridge holds custody. Max 20 cards per tx.
