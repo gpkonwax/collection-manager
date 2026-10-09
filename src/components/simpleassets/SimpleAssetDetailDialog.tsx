@@ -146,8 +146,6 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
     const scan = retroScans[1];
     return scan ? scan.landscape : isSeries1;
   };
-  const hasLandscapeBack = images.length > 1 && isLandscapeAt(1);
-  const modalMaxWidth = hasLandscapeBack ? 'sm:max-w-[1100px]' : 'sm:max-w-[900px]';
 
   const clearAllCanvases = () => {
     canvasRefs.current.forEach((canvas) => {
@@ -160,7 +158,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${modalMaxWidth} max-h-[90vh] overflow-y-auto overflow-x-hidden`}>
+      <DialogContent className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
