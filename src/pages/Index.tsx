@@ -70,6 +70,7 @@ import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog, type SelectedPacks } from '@/components/simpleassets/TransferDialog';
 import { PackSelectDialog, type PackPickerTarget } from '@/components/simpleassets/PackSelectDialog';
 import { canSelect, getSelectionKind } from '@/lib/packTransferActions';
+import { hideRemoved, pruneRemoved, applyPackCaps, prunePackCaps, addPackCap, hideRemovedAtomicPacks, type PackCap } from '@/lib/pendingRemovals';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { BridgeDialog } from '@/components/simpleassets/BridgeDialog';
 import { getBridgeEligibility } from '@/lib/bridgeActions';
@@ -295,10 +296,49 @@ export default function SimpleAssetsPage() {
     setViewedAccount(null);
   }, []);
 
-  const { assets: saAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(effectiveAccount);
-  const { assets: aaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(effectiveAccount);
-  const { packs, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(effectiveAccount);
-  const { packs: atomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(effectiveAccount);
+  const { assets: rawSaAssets, isLoading: saLoading, error: saError, refetch: refetchSa } = useSimpleAssets(effectiveAccount);
+  const { assets: rawAaAssets, isLoading: aaLoading, error: aaError, refetch: refetchAa } = useGpkAtomicAssets(effectiveAccount);
+  const { packs: rawPacks, isLoading: packsLoading, refetch: refetchPacks } = useGpkPacks(effectiveAccount);
+  const { packs: rawAtomicPacks, isLoading: atomicPacksLoading, refetch: refetchAtomicPacks } = useGpkAtomicPacks(effectiveAccount);
+
+  // Optimistic removal: anything just sent, burned or bridged vanishes at once,
+  // and token-pack counts drop, without waiting for the indexers to catch up.
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [packCaps, setPackCaps] = useState<Map<string, PackCap>>(new Map());
+  useEffect(() => { setRemovedIds(new Set()); setPackCaps(new Map()); }, [effectiveAccount]);
+  const saAssets = useMemo(() => hideRemoved(rawSaAssets, removedIds), [rawSaAssets, removedIds]);
+  const aaAssets = useMemo(() => hideRemoved(rawAaAssets, removedIds), [rawAaAssets, removedIds]);
+  const atomicPacks = useMemo(() => hideRemovedAtomicPacks(rawAtomicPacks, removedIds), [rawAtomicPacks, removedIds]);
+  const packs = useMemo(() => applyPackCaps(rawPacks, packCaps, Date.now()), [rawPacks, packCaps]);
+  useEffect(() => {
+    if (removedIds.size === 0 || saLoading || aaLoading || atomicPacksLoading) return;
+    const fetched = [...rawSaAssets.map(a => a.id), ...rawAaAssets.map(a => a.id), ...rawAtomicPacks.flatMap(p => p.assetIds)];
+    const still = pruneRemoved(removedIds, fetched);
+    if (still.size !== removedIds.size) setRemovedIds(still);
+  }, [rawSaAssets, rawAaAssets, rawAtomicPacks, removedIds, saLoading, aaLoading, atomicPacksLoading]);
+  useEffect(() => {
+    if (packCaps.size === 0 || packsLoading) return;
+    const next = prunePackCaps(packCaps, rawPacks, Date.now());
+    if (next.size !== packCaps.size) setPackCaps(next);
+  }, [rawPacks, packCaps, packsLoading]);
+  const markSent = useCallback((assetIds: string[], tokenQtys?: Map<string, number>) => {
+    if (assetIds.length) setRemovedIds(prev => { const n = new Set(prev); assetIds.forEach(id => n.add(id)); return n; });
+    if (tokenQtys && tokenQtys.size) {
+      setPackCaps(prev => {
+        let n = prev; const now = Date.now();
+        tokenQtys.forEach((qty, sym) => {
+          if (qty <= 0) return;
+          const shown = applyPackCaps(rawPacks, prev, now).find(p => p.symbol === sym)?.amount ?? 0;
+          n = addPackCap(n, sym, shown, qty, now);
+        });
+        return n;
+      });
+    }
+    // Follow-up refetches so the indexers' fresh state (e.g. bridged copies) appears.
+    const later = () => { refetchSa(); refetchAa(); refetchPacks(); refetchAtomicPacks(); };
+    setTimeout(later, 4000);
+    setTimeout(later, 12000);
+  }, [rawPacks, refetchSa, refetchAa, refetchPacks, refetchAtomicPacks]);
   const [showDonateDialog, setShowDonateDialog] = useState(false);
 
   const { executeRawTransaction, executeTransaction } = useWaxTransaction(session);
@@ -3678,6 +3718,8 @@ export default function SimpleAssetsPage() {
         onSuccess={(txId) => {
           const wasPacks = packSelectedCount > 0;
           const count = wasPacks ? packSelectedCount : selectedAssets.length;
+          if (wasPacks) markSent([...selectedPackAssetIds], new Map(selectedPackTokens));
+          else markSent(selectedAssets.map(a => a.id));
           clearSelection();
           if (wasPacks) { refetchPacks(); refetchAtomicPacks(); } else { refetchSa(); refetchAa(); }
           setSuccessDialog({ open: true, title: 'Transfer Complete!', description: `Successfully transferred ${count} ${wasPacks ? 'pack' : 'NFT'}(s).`, txId });
@@ -3703,6 +3745,7 @@ export default function SimpleAssetsPage() {
         onOpenChange={setBurnDialogOpen}
         selectedAssets={selectedAssets}
         onSuccess={(txId) => {
+          markSent(selectedAssets.map(a => a.id));
           clearSelection();
           refetchSa();
           refetchAa();
@@ -3714,6 +3757,7 @@ export default function SimpleAssetsPage() {
         onOpenChange={setBridgeDialogOpen}
         selectedAssets={selectedAssets}
         onSuccess={(txId, direction, count) => {
+          markSent(selectedAssets.map(a => a.id));
           clearSelection();
           refetchSa();
           refetchAa();
