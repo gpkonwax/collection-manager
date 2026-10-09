@@ -1,31 +1,24 @@
-import { BridgeDialog } from "@/components/simpleassets/BridgeDialog";
-import type { SimpleAsset } from "@/hooks/useSimpleAssets";
+import { Link, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
-const make = (i: number, quality: string, source: "simpleassets" | "atomicassets"): SimpleAsset => ({
-  id: String(1000000000 + i),
-  owner: "abc12.wam",
-  author: "gpk.topps",
-  category: "series1",
-  name: `Card ${i}`,
-  image: "/placeholder.svg",
-  images: ["/placeholder.svg"],
-  cardid: String(i),
-  quality,
-  side: "a",
-  idata: source === "atomicassets" ? { sassets_id: String(1000000000 + i) } : {},
-  mdata: {},
-  container: [],
-  containerf: [],
-  source,
-});
+const NotFound = () => {
+  const location = useLocation();
 
-const assets: SimpleAsset[] = [
-  ...Array.from({ length: 40 }, (_, i) => make(i, i % 3 === 0 ? "Prism" : "Base", "simpleassets")),
-  ...Array.from({ length: 12 }, (_, i) => make(100 + i, "Base", "atomicassets")),
-];
+  useEffect(() => {
+    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+  }, [location.pathname]);
 
-const NotFound = () => (
-  <BridgeDialog open onOpenChange={() => {}} assets={assets} onSuccess={() => {}} />
-);
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-muted">
+      <div className="text-center">
+        <h1 className="mb-4 text-4xl font-bold">404</h1>
+        <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
+        <Link to="/" className="text-primary underline hover:text-primary/90">
+          Return to Home
+        </Link>
+      </div>
+    </div>
+  );
+};
 
 export default NotFound;
