@@ -50,6 +50,8 @@ interface GpkPackCardProps {
   isReadOnly?: boolean;
   /** Shown while viewing another wallet: propose a trade for this pack. */
   onTradeClick?: (pack: GpkPack) => void;
+  /** Present while the grid is in selection mode (pack transfer). */
+  selection?: PackSelectionProps;
 }
 
 async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
@@ -70,7 +72,7 @@ async function snapshotUnboxingIds(owner: string): Promise<Set<number>> {
   return ids;
 }
 
-export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly, onTradeClick }: GpkPackCardProps) {
+export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly, onTradeClick, selection }: GpkPackCardProps) {
   const series2Img = SERIES_2_IMAGES[pack.symbol];
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
