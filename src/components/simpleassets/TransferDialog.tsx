@@ -95,7 +95,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Transfer {selectedAssets.length} NFT{selectedAssets.length !== 1 ? 's' : ''}</DialogTitle>
           <DialogDescription>
@@ -104,7 +104,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-40">
+        <ScrollArea className="max-h-[50vh]">
           <div className="flex flex-wrap gap-2 p-1">
             {selectedAssets.map(asset => (
               <div key={asset.id} className="flex items-center gap-1.5 bg-muted/50 rounded px-2 py-1">
