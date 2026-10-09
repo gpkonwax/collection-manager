@@ -18,4 +18,5 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Keep the card-detail AtomicAssets badge as a bare wordmark with a navy-lettered twin for bright mode, because white letters vanish on the light panel once the navy circle backing is gone.
 
 ## Bridge Frontend
+- Reuse the canonical category normalization and variant popover/options in the bridge, with selection scoped to visible eligible cards and cleared on filter or direction changes, so hidden cards never enter a bridge transaction.
 - BridgeDialog (collection manager) bridges both ways via atomicbridge: SA->AA uses simpleassets::offer memo "swap" (contract claims inline); AA->SA uses atomicassets::transfer to atomicbridge (memo ignored, "unbridge" used descriptively). Only AA cards with immutable sassets_id may go back — mirrors the contract swap-record lookup. Cards are never burned; bridge holds custody. Max 20 cards per tx.
