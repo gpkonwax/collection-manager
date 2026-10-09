@@ -37,8 +37,11 @@ export function compareNaturalCards(a: SimpleAsset, b: SimpleAsset): number {
 
     // The same card number can occur in different collections. Only compare
     // mints when the series matches as well.
-    if (a.category.toLowerCase() === b.category.toLowerCase()) return compareByOriginalMint(a, b);
-    return 0;
+    // Different collections must still order consistently (never 0), or the
+    // sort becomes non-transitive and copies of one card land out of mint order.
+    const catA = a.category.toLowerCase(), catB = b.category.toLowerCase();
+    if (catA !== catB) return catA < catB ? -1 : 1;
+    return compareByOriginalMint(a, b);
   }
   if (!Number.isNaN(numA)) return -1;
   if (!Number.isNaN(numB)) return 1;

@@ -10,6 +10,18 @@ const card = (id: string, mintNumber?: number, overrides: Partial<SimpleAsset> =
 });
 
 describe('natural grid ordering', () => {
+  it('keeps Tiger King copies in mint order when other collections share the card number', () => {
+    const cards = [
+      card('sa1', 3636, { cardid: '1', category: 'exotic' }),
+      card('s1', 50, { cardid: '1', category: 'series1' }),
+      card('sa2', 3637, { cardid: '1', category: 'exotic' }),
+      card('s2', 40, { cardid: '1', category: 'series2' }),
+      card('aa1', 2101, { cardid: '1', category: 'exotic', source: 'atomicassets' }),
+    ];
+    const ids = cards.sort(compareNaturalCards).map((a) => a.id).filter((id) => id.startsWith('s') && id.length === 3 || id === 'aa1');
+    expect(ids).toEqual(['aa1', 'sa1', 'sa2']);
+  });
+
   it('puts the lowest original mint first for Tiger King SA and AA copies', () => {
     const cards = [
       card('sa1', 3636, { cardid: '1', category: 'exotic' }),
