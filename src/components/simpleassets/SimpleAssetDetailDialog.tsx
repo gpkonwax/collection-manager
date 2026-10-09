@@ -5,6 +5,7 @@ import { ImageWithModes, ArtworkModeControls, DRAW_COLORS } from './InteractiveA
 import type { ViewMode } from './InteractiveArtwork';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
+import { getAtomicTemplateSupply, type AtomicTemplateSupply } from '@/lib/atomicTemplateSupply';
 import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount';
 import { getProvenance, formatPackLabel, formatProvenanceDate, type ProvenanceEntry } from '@/lib/provenance';
 import { TradeHistorySection } from './TradeHistorySection';
@@ -51,6 +52,21 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const assetId = asset?.id;
+  const nativeTemplateId = asset?.source === 'atomicassets' && !isBridgedAsset(asset)
+    ? String(asset.idata?._template_id ?? '') : '';
+  const [nativeSupply, setNativeSupply] = useState<{ templateId: string; supply: AtomicTemplateSupply } | null>(null);
+  const [nativeSupplyFailed, setNativeSupplyFailed] = useState(false);
+
+  useEffect(() => {
+    setNativeSupply(null);
+    setNativeSupplyFailed(false);
+    if (!open || !nativeTemplateId) return;
+    let cancelled = false;
+    getAtomicTemplateSupply('gpk.topps', nativeTemplateId).then((supply) => {
+      if (!cancelled) setNativeSupply({ templateId: nativeTemplateId, supply });
+    }).catch(() => { if (!cancelled) setNativeSupplyFailed(true); });
+    return () => { cancelled = true; };
+  }, [open, nativeTemplateId]);
 
   useEffect(() => {
     if (assetId) {
@@ -107,7 +123,10 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const images = asset.images;
   const mintLabel = getMintLabel(asset);
   // Source attribution belongs in the grid tooltip, not in this detail section.
-  const supplyLines = getMintSupplyLines(asset).filter((line) => !line.startsWith('Mint number —'));
+  const resolvedNativeSupply = nativeSupply?.templateId === nativeTemplateId ? nativeSupply.supply : null;
+  const supplyLines = getMintSupplyLines(resolvedNativeSupply ? {
+    ...asset, mintSurviving: resolvedNativeSupply.circulating, mintBurned: resolvedNativeSupply.burned,
+  } : asset).filter((line) => !line.startsWith('Mint number —'));
   const isSeries1 = SERIES1_CATEGORIES.has(asset.category);
   const isBridgedAA = isBridgedAsset(asset);
   const bridgedAt = asset.bridgedAt && Number.isFinite(asset.bridgedAt) && asset.bridgedAt > 0
@@ -125,7 +144,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   );
   const isAA = asset.source === 'atomicassets';
   const templateId = isAA ? String(asset.idata?._template_id ?? '') : '';
-  const issued = isAA ? Number(asset.idata?.bridge_total) : NaN;
+  const issued = isBridgedAA ? Number(asset.idata?.bridge_total) : NaN;
   const schemaName = isAA ? asset.category : normalizeAssetCategory(asset.category);
   const seriesLabel = CATEGORY_LABELS[normalizeAssetCategory(asset.category)] ?? asset.category;
   const collectionExplorerUrl = 'https://atomichub.io/explorer/collection/wax-mainnet/gpk.topps';
@@ -312,6 +331,9 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                     Mint number: <span className="font-semibold font-mono text-cheese">{mintLabel}</span>
                   </p>
                   {supplyLines.map((line) => <p key={line}>{line}</p>)}
+                  {nativeTemplateId && !resolvedNativeSupply && asset.mintBurned === undefined && (
+                    <p className="text-muted-foreground">{nativeSupplyFailed ? 'Burn information unavailable' : 'Loading burn information…'}</p>
+                  )}
                   {openedBy && (
                     <p>
                       Opened by: {onViewAccount ? (

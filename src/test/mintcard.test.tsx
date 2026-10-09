@@ -19,6 +19,8 @@ vi.mock('@/hooks/useIpfsMedia', () => ({ prefetchIpfsImage: vi.fn() }));
 vi.mock('@/hooks/useCardTilt', () => ({ useCardTilt: () => ({ ref: { current: null }, glareRef: { current: null }, onMouseMove: vi.fn(), onMouseLeave: vi.fn() }) }));
 vi.mock('@/hooks/usePriceAlerts', () => ({ usePriceAlerts: () => ({ getAlert: () => undefined }) }));
 vi.mock('@/components/simpleassets/PriceAlertDialog', () => ({ PriceAlertDialog: () => null }));
+const nativeSupplyLookup = vi.hoisted(() => vi.fn(async () => ({ minted: 100, circulating: 83, burned: 17 })));
+vi.mock('@/lib/atomicTemplateSupply', () => ({ getAtomicTemplateSupply: nativeSupplyLookup }));
 
 const base: SimpleAsset = {
   id: '1', owner: 'x', author: 'gpk.topps', category: 'series1', name: 'Adam Bomb',
@@ -27,6 +29,15 @@ const base: SimpleAsset = {
 };
 
 describe('mint ribbon', () => {
+  it.each(['crashgordon', 'gamestonk', 'bernventures'])('uses native burn counts without bridged totals for %s', async (category) => {
+    render(<SimpleAssetDetailDialog asset={{ ...base, category, mintNumber: 22, idata: { _template_id: '13777', bridge_total: '100' } }} open onOpenChange={() => {}} />);
+    expect(await screen.findByText('Burned: 17')).toBeInTheDocument();
+    expect(screen.getByText('Total ever minted: 100')).toBeInTheDocument();
+    expect(screen.getByText('In circulation: 83')).toBeInTheDocument();
+    expect(screen.queryByText(/Total bridged/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Bridge Information')).not.toBeInTheDocument();
+    expect(nativeSupplyLookup).toHaveBeenCalledWith('gpk.topps', '13777');
+  });
   it('shows precise pack codes only when the saved opening size identifies a pack', () => {
     expect(formatPackLabel('series1', 5)).toBe('GPKFIVE (5 card pack)');
     expect(formatPackLabel('series1', 30)).toBe('GPKMEGA (30 card pack)');
