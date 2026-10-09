@@ -70,6 +70,7 @@ import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog, type SelectedPacks } from '@/components/simpleassets/TransferDialog';
 import { PackSelectDialog, type PackPickerTarget } from '@/components/simpleassets/PackSelectDialog';
 import { canSelect, getSelectionKind } from '@/lib/packTransferActions';
+import { allowsCollectionSelection } from '@/lib/collectionViewActions';
 import { hideRemoved, pruneRemoved, applyPackCaps, prunePackCaps, addPackCap, hideRemovedAtomicPacks, type PackCap } from '@/lib/pendingRemovals';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { BridgeDialog } from '@/components/simpleassets/BridgeDialog';
@@ -377,7 +378,9 @@ export default function SimpleAssetsPage() {
     setVisibleCount(ITEMS_PER_PAGE);
   }, [search, categoryFilter, sourceFilter, variantFilter, viewMode, sortMode]);
 
-  const [selectionMode, setSelectionMode] = useState(false);
+  const selectionAllowed = allowsCollectionSelection(viewMode);
+  const [selectionRequested, setSelectionMode] = useState(false);
+  const selectionMode = selectionAllowed && selectionRequested;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [burnDialogOpen, setBurnDialogOpen] = useState(false);
@@ -599,6 +602,15 @@ export default function SimpleAssetsPage() {
     setSelectedPackTokens(new Map());
     setSelectedPackAssetIds(new Set());
   }, []);
+
+  useEffect(() => {
+    if (selectionAllowed) return;
+    clearSelection();
+    setTransferDialogOpen(false);
+    setBurnDialogOpen(false);
+    setBridgeDialogOpen(false);
+    setPackPickerTarget(null);
+  }, [selectionAllowed, clearSelection]);
 
   const [importedPuzzle, setImportedPuzzle] = useState<PuzzlePieceMap | null>(null);
   const puzzleStateRef = useRef<PuzzlePieceMap>({});
@@ -1949,7 +1961,7 @@ export default function SimpleAssetsPage() {
     if (owned && owned.length > 0) {
       const asset = owned[0];
       const handleClick = () => {
-        if (owned.length > 1 && !selectionMode) {
+        if (owned.length > 1) {
           setStackedAssets(owned);
           setStackDialogOpen(true);
         } else {
@@ -1963,9 +1975,6 @@ export default function SimpleAssetsPage() {
           onClick={handleClick}
           draggable={false}
           stackCount={owned.length}
-          selectionMode={selectionMode}
-          selected={selectedIds.has(asset.id)}
-          onSelect={toggleSelection}
           priceAlertTemplate={template}
           isReadOnly={isViewing}
           onTradeClick={handleTradeFromCard}
@@ -1977,7 +1986,7 @@ export default function SimpleAssetsPage() {
     return (
       <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} isReadOnly={isViewing} />
     );
-  }, [selectionMode, selectedIds, toggleSelection, isViewing, retroActive, freshMintIds]);
+  }, [isViewing, retroActive, freshMintIds]);
 
   const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -2015,7 +2024,7 @@ export default function SimpleAssetsPage() {
   }, [renderBinderCard]);
 
   const renderSelectNote = () => {
-    if (isViewing) return null;
+    if (isViewing || !selectionAllowed) return null;
     return (
       <p className="text-[11px] text-muted-foreground leading-tight mb-1">
         * To send or burn NFTs from either contract press the "Select" button below
@@ -2024,7 +2033,7 @@ export default function SimpleAssetsPage() {
   };
 
   const renderSelectButton = () => {
-    if (isViewing) return null;
+    if (isViewing || !selectionAllowed) return null;
     return (
       <>
         <Button
@@ -2313,12 +2322,10 @@ export default function SimpleAssetsPage() {
   );
 
   const renderBinderView = () => {
-    const visibleOwned = binderGrid ? binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []) : [];
     const triggeredCount = priceAlerts.filter(a => a.triggered).length;
     const cooldownActive = alertsCooldownRemaining > 0;
     return (
       <>
-        {renderSelectNote()}
         <div className="flex items-center gap-3 relative z-10 mb-4 flex-wrap">
           <div className="flex items-center gap-3 flex-1 min-w-[280px]">
             {binderGrid ? (
@@ -2327,8 +2334,6 @@ export default function SimpleAssetsPage() {
                   {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                   {binderLoading && ' (loading templates...)'}
                 </p>
-                {renderSelectButton()}
-                {renderSelectAllCheckbox(visibleOwned)}
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Select a specific series to use Collector Binder.</p>
@@ -3386,15 +3391,12 @@ export default function SimpleAssetsPage() {
                   <TabsContent value="collection">
                     {viewMode === 'binder' && binderGrid ? (
                       <>
-                        {renderSelectNote()}
                         <div className="flex items-center gap-3 mb-4 relative z-10">
                           <div className="flex items-center gap-3 flex-1">
                             <p className="text-sm text-muted-foreground">
                               {filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found · {binderGrid.filter(s => s.owned).length} / {binderGrid.length} unique collected
                               {binderLoading && ' (loading templates...)'}
                             </p>
-                            {renderSelectButton()}
-                            {renderSelectAllCheckbox(binderGrid.flatMap(s => s.owned ? s.owned.map(a => a.id) : []))}
                           </div>
                           <div className="flex-shrink-0">
                             {renderCompletionBar()}
@@ -3715,7 +3717,7 @@ export default function SimpleAssetsPage() {
         txId={successDialog.txId}
       />
       <TransferDialog
-        open={transferDialogOpen}
+        open={selectionAllowed && transferDialogOpen}
         onOpenChange={setTransferDialogOpen}
         selectedAssets={packSelectedCount > 0 ? [] : selectedAssets}
         selectedPacks={packSelectedCount > 0 ? selectedPacksForTransfer : undefined}
@@ -3730,7 +3732,7 @@ export default function SimpleAssetsPage() {
         }}
       />
       <PackSelectDialog
-        target={packPickerTarget}
+        target={selectionAllowed ? packPickerTarget : null}
         onOpenChange={(o) => { if (!o) setPackPickerTarget(null); }}
         onConfirmToken={(symbol, qty) => setSelectedPackTokens(prev => { const n = new Map(prev); if (qty > 0) n.set(symbol, qty); else n.delete(symbol); return n; })}
         onConfirmAtomic={(templateId, ids) => {
@@ -3745,7 +3747,7 @@ export default function SimpleAssetsPage() {
         onOpenChange={setCollectionHistoryOpen}
       />
       <BurnDialog
-        open={burnDialogOpen}
+        open={selectionAllowed && burnDialogOpen}
         onOpenChange={setBurnDialogOpen}
         selectedAssets={selectedAssets}
         onSuccess={(txId) => {
@@ -3757,7 +3759,7 @@ export default function SimpleAssetsPage() {
         }}
       />
       <BridgeDialog
-        open={bridgeDialogOpen}
+        open={selectionAllowed && bridgeDialogOpen}
         onOpenChange={setBridgeDialogOpen}
         selectedAssets={selectedAssets}
         onSuccess={(txId, direction, count) => {
