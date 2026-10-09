@@ -66,7 +66,8 @@ interface DonateDialogProps {
   onOpenChange: (open: boolean) => void;
   gpkPacks?: GpkPack[];
   atomicPacks?: AtomicPack[];
-  onSuccess: (txId: string | null) => void;
+  /** sent: what left the wallet (pack donations only), for optimistic removal. */
+  onSuccess: (txId: string | null, sent?: { tokenQtys: Map<string, number>; atomicIds: string[] }) => void;
 }
 
 export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = [], onSuccess }: DonateDialogProps) {
@@ -178,10 +179,11 @@ export function DonateDialog({ open, onOpenChange, gpkPacks = [], atomicPacks = 
       const result = await session.transact({ actions }, { transactPlugins: getTransactPlugins(session) });
       const txId = result.resolved?.transaction.id?.toString() || null;
       toast.success(`Donated ${totalPacks} pack(s) to ${DONATE_ACCOUNT}`);
+      const sent = { tokenQtys: new Map(gpkPackQtys), atomicIds: allAtomicIds };
       setGpkPackQtys(new Map());
       setAtomicPackQtys(new Map());
       onOpenChange(false);
-      onSuccess(txId);
+      onSuccess(txId, sent);
     } catch (error) {
       console.error('Pack donation failed:', error);
       toast.error(error instanceof Error ? error.message : 'Donation failed');
