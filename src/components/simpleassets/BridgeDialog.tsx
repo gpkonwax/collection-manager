@@ -67,7 +67,7 @@ export function BridgeDialog({ open, onOpenChange, selectedAssets = [], onSucces
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[92dvh] max-h-[1600px] w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-3xl">
+      <DialogContent className="flex h-[46dvh] max-h-[800px] w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowLeftRight className="h-5 w-5 text-cheese" />
