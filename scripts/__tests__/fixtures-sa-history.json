@@ -1,0 +1,459 @@
+[
+ {
+  "@timestamp": "2020-05-20T00:00:00.000",
+  "global_sequence": 344777828,
+  "trx_id": "b81463c44ffe58f6bcacfe2e27055be48dabb757f77713c9213f79b36faf0257",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "j2qau.wam",
+    "amount": 53.1,
+    "symbol": "WAX",
+    "memo": "Payment for sale: 100000004431368",
+    "quantity": "53.10000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:00.000",
+  "global_sequence": 344777831,
+  "trx_id": "7674116f7b72f4d781bf14511264c5df652b7247aeef9c62e8f79f52aec43f78",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "drgqu.wam",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "drgqu.wam",
+    "to": "gpkmarket111",
+    "amount": 59,
+    "symbol": "WAX",
+    "memo": "Purchase#100000004445680",
+    "quantity": "59.00000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:01.000",
+  "global_sequence": 344777843,
+  "trx_id": "fcc8493606fa4d2bd7d84b3706627986624972edbe00401978a01dc5562be064",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "yjbny.wam",
+    "amount": 0.59,
+    "symbol": "WAX",
+    "memo": "Market Fee #100000004431368",
+    "quantity": "0.59000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:01.000",
+  "global_sequence": 344777846,
+  "trx_id": "fbf17db08250b10ead24404656cd59fa5eaf8ccbfa40962039b8bf21efd4dc5d",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "nfvpw.wam",
+    "amount": 0.59,
+    "symbol": "WAX",
+    "memo": "Market Fee #100000004431368",
+    "quantity": "0.59000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:01.000",
+  "global_sequence": 344777849,
+  "trx_id": "116253d8be7c95ce7ecc8b4b1ecfcc64453f54619ca2f5bff6269e5f25c61f88",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "fees.topps",
+    "amount": 4.72,
+    "symbol": "WAX",
+    "memo": "Topps Fee #100000004431368",
+    "quantity": "4.72000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:02.500",
+  "global_sequence": 344777910,
+  "trx_id": "4e160efd23908f18d4199b68cb48a8f79f832d4f14a3db5bcd2de8d34132acc0",
+  "act": {
+   "account": "simpleassets",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "drgqu.wam",
+    "assetids": [
+     "100000004445680"
+    ],
+    "memo": "Purchased for 59 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:03.500",
+  "global_sequence": 344777918,
+  "trx_id": "cafceaaf92639031dc59ac34b9ca8c7d26031dce41fd548315b01fd3ec40461c",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "j2qau.wam",
+    "amount": 53.1,
+    "symbol": "WAX",
+    "memo": "Payment for sale: 100000004445680",
+    "quantity": "53.10000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:04.500",
+  "global_sequence": 344777942,
+  "trx_id": "d6f1d823c6a4528bce860fafddd1d139db38a06b3a7b1b1c6c9b60712edc1711",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "fees.topps",
+    "amount": 4.72,
+    "symbol": "WAX",
+    "memo": "Topps Fee #100000004445680",
+    "quantity": "4.72000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:04.500",
+  "global_sequence": 344777945,
+  "trx_id": "4cb81221cdf4fbdca3f662e5e92ead82615799d108891e0a0429ac509b166ac8",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "nfvpw.wam",
+    "amount": 0.59,
+    "symbol": "WAX",
+    "memo": "Market Fee #100000004445680",
+    "quantity": "0.59000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:04.500",
+  "global_sequence": 344777948,
+  "trx_id": "01bb07058c53c8c169a5fa60f8d94359adac73874cabdc380ac4855052cf6ba1",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "gpkmarket111",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "gpkmarket111",
+    "to": "yjbny.wam",
+    "amount": 0.59,
+    "symbol": "WAX",
+    "memo": "Market Fee #100000004445680",
+    "quantity": "0.59000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:05.500",
+  "global_sequence": 344777987,
+  "trx_id": "4040f0e8f0babc51df41c11475a3e7b0c17e30d95cd187a87f81b386caa48472",
+  "act": {
+   "account": "simpleassets",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "2mtaq.wam",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "2mtaq.wam",
+    "to": "gpkmarket111",
+    "assetids": [
+     "100000004429831"
+    ],
+    "memo": "130.00000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-05-20T00:00:09.500",
+  "global_sequence": 344778088,
+  "trx_id": "a0a4ec66749de308eb33a476f4d72496569214f75d7e2a7e9d4dfbc30d49e970",
+  "act": {
+   "account": "simpleassets",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "2mtaq.wam",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "2mtaq.wam",
+    "to": "gpkmarket111",
+    "assetids": [
+     "100000004453100"
+    ],
+    "memo": "130.00000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-12-01T11:56:23.000",
+  "global_sequence": 746073067,
+  "trx_id": "51f11a7093995cbcaec007d1b3857f801b7f3604e5939ad506fbe47215a49dbf",
+  "act": {
+   "account": "simplemarket",
+   "name": "buylog",
+   "authorization": [
+    {
+     "actor": "simplemarket",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "l2naw.wam",
+    "quantity": "10.00000000 WAX",
+    "assets_seller": "{\"g.raw.wam\":[[100000004885164, \"10.00000000 WAX\"]]}"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-06-10T22:11:06.000",
+  "global_sequence": 389467082,
+  "trx_id": "b10c6e1a7f12d9e20d9d1e141841eb6850b90183d2a3546940172488b447319b",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "hvgqu.wam",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "hvgqu.wam",
+    "to": "simplemarket",
+    "amount": 30,
+    "symbol": "WAX",
+    "memo": "{\"nftid\":100000004402442}",
+    "quantity": "30.00000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-06-10T22:11:06.000",
+  "global_sequence": 389467085,
+  "trx_id": "b10c6e1a7f12d9e20d9d1e141841eb6850b90183d2a3546940172488b447319b",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "simplemarket",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "simplemarket",
+    "to": "i3dqu.wam",
+    "amount": 27,
+    "symbol": "WAX",
+    "memo": "90.000000% for assetID: 100000004402442",
+    "quantity": "27.00000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-06-10T22:11:06.000",
+  "global_sequence": 389467088,
+  "trx_id": "b10c6e1a7f12d9e20d9d1e141841eb6850b90183d2a3546940172488b447319b",
+  "act": {
+   "account": "eosio.token",
+   "name": "transfer",
+   "authorization": [
+    {
+     "actor": "simplemarket",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "from": "simplemarket",
+    "to": "gpk.topps",
+    "amount": 2.4,
+    "symbol": "WAX",
+    "memo": "8.000000% for assetID: 100000004402442",
+    "quantity": "2.40000000 WAX"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-08-01T00:00:35.500",
+  "global_sequence": 500769026,
+  "trx_id": "d9daf74d9cc2a234a9ec7e769a1d186ab3b1b510465f88509b05274990d0aa5f",
+  "act": {
+   "account": "market.myth",
+   "name": "logsale",
+   "authorization": [
+    {
+     "actor": "market.myth",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "buyer": "nnequ.wam",
+    "seller": "cg1.o.wam",
+    "assetid": "100000004644944",
+    "price": "35.00000000 WAX",
+    "referral": "fees.myth",
+    "author": "shatner",
+    "category": "shatner",
+    "mdata": "",
+    "idata": "{}"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-07-07T20:31:39.500",
+  "global_sequence": 446293963,
+  "trx_id": "4db8b8f75dda033fae124b6b62e216b02997cddc861816f3a8aa759a648e9c27",
+  "act": {
+   "account": "simpleassets",
+   "name": "offer",
+   "authorization": [
+    {
+     "actor": "lc4l.wam",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "owner": "lc4l.wam",
+    "newowner": "atomicbridge",
+    "assetids": [
+     "100000004393807"
+    ],
+    "memo": "swap"
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-07-07T20:31:39.500",
+  "global_sequence": 446293966,
+  "trx_id": "4db8b8f75dda033fae124b6b62e216b02997cddc861816f3a8aa759a648e9c27",
+  "act": {
+   "account": "simpleassets",
+   "name": "claim",
+   "authorization": [
+    {
+     "actor": "atomicbridge",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "claimer": "atomicbridge",
+    "assetids": [
+     "100000004393807"
+    ]
+   }
+  }
+ },
+ {
+  "@timestamp": "2020-08-01T15:13:39.500",
+  "global_sequence": 502039173,
+  "trx_id": "c520d8ed63b3cc17da505fe0b9ba8ad24dd582767bc68bd40b692567a22a23a2",
+  "act": {
+   "account": "simpleassets",
+   "name": "burn",
+   "authorization": [
+    {
+     "actor": "givemekbucks",
+     "permission": "active"
+    }
+   ],
+   "data": {
+    "owner": "givemekbucks",
+    "assetids": [
+     "100000004675487"
+    ],
+    "memo": "burned"
+   }
+  }
+ }
+]
