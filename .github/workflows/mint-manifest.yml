@@ -72,11 +72,21 @@ jobs:
           node scripts/backfill-pack-provenance.mjs --incremental --max-minutes 8 \
             || echo "::warning::Pack provenance update failed — previous records kept."
 
-      - name: Record new GPK SimpleAssets transfers and trades
-        # Network trouble keeps the old bookmark. Never fails the run.
+      - name: Record new SimpleAssets market and ownership events
+        # Runs only once the one-time history backfill has finished; outages
+        # keep the old bookmarks. Never fails the run.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          node scripts/collect-sa-transfers.mjs \
-            || echo "::warning::SimpleAssets transfer update failed — previous records kept."
+          {
+            bash scripts/sa-history-branch.sh restore &&
+            node scripts/backfill-sa-history.mjs --incremental --max-minutes 10 &&
+            if grep -q '"complete": true' manifests/sa-history/index.json 2>/dev/null; then
+              npm install --no-save fflate@0.8.3 &&
+              node scripts/build-sa-history-views.mjs &&
+              bash scripts/sa-history-branch.sh publish
+            fi
+          } || echo "::warning::SimpleAssets history update failed — previous records kept."
 
       - name: Install fflate for the records ZIP
         run: npm install --no-save fflate@0.8.3
@@ -117,7 +127,6 @@ jobs:
           git config user.name "gpk-mints-bot"
           git config user.email "actions@github.com"
           git add manifests/mints manifests/gpk-sa-asset-ids.txt
-          if [ -f manifests/sa-transfers.json ]; then git add manifests/sa-transfers.json; fi
           if [ -d manifests/provenance ]; then git add manifests/provenance; fi
           if git diff --cached --quiet; then
             echo "No new mint numbers."
