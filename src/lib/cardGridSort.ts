@@ -36,16 +36,8 @@ export function compareNaturalCards(a: SimpleAsset, b: SimpleAsset): number {
     if (variantDiff !== 0) return variantDiff;
 
     // The same card number can occur in different collections. Only compare
-    // mints when the series and the full card ID match as well.
-    if (a.category === b.category && a.cardid === b.cardid) {
-      const mintA = Number(getMintLabel(a).slice(1));
-      const mintB = Number(getMintLabel(b).slice(1));
-      const validA = Number.isFinite(mintA) && mintA > 0;
-      const validB = Number.isFinite(mintB) && mintB > 0;
-      if (validA && validB) return mintA - mintB;
-      if (validA) return -1;
-      if (validB) return 1;
-    }
+    // mints when the series matches as well.
+    if (a.category.toLowerCase() === b.category.toLowerCase()) return compareByOriginalMint(a, b);
     return 0;
   }
   if (!Number.isNaN(numA)) return -1;
