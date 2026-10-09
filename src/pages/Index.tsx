@@ -1492,13 +1492,16 @@ export default function SimpleAssetsPage() {
       arr.sort((a, b) =>
         a.name.localeCompare(b.name) ||
         cardNum(a) - cardNum(b) ||
-        (a.side || '').localeCompare(b.side || '')
+        (a.side || '').localeCompare(b.side || '') ||
+        getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality) ||
+        compareByOriginalMint(a, b)
       );
     } else {
       arr.sort((a, b) =>
         getGpkVariantRank(a.quality) - getGpkVariantRank(b.quality) ||
         cardNum(a) - cardNum(b) ||
-        (a.side || '').localeCompare(b.side || '')
+        (a.side || '').localeCompare(b.side || '') ||
+        compareByOriginalMint(a, b)
       );
     }
     return arr;

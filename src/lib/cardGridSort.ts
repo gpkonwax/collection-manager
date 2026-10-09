@@ -35,11 +35,10 @@ export function compareNaturalCards(a: SimpleAsset, b: SimpleAsset): number {
     const variantDiff = a.quality.localeCompare(b.quality);
     if (variantDiff !== 0) return variantDiff;
 
-    // Same number, side and variant: copies may carry different category
-    // labels on SA vs AA (e.g. Tiger King), so order by original mint.
-    const mintDiff = compareByOriginalMint(a, b);
-    if (mintDiff !== 0) return mintDiff;
-    return a.category.localeCompare(b.category);
+    // The same card number can occur in different collections. Only compare
+    // mints when the series matches as well.
+    if (a.category.toLowerCase() === b.category.toLowerCase()) return compareByOriginalMint(a, b);
+    return 0;
   }
   if (!Number.isNaN(numA)) return -1;
   if (!Number.isNaN(numB)) return 1;

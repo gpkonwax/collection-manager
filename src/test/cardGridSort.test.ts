@@ -10,11 +10,11 @@ const card = (id: string, mintNumber?: number, overrides: Partial<SimpleAsset> =
 });
 
 describe('natural grid ordering', () => {
-  it('puts the lowest original mint first when SA and AA copies carry different category labels', () => {
+  it('puts the lowest original mint first for Tiger King SA and AA copies', () => {
     const cards = [
       card('sa1', 3636, { cardid: '1', category: 'exotic' }),
       card('sa2', 3637, { cardid: '1', category: 'exotic' }),
-      card('aa1', 2101, { cardid: '1', category: 'tigerking', source: 'atomicassets', idata: { bridge_mint: '1537' } }),
+      card('aa1', 2101, { cardid: '1', category: 'exotic', source: 'atomicassets', idata: { bridge_mint: '1537' } }),
     ];
     expect(cards.sort(compareNaturalCards).map((asset) => asset.id)).toEqual(['aa1', 'sa1', 'sa2']);
   });
