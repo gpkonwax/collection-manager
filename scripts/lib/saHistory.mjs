@@ -96,8 +96,9 @@ export function classifyAction(a, isGpk) {
   const seq = Number(a.global_sequence);
   if (!Number.isFinite(ms) || !Number.isFinite(seq)) return [];
   const tx = typeof a.trx_id === 'string' ? a.trx_id : '';
+  // Fee and payout rows skip the transaction id: nobody opens them, and it is a third of the row.
   const row = (kind, ids, from, to, amount = '', token = '', market = '', memo = '') =>
-    [ms, seq, kind, ids.join(','), from, to, amount, token, market, memo, tx];
+    [ms, seq, kind, ids.join(','), from, to, amount, token, market, memo, kind === 'fee' || kind === 'pay' ? '' : tx];
   const key = `${act.account}:${act.name}`;
 
   if (key === 'simpleassets:transfer' || key === 'simpleassets:offer') {

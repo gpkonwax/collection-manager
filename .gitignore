@@ -24,3 +24,7 @@ dist-ssr
 *.sln
 *.sw?
 dist-records
+
+# Full SimpleAssets history lives on its own force-pushed branch (sa-history)
+manifests/sa-history
+dist-sa-history
