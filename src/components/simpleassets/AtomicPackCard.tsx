@@ -14,6 +14,7 @@ import { buildOpenPackActions } from '@/lib/packOpenActions';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { RevealResult } from '@/lib/packReveal';
 import atomicAssetsLogo from '@/assets/atomicassets-logo.png';
+import { PackSelectOverlay, PackSelectButton, type PackSelectionProps } from './PackSelection';
 
 interface RevealCard {
   asset_id: string;
@@ -32,9 +33,11 @@ interface AtomicPackCardProps {
   isReadOnly?: boolean;
   /** Shown while viewing another wallet: propose a trade for this pack. */
   onTradeClick?: (pack: AtomicPack) => void;
+  /** Present while the grid is in selection mode (pack transfer). */
+  selection?: PackSelectionProps;
 }
 
-export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly, onTradeClick }: AtomicPackCardProps) {
+export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCollect, collectionAssets = [], isReadOnly, onTradeClick, selection }: AtomicPackCardProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
   const [browserOpen, setBrowserOpen] = useState(false);
@@ -91,7 +94,8 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
   return (
     <>
       <PackInfoPopover specKey={pack.templateId}>
-      <Card className="bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
+      <Card className="relative bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
+        {selection && !isReadOnly && pack.count === 1 && <PackSelectOverlay selection={selection} label={pack.name} />}
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           <Button variant="ghost" className="w-3/4 h-auto p-0 rounded" aria-label={`Enlarge ${pack.name} artwork`} title="Enlarge pack artwork" onClick={() => setArtworkOpen(true)}><IpfsMedia url={pack.image} alt={pack.name} className="w-full aspect-[3/4] rounded mx-auto" /></Button>
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.name}</p>
@@ -105,7 +109,9 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
             <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.cardsPerPack} cards per pack</p>
           </div>
           <p className="text-lg font-mono text-primary theme-bright-text">{pack.count}</p>
-          {isReadOnly ? (
+          {selection && !isReadOnly ? (
+            <PackSelectButton selection={selection} owned={pack.assetIds.length} />
+          ) : isReadOnly ? (
             onTradeClick && pack.count > 0 && pack.assetIds.length > 0 ? (
               <Button
                 size="sm"
@@ -133,7 +139,7 @@ export function AtomicPackCard({ pack, session, accountName, onSuccess, onDemoCo
               {isOpening ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Opening...</> : hasMultiple ? 'Open Packs' : 'Open Pack'}
             </Button>
           )}
-          {!isReadOnly && demoCards.length > 0 && (
+          {!isReadOnly && !selection && demoCards.length > 0 && (
             <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setDemoRevealOpen(true)}>
               <Play className="h-3 w-3 mr-1" /> Demo Open
             </Button>

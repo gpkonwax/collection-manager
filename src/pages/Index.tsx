@@ -23,7 +23,7 @@ import { AlertsManagerPopover } from '@/components/simpleassets/AlertsManagerPop
 import { SelectionCheckboxes } from '@/components/simpleassets/SelectionCheckboxes';
 import { useBinderTemplates } from '@/hooks/useBinderTemplates';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
-import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
+import { GpkPackCard, SERIES_2_IMAGES } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts, fetchPendingNftsDetailed, PackRevealDialog, type RevealCard } from '@/components/simpleassets/PackRevealDialog';
@@ -67,7 +67,9 @@ async function warmDealImagesWithoutBlocking(cards: SimpleAsset[], maxWaitMs = 6
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
-import { TransferDialog } from '@/components/simpleassets/TransferDialog';
+import { TransferDialog, type SelectedPacks } from '@/components/simpleassets/TransferDialog';
+import { PackSelectDialog, type PackPickerTarget } from '@/components/simpleassets/PackSelectDialog';
+import { canSelect, getSelectionKind } from '@/lib/packTransferActions';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { BridgeDialog } from '@/components/simpleassets/BridgeDialog';
 import { getBridgeEligibility } from '@/lib/bridgeActions';
@@ -527,7 +529,23 @@ export default function SimpleAssetsPage() {
   }, [accountName, session, executeTransaction, refreshTrades, refreshSaTrades, removeSaOfferLocally]);
 
 
+  // Pack selection (separate from cards): token packs by quantity, AA packs by asset ID.
+  const [selectedPackTokens, setSelectedPackTokens] = useState<Map<string, number>>(new Map());
+  const [selectedPackAssetIds, setSelectedPackAssetIds] = useState<Set<string>>(new Set());
+  const [packPickerTarget, setPackPickerTarget] = useState<PackPickerTarget | null>(null);
+  const packSelectedCount = useMemo(() => {
+    let n = selectedPackAssetIds.size;
+    selectedPackTokens.forEach(q => { n += q; });
+    return n;
+  }, [selectedPackTokens, selectedPackAssetIds]);
+  const packSelectedCountRef = useRef(0);
+  packSelectedCountRef.current = packSelectedCount;
+
   const toggleSelection = useCallback((id: string) => {
+    if (!canSelect('cards', getSelectionKind(0, packSelectedCountRef.current))) {
+      toast.info('Packs and cards are sent separately — clear your pack selection first');
+      return;
+    }
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -538,6 +556,8 @@ export default function SimpleAssetsPage() {
   const clearSelection = useCallback(() => {
     setSelectionMode(false);
     setSelectedIds(new Set());
+    setSelectedPackTokens(new Map());
+    setSelectedPackAssetIds(new Set());
   }, []);
 
   const [importedPuzzle, setImportedPuzzle] = useState<PuzzlePieceMap | null>(null);
@@ -584,6 +604,11 @@ export default function SimpleAssetsPage() {
     combined.sort(compareNaturalCards);
     return combined;
   }, [saAssets, aaAssets]);
+
+  const selectedPacksForTransfer = useMemo<SelectedPacks>(() => ({
+    tokens: packs.filter(p => (selectedPackTokens.get(p.symbol) || 0) > 0).map(p => ({ pack: p, qty: selectedPackTokens.get(p.symbol)!, image: SERIES_2_IMAGES[p.symbol] })),
+    atomic: atomicPacks.map(p => ({ pack: p, ids: p.assetIds.filter(id => selectedPackAssetIds.has(id)) })).filter(a => a.ids.length > 0),
+  }), [packs, atomicPacks, selectedPackTokens, selectedPackAssetIds]);
 
   const { completion } = useCollectionCompletion(assets, packs, atomicPacks, accountName);
 
@@ -1973,7 +1998,7 @@ export default function SimpleAssetsPage() {
   };
 
   const renderSelectAllCheckbox = (visibleIds: string[]) => {
-    if (!selectionMode) return null;
+    if (!selectionMode || packSelectedCount > 0) return null;
     return (
       <SelectionCheckboxes
         visibleIds={visibleIds}
@@ -3145,11 +3170,21 @@ export default function SimpleAssetsPage() {
               }
               const renderPackItem = (item: PackItem) => item.type === 'token' ? (
                 <div key={item.pack.symbol} className="w-[calc(50%-0.5rem)] sm:w-48">
-                  <GpkPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} isReadOnly={isViewing} onTradeClick={isViewing ? handleTradeFromPack : undefined} />
+                  <GpkPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const assetCat = SCHEMA_TO_CATEGORY[a.category] || a.category; return assetCat === PACK_CATEGORY_MAP[item.pack.symbol]; })} isReadOnly={isViewing} onTradeClick={isViewing ? handleTradeFromPack : undefined} selection={selectionMode && !isViewing ? {
+                    selectedCount: selectedPackTokens.get(item.pack.symbol) || 0,
+                    disabled: selectedIds.size > 0,
+                    onToggle: () => { const sym = item.pack.symbol; setSelectedPackTokens(prev => { const n = new Map(prev); if (n.get(sym)) n.delete(sym); else n.set(sym, 1); return n; }); },
+                    onOpenPicker: () => setPackPickerTarget({ kind: 'token', symbol: item.pack.symbol, label: item.pack.label, image: SERIES_2_IMAGES[item.pack.symbol], max: Math.floor(item.pack.amount), current: selectedPackTokens.get(item.pack.symbol) || 0 }),
+                  } : undefined} />
                 </div>
               ) : (
                 <div key={item.pack.templateId} className="w-[calc(50%-0.5rem)] sm:w-48">
-                  <AtomicPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const cat = ATOMIC_PACK_CATEGORY_MAP[item.pack.templateId]; return cat && a.category === cat; })} isReadOnly={isViewing} onTradeClick={isViewing ? handleTradeFromPack : undefined} />
+                  <AtomicPackCard pack={item.pack} session={session} accountName={effectiveAccount || ''} onSuccess={handlePackOpened} onDemoCollect={handleDemoCollect} collectionAssets={assets.filter(a => { const cat = ATOMIC_PACK_CATEGORY_MAP[item.pack.templateId]; return cat && a.category === cat; })} isReadOnly={isViewing} onTradeClick={isViewing ? handleTradeFromPack : undefined} selection={selectionMode && !isViewing ? {
+                    selectedCount: item.pack.assetIds.filter(id => selectedPackAssetIds.has(id)).length,
+                    disabled: selectedIds.size > 0,
+                    onToggle: () => { const id = item.pack.assetIds[0]; if (!id) return; setSelectedPackAssetIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; }); },
+                    onOpenPicker: () => setPackPickerTarget({ kind: 'atomic', templateId: item.pack.templateId, name: item.pack.name, image: item.pack.image, assetIds: item.pack.assetIds, mints: item.pack.mints, current: new Set(item.pack.assetIds.filter(id => selectedPackAssetIds.has(id))) }),
+                  } : undefined} />
                 </div>
               );
               return (
@@ -3638,12 +3673,23 @@ export default function SimpleAssetsPage() {
       <TransferDialog
         open={transferDialogOpen}
         onOpenChange={setTransferDialogOpen}
-        selectedAssets={selectedAssets}
+        selectedAssets={packSelectedCount > 0 ? [] : selectedAssets}
+        selectedPacks={packSelectedCount > 0 ? selectedPacksForTransfer : undefined}
         onSuccess={(txId) => {
+          const wasPacks = packSelectedCount > 0;
+          const count = wasPacks ? packSelectedCount : selectedAssets.length;
           clearSelection();
-          refetchSa();
-          refetchAa();
-          setSuccessDialog({ open: true, title: 'Transfer Complete!', description: `Successfully transferred ${selectedAssets.length} NFT(s).`, txId });
+          if (wasPacks) { refetchPacks(); refetchAtomicPacks(); } else { refetchSa(); refetchAa(); }
+          setSuccessDialog({ open: true, title: 'Transfer Complete!', description: `Successfully transferred ${count} ${wasPacks ? 'pack' : 'NFT'}(s).`, txId });
+        }}
+      />
+      <PackSelectDialog
+        target={packPickerTarget}
+        onOpenChange={(o) => { if (!o) setPackPickerTarget(null); }}
+        onConfirmToken={(symbol, qty) => setSelectedPackTokens(prev => { const n = new Map(prev); if (qty > 0) n.set(symbol, qty); else n.delete(symbol); return n; })}
+        onConfirmAtomic={(templateId, ids) => {
+          const pack = atomicPacks.find(p => p.templateId === templateId);
+          setSelectedPackAssetIds(prev => { const n = new Set(prev); pack?.assetIds.forEach(id => n.delete(id)); ids.forEach(id => n.add(id)); return n; });
         }}
       />
       <CollectionHistoryDialog
@@ -3682,7 +3728,19 @@ export default function SimpleAssetsPage() {
         }}
       />
 
-      {selectionMode && selectedIds.size > 0 && (() => {
+      {selectionMode && packSelectedCount > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card border border-cheese/50 rounded-lg shadow-2xl px-6 py-3 flex items-center gap-4">
+          <span className="text-sm font-medium text-foreground">{packSelectedCount} pack{packSelectedCount !== 1 ? 's' : ''} selected</span>
+          <Button size="sm" className="bg-cheese hover:bg-cheese/90 text-primary-foreground" onClick={() => setTransferDialogOpen(true)}>
+            <Send className="h-4 w-4 mr-1" />Transfer
+          </Button>
+          <Button size="sm" variant="ghost" onClick={clearSelection}>
+            <X className="h-4 w-4 mr-1" />Cancel
+          </Button>
+        </div>
+      )}
+
+      {selectionMode && selectedIds.size > 0 && packSelectedCount === 0 && (() => {
         const bridge = getBridgeEligibility(selectedAssets);
         const bridgeButton = (
           <Button
