@@ -9,7 +9,7 @@
  *   [ms, seq, kind, ids, from, to, amount, token, market, memo, tx]
  *   ids    comma-joined GPK SimpleAssets ids ("" for pack tokens)
  *   amount decimal string without trailing zeros ("" when none)
- *   market "gpk" (gpkmarket111) | "sm" (simplemarket) | "cio" (collectables.io market.place) | ""
+ *   market "gpk" (gpkmarket111) | "sm" (simplemarket) | "myth" (Myth.Market market.myth) | "cio" (collectables.io market.place) | ""
  *   memo   kept only where it carries information the kind doesn't
  *
  * Kinds:
@@ -38,13 +38,15 @@ export const PAGE = 100; // eosdac maximum
 export const GPK_MARKET = 'gpkmarket111';
 export const SIMPLE_MARKET = 'simplemarket';
 export const BRIDGE = 'atomicbridge';
-export const MARKETS = { [GPK_MARKET]: 'gpk', [SIMPLE_MARKET]: 'sm', 'market.place': 'cio' };
+export const MYTH_MARKET = 'market.myth';
+export const MARKETS = { [GPK_MARKET]: 'gpk', [SIMPLE_MARKET]: 'sm', [MYTH_MARKET]: 'myth', 'market.place': 'cio' };
 export const BUYLOG_FROM = '2020-07-01T00:00:00.000'; // SimpleMarket buylog exists from 30 Jun 2020
 
 /** Each source is one ascending Hyperion listing with its own bookmark. */
 export const SOURCES = {
   gpkmarket: { qs: `account=${GPK_MARKET}` },
   smbuylog: { qs: 'filter=simplemarket:buylog,simplemarket:updateprice' },
+  myth: { qs: `filter=${MYTH_MARKET}:logsale,${MYTH_MARKET}:loglisting,${MYTH_MARKET}:logdropsale` },
   smpay: { qs: `account=${SIMPLE_MARKET}&filter=eosio.token:transfer`, before: BUYLOG_FROM },
   transfer: { qs: 'filter=simpleassets:transfer' },
   offer: { qs: 'filter=simpleassets:offer,simpleassets:canceloffer' },
@@ -132,6 +134,7 @@ export function classifyAction(a, isGpk) {
       return [row(plain, ids, from, to, '', '', 'sm', memo)];
     }
     const market = MARKETS[to] || MARKETS[from] || '';
+    if (MARKETS[from] && /cancel/i.test(memo)) return [row('cancel', ids, from, to, '', '', market)];
     return [row(plain, ids, from, to, '', '', market, memo)];
   }
   if (key === 'simpleassets:canceloffer') {
@@ -170,6 +173,21 @@ export function classifyAction(a, isGpk) {
       }
     }
     return out;
+  }
+  if (act.account === MYTH_MARKET && ['logsale', 'loglisting', 'logdropsale'].includes(act.name)) {
+    const id = String(d.assetid ?? '');
+    if (!ID_RE.test(id) || !(d.author === 'gpk.topps' || isGpk(id))) return [];
+    const seller = acct(d.seller);
+    const cat = typeof d.category === 'string' ? d.category : '';
+    if (act.name === 'logsale') {
+      const [amt, tok] = parseQuantity(d.price);
+      return [row('sale', [id], seller, acct(d.buyer), amt, tok, 'myth', cat)];
+    }
+    if (act.name === 'loglisting') {
+      const [amt, tok] = parseQuantity(d.price);
+      return [row('list', [id], seller, MYTH_MARKET, amt, tok, 'myth', cat)];
+    }
+    return [row('cancel', [id], MYTH_MARKET, seller, '', '', 'myth', cat)];
   }
   if (key === 'simplemarket:updateprice') {
     const id = String(d.saleid ?? '');
@@ -302,7 +320,10 @@ export function buildTimelines(rows) {
     const used = new Set();
     const timeline = [];
     const hasSaleInTx = new Set(list.filter((r) => r[2] === 'sale').map((r) => r[10]));
+    // A market's own log already describes the card moving; hide the plain move in the same transaction.
+    const marketTx = new Set(list.filter((r) => ['sale', 'list', 'cancel'].includes(r[2]) && r[10]).map((r) => r[10]));
     for (const r of list) {
+      if (['transfer', 'offer', 'claim'].includes(r[2]) && marketTx.has(r[10])) continue;
       if (r[2] === 'sale') {
         let seller = r[4];
         if (!seller && r[8] === 'gpk') {
