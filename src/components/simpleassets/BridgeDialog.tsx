@@ -157,7 +157,7 @@ export function BridgeDialog({ open, onOpenChange, assets, onSuccess }: BridgeDi
                   : 'border-border bg-background/60 hover:border-cheese/50'
               }`}
             >
-              <div className="aspect-[3/4] w-full overflow-hidden rounded-sm bg-muted">
+              <div className="aspect-square w-full overflow-hidden rounded-sm bg-muted">
                 <IpfsMedia
                   url={asset.images?.[0] || asset.image}
                   alt={asset.name}
