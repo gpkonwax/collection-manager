@@ -16,28 +16,50 @@ import { getTransactPlugins } from '@/lib/wharfKit';
 import { closeWharfkitModals } from '@/lib/wharfKit';
 import { toast } from 'sonner';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import type { GpkPack } from '@/hooks/useGpkPacks';
+import type { AtomicPack } from '@/hooks/useGpkAtomicPacks';
+import { buildPackTransferActions } from '@/lib/packTransferActions';
+import { IpfsMedia } from './IpfsMedia';
+
+/** Packs chosen for transfer. Token packs go by quantity, AtomicAssets packs by asset ID. */
+export interface SelectedPacks {
+  tokens: { pack: GpkPack; qty: number; image?: string }[];
+  atomic: { pack: AtomicPack; ids: string[] }[];
+}
+
+export function countSelectedPacks(p: SelectedPacks | undefined): number {
+  if (!p) return 0;
+  return p.tokens.reduce((n, t) => n + t.qty, 0) + p.atomic.reduce((n, a) => n + a.ids.length, 0);
+}
 
 interface TransferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedAssets: SimpleAsset[];
+  /** When set (and non-empty), the dialog transfers packs instead of cards. */
+  selectedPacks?: SelectedPacks;
   onSuccess: (txId: string | null) => void;
 }
 
 const WAX_ACCOUNT_REGEX = /^[a-z1-5.]{1,12}$/;
 
-export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }: TransferDialogProps) {
+export function TransferDialog({ open, onOpenChange, selectedAssets, selectedPacks, onSuccess }: TransferDialogProps) {
   const { session } = useWax();
   const [recipient, setRecipient] = useState('');
   const [memo, setMemo] = useState('');
   const [isSending, setIsSending] = useState(false);
+
+  const packCount = countSelectedPacks(selectedPacks);
+  const isPacks = packCount > 0;
+  const itemCount = isPacks ? packCount : selectedAssets.length;
+  const noun = isPacks ? 'Pack' : 'NFT';
 
   const isValidRecipient = WAX_ACCOUNT_REGEX.test(recipient);
   const saAssets = selectedAssets.filter(a => a.source === 'simpleassets');
   const aaAssets = selectedAssets.filter(a => a.source === 'atomicassets');
 
   const handleSend = async () => {
-    if (!session || !isValidRecipient || selectedAssets.length === 0) return;
+    if (!session || !isValidRecipient || itemCount === 0) return;
 
     setIsSending(true);
     try {
@@ -45,6 +67,15 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
       const auth = [session.permissionLevel];
       const actions: any[] = [];
 
+      if (isPacks && selectedPacks) {
+        actions.push(...buildPackTransferActions({
+          actor, auth, to: recipient, memo: memo || 'transfer',
+          tokenQtys: new Map(selectedPacks.tokens.map(t => [t.pack.symbol, t.qty])),
+          balances: selectedPacks.tokens.map(t => t.pack),
+          atomicIds: selectedPacks.atomic.flatMap(a => a.ids),
+          ownedAtomicIds: new Set(selectedPacks.atomic.flatMap(a => a.pack.assetIds)),
+        }));
+      } else {
       if (saAssets.length > 0) {
         actions.push({
           account: 'simpleassets',
@@ -72,6 +103,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
           },
         });
       }
+      }
 
       const result = await session.transact(
         { actions },
@@ -79,7 +111,7 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
       );
       const txId = result.resolved?.transaction.id?.toString() || null;
 
-      toast.success(`Transferred ${selectedAssets.length} NFT(s) to ${recipient}`);
+      toast.success(`Transferred ${itemCount} ${noun.toLowerCase()}(s) to ${recipient}`);
       setRecipient('');
       setMemo('');
       onOpenChange(false);
@@ -92,6 +124,9 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, onSuccess }
       setTimeout(() => closeWharfkitModals(), 100);
     }
   };
+
+  const tokenTotal = selectedPacks?.tokens.reduce((n, t) => n + t.qty, 0) ?? 0;
+  const atomicTotal = selectedPacks?.atomic.reduce((n, a) => n + a.ids.length, 0) ?? 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
