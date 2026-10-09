@@ -62,4 +62,13 @@ describe('BridgeDialog', () => {
     expect(screen.getByRole('button', { name: /Bridge 1 card to SimpleAssets/ })).toBeTruthy();
     expect(screen.queryByRole('tab')).toBeNull();
   });
+  it('shows each card's original mint number on its tile', () => {
+    const minted = makeAsset({ id: '100000006630365', name: 'SA Card', mintNumber: 42 });
+    render(<BridgeDialog open onOpenChange={() => {}} selectedAssets={[minted]} onSuccess={() => {}} />);
+    expect(screen.getByText('#42')).toBeTruthy();
+  });
+  it('keeps unresolved mints visible as #--', () => {
+    render(<BridgeDialog open onOpenChange={() => {}} selectedAssets={[bridgedAa]} onSuccess={() => {}} />);
+    expect(screen.getAllByText('#--')).toHaveLength(1);
+  });
 });
