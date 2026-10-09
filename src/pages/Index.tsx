@@ -8,7 +8,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
 import { MissingPuzzlePiecePlaceholder } from '@/components/simpleassets/MissingPuzzlePiecePlaceholder';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BackgroundDecorations } from '@/components/BackgroundDecorations';
@@ -70,7 +69,7 @@ import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog } from '@/components/simpleassets/TransferDialog';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
 import { BridgeDialog } from '@/components/simpleassets/BridgeDialog';
-import { getBridgeEligibility, MAX_BRIDGE_PER_TX } from '@/lib/bridgeActions';
+import { getBridgeEligibility } from '@/lib/bridgeActions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { BannerAd } from '@/components/BannerAd';
