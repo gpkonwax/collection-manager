@@ -3697,7 +3697,8 @@ export default function SimpleAssetsPage() {
         onOpenChange={setShowDonateDialog}
         gpkPacks={packs}
         atomicPacks={atomicPacks}
-        onSuccess={(txId) => {
+        onSuccess={(txId, sent) => {
+          if (sent) markSent(sent.atomicIds, sent.tokenQtys);
           refetchPacks();
           refetchAtomicPacks();
           setSuccessDialog({ open: true, title: 'Donation Sent!', description: 'Thank you for supporting the $CHEESE team.', txId });
