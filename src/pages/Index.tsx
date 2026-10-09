@@ -354,8 +354,8 @@ export default function SimpleAssetsPage() {
   const [retroOn, setRetroOn] = useState(false);
   useEffect(() => { if (!retroEligible) setRetroOn(false); }, [retroEligible]);
   const retroActive = retroEligible && retroOn;
-  type SortMode = 'natural' | 'name' | 'variant' | 'newest';
-  const [sortMode, setSortMode] = useState<SortMode>('natural');
+  type SortMode = 'mint' | 'natural' | 'name' | 'variant' | 'newest';
+  const [sortMode, setSortMode] = useState<SortMode>('mint');
   const [viewMode, setViewMode] = useState<ViewMode>('classic');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
@@ -1461,6 +1461,7 @@ export default function SimpleAssetsPage() {
   const sortedFiltered = useMemo(() => {
     if (sortMode === 'natural') return filtered;
     const arr = [...filtered];
+    if (sortMode === 'mint') return arr.sort(compareByOriginalMint);
     if (sortMode === 'newest') {
       arr.sort((a, b) => {
         const aT = typeof a.transferredAt === 'number' ? a.transferredAt : undefined;
@@ -3281,6 +3282,7 @@ export default function SimpleAssetsPage() {
                     <SelectValue placeholder="Sort" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="mint">Mint (Low–High)</SelectItem>
                     <SelectItem value="natural">Natural (Card ID)</SelectItem>
                     <SelectItem value="newest">Recently received</SelectItem>
                     <SelectItem value="name">Name (A–Z)</SelectItem>
