@@ -18,5 +18,6 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Keep the card-detail AtomicAssets badge as a bare wordmark with a navy-lettered twin for bright mode, because white letters vanish on the light panel once the navy circle backing is gone.
 
 ## Bridge & transfers
+- Native AtomicAssets detail supply comes from template /stats (assets includes burns; circulating = assets minus burned), cached per template; bridged cards retain the SimpleAssets resolver so original and bridged counts never mix.
 - Bridge and transfer window rules live in src/components/simpleassets/AGENTS.md.
 - Pack transfers: token packs via packs.topps::transfer by quantity, AtomicAssets packs via atomicassets::transfer by asset ID; pack and card selections are mutually exclusive (details in src/components/simpleassets/AGENTS.md).
