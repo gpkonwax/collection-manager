@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Enlarge bridge dialog, add Select all in both directions and front-page collection/variant filters; reset to Series 1/all variants on opening; verified with 16 tests and browser interaction (no wallet transaction signed).
 
 - [x] Pack-opening provenance: opener, mint date and pack in card details; one-time backfill workflow + twice-daily updates; bundled in records ZIP.
 - [ ] Confirm the user-started "Backfill pack provenance" workflow finishes on GitHub (blocked: external workflow completion).

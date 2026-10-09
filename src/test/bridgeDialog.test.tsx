@@ -71,4 +71,53 @@ describe('BridgeDialog', () => {
     expect(screen.getByRole('tab', { name: 'To AtomicAssets (1)' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'To SimpleAssets (1)' })).toBeTruthy();
   });
+
+  it('defaults to Series 1 with every variant, excluding other collections', () => {
+    renderDialog([saCard, makeAsset({ id: '2', name: 'Series 1 Prism', quality: 'Prism' }), makeAsset({ id: '3', name: 'Series 2 Base', category: 'series2' })]);
+    expect(screen.getByText('SA Card')).toBeTruthy();
+    expect(screen.getByText('Series 1 Prism')).toBeTruthy();
+    expect(screen.queryByText('Series 2 Base')).toBeNull();
+  });
+
+  it('selects and clears all filtered cards on both bridge directions', () => {
+    renderDialog([saCard, bridgedAa, nativeAa, makeAsset({ id: '2', name: 'Other series', category: 'series2' })]);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    expect(screen.getByRole('button', { name: /Bridge 1 card to AtomicAssets/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    expect(screen.getByRole('button', { name: /Bridge 0 cards/ })).toBeTruthy();
+    const tab = screen.getByRole('tab', { name: /To SimpleAssets/ });
+    fireEvent.mouseDown(tab);
+    fireEvent.click(tab);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    expect(screen.getByRole('button', { name: /Bridge 1 card to SimpleAssets/ })).toBeTruthy();
+  });
+
+  it('filters variants before select-all and clears the previous selection', () => {
+    renderDialog([saCard, makeAsset({ id: '2', name: 'Prism card', quality: 'Prism' })]);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    fireEvent.click(screen.getByRole('button', { name: 'All Variants' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Base (1)' }));
+    expect(screen.queryByText('Prism card')).toBeNull();
+    expect(screen.getByRole('button', { name: /Bridge 0 cards/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    expect(screen.getByRole('button', { name: /Bridge 1 card to AtomicAssets/ })).toBeTruthy();
+  });
+
+  it('resets collection and variants when reopened', () => {
+    const assets = [saCard, makeAsset({ id: '2', name: 'Prism card', quality: 'Prism' })];
+    const props = { assets, onOpenChange: () => {}, onSuccess: () => {} };
+    const { rerender } = render(<BridgeDialog {...props} open />);
+    fireEvent.click(screen.getByRole('button', { name: 'All Variants' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Base (1)' }));
+    rerender(<BridgeDialog {...props} open={false} />);
+    rerender(<BridgeDialog {...props} open />);
+    expect(screen.getByText('Prism card')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Collection' }).textContent).toContain('Series 1');
+  });
+
+  it('select-all retains the existing 20-card transaction safeguard', () => {
+    renderDialog(Array.from({ length: 21 }, (_, i) => makeAsset({ id: String(i), name: `Card ${i}` })));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    expect((screen.getByRole('button', { name: /Bridge 21 cards/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });
