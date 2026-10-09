@@ -10,6 +10,23 @@ const card = (id: string, mintNumber?: number, overrides: Partial<SimpleAsset> =
 });
 
 describe('natural grid ordering', () => {
+  it('orders non-numeric duplicate card IDs by original mint rather than asset ID', () => {
+    const cards = [
+      card('1', 900, { cardid: 'TK', category: 'exotic' }),
+      card('2', 12, { cardid: 'TK', category: 'exotic', source: 'atomicassets', idata: { bridge_mint: '999' } }),
+      card('3', undefined, { cardid: 'TK', category: 'exotic', source: 'atomicassets', idata: { bridge_mint: '1' } }),
+    ];
+    expect(cards.sort(compareNaturalCards).map((asset) => asset.id)).toEqual(['2', '1', '3']);
+  });
+
+  it('orders duplicate copies with different metadata casing lowest mint first', () => {
+    const cards = [
+      card('1', 900, { quality: 'Base', side: 'A' }),
+      card('2', 12, { quality: 'base', side: 'a', source: 'atomicassets', idata: { bridge_mint: '999' } }),
+    ];
+    expect(cards.sort(compareNaturalCards).map((asset) => asset.id)).toEqual(['2', '1']);
+  });
+
   it('sorts duplicate copies across both contracts by original mint, unresolved copies last', () => {
     const cards = [
       card('1', 1524),
