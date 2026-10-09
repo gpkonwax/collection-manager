@@ -24,7 +24,7 @@ async function getJson(url) {
   for (let a = 0; a < 4; a++) {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-      if (r.status === 429) { await new Promise((s) => setTimeout(s, 3000 * (a + 1))); continue; }
+      if (r.status === 429) { await new Promise((s) => setTimeout(s, 10000 * (a + 1))); continue; }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return await r.json();
     } catch (e) { if (a === 3) throw e; await new Promise((s) => setTimeout(s, 2000)); }
@@ -36,7 +36,7 @@ async function pageAll(query) {
   const out = []; const seen = new Set(); let after = from; let requests = 0;
   for (;;) {
     const body = await getJson(`${NODE}/v2/history/get_actions?${query}&sort=asc&limit=${LIMIT}&after=${after}&before=${before}`);
-    requests++;
+    requests++; await new Promise((s) => setTimeout(s, 700));
     const acts = body.actions || [];
     for (const a of acts) {
       const key = `${a.global_sequence}`;
