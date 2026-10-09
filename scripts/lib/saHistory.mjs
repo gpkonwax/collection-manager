@@ -186,9 +186,14 @@ export function classifyAction(a, isGpk) {
       const id = idInMemo(memo);
       // gpkmarket111 only ever sold GPK cards; keep its money rows even for ids we haven't seen.
       const ids = id ? [id] : [];
-      if (to === GPK_MARKET && /^Purchase#/i.test(memo)) return [row('buy', ids, from, to, amt, tok, 'gpk')];
-      if (from === GPK_MARKET && /^Payment for sale/i.test(memo)) return [row('pay', ids, from, to, amt, tok, 'gpk')];
-      if (from === GPK_MARKET && /fee/i.test(memo)) return [row('fee', ids, from, to, amt, tok, 'gpk', memo.replace(/\s*#?\d{15,}.*$/, ''))];
+      // Pack-token sales use refs like "seller-gpkfive-<ms>" instead of an asset id: keep the memo then.
+      const ref = id ? '' : memo;
+      if (to === GPK_MARKET && /^(Pack)?Purchase#/i.test(memo)) return [row('buy', ids, from, to, amt, tok, 'gpk', ref)];
+      if (from === GPK_MARKET && /^Payment for sale/i.test(memo)) return [row('pay', ids, from, to, amt, tok, 'gpk', ref)];
+      if (from === GPK_MARKET && /fee/i.test(memo)) {
+        const name = (/^(.*?fee)/i.exec(memo) || [memo])[0];
+        return [row('fee', ids, from, to, amt, tok, 'gpk', id ? name : memo)];
+      }
       if (from === GPK_MARKET && /refund/i.test(memo)) return [row('refund', ids, from, to, amt, tok, 'gpk', memo)];
       return [row(from === GPK_MARKET ? 'pay' : 'buy', ids, from, to, amt, tok, 'gpk', memo)];
     }
@@ -355,7 +360,7 @@ export function buildSummary(rows, timelines) {
     else if (k === 'bridge') totals.bridges++;
     else if (k === 'unbridge') totals.unbridges++;
     else if (k === 'pack') totals.packTransfers++;
-    else if (k === 'fee') { const f = `${r[9] || 'fee'} (${r[7]})`; fees[f] = +((fees[f] || 0) + Number(r[6] || 0)).toFixed(8); }
+    else if (k === 'fee') { const f = `${(/^(.*?fee)/i.exec(r[9] || '') || ['fee'])[0]} (${r[7]})`; fees[f] = +((fees[f] || 0) + Number(r[6] || 0)).toFixed(8); }
     if ((k === 'transfer' || k === 'offer') && !r[8]) counterparties[r[5]] = (counterparties[r[5]] || 0) + 1;
   }
   const topRecipients = Object.entries(counterparties).sort((a, b) => b[1] - a[1]).slice(0, 50);
