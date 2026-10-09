@@ -111,7 +111,7 @@ export const BRIDGE_CAP_REASON = `The bridge handles at most ${MAX_BRIDGE_PER_TX
 export function getBridgeEligibility(
   assets: Array<{ source?: string; idata?: Record<string, unknown> }>,
 ): BridgeEligibility {
-  if (assets.length === 0) return { direction: null, reason: 'Select at least one card' };
+  if (!assets || assets.length === 0) return { direction: null, reason: 'Select at least one card' };
   const allSa = assets.every((a) => a.source === 'simpleassets');
   const allAa = assets.every((a) => a.source === 'atomicassets');
   if (!allSa && !allAa) return { direction: null, reason: BRIDGE_MIXED_REASON };

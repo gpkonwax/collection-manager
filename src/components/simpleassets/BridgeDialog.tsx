@@ -29,7 +29,7 @@ interface BridgeDialogProps {
   onSuccess: (txId: string | null, direction: BridgeDirection, count: number) => void;
 }
 
-export function BridgeDialog({ open, onOpenChange, selectedAssets, onSuccess }: BridgeDialogProps) {
+export function BridgeDialog({ open, onOpenChange, selectedAssets = [], onSuccess }: BridgeDialogProps) {
   const { session } = useWax();
   const [isBridging, setIsBridging] = useState(false);
   const { direction, reason } = getBridgeEligibility(selectedAssets);
