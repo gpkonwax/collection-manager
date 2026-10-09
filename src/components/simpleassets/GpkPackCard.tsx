@@ -22,8 +22,9 @@ import gpkSeries2cImg from '@/assets/gpk_pack_series_2c_geepeekay.jpg';
 import gpkExoticImg from '@/assets/gpk_pack_exotic.jpeg';
 import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpeg';
 import simpleAssetsLogo from '@/assets/simpleassets-logo.png';
+import { PackSelectOverlay, PackSelectButton, type PackSelectionProps } from './PackSelection';
 
-const SERIES_2_IMAGES: Record<string, string> = {
+export const SERIES_2_IMAGES: Record<string, string> = {
   GPKFIVE: gpkSeries1Img, GPKMEGA: gpkSeries1MegaImg,
   GPKTWOA: gpkSeries2aImg, GPKTWOB: gpkSeries2bImg, GPKTWOC: gpkSeries2cImg,
   EXOFIVE: gpkExoticImg, EXOMEGA: gpkExoticMegaImg,
@@ -121,7 +122,8 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
   return (
     <>
       <PackInfoPopover specKey={pack.symbol}>
-      <Card className="bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
+      <Card className="relative bg-card border-border hover:border-primary/40 transition-colors bright-card-shell">
+        {selection && !isReadOnly && pack.amount === 1 && <PackSelectOverlay selection={selection} label={pack.label} />}
         <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
           {series2Img ? <Button variant="ghost" className="w-3/4 h-auto p-0 rounded" aria-label={`Enlarge ${pack.label} artwork`} title="Enlarge pack artwork" onClick={() => setArtworkOpen(true)}><img src={series2Img} alt={pack.label} className="w-full h-auto rounded mx-auto" /></Button> : <span className="text-3xl">📦</span>}
           <p className="font-bold text-foreground text-sm theme-bright-text">{pack.label}</p>
@@ -135,7 +137,9 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
             <p className="text-xs text-muted-foreground theme-bright-text-muted">{pack.symbol}</p>
           </div>
           <p className="text-lg font-mono text-primary theme-bright-text">{pack.amount}</p>
-          {isReadOnly ? (
+          {selection && !isReadOnly ? (
+            <PackSelectButton selection={selection} owned={pack.amount} />
+          ) : isReadOnly ? (
             onTradeClick && pack.amount > 0 ? (
               <Button
                 size="sm"
@@ -158,7 +162,7 @@ export function GpkPackCard({ pack, session, accountName, onSuccess, onDemoColle
           ) : (
             <Button size="sm" variant="outline" className="w-full text-xs" disabled>No Packs</Button>
           )}
-          {!isReadOnly && demoCards.length > 0 && (
+          {!isReadOnly && !selection && demoCards.length > 0 && (
             <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setDemoRevealOpen(true)}>
               <Play className="h-3 w-3 mr-1" /> Demo Open
             </Button>
