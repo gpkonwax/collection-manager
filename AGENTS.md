@@ -2,7 +2,7 @@ Use a locally bundled Archivo Black font only for bright-mode headings, so the o
 Use paired locally bundled banner-title artwork for bright and dark mode so both show the same lettering without changing dark-mode body typography or background.
 Use shared interactive artwork controls for NFT details and pack artwork, so tilt, magnifier, and drawing stay consistent while pack operations remain separate.
 Keep original SimpleAssets pack-art source URLs separate from bundled image paths and retain AtomicAssets raw image references, so the enlarged viewer can credit provenance without mistaking a backup gateway for the source.
-Resolve SimpleAssets mint numbers from the self-hosted sharded mint backup on the data mirror first and live AtomicHub second, so mints survive AtomicHub outages and CORS blocks while new mints still appear once live access opens.
+Resolve SimpleAssets mint numbers from the self-hosted sharded mint backup first and live AtomicHub second, so mints survive AtomicHub outages and CORS blocks while new mints still appear.
 Show only the original mint number on grid ribbons; keep circulating and burned supply in tooltips and details because bridge order and surviving supply are not the original mint or total printed.
 Keep default grid ordering in a shared natural-card comparator, sorting identical card copies by original mint after card ID, side, and variant so saved layouts and alternate sort modes retain their own ordering.
 - Ship holders + mint backup as one session-only records ZIP (gpk-records.zip) rebuilt by both the monthly holders workflow and the separate incremental mint workflow (kept apart so slow AtomicHub lookups never break the holders run); a loaded ZIP is read before network mirrors so records survive every host going away.
@@ -17,8 +17,6 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Resolve Lovable-hosted detail logo pointers against the published asset host, because GitHub Pages cannot serve root-relative /__l5e/assets-v1/ paths.
 - Keep the card-detail AtomicAssets badge as a bare wordmark with a navy-lettered twin for bright mode, because white letters vanish on the light panel once the navy circle backing is gone.
 
-## Bridge Frontend
-- Bridging starts from the grid selection bar (beside Transfer/Burn) and BridgeDialog only confirms the selection; eligibility comes from getBridgeEligibility in bridgeActions.ts so the bar and dialog never disagree.
-- Selected-card tiles in the transfer and bridge windows come from the shared SelectedAssetGrid (64px artwork, original mint number on top via getMintLabel) so both flows show the same card identity and mint as the grid ribbon.
-- BridgeDialog bridges both ways via atomicbridge: SA->AA uses simpleassets::offer memo "swap" (contract claims inline); AA->SA uses atomicassets::transfer to atomicbridge (memo ignored, "unbridge" used descriptively). Only AA cards with immutable sassets_id may go back — mirrors the contract swap-record lookup. Cards are never burned; bridge holds custody. Max 20 cards per tx.
-- Pack transfers send SimpleAssets token packs via packs.topps::transfer by quantity and AtomicAssets packs via atomicassets::transfer by asset ID (src/lib/packTransferActions.ts), and pack and card selections are mutually exclusive, because the two pack kinds are different on-chain objects and mixed card/pack batches would confuse the transfer window.
+## Bridge & transfers
+- Bridge and transfer window rules live in src/components/simpleassets/AGENTS.md.
+- Pack transfers: token packs via packs.topps::transfer by quantity, AtomicAssets packs via atomicassets::transfer by asset ID; pack and card selections are mutually exclusive (details in src/components/simpleassets/AGENTS.md).
