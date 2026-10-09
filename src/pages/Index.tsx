@@ -23,7 +23,7 @@ import { AlertsManagerPopover } from '@/components/simpleassets/AlertsManagerPop
 import { SelectionCheckboxes } from '@/components/simpleassets/SelectionCheckboxes';
 import { useBinderTemplates } from '@/hooks/useBinderTemplates';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
-import { GpkPackCard } from '@/components/simpleassets/GpkPackCard';
+import { GpkPackCard, SERIES_2_IMAGES } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
 import { CardDealAnimation } from '@/components/simpleassets/CardDealAnimation';
 import { fetchPendingNfts, fetchPendingNftsDetailed, PackRevealDialog, type RevealCard } from '@/components/simpleassets/PackRevealDialog';
