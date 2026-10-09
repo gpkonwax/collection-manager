@@ -260,7 +260,7 @@ async function main() {
     log('pack provenance not built yet — skipping manifests/provenance.');
   }
 
-  // Saved SimpleAssets transfers (collect-sa-transfers.mjs)
+  // Legacy saved SimpleAssets transfers (superseded by the sa-history branch)
   try {
     await fs.copyFile(path.join(ROOT, 'manifests', 'sa-transfers.json'), path.join(OUT, 'manifests', 'sa-transfers.json'));
     log('copied saved SimpleAssets transfers');

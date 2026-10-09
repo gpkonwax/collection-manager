@@ -44,7 +44,7 @@ if (await exists(path.join(provDir, 'index.json'))) {
   console.warn('[build-records-zip] pack provenance not built yet — ZIP will not include it.');
 }
 
-// Optional saved SimpleAssets transfers (collect-sa-transfers.mjs).
+// Legacy saved SimpleAssets transfers (no longer updated; full history is on the sa-history branch).
 const saTransfersPath = path.join(ROOT, 'manifests', 'sa-transfers.json');
 if (await exists(saTransfersPath)) files['sa-transfers.json'] = new Uint8Array(await fs.readFile(saTransfersPath));
 
