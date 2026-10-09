@@ -132,15 +132,51 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, selectedPac
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[46dvh] max-h-[800px] w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Transfer {selectedAssets.length} NFT{selectedAssets.length !== 1 ? 's' : ''}</DialogTitle>
+          <DialogTitle>Transfer {itemCount} {noun}{itemCount !== 1 ? 's' : ''}</DialogTitle>
           <DialogDescription>
-            {saAssets.length > 0 && <span className="block text-xs">SimpleAssets: {saAssets.length}</span>}
-            {aaAssets.length > 0 && <span className="block text-xs">AtomicAssets: {aaAssets.length}</span>}
+            {isPacks ? (
+              <>
+                {tokenTotal > 0 && <span className="block text-xs">SimpleAssets packs (tokens): {tokenTotal}</span>}
+                {atomicTotal > 0 && <span className="block text-xs">AtomicAssets packs (NFTs): {atomicTotal}</span>}
+              </>
+            ) : (
+              <>
+                {saAssets.length > 0 && <span className="block text-xs">SimpleAssets: {saAssets.length}</span>}
+                {aaAssets.length > 0 && <span className="block text-xs">AtomicAssets: {aaAssets.length}</span>}
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="min-h-0 flex-1">
-          <SelectedAssetGrid assets={selectedAssets} />
+          {isPacks && selectedPacks ? (
+            <div className="space-y-2 p-1">
+              {selectedPacks.tokens.filter(t => t.qty > 0).map(t => (
+                <div key={t.pack.symbol} className="flex items-center gap-3 rounded-md border border-border p-2">
+                  {t.image ? <img src={t.image} alt={t.pack.label} className="h-16 w-12 rounded object-contain" /> : <span className="text-2xl">📦</span>}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{t.pack.label}</p>
+                    <p className="text-xs text-muted-foreground">Token pack · {t.pack.symbol}</p>
+                  </div>
+                  <span className="font-mono text-sm text-cheese">×{t.qty}</span>
+                </div>
+              ))}
+              {selectedPacks.atomic.filter(a => a.ids.length > 0).map(a => (
+                <div key={a.pack.templateId} className="flex items-center gap-3 rounded-md border border-border p-2">
+                  <IpfsMedia url={a.pack.image} alt={a.pack.name} className="h-16 w-12 rounded" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{a.pack.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      NFT pack · {a.ids.map(id => { const i = a.pack.assetIds.indexOf(id); const m = a.pack.mints[i]; return m ? `#${m}` : id; }).join(', ')}
+                    </p>
+                  </div>
+                  <span className="font-mono text-sm text-cheese">×{a.ids.length}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <SelectedAssetGrid assets={selectedAssets} />
+          )}
         </ScrollArea>
 
         <div className="mt-2 shrink-0 space-y-3">
@@ -169,13 +205,13 @@ export function TransferDialog({ open, onOpenChange, selectedAssets, selectedPac
 
         <Button
           onClick={handleSend}
-          disabled={!isValidRecipient || isSending || selectedAssets.length === 0}
+          disabled={!isValidRecipient || isSending || itemCount === 0}
           className="w-full shrink-0 mt-2 bg-cheese hover:bg-cheese/90 text-primary-foreground"
         >
           {isSending ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
           ) : (
-            <><Send className="h-4 w-4 mr-2" />Send {selectedAssets.length} NFT{selectedAssets.length !== 1 ? 's' : ''}</>
+            <><Send className="h-4 w-4 mr-2" />Send {itemCount} {noun}{itemCount !== 1 ? 's' : ''}</>
           )}
         </Button>
       </DialogContent>
