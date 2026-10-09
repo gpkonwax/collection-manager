@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
+import { SelectedAssetGrid } from '@/components/simpleassets/SelectedAssetGrid';
 import {
   Dialog,
   DialogContent,
@@ -67,7 +67,7 @@ export function BridgeDialog({ open, onOpenChange, selectedAssets = [], onSucces
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-3xl">
+      <DialogContent className="flex h-[92dvh] max-h-[1600px] w-[calc(100%-2rem)] flex-col overflow-hidden sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowLeftRight className="h-5 w-5 text-cheese" />
@@ -80,23 +80,16 @@ export function BridgeDialog({ open, onOpenChange, selectedAssets = [], onSucces
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[50vh]">
-          <div className="flex flex-wrap gap-2 p-1">
-            {selectedAssets.map((asset) => (
-              <div key={asset.id} className="flex items-center gap-1.5 rounded bg-muted/50 px-2 py-1">
-                <IpfsMedia url={asset.images?.[0] || asset.image} alt={asset.name} className="h-8 w-8 rounded object-contain" context="card" />
-                <span className="max-w-[100px] truncate text-xs">{asset.name}</span>
-              </div>
-            ))}
-          </div>
+        <ScrollArea className="min-h-0 flex-1">
+          <SelectedAssetGrid assets={selectedAssets} />
         </ScrollArea>
 
-        {!direction && reason && <p className="text-xs text-destructive">{reason}</p>}
+        {!direction && reason && <p className="shrink-0 text-xs text-destructive">{reason}</p>}
 
         <Button
           onClick={handleBridge}
           disabled={!canBridge || isBridging}
-          className="mt-2 w-full bg-cheese text-primary-foreground hover:bg-cheese/90"
+          className="mt-2 w-full shrink-0 bg-cheese text-primary-foreground hover:bg-cheese/90"
         >
           {isBridging ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Bridging...</>
