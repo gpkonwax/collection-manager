@@ -3079,7 +3079,7 @@ export default function SimpleAssetsPage() {
                   preview={binderViewPreview}
                   previewAlt="Collector binder: owned cards beside a greyscale placeholder you can buy"
                   title="Collector Binder"
-                  description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. Set price alerts on any missing card to get notified when it drops below your target. See exactly what you need."
+                  description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. Duplicate cards are stacked into one slot — click the stack to see every copy. Set price alerts on any missing card to get notified when it drops below your target. See exactly what you need."
                 />
                 <FeatureCard
                   preview={savedCollectionPreview}
