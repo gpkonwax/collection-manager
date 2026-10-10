@@ -218,3 +218,30 @@ export async function fetchPendingOffers(account: string): Promise<AtomicOffer[]
 
   return checks.filter((o): o is AtomicOffer => o !== null);
 }
+
+/**
+ * Look up offers by ID in any state (used to learn how a sent offer ended).
+ * Returns only the fields needed for reply classification.
+ */
+export async function fetchOffersByIds(
+  ids: string[],
+): Promise<Map<string, Pick<AtomicOffer, 'offer_id' | 'state' | 'recipient_name' | 'updated_at_time'>>> {
+  const out = new Map<string, Pick<AtomicOffer, 'offer_id' | 'state' | 'recipient_name' | 'updated_at_time'>>();
+  const unique = Array.from(new Set(ids.filter((id) => /^\d+$/.test(id))));
+  for (let i = 0; i < unique.length; i += 100) {
+    const chunk = unique.slice(i, i + 100);
+    const params = new URLSearchParams({ ids: chunk.join(','), limit: '100' });
+    const resp = await fetchWithFallback(ATOMIC_API.baseUrls, `/atomicassets/v1/offers?${params.toString()}`, undefined, 15000);
+    const json = await resp.json();
+    if (!json?.success || !Array.isArray(json.data)) throw new Error('Offer lookup failed');
+    for (const o of json.data as RawOffer[]) {
+      out.set(o.offer_id, {
+        offer_id: o.offer_id,
+        state: (o.state as OfferState) ?? 0,
+        recipient_name: o.recipient_name,
+        updated_at_time: Number(o.updated_at_time || 0),
+      });
+    }
+  }
+  return out;
+}
