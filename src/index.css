@@ -396,6 +396,19 @@
       0 24px 60px -16px hsl(var(--dialog-shadow) / 0.4),
       0 8px 18px -10px hsl(var(--dialog-shadow) / 0.25);
   }
+
+  /* Sections inside bright modals: solid white panels with a soft blue edge,
+     so information blocks read as separate containers like the dark theme. */
+  .bright [role="dialog"] .bg-muted\/30,
+  .bright [role="alertdialog"] .bg-muted\/30 {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--dialog-border) / 0.65);
+    box-shadow: 0 1px 4px -1px hsl(var(--dialog-shadow) / 0.18);
+  }
+  .bright [role="dialog"] .border-border,
+  .bright [role="alertdialog"] .border-border {
+    border-color: hsl(var(--dialog-border) / 0.7);
+  }
 }
 
 /* Front-facing pack fan: only in-plane rotation, never a perspective flip. */
