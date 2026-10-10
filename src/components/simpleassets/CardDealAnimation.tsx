@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import shuffleSfx from '@/assets/card-shuffle.mp3';
 import landSfx from '@/assets/card-land.mp3';
+import cheerSfx from '@/assets/crowd-cheer.mp3';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface CardDealAnimationProps {
@@ -64,6 +65,26 @@ function nextLayoutFrame(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
+}
+
+// The crowd cheer marks the end of a deal. It has to outlive this component —
+// the parent unmounts the animation the moment the deal finishes — so the
+// element is held at module scope until it has played through, and a second
+// deal replaces a cheer that is still running.
+let activeCheerAudio: HTMLAudioElement | null = null;
+
+function playCrowdCheer() {
+  if (activeCheerAudio) {
+    activeCheerAudio.pause();
+    activeCheerAudio.currentTime = 0;
+  }
+  const cheer = new Audio(cheerSfx);
+  cheer.volume = 0.9;
+  activeCheerAudio = cheer;
+  cheer.addEventListener('ended', () => {
+    if (activeCheerAudio === cheer) activeCheerAudio = null;
+  });
+  cheer.play().catch(() => {});
 }
 
 export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete }: CardDealAnimationProps) {
@@ -146,6 +167,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     }
     orderedCards.slice(dealIndex).forEach(c => onCardDealt(c.id));
     hasCompletedRef.current = true;
+    playCrowdCheer();
     onComplete();
   }, [orderedCards, dealIndex, onCardDealt, onComplete]);
 
@@ -184,6 +206,7 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     if (dealIndex >= orderedCards.length) {
       if (!hasCompletedRef.current && orderedReadyRef.current) {
         hasCompletedRef.current = true;
+        playCrowdCheer();
         const t = setTimeout(onComplete, 400);
         return () => clearTimeout(t);
       }
