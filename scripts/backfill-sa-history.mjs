@@ -104,11 +104,22 @@ index.gaps ??= [];
 index.months ??= {};
 
 let lastSave = Date.now();
-async function save() {
-  Object.assign(index.months, await store.flush());
-  index.updatedAt = new Date().toISOString();
-  await writeIndex(OUT, index);
+// All sources share one store; saves are chained so two sources finishing a
+// page in the same moment can never write the same .tmp file at once.
+let saveChain = Promise.resolve();
+function save() {
   lastSave = Date.now();
+  const run = saveChain.then(async () => {
+    Object.assign(index.months, await store.flush());
+    index.updatedAt = new Date().toISOString();
+    await writeIndex(OUT, index);
+    lastSave = Date.now();
+  });
+  saveChain = run.catch(() => {});
+  return run;
+}
+async function periodicSave() {
+  try { await save(); } catch (e) { log(`[sa-history] WARNING: periodic save failed (${e.message}); will retry.`); }
 }
 
 const listUrl = (src, after, skip, before) =>
@@ -170,7 +181,7 @@ async function runSource(name, src, c, endIso, onPage = () => {}) {
       if (last === c.after) c.skip += acts.length; else { c.after = last; c.skip = atLast; }
     }
     onPage(added);
-    if (Date.now() - lastSave > SAVE_EVERY_MS) await save();
+    if (Date.now() - lastSave > SAVE_EVERY_MS) await periodicSave();
     if (acts.length < PAGE) return true;
   }
 }

@@ -265,7 +265,10 @@ export class MonthStore {
   async flush() {
     const out = {};
     await fs.mkdir(path.join(this.dir, 'events'), { recursive: true });
-    for (const m of [...this.dirty].sort()) {
+    const todo = [...this.dirty].sort();
+    this.dirty.clear(); // rows added while writing stay dirty for the next flush
+    try {
+    for (const m of todo) {
       const e = this.months.get(m);
       e.rows.sort((a, b) => a[1] - b[1] || (a[3] < b[3] ? -1 : a[3] > b[3] ? 1 : 0) || (a[4] < b[4] ? -1 : 1));
       const buf = Buffer.from(JSON.stringify({ version: 1, month: m, count: e.rows.length, rows: e.rows }));
@@ -274,7 +277,7 @@ export class MonthStore {
       await fs.rename(`${p}.tmp`, p);
       out[m] = { count: e.rows.length, bytes: buf.length, sha256: sha256(buf) };
     }
-    this.dirty.clear();
+    } catch (err) { for (const m of todo) if (!out[m]) this.dirty.add(m); throw err; }
     return out;
   }
 }
