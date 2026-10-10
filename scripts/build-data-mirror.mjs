@@ -318,14 +318,16 @@ async function main() {
   log(`retro scans: ${rDown} downloaded, ${rSkip} skipped, ${rFail} failed`);
   if (rFail) console.error(`WARNING: ${rFail} retro scans failed to download.`);
 
-  // Pack artwork (copy bundled assets)
+  // Pack artwork (copy bundled assets under clean names + legacy aliases)
   log(`copying ${PACK_ASSETS.length} pack images…`);
-  for (const name of PACK_ASSETS) {
+  for (const { src: name, names } of PACK_ASSETS) {
     const src = path.join(ROOT, 'src', 'assets', name);
-    try {
-      await fs.copyFile(src, path.join(OUT, 'packs', name));
-    } catch (e) {
-      console.error(`  ✗ pack ${name}: ${e.message}`);
+    for (const outName of names) {
+      try {
+        await fs.copyFile(src, path.join(OUT, 'packs', outName));
+      } catch (e) {
+        console.error(`  ✗ pack ${outName}: ${e.message}`);
+      }
     }
   }
 
