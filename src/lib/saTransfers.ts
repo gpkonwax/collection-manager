@@ -1,11 +1,11 @@
 /**
  * SimpleAssets ownership history.
  *  - Saved: manifests/sa-transfers.json, recorded twice daily from tracking start
- *    (records ZIP first, then data mirror).
+ *    Legacy fallback until the sa-history branch is published (records ZIP, then raw GitHub).
  *  - Live: the transfer that delivered a card to its current owner, read from the
  *    full-history node (pruned nodes would wrongly report "none").
  */
-import { getDataMirrorBases } from './dataMirror';
+import { GITHUB_RAW_MIRROR_URL } from './dataMirror';
 import { getLoadedRecords } from './recordsZip';
 import { isOfflineBundle } from './offlineBundle';
 
@@ -32,7 +32,7 @@ export function parseSavedRow(raw: unknown): SaTransfer | null {
 let mirrorStore: Promise<SaTransferStore | null> | null = null;
 async function fetchMirrorStore(): Promise<SaTransferStore | null> {
   if (isOfflineBundle()) return null;
-  for (const base of getDataMirrorBases()) {
+  for (const base of [GITHUB_RAW_MIRROR_URL]) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {

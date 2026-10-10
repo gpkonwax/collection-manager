@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
 import { WAX_EXPLORER } from '@/lib/waxConfig';
+import { getSaCardHistory, MARKET_NAMES, type SaCardHistory, type SaEvent } from '@/lib/saHistory';
 import { fetchIncomingSaTransfer, getSavedSaTransfers, type IncomingResult, type SaTransfer } from '@/lib/saTransfers';
 
 const fmtDate = (ms: number) =>
@@ -9,7 +10,29 @@ const fmtDate = (ms: number) =>
 
 interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null }
 
-interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[] }
+interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[]; full: SaCardHistory | null }
+
+const KIND_LABEL: Record<SaEvent['kind'], string> = {
+  sale: 'Sold', list: 'Listed', cancel: 'Listing cancelled', refund: 'Refunded', reprice: 'Repriced',
+  transfer: 'Transferred', offer: 'Gift offered', unoffer: 'Gift withdrawn', claim: 'Gift claimed',
+  burn: 'Burned', bridge: 'Bridged to AtomicAssets', unbridge: 'Returned from AtomicAssets',
+};
+
+function EventRow({ e }: { e: SaEvent }) {
+  const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
+  return (
+    <div className="bg-muted/30 rounded px-2 py-1">
+      <div className="flex justify-between gap-2">
+        <span>{fmtDate(e.time)} · <span className="font-semibold">{KIND_LABEL[e.kind]}</span>{e.market && ` · ${MARKET_NAMES[e.market] ?? e.market}`}</span>
+        <span className="flex gap-2">
+          {price && <span className="font-semibold text-cheese">{price}</span>}
+          {e.txid && <a href={`${WAX_EXPLORER}${e.txid}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
+        </span>
+      </div>
+      {(e.from || e.to) && <p className="font-mono break-all">{e.from || '—'}{e.to && ` → ${e.to}`}</p>}
+    </div>
+  );
+}
 
 function TransferRow({ t }: { t: SaTransfer }) {
   return (
@@ -40,9 +63,10 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props)
     setError(false);
     Promise.all([
       getSavedSaTransfers(assetId),
+      getSaCardHistory(assetId).catch((err) => { console.warn('[TradeHistory] full history unavailable:', err); return null; }),
       heldByOpener || !owner ? Promise.resolve(null) : fetchIncomingSaTransfer(assetId, owner),
     ])
-      .then(([saved, incoming]) => { if (!cancelled) setSaHistory({ saved, incoming }); })
+      .then(([saved, full, incoming]) => { if (!cancelled) setSaHistory({ saved, full, incoming }); })
       .catch((err) => { console.warn('[TradeHistory] SimpleAssets lookup failed:', err); if (!cancelled) setError(true); });
     return () => { cancelled = true; };
   }, [open, isAtomic, assetId, owner, heldByOpener, saHistory, attempt]);
@@ -79,7 +103,15 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props)
             {saHistory.incoming?.kind === 'none' && <p className="text-muted-foreground">No transfer to the current owner found — it was likely opened by them.</p>}
             {saHistory.incoming?.kind === 'unknown' && !heldByOpener && <p className="text-muted-foreground">Not found among the current owner's 500 most recent transfers.</p>}
           </div>
-          {saHistory.saved.length > 0 && (
+          {saHistory.full && (
+            <div className="space-y-1">
+              <p className="font-semibold text-cheese">Full on-chain history ({saHistory.full.events.length})</p>
+              {!saHistory.full.complete && <p className="text-muted-foreground">History scan still in progress{saHistory.full.upTo ? ` — covered up to ${fmtDate(Date.parse(saHistory.full.upTo))}` : ''}.</p>}
+              {saHistory.full.events.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
+              {[...saHistory.full.events].reverse().map((e, i) => <EventRow key={`${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />)}
+            </div>
+          )}
+          {!saHistory.full && saHistory.saved.length > 0 && (
             <div className="space-y-1">
               <p className="font-semibold text-cheese">Recorded transfers and trades ({saHistory.saved.length})</p>
               {saHistory.saved.map((t) => <TransferRow key={`${t.txid}-${t.from}-${t.to}`} t={t} />)}
