@@ -385,7 +385,17 @@
     text-shadow: 2px 2px 0 hsl(var(--card) / 0.65);
   }
 
-
+  /* Modals (card details, pack close-ups, backup, transfers, alerts, drawers):
+     soft blue surface with a defined edge so white sections inside still read. */
+  .bright [role="dialog"],
+  .bright [role="alertdialog"] {
+    background-color: hsl(var(--dialog));
+    border-color: hsl(var(--dialog-border));
+    box-shadow:
+      0 0 0 1px hsl(var(--dialog-border) / 0.55),
+      0 24px 60px -16px hsl(var(--dialog-shadow) / 0.4),
+      0 8px 18px -10px hsl(var(--dialog-shadow) / 0.25);
+  }
 }
 
 /* Front-facing pack fan: only in-plane rotation, never a perspective flip. */
