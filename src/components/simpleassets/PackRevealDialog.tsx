@@ -358,7 +358,7 @@ export function PackRevealDialog({
   const expectedCount = EXPECTED_CARDS[packSymbol] ?? 5;
   const boxtype = SYMBOL_TO_BOXTYPE[packSymbol];
 
-  usePackRevealAudio({ open, phase, isShaking, revealedCount });
+  usePackRevealAudio({ open, phase, isShaking, revealedCount, totalCards: newCards.length });
 
   useEffect(() => {
     phaseRef.current = phase;

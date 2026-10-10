@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 import packShakeSrc from '@/assets/pack-shake.mp3';
 import packTearSrc from '@/assets/pack-tear.mp3';
+import packCompleteSrc from '@/assets/pack-reveal-complete.mp3';
 
 interface UsePackRevealAudioOptions {
   open: boolean;
   phase: string;
   isShaking: boolean;
   revealedCount: number;
+  totalCards: number;
 }
 
 function stopAudio(audio: HTMLAudioElement | null) {
@@ -15,10 +17,12 @@ function stopAudio(audio: HTMLAudioElement | null) {
   audio.currentTime = 0;
 }
 
-export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: UsePackRevealAudioOptions) {
+export function usePackRevealAudio({ open, phase, isShaking, revealedCount, totalCards }: UsePackRevealAudioOptions) {
   const shakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const tearAudioRef = useRef<HTMLAudioElement | null>(null);
+  const completeAudioRef = useRef<HTMLAudioElement | null>(null);
   const tearPlayedRef = useRef(false);
+  const completePlayedRef = useRef(false);
   const hasStartedShakingRef = useRef(false);
 
   useEffect(() => {
@@ -31,20 +35,28 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
     tearAudio.loop = false;
     tearAudioRef.current = tearAudio;
 
+    const completeAudio = new Audio(packCompleteSrc);
+    completeAudio.preload = 'auto';
+    completeAudioRef.current = completeAudio;
+
     return () => {
       stopAudio(shakeAudioRef.current);
       stopAudio(tearAudioRef.current);
+      stopAudio(completeAudioRef.current);
       shakeAudioRef.current = null;
       tearAudioRef.current = null;
+      completeAudioRef.current = null;
     };
   }, []);
 
-  // Reset tear-played flag when dialog opens/closes
+  // Reset per-open flags when dialog opens/closes
   useEffect(() => {
     if (!open) {
       stopAudio(shakeAudioRef.current);
       stopAudio(tearAudioRef.current);
+      stopAudio(completeAudioRef.current);
       tearPlayedRef.current = false;
+      completePlayedRef.current = false;
       hasStartedShakingRef.current = false;
     }
   }, [open]);
@@ -78,4 +90,18 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount }: Us
       tearAudio.play().catch(() => {});
     }
   }, [open, phase, isShaking, revealedCount]);
+
+  // Play the celebration sound once per opening, when the final card is revealed.
+  useEffect(() => {
+    const completeAudio = completeAudioRef.current;
+    if (!completeAudio) return;
+    if (completePlayedRef.current) return;
+
+    const allRevealed = open && phase === 'revealing' && totalCards > 0 && revealedCount >= totalCards;
+    if (allRevealed) {
+      completePlayedRef.current = true;
+      completeAudio.currentTime = 0;
+      completeAudio.play().catch(() => {});
+    }
+  }, [open, phase, revealedCount, totalCards]);
 }

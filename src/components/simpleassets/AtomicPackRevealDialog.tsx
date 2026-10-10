@@ -228,7 +228,7 @@ export function AtomicPackRevealDialog({
   const pollStartRef = useRef<number>(0);
   const revealMatchersRef = useRef<RevealMatcher[]>([]);
 
-  usePackRevealAudio({ open, phase, isShaking, revealedCount });
+  usePackRevealAudio({ open, phase, isShaking, revealedCount, totalCards: newCards.length });
 
   useEffect(() => {
     if (open) {
