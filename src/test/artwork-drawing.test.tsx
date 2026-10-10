@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { ImageWithModes, type HandwritingCanvasHandle } from '@/components/simpleassets/InteractiveArtwork';
 
 vi.mock('@/components/simpleassets/IpfsMedia', () => ({ IpfsMedia: () => null }));
@@ -21,6 +21,8 @@ function setup() {
   const { container } = render(<ImageWithModes url="/test.png" alt="Card" isLandscape={false} mode="draw" canvasRegister={(_, h) => { handle = h; }} />);
   const canvas = container.querySelector('canvas');
   if (!canvas) throw new Error('Drawing canvas missing');
+  canvas.width = 300;
+  canvas.height = 150;
   // Ignore the initial resize, which legitimately replays saved artwork.
   vi.clearAllMocks();
   return { canvas, getHandle: () => handle };
@@ -45,7 +47,7 @@ describe('live artwork ink', () => {
     const { canvas, getHandle } = setup();
     const handle = getHandle();
     if (!handle) throw new Error('Drawing handle missing');
-    handle.placeText('Friend', 'Caveat', 38, 'blue');
+    act(() => handle.placeText('Friend', 'Caveat', 38, 'blue'));
     fireEvent.pointerDown(canvas, { clientX: 10, clientY: 10, button: 0 });
     fireEvent.pointerDown(canvas, { clientX: 20, clientY: 20, button: 0 });
     fireEvent.pointerMove(canvas, { clientX: 50, clientY: 30 });
