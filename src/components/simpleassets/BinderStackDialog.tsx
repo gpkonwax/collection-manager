@@ -7,12 +7,15 @@ interface BinderStackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectAsset: (asset: SimpleAsset) => void;
+  /** When set (viewing another wallet), each copy gets its own Trade button. */
+  onTradeAsset?: (asset: SimpleAsset) => void;
 }
 
-export function BinderStackDialog({ assets, open, onOpenChange, onSelectAsset }: BinderStackDialogProps) {
+export function BinderStackDialog({ assets, open, onOpenChange, onSelectAsset, onTradeAsset }: BinderStackDialogProps) {
   if (assets.length === 0) return null;
 
   const name = assets[0].name;
+  const tradeMode = Boolean(onTradeAsset);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -20,7 +23,9 @@ export function BinderStackDialog({ assets, open, onOpenChange, onSelectAsset }:
         <DialogHeader>
           <DialogTitle className="text-foreground">{name}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            You own {assets.length} copies — select one to view details.
+            {tradeMode
+              ? `This wallet holds ${assets.length} copies — pick one to propose a trade.`
+              : `You own ${assets.length} copies — select one to view details.`}
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
@@ -30,6 +35,8 @@ export function BinderStackDialog({ assets, open, onOpenChange, onSelectAsset }:
               asset={asset}
               onClick={() => onSelectAsset(asset)}
               draggable={false}
+              isReadOnly={tradeMode}
+              onTradeClick={onTradeAsset}
             />
           ))}
         </div>
