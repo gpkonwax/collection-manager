@@ -494,4 +494,18 @@
 .trade-preview.compact img {
   border-radius: 6px;
 }
+/* The three "Ways to View" cards show a full-width screenshot in place of an icon. */
+.trade-preview.full {
+  width: 100%;
+  padding: 5px;
+  border-radius: 10px;
+  transform: none;
+}
+.trade-preview.full img {
+  border-radius: 6px;
+}
+.trade-preview.full:hover {
+  transform: scale(1.02);
+}
+
 
