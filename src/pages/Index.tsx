@@ -2313,7 +2313,7 @@ export default function SimpleAssetsPage() {
   const renderClassicView = () => (
     <>
       {renderSelectNote()}
-      <div className="flex items-center gap-3 relative z-10 mb-4">
+      <div className="flex flex-wrap items-center gap-3 relative z-10 mb-4">
         <div className="flex items-center gap-3 flex-1">
           <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
           {renderSelectButton()}
