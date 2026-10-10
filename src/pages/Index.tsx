@@ -3113,9 +3113,12 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div className="min-w-0 text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">View Any Wallet</h3>
-                  <p className="text-foreground text-sm theme-bright-text">
-                    Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click. The holders dropdown lists every GPK holder largest-to-smallest.
-                  </p>
+                  <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1">
+                    <li>Browse any WAX account's collection — no login needed.</li>
+                    <li>Full access to their Classic grid, Collector Binder, card details and packs.</li>
+                    <li>Holders dropdown ranks every GPK holder, largest to smallest.</li>
+                    <li>One click returns you to your own collection.</li>
+                  </ul>
                 </div>
               </div>
 
@@ -3130,9 +3133,13 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Card & Pack Trading (P2P)</h3>
-                  <p className="text-foreground text-sm theme-bright-text">
-                    Start from the View Any Wallet section — find the collector you want to trade with, then open the trade composer to propose a card-for-card or pack-for-pack swap. No marketplace, no fees. AtomicAssets uses the official offer system; SimpleAssets uses an eosio.msig multisig swap so both sides execute in one atomic transaction. A green badge on the Trades button counts incoming offers from both protocols; accept, decline, cancel or counter from the Trades dialog.
-                  </p>
+                  <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1 text-left">
+                    <li>Propose card-for-card or pack-for-pack swaps — no marketplace, no fees.</li>
+                    <li>Find a collector via View Any Wallet, then open the trade composer.</li>
+                    <li>AtomicAssets official offers; SimpleAssets atomic multisig swaps.</li>
+                    <li>Accept, decline, cancel or counter from the Trades dialog.</li>
+                    <li>Green badge on the Trades button counts incoming offers and replies.</li>
+                  </ul>
                 </div>
               </div>
 
@@ -3147,9 +3154,11 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Multi-File JSON Import</h3>
-                   <p className="text-foreground text-sm theme-bright-text">
-                     Load all your saved collection layouts, price alerts, puzzle formation, and pack opening history in one easy step. Drop multiple JSON files at once — each lands in the right category automatically, with recent imports cached for instant re-apply.
-                    </p>
+                    <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1 text-left">
+                      <li>Drop multiple JSON files at once — each lands in the right category automatically.</li>
+                      <li>Restores saved layouts, price alerts, puzzle progress and pack history.</li>
+                      <li>Recent imports cached for instant re-apply.</li>
+                    </ul>
                 </div>
               </div>
 
@@ -3171,9 +3180,12 @@ export default function SimpleAssetsPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Opening History & Replay</h3>
-                   <p className="text-foreground text-sm theme-bright-text">
-                     Rebuild every pack you have ever opened straight from the WAX chain — pack type, date, and full contents. Replay any opening through the full reveal and card-deal animation, with the reveal order shuffled each time. Download your history as JSON and load it back any time.
-                   </p>
+                   <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1 text-left">
+                     <li>Rebuilds every pack you've ever opened from the WAX chain — type, date and full contents.</li>
+                     <li>Replay any opening with the full reveal and card-deal animation.</li>
+                     <li>Reveal order shuffles each time for a fresh experience.</li>
+                     <li>Download your history as JSON and load it back any time.</li>
+                   </ul>
                 </div>
               </div>
             </div>
