@@ -2527,7 +2527,9 @@ export default function SimpleAssetsPage() {
 
     const filteredIdSet = new Set(filtered.map(a => a.id));
     const validSlots = savedGridSlots.filter(id => id !== EMPTY);
-    const visibleAssets = validSlots.filter(id => filteredIdSet.has(id));
+    // Stack slots contribute every copy they hold, counted once each.
+    const slotAssetIds = Array.from(new Set(validSlots.flatMap(id => parseSlotIds(id))));
+    const visibleAssets = slotAssetIds.filter(id => filteredIdSet.has(id));
 
     return (
       <>
