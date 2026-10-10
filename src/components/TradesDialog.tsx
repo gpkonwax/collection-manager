@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { ArrowLeftRight, Check, ExternalLink, Loader2, RefreshCw, Reply, Send, Inbox, X } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -12,6 +13,7 @@ import type { AtomicOffer, OfferAsset, OfferPack, TradeProtocol } from '@/lib/at
 import { resolveSaMintsForAssets } from '@/lib/saMintResolver';
 import { packImage } from '@/lib/gpkPackMeta';
 import { cn } from '@/lib/utils';
+import type { TradeReply } from '@/lib/tradeReplies';
 import { CATEGORY_LABELS, getVariantsForCategory, normalizeAssetCategory } from '@/lib/gpkCategories';
 
 type OfferAction = 'accept' | 'decline' | 'cancel' | 'counter';
@@ -33,6 +35,11 @@ interface TradesDialogProps {
   busyAction?: OfferAction | null;
   /** Called when the user clicks the "View Wallet" link in the helper note. */
   onOpenViewWallet?: () => void;
+  /** Replies to offers I sent (accepted / declined / countered). */
+  replies?: TradeReply[];
+  onMarkRepliesSeen?: () => void;
+  onDismissReply?: (id: string) => void;
+  onDismissAllReplies?: () => void;
 }
 
 const BRIDGED_SCHEMAS = new Set(['series1', 'series2', 'exotic']);
@@ -336,6 +343,83 @@ function OfferCard({
   );
 }
 
+const OUTCOME_STYLE: Record<TradeReply['outcome'], { label: string; cls: string }> = {
+  accepted:  { label: 'Accepted',  cls: 'border-emerald-500/60 bg-emerald-500/10 text-emerald-500' },
+  countered: { label: 'Countered', cls: 'border-cheese/60 bg-cheese/10 text-cheese' },
+  declined:  { label: 'Declined',  cls: 'border-destructive/60 bg-destructive/10 text-destructive' },
+};
+
+function replyMessage(r: TradeReply): string {
+  if (r.outcome === 'accepted') {
+    return `${r.counterparty} accepted your trade. You received ${r.receivedCount} item${r.receivedCount === 1 ? '' : 's'}.`;
+  }
+  if (r.outcome === 'countered') return `${r.counterparty} countered your offer.`;
+  return `${r.counterparty} declined your trade.`;
+}
+
+function RepliesPanel({ replies, newIds, onDismiss, onDismissAll, onViewCounter, mintMap }: {
+  replies: TradeReply[];
+  newIds: Set<string>;
+  onDismiss?: (id: string) => void;
+  onDismissAll?: () => void;
+  onViewCounter: (offerId: string) => void;
+  mintMap: Map<string, number>;
+}) {
+  return (
+    <div className="rounded-lg border border-cheese/40 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold text-cheese theme-bright-text">
+          Replies to your offers ({replies.length})
+        </div>
+        {onDismissAll && (
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onDismissAll}>
+            Dismiss all
+          </Button>
+        )}
+      </div>
+      <ScrollArea className="max-h-[30vh]">
+        <div className="space-y-2 pr-3">
+          {replies.map((r) => {
+            const style = OUTCOME_STYLE[r.outcome];
+            return (
+              <div key={r.id} className={cn('rounded-md border p-2 space-y-1.5', style.cls)}>
+                <div className="flex items-start gap-2">
+                  <Badge variant="outline" className={cn('shrink-0', style.cls)}>{style.label}</Badge>
+                  <Badge variant="outline" className="shrink-0 text-[10px]">
+                    {r.protocol === 'simpleassets' ? 'SimpleAssets' : 'AtomicAssets'}
+                  </Badge>
+                  {newIds.has(r.id) && <Badge className="shrink-0 bg-green-500 text-[10px]">NEW</Badge>}
+                  <p className="flex-1 text-sm text-foreground theme-bright-text">{replyMessage(r)}</p>
+                  {onDismiss && (
+                    <button
+                      type="button"
+                      aria-label="Dismiss reply"
+                      onClick={() => onDismiss(r.id)}
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="text-[11px] text-muted-foreground theme-bright-text-muted">
+                  {new Date(r.repliedAt).toLocaleString()}
+                </div>
+                <AssetRow label="You offered" assets={r.sent} packs={r.sentPacks} protocol={r.protocol} mintMap={mintMap} />
+                {r.outcome === 'countered' && r.counterOfferId && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onViewCounter(r.counterOfferId!)}>
+                    <Reply className="h-3.5 w-3.5 mr-1" />
+                    View counter-offer
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
 function EmptyState({ label, icon }: { label: string; icon: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground theme-bright-text-muted">
@@ -351,7 +435,31 @@ export function TradesDialog({
   onRefresh, onMarkAllRead,
   onOfferAction, busyOfferId, busyAction,
   onOpenViewWallet,
+  replies = [], onMarkRepliesSeen, onDismissReply, onDismissAllReplies,
 }: TradesDialogProps) {
+  const [newReplyIds, setNewReplyIds] = useState<Set<string>>(new Set());
+  const repliesRef = useRef(replies);
+  repliesRef.current = replies;
+  // Snapshot which replies are new at open (so NEW stays visible), then mark seen.
+  useEffect(() => {
+    if (!open) return;
+    setNewReplyIds(new Set(repliesRef.current.filter((r) => !r.seen).map((r) => r.id)));
+    onMarkRepliesSeen?.();
+  }, [open, onMarkRepliesSeen]);
+  // Replies arriving while the dialog is open are seen immediately.
+  useEffect(() => {
+    if (!open || !replies.some((r) => !r.seen)) return;
+    setNewReplyIds((prev) => new Set([...prev, ...replies.filter((r) => !r.seen).map((r) => r.id)]));
+    onMarkRepliesSeen?.();
+  }, [open, replies, onMarkRepliesSeen]);
+  const viewCounter = (offerId: string) => {
+    setTab('incoming');
+    setTimeout(() => {
+      const el = document.getElementById(`trade-offer-${offerId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      else toast.info('The counter-offer will appear under Received once it has loaded.');
+    }, 80);
+  };
   const [tab, setTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [lastSeenAtOpen, setLastSeenAtOpen] = useState<number>(0);
   const [mintMap, setMintMap] = useState<Map<string, number>>(new Map());
@@ -459,6 +567,17 @@ export function TradesDialog({
           )}
         </div>
 
+        {replies.length > 0 && (
+          <RepliesPanel
+            replies={replies}
+            newIds={newReplyIds}
+            onDismiss={onDismissReply}
+            onDismissAll={onDismissAllReplies}
+            onViewCounter={viewCounter}
+            mintMap={mintMap}
+          />
+        )}
+
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid grid-cols-2">
             <TabsTrigger value="incoming" className="gap-2">
@@ -483,8 +602,8 @@ export function TradesDialog({
               ) : (
                 <div className="space-y-3">
                   {incomingSorted.map((o) => (
+                    <div key={o.offer_id} id={`trade-offer-${o.offer_id}`}>
                     <OfferCard
-                      key={o.offer_id}
                       offer={o}
                       direction="incoming"
                       isNew={!o.created_at_time || o.created_at_time > lastSeenAtOpen}
@@ -492,6 +611,7 @@ export function TradesDialog({
                       busyAction={busyOfferId === o.offer_id ? busyAction ?? null : null}
                       mintMap={mintMap}
                     />
+                    </div>
                   ))}
                 </div>
               )}
