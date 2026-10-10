@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import packShakeSrc from '@/assets/pack-shake.mp3';
 import packTearSrc from '@/assets/pack-tear.mp3';
 import packCompleteSrc from '@/assets/pack-reveal-complete.mp3';
+import { YAY_VOLUME } from '@/lib/packYay';
 
 interface UsePackRevealAudioOptions {
   open: boolean;
@@ -37,6 +38,7 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount, tota
 
     const completeAudio = new Audio(packCompleteSrc);
     completeAudio.preload = 'auto';
+    completeAudio.volume = YAY_VOLUME;
     completeAudioRef.current = completeAudio;
 
     return () => {
