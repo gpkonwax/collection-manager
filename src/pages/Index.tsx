@@ -105,6 +105,7 @@ import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 import { compareNaturalCards, compareByOriginalMint } from '@/lib/cardGridSort';
+import { parseSlotIds, encodeStackSlot, areDuplicateCards, mergeStackIds } from '@/lib/savedLayoutStacks';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
@@ -1612,7 +1613,12 @@ export default function SimpleAssetsPage() {
 
   const savedGridSlots = useMemo(() => {
     if (savedOrder === null) return [];
-    const occupied = new Set(savedOrder.filter((id) => id !== EMPTY));
+    // Stack slots hold several comma-joined asset IDs; every member occupies a copy.
+    const occupied = new Set<string>();
+    for (const slot of savedOrder) {
+      if (slot === EMPTY) continue;
+      for (const id of parseSlotIds(slot)) occupied.add(id);
+    }
     const pendingSlots = dealingCards.map((card) => card.id).filter((id) => !occupied.has(id));
     return [...savedOrder, ...pendingSlots];
   }, [savedOrder, dealingCards]);
@@ -1980,16 +1986,53 @@ export default function SimpleAssetsPage() {
 
   const handleDragStart = useCallback((idx: number) => (_e: DragEvent<HTMLDivElement>) => { dragSourceIdx.current = idx; }, []);
   const handleDragOver = useCallback((idx: number) => (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOverIdx(idx); }, []);
-  const handleDrop = useCallback((targetIdx: number) => (_e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((targetIdx: number) => (e: DragEvent<HTMLDivElement>) => {
     const srcIdx = dragSourceIdx.current; dragSourceIdx.current = null; setDragOverIdx(null);
     if (srcIdx === null || srcIdx === targetIdx || savedOrder === null) return;
     const padded = [...savedOrder];
     const maxIdx = Math.max(srcIdx, targetIdx);
     while (padded.length <= maxIdx) padded.push(EMPTY);
+    const pad = (i: number) => (i < padded.length ? padded[i] : EMPTY);
+    const srcSlot = pad(srcIdx), tgtSlot = pad(targetIdx);
+    // Only when both slots hold cards that are duplicates of each other, ask
+    // whether to stack the copies or swap their positions. Everything else
+    // keeps the plain swap.
+    if (srcSlot !== EMPTY && tgtSlot !== EMPTY) {
+      const resolveAsset = (slot: string): SimpleAsset | undefined => {
+        for (const id of parseSlotIds(slot)) { const a = allAssetMap.get(id); if (a) return a; }
+        return undefined;
+      };
+      const srcCard = resolveAsset(srcSlot), tgtCard = resolveAsset(tgtSlot);
+      if (srcCard && tgtCard && areDuplicateCards(srcCard, tgtCard)) {
+        setStackSwapAsk({ srcIdx, targetIdx, x: e.clientX, y: e.clientY });
+        return;
+      }
+    }
     const newOrder = [...padded]; const tmp = newOrder[srcIdx]; newOrder[srcIdx] = newOrder[targetIdx]; newOrder[targetIdx] = tmp;
     setSavedOrder(newOrder);
-  }, [savedOrder]);
+  }, [savedOrder, allAssetMap]);
   const handleDragEnd = useCallback(() => { dragSourceIdx.current = null; setDragOverIdx(null); }, []);
+
+  // Duplicate drop prompt: stack the copies into one slot (like the binder) or
+  // swap the two positions. Null while no duplicate drop is pending.
+  const [stackSwapAsk, setStackSwapAsk] = useState<{ srcIdx: number; targetIdx: number; x: number; y: number } | null>(null);
+  const applyStackOrSwap = useCallback((mode: 'stack' | 'swap') => {
+    const ask = stackSwapAsk;
+    setStackSwapAsk(null);
+    if (!ask || savedOrder === null) return;
+    const padded = [...savedOrder];
+    const maxIdx = Math.max(ask.srcIdx, ask.targetIdx);
+    while (padded.length <= maxIdx) padded.push(EMPTY);
+    if (mode === 'swap') {
+      const tmp = padded[ask.srcIdx]; padded[ask.srcIdx] = padded[ask.targetIdx]; padded[ask.targetIdx] = tmp;
+    } else {
+      const srcIds = parseSlotIds(padded[ask.srcIdx]);
+      const tgtIds = parseSlotIds(padded[ask.targetIdx]);
+      padded[ask.targetIdx] = encodeStackSlot(mergeStackIds(tgtIds, srcIds, (id) => allAssetMap.get(id)));
+      padded[ask.srcIdx] = EMPTY;
+    }
+    setSavedOrder(padded);
+  }, [stackSwapAsk, savedOrder, allAssetMap]);
 
   const handleSnapshotToSaved = useCallback(() => {
     const ids = filtered.map(a => a.id);
@@ -2484,7 +2527,9 @@ export default function SimpleAssetsPage() {
 
     const filteredIdSet = new Set(filtered.map(a => a.id));
     const validSlots = savedGridSlots.filter(id => id !== EMPTY);
-    const visibleAssets = validSlots.filter(id => filteredIdSet.has(id));
+    // Stack slots contribute every copy they hold, counted once each.
+    const slotAssetIds = Array.from(new Set(validSlots.flatMap(id => parseSlotIds(id))));
+    const visibleAssets = slotAssetIds.filter(id => filteredIdSet.has(id));
 
     return (
       <>
@@ -2493,7 +2538,7 @@ export default function SimpleAssetsPage() {
           <div className="flex items-center gap-3 flex-1">
             <p className="text-sm text-muted-foreground">{visibleAssets.length} card{visibleAssets.length !== 1 ? 's' : ''} in saved layout</p>
             {renderSelectButton()}
-            {selectionMode && renderSelectAllCheckbox(validSlots.filter(id => allAssetMap.has(id)))}
+            {selectionMode && renderSelectAllCheckbox(slotAssetIds.filter(id => allAssetMap.has(id)))}
           </div>
           <div className="flex-shrink-0">
             {renderCompletionBar()}
@@ -2554,18 +2599,34 @@ export default function SimpleAssetsPage() {
           {savedGridSlots.slice(0, visibleCount).map((slotId, idx) => {
             if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
 
-            const asset = allAssetMap.get(slotId);
-            if (!asset || !filteredIdSet.has(asset.id)) return (
+            const slotIds = parseSlotIds(slotId);
+            const slotAssets = slotIds.map(id => allAssetMap.get(id)).filter((a): a is SimpleAsset => !!a);
+            // A stacked slot shows its copies passing the current filters; if none do, it reads as missing.
+            const visibleStack = slotAssets.filter(a => filteredIdSet.has(a.id));
+            if (visibleStack.length === 0) return (
               <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
                 <span className="text-xs text-muted-foreground">Missing</span>
               </div>
             );
 
+            const asset = visibleStack[0];
+            const stackCount = visibleStack.length;
+            const handleSlotClick = () => {
+              if (stackCount > 1) {
+                setStackedAssets([...visibleStack].sort(compareByOriginalMint));
+                setStackTradeMode(false);
+                setStackDialogOpen(true);
+              } else {
+                setSelectedAsset(asset);
+              }
+            };
+
             return (
               <SimpleAssetCard
                 key={asset.id}
                 asset={asset}
-                onClick={() => setSelectedAsset(asset)}
+                stackCount={stackCount}
+                onClick={handleSlotClick}
                 draggable={!selectionMode && !isViewing}
                 selectionMode={selectionMode}
                 selected={selectedIds.has(asset.id)}
@@ -3788,6 +3849,29 @@ export default function SimpleAssetsPage() {
       )}
 
       <SimpleAssetDetailDialog retro={retroActive} asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} onViewAccount={handleViewAccountFromDetail} />
+      {stackSwapAsk && (
+        <div className="fixed inset-0 z-[80]" onMouseDown={() => setStackSwapAsk(null)}>
+          <div
+            className="absolute bg-popover text-popover-foreground border border-border rounded-lg shadow-xl p-3 w-60"
+            style={{
+              left: Math.min(Math.max(8, stackSwapAsk.x - 120), (typeof window !== 'undefined' ? window.innerWidth : 1280) - 248),
+              top: Math.min(stackSwapAsk.y + 10, (typeof window !== 'undefined' ? window.innerHeight : 900) - 130),
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-semibold flex items-center gap-1.5"><Layers className="h-3.5 w-3.5 text-cheese" />Duplicate cards</p>
+            <p className="text-xs text-muted-foreground mt-1">Stack these copies together, or swap their positions?</p>
+            <div className="flex gap-2 mt-2.5">
+              <Button size="sm" className="h-7 px-3 text-xs" onClick={() => applyStackOrSwap('stack')}>
+                <Layers className="h-3.5 w-3.5 mr-1" />Stack
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 px-3 text-xs" onClick={() => applyStackOrSwap('swap')}>
+                <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />Swap
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <BinderStackDialog
         assets={stackedAssets ?? []}
         open={stackDialogOpen}
