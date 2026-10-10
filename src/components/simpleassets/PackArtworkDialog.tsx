@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArtworkModeControls, DRAW_COLORS, ImageWithModes } from './InteractiveArtwork';
-import type { ViewMode } from './InteractiveArtwork';
+import type { HandwritingCanvasHandle, ViewMode } from './InteractiveArtwork';
 import { Button } from '@/components/ui/button';
 import { extractIpfsHash } from '@/lib/ipfsGateways';
 import { PACK_ART_SOURCES } from '@/lib/gpkPackMeta';
@@ -26,6 +26,8 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
   const [color, setColor] = useState(DRAW_COLORS[0].value);
   const [showRawJson, setShowRawJson] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasHandleRef = useRef<HandwritingCanvasHandle | null>(null);
+  const [activeCanvas, setActiveCanvas] = useState<HandwritingCanvasHandle | null>(null);
   const originalUrl = source === 'simpleassets' && symbol ? PACK_ART_SOURCES[symbol] : undefined;
   const reference = source === 'atomicassets' ? imageReference || image : undefined;
   const ipfsPath = reference ? extractIpfsHash(reference) : null;
@@ -40,13 +42,11 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
   }, [open, image]);
 
   useEffect(() => {
-    if (canvasRef.current) (canvasRef.current as HTMLCanvasElement & { __setColor?: (value: string) => void }).__setColor?.(color);
+    canvasHandleRef.current?.setColor(color);
   }, [color, mode]);
 
   const clear = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvasHandleRef.current?.clear();
   };
 
   return (
@@ -59,13 +59,15 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
         <div className="w-full max-w-[400px] mx-auto" style={{ width: 'min(100%, 65dvh)' }}>
           {image && image !== '/placeholder.svg' ? (
             <ImageWithModes key={image + String(open)} url={image} alt={name} isLandscape={false} mode={mode}
-              canvasRegister={canvas => {
+              canvasRegister={(canvas, handle) => {
                 canvasRef.current = canvas;
-                if (canvas) (canvas as HTMLCanvasElement & { __setColor?: (value: string) => void }).__setColor?.(color);
+                canvasHandleRef.current = handle ?? null;
+                setActiveCanvas(handle ?? null);
+                handle?.setColor(color);
               }} />
           ) : <div className="aspect-[3/4] bg-muted/30 flex items-center justify-center text-muted-foreground">Artwork unavailable</div>}
         </div>
-        <ArtworkModeControls mode={mode} onModeChange={setMode} color={color} onColorChange={setColor} onClear={clear} subject="pack" />
+        <ArtworkModeControls mode={mode} onModeChange={setMode} color={color} onColorChange={setColor} onClear={clear} activeCanvas={activeCanvas} subject="pack" />
         <div className="border-t border-border pt-3 space-y-2 text-xs">
           <div className="flex flex-wrap gap-x-2 gap-y-1 text-muted-foreground">
             <span>{source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}</span>

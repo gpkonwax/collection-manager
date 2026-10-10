@@ -7,6 +7,12 @@
   src: url('./assets/fonts/archivo-black-latin.woff2') format('woff2');
   font-display: swap;
 }
+@font-face { font-family: 'Caveat'; src: url('./assets/fonts/caveat.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Patrick Hand'; src: url('./assets/fonts/patrick-hand.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Kalam'; src: url('./assets/fonts/kalam.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Permanent Marker'; src: url('./assets/fonts/permanent-marker.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Schoolbell'; src: url('./assets/fonts/schoolbell.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Reenie Beanie'; src: url('./assets/fonts/reenie-beanie.ttf') format('truetype'); font-display: swap; }
 
 /* Bright-mode artwork is local so the offline copy has the same backdrop. */
 
