@@ -1986,16 +1986,53 @@ export default function SimpleAssetsPage() {
 
   const handleDragStart = useCallback((idx: number) => (_e: DragEvent<HTMLDivElement>) => { dragSourceIdx.current = idx; }, []);
   const handleDragOver = useCallback((idx: number) => (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOverIdx(idx); }, []);
-  const handleDrop = useCallback((targetIdx: number) => (_e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((targetIdx: number) => (e: DragEvent<HTMLDivElement>) => {
     const srcIdx = dragSourceIdx.current; dragSourceIdx.current = null; setDragOverIdx(null);
     if (srcIdx === null || srcIdx === targetIdx || savedOrder === null) return;
     const padded = [...savedOrder];
     const maxIdx = Math.max(srcIdx, targetIdx);
     while (padded.length <= maxIdx) padded.push(EMPTY);
+    const pad = (i: number) => (i < padded.length ? padded[i] : EMPTY);
+    const srcSlot = pad(srcIdx), tgtSlot = pad(targetIdx);
+    // Only when both slots hold cards that are duplicates of each other, ask
+    // whether to stack the copies or swap their positions. Everything else
+    // keeps the plain swap.
+    if (srcSlot !== EMPTY && tgtSlot !== EMPTY) {
+      const resolveAsset = (slot: string): SimpleAsset | undefined => {
+        for (const id of parseSlotIds(slot)) { const a = allAssetMap.get(id); if (a) return a; }
+        return undefined;
+      };
+      const srcCard = resolveAsset(srcSlot), tgtCard = resolveAsset(tgtSlot);
+      if (srcCard && tgtCard && areDuplicateCards(srcCard, tgtCard)) {
+        setStackSwapAsk({ srcIdx, targetIdx, x: e.clientX, y: e.clientY });
+        return;
+      }
+    }
     const newOrder = [...padded]; const tmp = newOrder[srcIdx]; newOrder[srcIdx] = newOrder[targetIdx]; newOrder[targetIdx] = tmp;
     setSavedOrder(newOrder);
-  }, [savedOrder]);
+  }, [savedOrder, allAssetMap]);
   const handleDragEnd = useCallback(() => { dragSourceIdx.current = null; setDragOverIdx(null); }, []);
+
+  // Duplicate drop prompt: stack the copies into one slot (like the binder) or
+  // swap the two positions. Null while no duplicate drop is pending.
+  const [stackSwapAsk, setStackSwapAsk] = useState<{ srcIdx: number; targetIdx: number; x: number; y: number } | null>(null);
+  const applyStackOrSwap = useCallback((mode: 'stack' | 'swap') => {
+    const ask = stackSwapAsk;
+    setStackSwapAsk(null);
+    if (!ask || savedOrder === null) return;
+    const padded = [...savedOrder];
+    const maxIdx = Math.max(ask.srcIdx, ask.targetIdx);
+    while (padded.length <= maxIdx) padded.push(EMPTY);
+    if (mode === 'swap') {
+      const tmp = padded[ask.srcIdx]; padded[ask.srcIdx] = padded[ask.targetIdx]; padded[ask.targetIdx] = tmp;
+    } else {
+      const srcIds = parseSlotIds(padded[ask.srcIdx]);
+      const tgtIds = parseSlotIds(padded[ask.targetIdx]);
+      padded[ask.targetIdx] = encodeStackSlot(mergeStackIds(tgtIds, srcIds, (id) => allAssetMap.get(id)));
+      padded[ask.srcIdx] = EMPTY;
+    }
+    setSavedOrder(padded);
+  }, [stackSwapAsk, savedOrder, allAssetMap]);
 
   const handleSnapshotToSaved = useCallback(() => {
     const ids = filtered.map(a => a.id);
