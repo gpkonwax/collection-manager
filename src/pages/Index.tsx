@@ -3155,8 +3155,19 @@ export default function SimpleAssetsPage() {
 
               {/* Pack Opening History & Replay */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
-                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">🕰️</span>
+                <div className="trade-preview flex-shrink-0">
+                  <img
+                    src={packHistoryPreview}
+                    alt="The pack history grid: one tile per pack type with pack artwork, how many times it was opened and the last opening date"
+                    className="block w-full h-auto"
+                  />
+                </div>
+                <div className="trade-preview tilt-right flex-shrink-0">
+                  <img
+                    src={packReplayPreview}
+                    alt="A single pack's opening list with the date, card count and a yellow Replay button on each entry"
+                    className="block w-full h-auto"
+                  />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Opening History & Replay</h3>
