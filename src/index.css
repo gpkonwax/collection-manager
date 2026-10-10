@@ -466,6 +466,10 @@
   box-shadow: 0 10px 22px -14px rgb(0 0 0 / 0.6);
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
+/* Second screenshot in a stack tilts the other way; hover still straightens both. */
+.trade-preview.tilt-right {
+  transform: rotate(1.2deg);
+}
 .trade-preview img {
   display: block;
   width: 100%;
