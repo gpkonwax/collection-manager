@@ -2676,7 +2676,7 @@ export default function SimpleAssetsPage() {
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50 theme-bright-header">
         <div className="container flex flex-col">
           {/* Line 1: backup/recovery (left) + status/theme/account (right) */}
-          <div className="flex h-12 items-center justify-center gap-2 flex-wrap">
+          <div className="flex min-h-12 py-1 items-center justify-center gap-2 flex-wrap">
             {/* Left: offline backup trigger + recovery buttons */}
             <div className="flex items-center gap-2">
               <BackupPanel />
