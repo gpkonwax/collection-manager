@@ -83,7 +83,7 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
               </>
             ) : originalUrl ? (
               <>
-                <p className="text-foreground">Courtesy of geepeekay.com · locally bundled copy, not IPFS</p>
+                <p className="text-foreground">Official Topps pack render · locally bundled from IPFS</p>
                 <p className="text-muted-foreground break-all">{originalUrl}</p>
               </>
             ) : (
