@@ -427,3 +427,19 @@
   z-index: 999998 !important;
 }
 
+/* The login page's "View Any Wallet" card shows the real panel as a pinned screenshot. */
+.view-wallet-preview {
+  width: 158px;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--cheese) / 0.35);
+  background-color: #1d1813;
+  overflow: hidden;
+  transform: rotate(-1.6deg);
+  box-shadow: 0 12px 26px -14px rgb(0 0 0 / 0.8);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.view-wallet-preview:hover {
+  transform: rotate(0deg) scale(1.05);
+  box-shadow: 0 18px 34px -14px rgb(0 0 0 / 0.9);
+}
+
