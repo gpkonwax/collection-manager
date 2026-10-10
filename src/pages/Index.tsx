@@ -2538,7 +2538,7 @@ export default function SimpleAssetsPage() {
           <div className="flex items-center gap-3 flex-1">
             <p className="text-sm text-muted-foreground">{visibleAssets.length} card{visibleAssets.length !== 1 ? 's' : ''} in saved layout</p>
             {renderSelectButton()}
-            {selectionMode && renderSelectAllCheckbox(validSlots.filter(id => allAssetMap.has(id)))}
+            {selectionMode && renderSelectAllCheckbox(slotAssetIds.filter(id => allAssetMap.has(id)))}
           </div>
           <div className="flex-shrink-0">
             {renderCompletionBar()}
