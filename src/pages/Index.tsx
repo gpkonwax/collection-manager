@@ -82,6 +82,7 @@ import { BackupPanel } from '@/components/BackupPanel';
 import { BackupNudgeBanner } from '@/components/BackupNudgeBanner';
 import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
 import { TradesDialog } from '@/components/TradesDialog';
+import { useTradeReplies } from '@/hooks/useTradeReplies';
 import { TradeComposerDialog } from '@/components/TradeComposerDialog';
 import { useAtomicOffers } from '@/hooks/useAtomicOffers';
 import { useSaOffers } from '@/hooks/useSaOffers';
@@ -428,6 +429,7 @@ export default function SimpleAssetsPage() {
     removeOfferLocally: removeTradeOfferLocally,
     refreshWithRetries: refreshTradesWithRetries,
     markAllRead: markTradesRead,
+    lastFetchedAt: aaTradesFetchedAt,
 
   } = useAtomicOffers(tradesAccount);
   const {
@@ -440,10 +442,11 @@ export default function SimpleAssetsPage() {
     refreshWithRetries: refreshSaTradesWithRetries,
     incomingUnreadCount: saUnread,
     markAllRead: markSaTradesRead,
+    lastFetchedAt: saTradesFetchedAt,
   } = useSaOffers(tradesAccount);
 
   // One badge across both protocols.
-  const tradesUnread = aaUnread + saUnread;
+  const incomingUnread = aaUnread + saUnread;
   const markAllTradesRead = useCallback(() => {
     markTradesRead();
     markSaTradesRead();
@@ -456,6 +459,28 @@ export default function SimpleAssetsPage() {
   const mergedOutgoing = useMemo(
     () => [...tradesOutgoing, ...saOutgoing].sort((a, b) => b.created_at_time - a.created_at_time),
     [tradesOutgoing, saOutgoing]);
+  // Replies (accepted / declined / countered) to offers I sent.
+  const {
+    replies: tradeReplies,
+    unreadReplyCount,
+    markRepliesSeen,
+    dismissReply,
+    dismissAllReplies,
+    markSelfResolved,
+  } = useTradeReplies(tradesAccount, {
+    aaOutgoing: tradesOutgoing,
+    aaFetchedAt: aaTradesFetchedAt,
+    saOutgoing,
+    saFetchedAt: saTradesFetchedAt,
+    incoming: mergedIncoming,
+  });
+  const tradesUnread = incomingUnread + unreadReplyCount;
+  const tradesBadgeTitle = (() => {
+    const parts: string[] = [];
+    if (incomingUnread > 0) parts.push(`${incomingUnread} new offer${incomingUnread === 1 ? '' : 's'}`);
+    if (unreadReplyCount > 0) parts.push(`${unreadReplyCount} repl${unreadReplyCount === 1 ? 'y' : 'ies'}`);
+    return parts.length ? parts.join(', ') : 'Trades';
+  })();
   const { pendingUrl: footerPendingUrl, requestNavigation: footerRequestNav, confirm: footerConfirm, cancel: footerCancel } = useExternalLinkWarning();
 
   // Open the Trade Composer from a card in another wallet.
@@ -557,6 +582,7 @@ export default function SimpleAssetsPage() {
       if (actions.length === 0) toast.success('Offer declined');
 
       if (res.success) {
+        if (action === 'cancel') markSelfResolved(offer.offer_id);
         if (isSa && saRef) {
           hideProposalLocally(accountName, saRef.proposer, saRef.name);
           removeSaOfferLocally(offer.offer_id);
@@ -569,7 +595,7 @@ export default function SimpleAssetsPage() {
       setTradeBusyOfferId(null);
       setTradeBusyAction(null);
     }
-  }, [accountName, session, executeTransaction, refreshTrades, refreshSaTrades, removeSaOfferLocally]);
+  }, [accountName, session, executeTransaction, refreshTrades, refreshSaTrades, removeSaOfferLocally, markSelfResolved]);
 
 
   // Pack selection (separate from cards): token packs by quantity, AA packs by asset ID.
@@ -2698,7 +2724,7 @@ export default function SimpleAssetsPage() {
                     size="sm"
                     className={`relative ${HEADER_BTN_CLASS}`}
                     onClick={() => setShowTradesDialog(true)}
-                    title={tradesUnread > 0 ? `${tradesUnread} new incoming trade offer${tradesUnread === 1 ? '' : 's'}` : 'Trades'}
+                    title={tradesBadgeTitle}
                   >
                     <ArrowLeftRight className="h-4 w-4 mr-1.5" />
                     Trades
@@ -2758,6 +2784,10 @@ export default function SimpleAssetsPage() {
         error={tradesError || saTradesError}
         onRefresh={async () => { await Promise.all([refreshTrades(), refreshSaTrades()]); }}
         onMarkAllRead={markAllTradesRead}
+        replies={tradeReplies}
+        onMarkRepliesSeen={markRepliesSeen}
+        onDismissReply={dismissReply}
+        onDismissAllReplies={dismissAllReplies}
         onOfferAction={handleOfferAction}
         busyOfferId={tradeBusyOfferId}
         busyAction={tradeBusyAction}
@@ -2777,6 +2807,8 @@ export default function SimpleAssetsPage() {
         counterProposal={composerCounterProposal}
         counterApproved={composerCounterApproved}
         onSuccess={() => {
+          // My own counter must never show up as a reply to me.
+          if (composerCounterOfferId) markSelfResolved(composerCounterOfferId);
           // Counter-offer declines the original in the same tx: drop it from
           // "Received" right away, then re-poll so the new "Sent" offer shows
           // up as soon as the indexer catches it — no page refresh needed.
