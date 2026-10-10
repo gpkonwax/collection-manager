@@ -3138,7 +3138,7 @@ export default function SimpleAssetsPage() {
 
               {/* Multi-File JSON Import */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
-                <div className="trade-preview flex-shrink-0">
+                <div className="trade-preview compact flex-shrink-0">
                   <img
                     src={jsonImportPreview}
                     alt="The JSON dropdown menu open over the collection grid, with Export favourites highlighted among the import and export options"
@@ -3155,14 +3155,14 @@ export default function SimpleAssetsPage() {
 
               {/* Pack Opening History & Replay */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
-                <div className="trade-preview flex-shrink-0">
+                <div className="trade-preview compact flex-shrink-0">
                   <img
                     src={packHistoryPreview}
                     alt="The pack history grid: one tile per pack type with pack artwork, how many times it was opened and the last opening date"
                     className="block w-full h-auto"
                   />
                 </div>
-                <div className="trade-preview tilt-right flex-shrink-0">
+                <div className="trade-preview tilt-right compact flex-shrink-0">
                   <img
                     src={packReplayPreview}
                     alt="A single pack's opening list with the date, card count and a yellow Replay button on each entry"

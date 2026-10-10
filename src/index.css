@@ -484,4 +484,14 @@
   background-color: hsl(var(--card) / 0.96);
   box-shadow: 0 10px 22px -14px rgb(0 0 0 / 0.35);
 }
+/* The three newest previews (JSON import, pack history, replay list) sit smaller
+   so their cards match the height of the other feature cards. */
+.trade-preview.compact {
+  width: min(100%, 210px);
+  padding: 5px;
+  border-radius: 10px;
+}
+.trade-preview.compact img {
+  border-radius: 6px;
+}
 
