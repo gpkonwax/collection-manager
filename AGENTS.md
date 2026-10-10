@@ -23,4 +23,4 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Native AtomicAssets detail supply comes from template /stats (assets includes burns; circulating = assets minus burned), cached per template; bridged cards retain the SimpleAssets resolver so original and bridged counts never mix.
 - Bridge and transfer window rules live in src/components/simpleassets/AGENTS.md.
 - Pack transfers: token packs via packs.topps::transfer by quantity, AtomicAssets packs via atomicassets::transfer by asset ID; pack and card selections are mutually exclusive (details in src/components/simpleassets/AGENTS.md).
-- Encode saved-layout stacks as comma-joined asset IDs in savedOrder and merge duplicates by card identity (same contract, or sassets_id bridged twins), never by name, so old JSON exports stay readable and cross-collection same-number cards never stack.
+- Encode saved-layout stacks as comma-joined asset IDs in savedOrder; merge duplicates by card identity or sassets_id bridged twins, never by name (keeps old JSON exports readable).
