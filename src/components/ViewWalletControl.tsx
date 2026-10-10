@@ -367,7 +367,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-3 space-y-2">
+      <PopoverContent align="end" className="w-[480px] max-w-[calc(100vw-16px)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto p-3 space-y-2">
         <div>
           <p className="text-sm font-medium text-cheese">View another wallet</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -527,7 +527,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                         setError(null);
                         requestAnimationFrame(() => inputRef.current?.focus());
                       }}
-                      className="text-xs text-foreground truncate text-left"
+                      className="text-xs text-foreground whitespace-nowrap text-left"
                     >
                       {f.account}
                     </button>
@@ -612,12 +612,13 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
 
             {!notPublished && (
             <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
-              <div className="grid grid-cols-[28px_1fr_44px_44px_52px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
+              <div className="grid min-w-[360px] grid-cols-[28px_minmax(12ch,1fr)_44px_44px_52px_24px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
                 <span>#</span>
                 <span>Account</span>
                 <span className="text-right">SA</span>
                 <span className="text-right">AA</span>
                 <span className="text-right">Total</span>
+                <span aria-hidden="true" />
               </div>
               {holders && filtered.length === 0 && !loading && (
                 <div className="px-2 py-3 text-xs text-muted-foreground text-center">
@@ -630,7 +631,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 return (
                   <div
                     key={h.account}
-                    className="grid grid-cols-[28px_1fr_44px_44px_52px_24px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10"
+                    className="grid min-w-[360px] grid-cols-[28px_minmax(12ch,1fr)_44px_44px_52px_24px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10"
                   >
                     <button
                       type="button"
@@ -644,7 +645,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                       title={`${h.sa.toLocaleString()} SA · ${h.aa.toLocaleString()} AA`}
                     >
                       <span className="text-muted-foreground tabular-nums">#{rank}</span>
-                      <span className="text-foreground truncate">{h.account}</span>
+                      <span className="text-foreground whitespace-nowrap">{h.account}</span>
                       <span className="text-muted-foreground text-right tabular-nums">
                         {h.sa.toLocaleString()}
                       </span>
@@ -727,10 +728,11 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                 </div>
 
                 <div className="max-h-[320px] overflow-auto rounded border border-cheese/20">
-                  <div className="grid grid-cols-[1fr_64px_56px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
+                  <div className="grid grid-cols-[minmax(12ch,1fr)_64px_56px_24px] gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 px-2 py-1 sticky top-0">
                     <span>Account</span>
                     <span className="text-right">Active</span>
                     <span className="text-right">Events</span>
+                    <span aria-hidden="true" />
                   </div>
                   {activeWallets && filteredActive.length === 0 && !activeLoading && (
                     <div className="px-2 py-3 text-xs text-muted-foreground text-center">
@@ -742,7 +744,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                     return (
                       <div
                         key={w.account}
-                        className="grid grid-cols-[1fr_64px_56px_24px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10"
+                        className="grid grid-cols-[minmax(12ch,1fr)_64px_56px_24px] gap-1 items-center text-xs px-2 py-1.5 hover:bg-cheese/10 border-t border-cheese/10"
                       >
                         <button
                           type="button"
@@ -754,7 +756,7 @@ export function ViewWalletControl({ currentAccount, viewedAccount, onView, onCle
                           }}
                           className="contents text-left"
                         >
-                          <span className="text-foreground truncate">{w.account}</span>
+                          <span className="text-foreground whitespace-nowrap">{w.account}</span>
                           <span className="text-muted-foreground text-right tabular-nums">
                             {formatLastActive(w.lastActive)}
                           </span>
