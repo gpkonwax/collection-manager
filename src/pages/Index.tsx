@@ -105,6 +105,7 @@ import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 import { compareNaturalCards, compareByOriginalMint } from '@/lib/cardGridSort';
+import { parseSlotIds, encodeStackSlot, areDuplicateCards, mergeStackIds } from '@/lib/savedLayoutStacks';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
