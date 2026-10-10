@@ -136,6 +136,9 @@ import cardTradingPreview from '@/assets/card-trading-preview.png';
 import jsonImportPreview from '@/assets/json-import-preview.png';
 import packHistoryPreview from '@/assets/pack-history-preview.png';
 import packReplayPreview from '@/assets/pack-replay-preview.png';
+import classicViewPreview from '@/assets/classic-view-preview.png';
+import binderViewPreview from '@/assets/binder-view-preview.png';
+import savedCollectionPreview from '@/assets/saved-collection-preview.png';
 import { useTheme } from '@/hooks/useTheme';
 import { CATEGORY_LABELS, deriveVariantOptions, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
@@ -257,10 +260,16 @@ function EmptySlot({ onDragOver, onDrop, isOver }: {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({ icon, preview, previewAlt, title, description }: { icon?: React.ReactNode; preview?: string; previewAlt?: string; title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-border bg-card bright-landing-panel p-6 space-y-3 hover:border-cheese/40 transition-colors">
-      <div className="h-12 w-12 rounded-lg bg-cheese/10 flex items-center justify-center">{icon}</div>
+    <div className="rounded-xl border border-border bg-card bright-landing-panel p-6 space-y-3 hover:border-cheese/40 transition-colors flex flex-col">
+      {preview ? (
+        <div className="trade-preview full">
+          <img src={preview} alt={previewAlt ?? title} loading="lazy" />
+        </div>
+      ) : (
+        <div className="h-12 w-12 rounded-lg bg-cheese/10 flex items-center justify-center">{icon}</div>
+      )}
       <h3 className="text-lg font-semibold text-cheese">{title}</h3>
       <p className="text-sm text-foreground leading-relaxed theme-bright-text">{description}</p>
     </div>
@@ -3060,17 +3069,20 @@ export default function SimpleAssetsPage() {
               <h3 className="text-2xl font-bold text-cheese text-center bright-section-heading">Three Ways to View, Sort and Show Your Collection</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <FeatureCard
-                  icon={<span className="text-2xl">👁️</span>}
+                  preview={classicViewPreview}
+                  previewAlt="Classic view: a grid of four owned GPK cards with their metadata"
                   title="Classic View"
                   description="A read-only grid of your cards in natural sort order. Clean, simple, no clutter. Just your collection as it is."
                 />
                 <FeatureCard
-                  icon={<span className="text-2xl">📖</span>}
+                  preview={binderViewPreview}
+                  previewAlt="Collector binder: owned cards beside a greyscale placeholder you can buy"
                   title="Collector Binder"
                   description="Template-based completionist view. Owned cards in full color, missing cards as greyscale placeholders linked directly to AtomicHub. Set price alerts on any missing card to get notified when it drops below your target. See exactly what you need."
                 />
                 <FeatureCard
-                  icon={<span className="text-2xl">💾</span>}
+                  preview={savedCollectionPreview}
+                  previewAlt="Saved collection: a dashed drop slot with a card being dragged into place"
                   title="Saved Collection"
                   description="Your personal workspace. Import/export JSON layouts, drag-and-drop to rearrange, and build the perfect display of your collection."
                 />
