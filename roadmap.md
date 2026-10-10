@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Hybrid handwriting for card/pack artwork: six offline styles, typed placement, fallback and undo are complete; recognition remains blocked until Cloud is enabled.
+- [x] Handwriting for card/pack artwork: six offline styles, typed placement, active ink color, undo and clear; the AI recognition path was removed by choice, so no Cloud is needed.
 - [x] Remove Binder selection and transfer/burn/bridge controls; clear selections/dialogs on entry. Six tests passed and browser UI fixture confirmed Classic → Binder → Classic resets selection (no real wallet signing required).
 - [x] Native AtomicAssets detail: show live template minted/circulating/burned counts and hide bridged totals; 29 tests passed and real Crash Gordon supply verified in the detail window.
 - [x] Transfer and bridge windows made as tall as the screen allows (92dvh, width unchanged); selected-card tiles doubled to 64px artwork with the original mint number on top of each card.

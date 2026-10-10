@@ -67,7 +67,9 @@ describe('pack artwork viewer', () => {
     render(<PackArtworkDialog open name="Test Pack" image="/test-pack.png" onOpenChange={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'Draw on pack' }));
     expect(screen.queryByRole('button', { name: 'Type text' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Rewrite scribble/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Handwriting replacement' }));
+    expect(screen.queryByRole('button', { name: /Rewrite scribble/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Type text' }));
     expect(screen.getByLabelText('Handwriting text')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Handwriting style'));
