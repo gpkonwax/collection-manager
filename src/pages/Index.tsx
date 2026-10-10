@@ -3107,7 +3107,7 @@ export default function SimpleAssetsPage() {
                     className="block w-full h-auto"
                   />
                 </div>
-                <div className="min-w-0 text-center sm:text-left">
+                <div className="min-w-0 text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">View Any Wallet</h3>
                   <p className="text-foreground text-sm theme-bright-text">
                     Enter any valid WAX account name to browse that wallet's collection without logging in. See their Classic grid, Collector Binder, card details, and packs — then return to your own collection in one click. The holders dropdown lists every GPK holder largest-to-smallest.
