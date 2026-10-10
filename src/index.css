@@ -275,13 +275,13 @@
   .bright .bright-content-panel {
     background-color: hsl(var(--card) / 0.96);
   }
-  /* Landing-page sections below the hero share the card boxes' translucent stock. */
+  /* Landing-page sections below the hero sit on a near-solid panel so the candyland art stays behind the text. */
   .bright .bright-landing-panel {
-    background-color: hsl(var(--card) / 0.55);
+    background-color: hsl(var(--card) / 0.88);
   }
-  /* Let the candyland scene show through the card surrounds without fading artwork or labels. */
+  /* Card surrounds stay near-solid so the candyland art never sits under body text. */
   .bright .bright-card-shell {
-    background-color: hsl(var(--card) / 0.55);
+    background-color: hsl(var(--card) / 0.88);
   }
   /* A solid colored selector stays legible over every part of the painted backdrop. */
   .bright .bright-view-tabs {
