@@ -57,7 +57,7 @@ const PACK_CONFIG: Record<string, PackConfig> = {
 };
 
 /** Fallback metadata for packs when user owns 0 (so we can still show the artwork) */
-const PACK_DEFAULTS: Record<string, { name: string; image: string; description: string }> = {
+export const PACK_DEFAULTS: Record<string, { name: string; image: string; description: string }> = {
   '13778':  { name: 'GPK Pack - Crash Gordon', image: 'Qmf3d8Dj1E5RM4nyqcQVw2s2adSxBUkuBc4FiDh76vVE5n', description: 'Contains 5 digital cards from the "Crash Gordon" series' },
   '48479':  { name: 'Bernventures Pack', image: 'QmZFv6fGryvQsU2k1dDY5fkJNvTakKxBwDyj8RDfEEmTvj', description: 'Bernventures Pack' },
   '51437':  { name: 'Mitten Pack', image: 'QmTMWkmXo5o3ddn9XZ15zuh9Gz9LJDpDoox48crJkj8Mnp', description: 'Mitten Pack' },

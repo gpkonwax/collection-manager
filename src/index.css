@@ -383,6 +383,36 @@
 
 }
 
+/* Front-facing pack fan: only in-plane rotation, never a perspective flip. */
+.pack-artwork-fan {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.7;
+  isolation: isolate;
+}
+.pack-artwork-fan-front {
+  position: absolute;
+  left: 38%;
+  bottom: 10%;
+  width: 24%;
+  height: 62%;
+  transform-origin: 50% 120%;
+  filter: drop-shadow(0 3px 3px hsl(var(--background) / 0.55));
+}
+.pack-artwork-fan-front:nth-child(1) { transform: translateX(-54%) rotate(-42deg); z-index: 1; }
+.pack-artwork-fan-front:nth-child(2) { transform: translateX(-45%) rotate(-35deg); z-index: 2; }
+.pack-artwork-fan-front:nth-child(3) { transform: translateX(-36%) rotate(-28deg); z-index: 3; }
+.pack-artwork-fan-front:nth-child(4) { transform: translateX(-27%) rotate(-21deg); z-index: 4; }
+.pack-artwork-fan-front:nth-child(5) { transform: translateX(-18%) rotate(-14deg); z-index: 5; }
+.pack-artwork-fan-front:nth-child(6) { transform: translateX(-9%) rotate(-7deg); z-index: 6; }
+.pack-artwork-fan-front:nth-child(7) { transform: rotate(0deg); z-index: 7; }
+.pack-artwork-fan-front:nth-child(8) { transform: translateX(9%) rotate(7deg); z-index: 6; }
+.pack-artwork-fan-front:nth-child(9) { transform: translateX(18%) rotate(14deg); z-index: 5; }
+.pack-artwork-fan-front:nth-child(10) { transform: translateX(27%) rotate(21deg); z-index: 4; }
+.pack-artwork-fan-front:nth-child(11) { transform: translateX(36%) rotate(28deg); z-index: 3; }
+.pack-artwork-fan-front:nth-child(12) { transform: translateX(45%) rotate(35deg); z-index: 2; }
+.pack-artwork-fan-front:nth-child(13) { transform: translateX(54%) rotate(42deg); z-index: 1; }
+
 /* Ensure WharfKit/Anchor wallet modals appear above all other UI */
 #wharfkit-web-ui,
 [id^="wharfkit"],

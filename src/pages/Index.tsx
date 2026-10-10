@@ -78,6 +78,7 @@ import { getBridgeEligibility } from '@/lib/bridgeActions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { BannerAd } from '@/components/BannerAd';
+import { PackArtworkFan } from '@/components/PackArtworkFan';
 import { BackupPanel } from '@/components/BackupPanel';
 import { BackupNudgeBanner } from '@/components/BackupNudgeBanner';
 import { ImageSourceIndicator } from '@/components/ImageSourceIndicator';
@@ -3076,11 +3077,11 @@ export default function SimpleAssetsPage() {
 
             {/* Section B — Pack Openings */}
             <div className="max-w-5xl mx-auto">
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-8 flex flex-col md:flex-row items-center gap-6">
-                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">📦</span>
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 md:p-8 flex flex-col lg:flex-row items-center gap-6">
+                <div className="w-full max-w-[440px] lg:w-[44%] flex-shrink-0">
+                  <PackArtworkFan />
                 </div>
-                <div className="text-center md:text-left">
+                <div className="min-w-0 text-center lg:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Openings</h3>
                   <ul className="list-disc pl-5 space-y-1 text-foreground text-sm theme-bright-text">
                     <li><strong>Supported now:</strong> Series 1, Series 2, Tiger King (Exotic), all Food Fight packs and Crash Gordon</li>
