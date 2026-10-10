@@ -289,7 +289,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         </span>
         <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
             <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 ${showBridge ? 'sm:col-start-1 sm:col-span-2' : 'sm:col-start-1 sm:col-span-4'}`}>
-              <div className="flex flex-col text-left">
+              <div className="flex flex-col text-left sa-detail-panel">
                 <div className="relative">
                   {/* Small chip variant for stacked mobile layout only (sm+ uses the large gutter badge).
                       Absolutely positioned so the badge never shifts the column layout. */}
@@ -324,7 +324,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
               </div>
             </div>
               <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center ${showBridge ? 'sm:col-start-2 sm:col-span-2' : 'sm:col-start-3 sm:col-span-4'}`}>
-                <div className="flex flex-col text-left">
+                <div className="flex flex-col text-left sa-detail-panel">
                   <p className="text-sm font-semibold text-cheese mb-1">Mint information</p>
                   <div className="space-y-1">
                   <p>
@@ -351,7 +351,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                 </div>
               {isBridgedAA && (asset.idata?.bridge_mint || bridgeDate) && (
               <div className="min-w-0 flex flex-col text-sm text-foreground sm:col-start-3 sm:col-span-2 sm:row-start-1 sm:items-center">
-                <div className="flex flex-col text-left">
+                <div className="flex flex-col text-left sa-detail-panel">
                   <p className="text-sm font-semibold text-cheese mb-1">Bridge Information</p>
                   <div className="space-y-1">
                   {asset.idata?.bridge_mint && (
