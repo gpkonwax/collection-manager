@@ -132,6 +132,7 @@ import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import brightBannerTitle from '@/assets/bright-banner-title.png';
 import darkBannerTitle from '@/assets/dark-banner-title.png';
 import viewWalletPreview from '@/assets/view-wallet-preview.png';
+import cardTradingPreview from '@/assets/card-trading-preview.png';
 import { useTheme } from '@/hooks/useTheme';
 import { CATEGORY_LABELS, deriveVariantOptions, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
@@ -3117,8 +3118,12 @@ export default function SimpleAssetsPage() {
 
               {/* Card & Pack Trading */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
-                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">🔄</span>
+                <div className="trade-preview flex-shrink-0">
+                  <img
+                    src={cardTradingPreview}
+                    alt="A wallet grid of four GPK cards — April Showers, Adam Bomb, Blasted Billy and Boozin' Bruce — each with its own Trade button"
+                    className="block w-full h-auto"
+                  />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Card & Pack Trading (P2P)</h3>
