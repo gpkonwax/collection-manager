@@ -36,6 +36,8 @@ export interface UseAtomicOffersResult {
   /** Refresh now, then again a few times to outrun indexer lag. */
   refreshWithRetries: (attempts?: number, delayMs?: number) => Promise<void>;
   markAllRead: () => void;
+  /** Time of the last successful poll (0 until one completes). */
+  lastFetchedAt: number;
 }
 
 
@@ -50,6 +52,7 @@ export function useAtomicOffers(account: string | null): UseAtomicOffersResult {
   const [error, setError] = useState<string | null>(null);
   const [lastSeen, setLastSeen] = useState<number>(() => readLastSeen(account));
 
+  const [lastFetchedAt, setLastFetchedAt] = useState(0);
   const accountRef = useRef(account);
   accountRef.current = account;
 
@@ -58,6 +61,7 @@ export function useAtomicOffers(account: string | null): UseAtomicOffersResult {
     setLastSeen(readLastSeen(account));
     setOffers([]);
     setError(null);
+    setLastFetchedAt(0);
   }, [account]);
 
   const refresh = useCallback(async () => {
@@ -73,6 +77,7 @@ export function useAtomicOffers(account: string | null): UseAtomicOffersResult {
       if (accountRef.current !== acc) return;
       setOffers(list);
       setError(null);
+      setLastFetchedAt(Date.now());
     } catch (e) {
       if (accountRef.current !== acc) return;
       setError((e as Error).message || 'Failed to load offers');
@@ -138,6 +143,7 @@ export function useAtomicOffers(account: string | null): UseAtomicOffersResult {
     removeOfferLocally,
     refreshWithRetries,
     markAllRead,
+    lastFetchedAt,
   };
 
 }

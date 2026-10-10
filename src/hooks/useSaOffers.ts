@@ -37,6 +37,8 @@ export interface UseSaOffersResult {
   removeOfferLocally: (offerId: string) => void;
   refreshWithRetries: (attempts?: number, delayMs?: number) => Promise<void>;
   markAllRead: () => void;
+  /** Time of the last successful poll (0 until one completes). */
+  lastFetchedAt: number;
 }
 
 /**
@@ -49,6 +51,7 @@ export function useSaOffers(account: string | null): UseSaOffersResult {
   const [error, setError] = useState<string | null>(null);
   const [lastSeen, setLastSeen] = useState<number>(() => readLastSeen(account));
 
+  const [lastFetchedAt, setLastFetchedAt] = useState(0);
   const accountRef = useRef(account);
   accountRef.current = account;
 
@@ -56,6 +59,7 @@ export function useSaOffers(account: string | null): UseSaOffersResult {
     setLastSeen(readLastSeen(account));
     setOffers([]);
     setError(null);
+    setLastFetchedAt(0);
   }, [account]);
 
   const refresh = useCallback(async () => {
@@ -70,6 +74,7 @@ export function useSaOffers(account: string | null): UseSaOffersResult {
       if (accountRef.current !== acc) return;
       setOffers(list);
       setError(null);
+      setLastFetchedAt(Date.now());
     } catch (e) {
       if (accountRef.current !== acc) return;
       setError((e as Error).message || 'Failed to load SimpleAssets offers');
@@ -128,6 +133,6 @@ export function useSaOffers(account: string | null): UseSaOffersResult {
 
   return {
     offers, incoming, outgoing, incomingUnreadCount, isLoading, error,
-    refresh, removeOfferLocally, refreshWithRetries, markAllRead,
+    refresh, removeOfferLocally, refreshWithRetries, markAllRead, lastFetchedAt,
   };
 }
