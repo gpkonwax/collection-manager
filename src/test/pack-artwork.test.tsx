@@ -62,5 +62,21 @@ describe('pack artwork viewer', () => {
     expect(screen.queryByRole('button', { name: 'Clear' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '3D tilt' })).toBeInTheDocument();
   });
+
+  it('offers hybrid handwriting with six styles and typed fallback', () => {
+    render(<PackArtworkDialog open name="Test Pack" image="/test-pack.png" onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Draw on pack' }));
+    expect(screen.queryByRole('button', { name: 'Type text' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Handwriting replacement' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Type text' }));
+    expect(screen.getByLabelText('Handwriting text')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Handwriting style'));
+    expect(screen.getByRole('option', { name: 'Cursive' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Neat print' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Pencil' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Marker' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Childlike' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Messy scrawl' })).toBeInTheDocument();
+  });
 });
 

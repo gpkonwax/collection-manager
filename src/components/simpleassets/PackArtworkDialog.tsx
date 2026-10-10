@@ -27,6 +27,7 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
   const [showRawJson, setShowRawJson] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasHandleRef = useRef<HandwritingCanvasHandle | null>(null);
+  const [activeCanvas, setActiveCanvas] = useState<HandwritingCanvasHandle | null>(null);
   const originalUrl = source === 'simpleassets' && symbol ? PACK_ART_SOURCES[symbol] : undefined;
   const reference = source === 'atomicassets' ? imageReference || image : undefined;
   const ipfsPath = reference ? extractIpfsHash(reference) : null;
@@ -45,9 +46,7 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
   }, [color, mode]);
 
   const clear = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvasHandleRef.current?.clear();
   };
 
   return (
@@ -63,11 +62,12 @@ export function PackArtworkDialog({ open, onOpenChange, name, image, source, sym
               canvasRegister={(canvas, handle) => {
                 canvasRef.current = canvas;
                 canvasHandleRef.current = handle ?? null;
+                setActiveCanvas(handle ?? null);
                 handle?.setColor(color);
               }} />
           ) : <div className="aspect-[3/4] bg-muted/30 flex items-center justify-center text-muted-foreground">Artwork unavailable</div>}
         </div>
-        <ArtworkModeControls mode={mode} onModeChange={setMode} color={color} onColorChange={setColor} onClear={clear} activeCanvas={canvasHandleRef.current} subject="pack" />
+        <ArtworkModeControls mode={mode} onModeChange={setMode} color={color} onColorChange={setColor} onClear={clear} activeCanvas={activeCanvas} subject="pack" />
         <div className="border-t border-border pt-3 space-y-2 text-xs">
           <div className="flex flex-wrap gap-x-2 gap-y-1 text-muted-foreground">
             <span>{source === 'atomicassets' ? 'AtomicAssets' : 'SimpleAssets'}</span>
