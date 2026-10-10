@@ -1,13 +1,13 @@
 // Shared metadata for SimpleAssets pack tokens (packs.topps), used by the pack
 // grid, the trade composer and the Trades dialog so labels/artwork match.
 
-import gpkSeries1Img from '@/assets/gpk_pack_series_1_geepeekay.jpg';
-import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega_geepeekay.jpg';
-import gpkSeries2aImg from '@/assets/gpk_pack_series_2a_geepeekay.jpg';
-import gpkSeries2bImg from '@/assets/gpk_pack_series_2b_geepeekay.jpg';
-import gpkSeries2cImg from '@/assets/gpk_pack_series_2c_geepeekay.jpg';
-import gpkExoticImg from '@/assets/gpk_pack_exotic.jpeg';
-import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpeg';
+import gpkSeries1Img from '@/assets/gpk_pack_series_1.jpg';
+import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega.jpg';
+import gpkSeries2aImg from '@/assets/gpk_pack_series_2a.jpg';
+import gpkSeries2bImg from '@/assets/gpk_pack_series_2b.jpg';
+import gpkSeries2cImg from '@/assets/gpk_pack_series_2c.jpg';
+import gpkExoticImg from '@/assets/gpk_pack_exotic.jpg';
+import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpg';
 
 export const PACK_LABELS: Record<string, string> = {
   GPKFIVE: 'GPK Series 1 Pack',
@@ -29,15 +29,19 @@ export const PACK_IMAGES: Record<string, string> = {
   EXOMEGA: gpkExoticMegaImg,
 };
 
-/** Original collector-gallery artwork used for bundled SimpleAssets pack images. */
+/**
+ * Original pack artwork source: the official Topps unboxing app (topps.wdny.io)
+ * served these watermark-free 800x1200 renders from IPFS. The bundled images
+ * in src/assets are exact copies of these hashes.
+ */
 export const PACK_ART_SOURCES: Record<string, string> = {
-  GPKFIVE: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os1_sm.jpg',
-  GPKMEGA: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os1_mega_sm.jpg',
-  GPKTWOA: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os2_sm.jpg',
-  GPKTWOB: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os2_mega_sm.jpg',
-  GPKTWOC: 'https://geepeekay.com/gallery/wax/packs/wax_pack_os2_ultimate_sm.jpg',
-  EXOFIVE: 'https://geepeekay.com/gallery/wax/packs/wax_pack_exotic_sm.jpeg',
-  EXOMEGA: 'https://geepeekay.com/gallery/wax/packs/wax_pack_exotic_mega_sm.jpeg',
+  GPKFIVE: 'https://ipfs.io/ipfs/Qmb8aENU2CemXz4daoW26eqFviSuYvV2NiA296GzDaKKs3/standard.jpg',
+  GPKMEGA: 'https://ipfs.io/ipfs/Qmb8aENU2CemXz4daoW26eqFviSuYvV2NiA296GzDaKKs3/mega.jpeg',
+  GPKTWOA: 'https://ipfs.io/ipfs/QmWkB8bBEoHai7Li5jHdUbavFKxnfQmVvGJj5ytyWpNbUt/1.jpg',
+  GPKTWOB: 'https://ipfs.io/ipfs/QmWkB8bBEoHai7Li5jHdUbavFKxnfQmVvGJj5ytyWpNbUt/2.jpg',
+  GPKTWOC: 'https://ipfs.io/ipfs/QmWkB8bBEoHai7Li5jHdUbavFKxnfQmVvGJj5ytyWpNbUt/3.jpg',
+  EXOFIVE: 'https://ipfs.io/ipfs/QmZBXd6CWeSYc6ZxDcRPC54dwZv4NeSBoRahY8bYDdYPui',
+  EXOMEGA: 'https://ipfs.io/ipfs/QmNjTxU8DBN7us9cUt5y9Uju5b7KEQa4Uwj7FhsuAZ79HQ',
 };
 
 export function packLabel(symbol: string): string {

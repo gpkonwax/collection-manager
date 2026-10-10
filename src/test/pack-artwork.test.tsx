@@ -28,8 +28,8 @@ describe('pack artwork viewer', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent('GPK Series 1 Pack');
     expect(screen.getByRole('button', { name: '3D tilt' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open Pack', hidden: true })).toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toHaveTextContent('Courtesy of geepeekay.com');
-    expect(screen.getByRole('dialog')).toHaveTextContent('wax_pack_os1_sm.jpg');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Official Topps pack render');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Qmb8aENU2CemXz4daoW26eqFviSuYvV2NiA296GzDaKKs3/standard.jpg');
     expect(screen.getByRole('dialog')).not.toHaveTextContent('IPFS (on-chain pack image reference)');
   });
 
