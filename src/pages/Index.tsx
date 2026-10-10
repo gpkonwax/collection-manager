@@ -3156,7 +3156,7 @@ export default function SimpleAssetsPage() {
                   <h3 className="text-xl font-bold text-cheese mb-2">Multi-File JSON Import</h3>
                   <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1">
                     <li>Drop multiple JSON files at once — each lands in the right category automatically.</li>
-                    <li>Restores saved layouts, price alerts, puzzle progress and pack history.</li>
+                    <li>Restores saved layouts, favourite trading accounts, price alerts, puzzle progress and pack history.</li>
                     <li>Recent imports cached for instant re-apply.</li>
                   </ul>
                 </div>
