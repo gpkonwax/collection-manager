@@ -287,7 +287,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             />
           )}
         </span>
-        <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
+        <div className={`grid grid-cols-1 gap-y-4 sm:gap-y-0 sm:gap-x-3 ${showBridge ? 'sm:grid-cols-4' : 'sm:grid-cols-6'}`}>
             <div className={`min-w-0 flex flex-col text-sm text-foreground sm:row-start-1 sm:items-center pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 ${showBridge ? 'sm:col-start-1 sm:col-span-2' : 'sm:col-start-1 sm:col-span-4'}`}>
               <div className="flex flex-col text-left sa-detail-panel">
                 <div className="relative">
