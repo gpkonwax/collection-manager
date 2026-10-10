@@ -1,13 +1,13 @@
 // Shared metadata for SimpleAssets pack tokens (packs.topps), used by the pack
 // grid, the trade composer and the Trades dialog so labels/artwork match.
 
-import gpkSeries1Img from '@/assets/gpk_pack_series_1_geepeekay.jpg';
-import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega_geepeekay.jpg';
-import gpkSeries2aImg from '@/assets/gpk_pack_series_2a_geepeekay.jpg';
-import gpkSeries2bImg from '@/assets/gpk_pack_series_2b_geepeekay.jpg';
-import gpkSeries2cImg from '@/assets/gpk_pack_series_2c_geepeekay.jpg';
-import gpkExoticImg from '@/assets/gpk_pack_exotic.jpeg';
-import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpeg';
+import gpkSeries1Img from '@/assets/gpk_pack_series_1.jpg';
+import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega.jpg';
+import gpkSeries2aImg from '@/assets/gpk_pack_series_2a.jpg';
+import gpkSeries2bImg from '@/assets/gpk_pack_series_2b.jpg';
+import gpkSeries2cImg from '@/assets/gpk_pack_series_2c.jpg';
+import gpkExoticImg from '@/assets/gpk_pack_exotic.jpg';
+import gpkExoticMegaImg from '@/assets/gpk_pack_exotic_mega.jpg';
 
 export const PACK_LABELS: Record<string, string> = {
   GPKFIVE: 'GPK Series 1 Pack',
