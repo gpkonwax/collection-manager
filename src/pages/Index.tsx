@@ -2322,7 +2322,7 @@ export default function SimpleAssetsPage() {
         <div className="flex-shrink-0">
           {renderCompletionBar()}
         </div>
-        <div className="flex items-center justify-end flex-1 gap-2">
+        <div className="flex flex-wrap items-center justify-end flex-1 gap-2">
           {!isViewing && (
             <JsonMenu
               refreshKey={recentRefreshKey}
