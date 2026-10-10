@@ -273,8 +273,11 @@ export class MonthStore {
       e.rows.sort((a, b) => a[1] - b[1] || (a[3] < b[3] ? -1 : a[3] > b[3] ? 1 : 0) || (a[4] < b[4] ? -1 : 1));
       const buf = Buffer.from(JSON.stringify({ version: 1, month: m, count: e.rows.length, rows: e.rows }));
       const p = path.join(this.dir, 'events', `${m}.json`);
-      await fs.writeFile(`${p}.tmp`, buf);
-      await fs.rename(`${p}.tmp`, p);
+      // Unique temp name: a concurrent or retried write can never collide
+      // with (or rename away) another writer's temp file.
+      const tmp = `${p}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+      await fs.writeFile(tmp, buf);
+      await fs.rename(tmp, p);
       out[m] = { count: e.rows.length, bytes: buf.length, sha256: sha256(buf) };
     }
     } catch (err) { for (const m of todo) if (!out[m]) this.dirty.add(m); throw err; }
@@ -285,8 +288,9 @@ export class MonthStore {
 export async function writeIndex(dir, index) {
   const p = path.join(dir, 'index.json');
   await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(`${p}.tmp`, JSON.stringify(index, null, 2));
-  await fs.rename(`${p}.tmp`, p);
+  const tmp = `${p}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(index, null, 2));
+  await fs.rename(tmp, p);
 }
 
 export async function readAllRows(dir) {
