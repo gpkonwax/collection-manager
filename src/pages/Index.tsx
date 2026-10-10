@@ -3147,7 +3147,7 @@ export default function SimpleAssetsPage() {
                   previewAlt="Saved collection: a dashed drop slot with a card being dragged into place"
                   previewClass="tilt-right"
                   title="Saved Collection"
-                  description="Your personal workspace. Import/export JSON layouts, drag-and-drop to rearrange, and build the perfect display of your collection."
+                  description="Your personal workspace. Import/export JSON layouts, add and remove rows, drag-and-drop to rearrange, optionally stack your duplicates and build the perfect display of your collection."
                 />
               </div>
             </div>
