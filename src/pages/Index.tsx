@@ -2678,7 +2678,7 @@ export default function SimpleAssetsPage() {
           {/* Line 1: backup/recovery (left) + status/theme/account (right) */}
           <div className="flex min-h-12 py-1 items-center justify-center gap-2 flex-wrap">
             {/* Left: offline backup trigger + recovery buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <BackupPanel />
               {isConnected && accountName && !isViewing && (
                 <>
