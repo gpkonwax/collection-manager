@@ -3164,7 +3164,7 @@ export default function SimpleAssetsPage() {
 
               {/* Pack Opening History & Replay */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col sm:flex-row items-center gap-5">
-                <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                <div className="flex flex-col items-center gap-3 flex-shrink-0 w-[210px] max-w-full">
                   <div className="trade-preview compact">
                     <img
                       src={packHistoryPreview}
