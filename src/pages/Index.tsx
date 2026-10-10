@@ -3138,8 +3138,12 @@ export default function SimpleAssetsPage() {
 
               {/* Multi-File JSON Import */}
               <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
-                <div className="flex-shrink-0 h-16 w-16 rounded-full bg-cheese/10 flex items-center justify-center">
-                  <span className="text-3xl">📂</span>
+                <div className="trade-preview flex-shrink-0">
+                  <img
+                    src={jsonImportPreview}
+                    alt="The JSON dropdown menu open over the collection grid, with Export favourites highlighted among the import and export options"
+                    className="block w-full h-auto"
+                  />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-cheese mb-2">Multi-File JSON Import</h3>
