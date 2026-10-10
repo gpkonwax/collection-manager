@@ -525,3 +525,42 @@ export function applySupersession(offers: AtomicOffer[], account: string): Atomi
   return out;
 }
 
+
+/* --------------------------- proposal outcomes -------------------------- */
+
+/**
+ * How a swap proposal ended, from eosio.msig exec / cancel history.
+ * `none` = history answered but holds nothing yet; `unknown` = unreachable.
+ */
+export async function fetchProposalOutcome(
+  proposer: string, name: string, createdAt: number,
+): Promise<import('@/lib/tradeReplies').MsigOutcome> {
+  const params = new URLSearchParams({
+    filter: `${MSIG_CONTRACT}:exec,${MSIG_CONTRACT}:cancel`,
+    'act.data.proposer': proposer,
+    'act.data.proposal_name': name,
+    limit: '20',
+    sort: 'desc',
+  });
+  if (createdAt > 0) params.set('after', new Date(createdAt - 60_000).toISOString());
+  for (const base of HYPERION_ENDPOINTS) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12_000);
+      const resp = await fetch(`${base}/v2/history/get_actions?${params.toString()}`, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      if (!Array.isArray(json?.actions)) continue;
+      for (const a of json.actions as { timestamp?: string; act?: { name?: string; data?: Record<string, unknown> } }[]) {
+        const d = a.act?.data || {};
+        if (d.proposer !== proposer || d.proposal_name !== name) continue;
+        const at = a.timestamp ? new Date(`${a.timestamp.replace(/Z$/, '')}Z`).getTime() : Date.now();
+        if (a.act?.name === 'exec') return { type: 'executed', at };
+        if (a.act?.name === 'cancel') return { type: 'cancelled', by: String(d.canceler ?? ''), at };
+      }
+      return { type: 'none' };
+    } catch { /* next endpoint */ }
+  }
+  return { type: 'unknown' };
+}
