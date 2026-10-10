@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ImageWithModes, ArtworkModeControls, DRAW_COLORS } from './InteractiveArtwork';
-import type { ViewMode } from './InteractiveArtwork';
+import type { HandwritingCanvasHandle, ViewMode } from './InteractiveArtwork';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
 import { getAtomicTemplateSupply, type AtomicTemplateSupply } from '@/lib/atomicTemplateSupply';
@@ -51,6 +51,8 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
+  const canvasHandles = useRef<HandwritingCanvasHandle[]>([]);
+  const [activeCanvas, setActiveCanvas] = useState<HandwritingCanvasHandle | null>(null);
   const assetId = asset?.id;
   const nativeTemplateId = asset?.source === 'atomicassets' && !isBridgedAsset(asset)
     ? String(asset.idata?._template_id ?? '') : '';
@@ -74,14 +76,14 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
       setMode('tilt');
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
+      canvasHandles.current = [];
+      setActiveCanvas(null);
     }
   }, [assetId]);
 
   // Push color changes into any registered canvases without remounting them
   useEffect(() => {
-    canvasRefs.current.forEach((canvas) => {
-      if (canvas) (canvas as HTMLCanvasElement & { __setColor?: (color: string) => void }).__setColor?.(unifiedColor);
-    });
+    canvasHandles.current.forEach(handle => handle.setColor(unifiedColor));
   }, [unifiedColor]);
 
   const shouldLookupBridger = !!asset && open && isBridgedAsset(asset);
@@ -166,14 +168,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
     return scan ? scan.landscape : isSeries1;
   };
 
-  const clearAllCanvases = () => {
-    canvasRefs.current.forEach((canvas) => {
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    });
-  };
+  const clearAllCanvases = () => canvasHandles.current.forEach(handle => handle.clear());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -237,20 +232,23 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
                   rotated={isLandscape && !retroScan}
                   className={isLandscape && !retroScan ? 'rotate-90 scale-[1.33] origin-center' : ''}
                   mode={mode}
-                  canvasRegister={(canvas) => {
+                  canvasRegister={(canvas, handle) => {
                     if (canvas) {
                       if (!canvasRefs.current.includes(canvas)) canvasRefs.current.push(canvas);
-                      (canvas as HTMLCanvasElement & { __setColor?: (color: string) => void }).__setColor?.(unifiedColor);
+                      if (handle && !canvasHandles.current.includes(handle)) canvasHandles.current.push(handle);
+                      handle?.setColor(unifiedColor);
+                      if (!activeCanvas && handle) setActiveCanvas(handle);
                     } else {
                       canvasRefs.current = canvasRefs.current.filter(Boolean);
                     }
                   }}
+                  onCanvasActivate={setActiveCanvas}
                 />
               </div>
             );
           })}
         </div>
-        <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} />
+        <ArtworkModeControls mode={mode} onModeChange={setMode} color={unifiedColor} onColorChange={setUnifiedColor} onClear={clearAllCanvases} activeCanvas={activeCanvas} />
         {/* Headings anchor the spacing: with all three columns each hangs centred at the
             quarter points (25% / 50% / 75%), so the Mint heading always sits directly beneath
             the artwork toggles and the side headings stay equidistant between centre and edge.
