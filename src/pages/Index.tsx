@@ -388,6 +388,7 @@ export default function SimpleAssetsPage() {
   const [bridgeDialogOpen, setBridgeDialogOpen] = useState(false);
   
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
+  const [stackTradeMode, setStackTradeMode] = useState(false);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showTradesDialog, setShowTradesDialog] = useState(false);
@@ -1989,9 +1990,19 @@ export default function SimpleAssetsPage() {
       const handleClick = () => {
         if (owned.length > 1) {
           setStackedAssets(owned);
+          setStackTradeMode(false);
           setStackDialogOpen(true);
         } else {
           setSelectedAsset(asset);
+        }
+      };
+      const handleTrade = (clicked: SimpleAsset) => {
+        if (owned.length > 1) {
+          setStackedAssets(owned);
+          setStackTradeMode(true);
+          setStackDialogOpen(true);
+        } else {
+          handleTradeFromCard(clicked);
         }
       };
       return (
