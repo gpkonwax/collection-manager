@@ -3112,7 +3112,7 @@ export default function SimpleAssetsPage() {
               <h2 className="text-4xl md:text-5xl font-bold text-cheese-gradient theme-bright-gradient bright-page-heading leading-[1.25] pb-2 max-w-3xl">
                 <img src={theme === 'bright' ? brightBannerTitle : darkBannerTitle} alt="The Unofficial GPK Collection Manager" className="mx-auto w-full max-w-[600px] h-auto" />
               </h2>
-              <p className="text-lg text-foreground max-w-2xl theme-bright-text-muted">
+              <p className="text-lg text-foreground max-w-2xl theme-bright-text-muted bright-landing-panel rounded-lg px-5 py-2.5">
                 Free to use, open source, built by <span className="text-cheese font-semibold theme-bright-text">$CHEESE</span> for the WAX and GPK communities.
               </p>
               <div className="max-w-2xl rounded-lg border border-cheese/30 bg-cheese/5 bright-content-panel px-4 py-3 text-sm text-foreground">
