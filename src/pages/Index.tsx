@@ -2014,7 +2014,7 @@ export default function SimpleAssetsPage() {
           stackCount={owned.length}
           priceAlertTemplate={template}
           isReadOnly={isViewing}
-          onTradeClick={handleTradeFromCard}
+          onTradeClick={handleTrade}
           retro={retroActive}
           freshMint={freshMintIds.has(asset.id)}
         />
@@ -2023,7 +2023,7 @@ export default function SimpleAssetsPage() {
     return (
       <MissingCardPlaceholder key={`missing-${template.templateId}`} template={template} isReadOnly={isViewing} />
     );
-  }, [isViewing, retroActive, freshMintIds]);
+  }, [isViewing, retroActive, freshMintIds, handleTradeFromCard]);
 
   const renderBinderGrid = useCallback((items: NonNullable<typeof binderGrid>) => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -3739,6 +3739,10 @@ export default function SimpleAssetsPage() {
           setStackDialogOpen(false);
           setSelectedAsset(asset);
         }}
+        onTradeAsset={stackTradeMode && isViewing ? (asset) => {
+          setStackDialogOpen(false);
+          handleTradeFromCard(asset);
+        } : undefined}
       />
       <DonateDialog
         open={showDonateDialog}
