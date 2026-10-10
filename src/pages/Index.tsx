@@ -3849,6 +3849,29 @@ export default function SimpleAssetsPage() {
       )}
 
       <SimpleAssetDetailDialog retro={retroActive} asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} onViewAccount={handleViewAccountFromDetail} />
+      {stackSwapAsk && (
+        <div className="fixed inset-0 z-[80]" onMouseDown={() => setStackSwapAsk(null)}>
+          <div
+            className="absolute bg-popover text-popover-foreground border border-border rounded-lg shadow-xl p-3 w-60"
+            style={{
+              left: Math.min(Math.max(8, stackSwapAsk.x - 120), (typeof window !== 'undefined' ? window.innerWidth : 1280) - 248),
+              top: Math.min(stackSwapAsk.y + 10, (typeof window !== 'undefined' ? window.innerHeight : 900) - 130),
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-semibold flex items-center gap-1.5"><Layers className="h-3.5 w-3.5 text-cheese" />Duplicate cards</p>
+            <p className="text-xs text-muted-foreground mt-1">Stack these copies together, or swap their positions?</p>
+            <div className="flex gap-2 mt-2.5">
+              <Button size="sm" className="h-7 px-3 text-xs" onClick={() => applyStackOrSwap('stack')}>
+                <Layers className="h-3.5 w-3.5 mr-1" />Stack
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 px-3 text-xs" onClick={() => applyStackOrSwap('swap')}>
+                <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />Swap
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       <BinderStackDialog
         assets={stackedAssets ?? []}
         open={stackDialogOpen}
