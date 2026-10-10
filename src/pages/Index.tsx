@@ -3123,17 +3123,17 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Card & Pack Trading */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
-                <div className="trade-preview flex-shrink-0">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col sm:flex-row items-center gap-5">
+                <div className="trade-preview compact flex-shrink-0">
                   <img
                     src={cardTradingPreview}
-                    alt="A wallet grid of four GPK cards — April Showers, Adam Bomb, Blasted Billy and Boozin' Bruce — each with its own Trade button"
+                    alt="Two GPK cards — April Showers and Adam Bomb — each with its own Trade button"
                     className="block w-full h-auto"
                   />
                 </div>
-                <div>
+                <div className="min-w-0 text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Card & Pack Trading (P2P)</h3>
-                  <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1 text-left">
+                  <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1">
                     <li>Propose card-for-card or pack-for-pack swaps — no marketplace, no fees.</li>
                     <li>Find a collector via View Any Wallet, then open the trade composer.</li>
                     <li>AtomicAssets official offers; SimpleAssets atomic multisig swaps.</li>
@@ -3144,7 +3144,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Multi-File JSON Import */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center justify-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col sm:flex-row items-center gap-5">
                 <div className="trade-preview compact flex-shrink-0">
                   <img
                     src={jsonImportPreview}
@@ -3152,40 +3152,42 @@ export default function SimpleAssetsPage() {
                     className="block w-full h-auto"
                   />
                 </div>
-                <div>
+                <div className="min-w-0 text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Multi-File JSON Import</h3>
-                    <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1 text-left">
-                      <li>Drop multiple JSON files at once — each lands in the right category automatically.</li>
-                      <li>Restores saved layouts, price alerts, puzzle progress and pack history.</li>
-                      <li>Recent imports cached for instant re-apply.</li>
-                    </ul>
+                  <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1">
+                    <li>Drop multiple JSON files at once — each lands in the right category automatically.</li>
+                    <li>Restores saved layouts, price alerts, puzzle progress and pack history.</li>
+                    <li>Recent imports cached for instant re-apply.</li>
+                  </ul>
                 </div>
               </div>
 
               {/* Pack Opening History & Replay */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
-                <div className="trade-preview compact flex-shrink-0">
-                  <img
-                    src={packHistoryPreview}
-                    alt="The pack history grid: one tile per pack type with pack artwork, how many times it was opened and the last opening date"
-                    className="block w-full h-auto"
-                  />
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col sm:flex-row items-center gap-5">
+                <div className="flex flex-col items-center gap-3 flex-shrink-0 w-[210px] max-w-full">
+                  <div className="trade-preview compact">
+                    <img
+                      src={packHistoryPreview}
+                      alt="The pack history grid: one tile per pack type with pack artwork, how many times it was opened and the last opening date"
+                      className="block w-full h-auto"
+                    />
+                  </div>
+                  <div className="trade-preview tilt-right compact">
+                    <img
+                      src={packReplayPreview}
+                      alt="A single pack's opening list with the date, card count and a yellow Replay button on each entry"
+                      className="block w-full h-auto"
+                    />
+                  </div>
                 </div>
-                <div className="trade-preview tilt-right compact flex-shrink-0">
-                  <img
-                    src={packReplayPreview}
-                    alt="A single pack's opening list with the date, card count and a yellow Replay button on each entry"
-                    className="block w-full h-auto"
-                  />
-                </div>
-                <div>
+                <div className="min-w-0 text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Opening History & Replay</h3>
-                   <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1 text-left">
-                     <li>Rebuilds every pack you've ever opened from the WAX chain — type, date and full contents.</li>
-                     <li>Replay any opening with the full reveal and card-deal animation.</li>
-                     <li>Reveal order shuffles each time for a fresh experience.</li>
-                     <li>Download your history as JSON and load it back any time.</li>
-                   </ul>
+                  <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1">
+                    <li>Rebuilds every pack you've ever opened from the WAX chain — type, date and full contents.</li>
+                    <li>Replay any opening with the full reveal and card-deal animation.</li>
+                    <li>Reveal order shuffles each time for a fresh experience.</li>
+                    <li>Download your history as JSON and load it back any time.</li>
+                  </ul>
                 </div>
               </div>
             </div>
