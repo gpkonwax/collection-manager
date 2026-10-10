@@ -507,5 +507,17 @@
 .trade-preview.full:hover {
   transform: scale(1.02);
 }
+/* The two side pictures lean inward, lifting the edge nearest the binder shot. */
+.trade-preview.full.tilt-left {
+  transform: rotate(-1.6deg);
+}
+.trade-preview.full.tilt-right {
+  transform: rotate(1.6deg);
+}
+.trade-preview.full.tilt-left:hover,
+.trade-preview.full.tilt-right:hover {
+  transform: rotate(0deg) scale(1.02);
+}
+
 
 
