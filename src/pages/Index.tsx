@@ -3137,7 +3137,7 @@ export default function SimpleAssetsPage() {
               </div>
 
               {/* Multi-File JSON Import */}
-              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center text-center gap-4">
+              <div className="rounded-xl border border-cheese/20 bg-cheese/5 bright-landing-panel p-6 flex flex-col items-center justify-center text-center gap-4">
                 <div className="trade-preview compact flex-shrink-0">
                   <img
                     src={jsonImportPreview}
