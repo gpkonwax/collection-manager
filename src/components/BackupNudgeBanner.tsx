@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Download, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLocalMirrorStatus, subscribeLocalMirror } from '@/lib/localMirror';
+import { useWax } from '@/context/WaxContext';
 
 const DISMISS_KEY = 'gpk-backup-nudge-dismissed-v1';
 
@@ -13,11 +14,13 @@ function markDismissed(): void {
 }
 
 /**
- * Thin, dismissible bar shown under the header on first visit.
- * Recommends downloading the offline ZIP while everything's working.
- * Auto-hides once a persisted local mirror is loaded or the user dismisses.
+ * Thin, dismissible bar shown under the header, but only once a wallet is signed in —
+ * never on the signed-out landing page. Recommends downloading the offline ZIP while
+ * everything's working. Auto-hides once a persisted local mirror is loaded or the user
+ * dismisses it.
  */
 export function BackupNudgeBanner() {
+  const { isConnected, accountName } = useWax();
   const status = useSyncExternalStore(
     subscribeLocalMirror,
     getLocalMirrorStatus,
@@ -32,6 +35,7 @@ export function BackupNudgeBanner() {
 
   const protectedOnDevice = status.coverage === 'complete';
 
+  if (!isConnected || !accountName) return null;
   if (dismissed || protectedOnDevice) return null;
 
   const onDismiss = () => {
