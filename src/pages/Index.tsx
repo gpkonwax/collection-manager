@@ -260,11 +260,11 @@ function EmptySlot({ onDragOver, onDrop, isOver }: {
   );
 }
 
-function FeatureCard({ icon, preview, previewAlt, title, description }: { icon?: React.ReactNode; preview?: string; previewAlt?: string; title: string; description: string }) {
+function FeatureCard({ icon, preview, previewAlt, previewClass, title, description }: { icon?: React.ReactNode; preview?: string; previewAlt?: string; previewClass?: string; title: string; description: string }) {
   return (
     <div className="rounded-xl border border-border bg-card bright-landing-panel p-6 space-y-3 hover:border-cheese/40 transition-colors flex flex-col">
       {preview ? (
-        <div className="trade-preview full">
+        <div className={`trade-preview full${previewClass ? ` ${previewClass}` : ''}`}>
           <img src={preview} alt={previewAlt ?? title} loading="lazy" />
         </div>
       ) : (
@@ -3071,8 +3071,9 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   preview={classicViewPreview}
                   previewAlt="Classic view: a grid of four owned GPK cards with their metadata"
+                  previewClass="tilt-left"
                   title="Classic View"
-                  description="A read-only grid of your cards in natural sort order. Clean, simple, no clutter. Just your collection as it is."
+                  description="A grid of your cards in natural sort order. Clean, simple, no clutter — just your collection as it is. The Select function works from this view too: pick any cards and transfer, bridge or burn them without leaving the grid."
                 />
                 <FeatureCard
                   preview={binderViewPreview}
@@ -3083,6 +3084,7 @@ export default function SimpleAssetsPage() {
                 <FeatureCard
                   preview={savedCollectionPreview}
                   previewAlt="Saved collection: a dashed drop slot with a card being dragged into place"
+                  previewClass="tilt-right"
                   title="Saved Collection"
                   description="Your personal workspace. Import/export JSON layouts, drag-and-drop to rearrange, and build the perfect display of your collection."
                 />
