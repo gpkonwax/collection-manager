@@ -409,6 +409,16 @@
   .bright [role="alertdialog"] .border-border {
     border-color: hsl(var(--dialog-border) / 0.7);
   }
+
+  /* Card-detail info columns (Information / Mint / Bridge): white panels with
+     a soft blue edge in bright mode; dark theme keeps its flat layout. */
+  .bright .sa-detail-panel {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--dialog-border) / 0.65);
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    box-shadow: 0 1px 4px -1px hsl(var(--dialog-shadow) / 0.18);
+  }
 }
 
 /* Front-facing pack fan: only in-plane rotation, never a perspective flip. */
