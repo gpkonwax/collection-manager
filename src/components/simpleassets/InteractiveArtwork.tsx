@@ -31,23 +31,31 @@ function DrawCanvas({ canvasRegister, active, onActivate }: { canvasRegister?: (
   const redraw = useCallback(() => {
     const canvas = canvasRef.current, ctx = canvas?.getContext('2d'); if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    actionsRef.current.forEach(action => {
-      if (action.kind === 'stroke') { if (action.points.length < 2) return; ctx.strokeStyle = action.color; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(action.points[0].x, action.points[0].y); action.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke(); }
+    [...actionsRef.current, ...(currentStroke.current ? [currentStroke.current] : [])].forEach(action => {
+      if (action.kind === 'stroke') { const first = action.points[0]; if (!first) return; ctx.strokeStyle = action.color; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(first.x, first.y); if (action.points.length === 1) ctx.lineTo(first.x, first.y); else action.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke(); }
       else { ctx.fillStyle = action.color; ctx.font = `${action.size}px "${action.font}"`; ctx.textBaseline = 'middle'; ctx.fillText(action.text, action.x, action.y); }
     });
   }, []);
-  const getPos = useCallback((e: React.PointerEvent) => { const c = canvasRef.current; if (!c) return { x: 0, y: 0 }; const r = c.getBoundingClientRect(); return { x: (e.clientX-r.left)*c.width/r.width, y: (e.clientY-r.top)*c.height/r.height }; }, []);
+  const getPos = useCallback((e: Pick<PointerEvent, 'clientX' | 'clientY'>) => { const c = canvasRef.current; if (!c) return { x: 0, y: 0 }; const r = c.getBoundingClientRect(); return { x: (e.clientX-r.left)*c.width/(r.width || 1), y: (e.clientY-r.top)*c.height/(r.height || 1) }; }, []);
   const handleRef = useRef<HandwritingCanvasHandle>();
   if (!handleRef.current) handleRef.current = {
     setColor: c => { colorRef.current = c; }, clear: () => { actionsRef.current = []; redraw(); }, undo: () => { actionsRef.current.pop(); redraw(); },
     placeText: (text,font,size,color,onPlaced) => { placementRef.current=point=>{ actionsRef.current.push({kind:'text',text,font,size,color,...point}); placementRef.current=null; setPlacing(false); redraw(); onPlaced?.(); }; setPlacing(true); },
   };
   useEffect(() => { const c=canvasRef.current,h=handleRef.current; if(!c||!h)return; canvasRegister?.(c,h); return()=>canvasRegister?.(null); }, [canvasRegister]);
-  useEffect(() => { const c=canvasRef.current,p=c?.parentElement;if(!c||!p)return;const resize=()=>{c.width=p.clientWidth;c.height=p.clientHeight;redraw();};const ro=new ResizeObserver(resize);ro.observe(p);resize();return()=>ro.disconnect();},[redraw]);
-  const down=useCallback((e:React.PointerEvent)=>{const h=handleRef.current;if(h)onActivate?.(h);const p=getPos(e);if(placementRef.current){placementRef.current(p);return;}drawing.current=true;currentStroke.current={kind:'stroke',points:[p],color:colorRef.current};canvasRef.current?.setPointerCapture(e.pointerId);},[getPos,onActivate]);
-  const move=useCallback((e:React.PointerEvent)=>{if(!drawing.current||!currentStroke.current)return;currentStroke.current.points.push(getPos(e));redraw();const s=currentStroke.current,ctx=canvasRef.current?.getContext('2d');if(!ctx||s.points.length<2)return;const a=s.points.at(-2),b=s.points.at(-1);if(!a||!b)return;ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();},[getPos,redraw]);
-  const up=useCallback(()=>{if(currentStroke.current&&currentStroke.current.points.length>1)actionsRef.current.push(currentStroke.current);drawing.current=false;currentStroke.current=null;redraw();},[redraw]);
-  return <canvas ref={canvasRef} className="absolute inset-0 z-40 rounded-lg" style={{cursor:placing?'text':active?'crosshair':'default',touchAction:'none',pointerEvents:active?'auto':'none'}} onPointerDown={active?down:undefined} onPointerMove={active?move:undefined} onPointerUp={active?up:undefined} onPointerLeave={active?up:undefined}/>;
+  useEffect(() => { const c=canvasRef.current,p=c?.parentElement;if(!c||!p)return;const resize=()=>{if(c.width===p.clientWidth&&c.height===p.clientHeight)return;c.width=p.clientWidth;c.height=p.clientHeight;redraw();};const ro=new ResizeObserver(resize);ro.observe(p);resize();return()=>ro.disconnect();},[redraw]);
+  const down=useCallback((e:React.PointerEvent)=>{if(drawing.current||e.button!==0)return;const h=handleRef.current;if(h)onActivate?.(h);const p=getPos(e);if(placementRef.current){placementRef.current(p);return;}drawing.current=true;currentStroke.current={kind:'stroke',points:[p],color:colorRef.current};canvasRef.current?.setPointerCapture(e.pointerId);const ctx=canvasRef.current?.getContext('2d');if(ctx){ctx.strokeStyle=colorRef.current;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y);ctx.stroke();}},[getPos,onActivate]);
+  const move=useCallback((e:React.PointerEvent)=>{
+    const s=currentStroke.current,ctx=canvasRef.current?.getContext('2d');if(!drawing.current||!s||!ctx)return;
+    const previous=s.points.at(-1);if(!previous)return;
+    // Paint only new ink immediately; clearing/replaying here hides the ongoing stroke.
+    const coalesced=e.nativeEvent.getCoalescedEvents?.();
+    const samples=coalesced?.length?coalesced:[e.nativeEvent];
+    ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(previous.x,previous.y);
+    samples.forEach(sample=>{const p=getPos(sample);s.points.push(p);ctx.lineTo(p.x,p.y);});ctx.stroke();
+  },[getPos]);
+  const up=useCallback(()=>{if(!drawing.current)return;if(currentStroke.current)actionsRef.current.push(currentStroke.current);drawing.current=false;currentStroke.current=null;},[]);
+  return <canvas ref={canvasRef} className="absolute inset-0 z-40 rounded-lg" style={{cursor:placing?'text':active?'crosshair':'default',touchAction:'none',pointerEvents:active?'auto':'none'}} onPointerDown={active?down:undefined} onPointerMove={active?move:undefined} onPointerUp={active?up:undefined} onPointerCancel={active?up:undefined} onLostPointerCapture={active?up:undefined}/>;
 }
 
 export function ImageWithModes({url,alt,isLandscape,className,mode,canvasRegister,retroScan,rotated,onCanvasActivate}:{url:string;alt:string;isLandscape:boolean;className?:string;mode:ViewMode;canvasRegister?:(canvas:HTMLCanvasElement|null,handle?:HandwritingCanvasHandle)=>void;retroScan?:RetroScan|null;rotated?:boolean;onCanvasActivate?:(handle:HandwritingCanvasHandle)=>void}) {
