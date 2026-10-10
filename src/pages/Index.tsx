@@ -2599,18 +2599,34 @@ export default function SimpleAssetsPage() {
           {savedGridSlots.slice(0, visibleCount).map((slotId, idx) => {
             if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
 
-            const asset = allAssetMap.get(slotId);
-            if (!asset || !filteredIdSet.has(asset.id)) return (
+            const slotIds = parseSlotIds(slotId);
+            const slotAssets = slotIds.map(id => allAssetMap.get(id)).filter((a): a is SimpleAsset => !!a);
+            // A stacked slot shows its copies passing the current filters; if none do, it reads as missing.
+            const visibleStack = slotAssets.filter(a => filteredIdSet.has(a.id));
+            if (visibleStack.length === 0) return (
               <div key={`missing-${idx}`} className="aspect-square rounded-lg border-2 border-dashed border-destructive/30 bg-destructive/5 flex items-center justify-center">
                 <span className="text-xs text-muted-foreground">Missing</span>
               </div>
             );
 
+            const asset = visibleStack[0];
+            const stackCount = visibleStack.length;
+            const handleSlotClick = () => {
+              if (stackCount > 1) {
+                setStackedAssets([...visibleStack].sort(compareByOriginalMint));
+                setStackTradeMode(false);
+                setStackDialogOpen(true);
+              } else {
+                setSelectedAsset(asset);
+              }
+            };
+
             return (
               <SimpleAssetCard
                 key={asset.id}
                 asset={asset}
-                onClick={() => setSelectedAsset(asset)}
+                stackCount={stackCount}
+                onClick={handleSlotClick}
                 draggable={!selectionMode && !isViewing}
                 selectionMode={selectionMode}
                 selected={selectedIds.has(asset.id)}
