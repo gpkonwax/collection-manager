@@ -2313,7 +2313,7 @@ export default function SimpleAssetsPage() {
   const renderClassicView = () => (
     <>
       {renderSelectNote()}
-      <div className="flex items-center gap-3 relative z-10 mb-4">
+      <div className="flex flex-wrap items-center gap-3 relative z-10 mb-4">
         <div className="flex items-center gap-3 flex-1">
           <p className="text-sm text-muted-foreground">{filtered.length} NFT{filtered.length !== 1 ? 's' : ''} found</p>
           {renderSelectButton()}
@@ -2322,7 +2322,7 @@ export default function SimpleAssetsPage() {
         <div className="flex-shrink-0">
           {renderCompletionBar()}
         </div>
-        <div className="flex items-center justify-end flex-1 gap-2">
+        <div className="flex flex-wrap items-center justify-end flex-1 gap-2">
           {!isViewing && (
             <JsonMenu
               refreshKey={recentRefreshKey}
@@ -2676,9 +2676,9 @@ export default function SimpleAssetsPage() {
       <div className="sticky top-0 z-40 bg-background/60 backdrop-blur-xl border-b border-border/50 theme-bright-header">
         <div className="container flex flex-col">
           {/* Line 1: backup/recovery (left) + status/theme/account (right) */}
-          <div className="flex h-12 items-center justify-center gap-2 flex-wrap">
+          <div className="flex min-h-12 py-1 items-center justify-center gap-2 flex-wrap">
             {/* Left: offline backup trigger + recovery buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <BackupPanel />
               {isConnected && accountName && !isViewing && (
                 <>
@@ -2709,7 +2709,7 @@ export default function SimpleAssetsPage() {
             </div>
 
             {/* Right: Image source status + Info button + wallet controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <ImageSourceIndicator />
               <Button
                 variant="default"
