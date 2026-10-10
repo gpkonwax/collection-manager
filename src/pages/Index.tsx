@@ -1613,7 +1613,12 @@ export default function SimpleAssetsPage() {
 
   const savedGridSlots = useMemo(() => {
     if (savedOrder === null) return [];
-    const occupied = new Set(savedOrder.filter((id) => id !== EMPTY));
+    // Stack slots hold several comma-joined asset IDs; every member occupies a copy.
+    const occupied = new Set<string>();
+    for (const slot of savedOrder) {
+      if (slot === EMPTY) continue;
+      for (const id of parseSlotIds(slot)) occupied.add(id);
+    }
     const pendingSlots = dealingCards.map((card) => card.id).filter((id) => !occupied.has(id));
     return [...savedOrder, ...pendingSlots];
   }, [savedOrder, dealingCards]);
