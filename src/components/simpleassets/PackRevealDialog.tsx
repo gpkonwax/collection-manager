@@ -21,6 +21,7 @@ import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 import { normalizeGpkVariant } from '@/lib/gpkVariant';
 import type { RevealResult } from '@/lib/packReveal';
+import { startCollectionPreload, categoryForSaPack } from '@/lib/collectionPreload';
 
 
 const SYMBOL_TO_BOXTYPE: Record<string, string> = {
@@ -328,6 +329,11 @@ export function PackRevealDialog({
   open, onOpenChange, packSymbol, packLabel, packImage,
   accountName, preOpenUnboxingIds, onComplete, onDemoCollect, demoCards, session,
 }: PackRevealDialogProps) {
+  // Warm the collection grid in the background while the user watches the reveal.
+  // Not cancelled on close: the deal animation runs right after the dialog closes.
+  useEffect(() => {
+    if (open) startCollectionPreload(categoryForSaPack(packSymbol));
+  }, [open, packSymbol]);
   const [phase, setPhase] = useState<'waiting' | 'preloading' | 'revealing' | 'collect' | 'collecting' | 'done'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);
   const [pendingRowIds, setPendingRowIds] = useState<number[]>([]);

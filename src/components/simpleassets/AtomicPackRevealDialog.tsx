@@ -16,6 +16,7 @@ import { findPoolDelivery } from '@/lib/poolPackDelivery';
 import { recordStuckPack, buildStuckPackReportText } from '@/lib/stuckPackStorage';
 import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
 import type { RevealResult, RevealMatcher } from '@/lib/packReveal';
+import { startCollectionPreload, categoryForAtomicPack } from '@/lib/collectionPreload';
 
 interface RevealCard {
   asset_id: string;
@@ -217,6 +218,11 @@ export function AtomicPackRevealDialog({
   unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
   demoCards, onDemoCollect, transferTxId, poolAccount = 'gpkpools1111',
 }: AtomicPackRevealDialogProps) {
+  // Warm the collection grid in the background while the user watches the reveal.
+  // Not cancelled on close: the deal animation runs right after the dialog closes.
+  useEffect(() => {
+    if (open) startCollectionPreload(categoryForAtomicPack(packName));
+  }, [open, packName]);
   const isDemo = !!(demoCards && demoCards.length > 0);
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done' | 'stalled'>('waiting');
   const [newCards, setNewCards] = useState<RevealCard[]>([]);

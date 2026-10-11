@@ -19,6 +19,7 @@ const LAND_PAUSE = 700;
 const INITIAL_SHUFFLE_DELAY = 2200;
 const FLY_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const SCROLL_TIMEOUT = 1500;
+export const DEAL_YAY_DELAY_MS = 1000;
 
 // Wait for window scroll to settle. Uses `scrollend` when available; otherwise
 // polls for stability. Resolves immediately if already at target (±2 px).
@@ -187,9 +188,10 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     if (dealIndex >= orderedCards.length) {
       if (!hasCompletedRef.current && orderedReadyRef.current) {
         hasCompletedRef.current = true;
-        playPackYay();
-        const t = setTimeout(onComplete, 400);
-        return () => clearTimeout(t);
+        // Celebrate one second after the last card lands in the collection.
+        const yay = setTimeout(playPackYay, DEAL_YAY_DELAY_MS);
+        const done = setTimeout(onComplete, DEAL_YAY_DELAY_MS + 400);
+        return () => { clearTimeout(yay); clearTimeout(done); };
       }
       return;
     }
