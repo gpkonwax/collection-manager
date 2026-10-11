@@ -13,7 +13,7 @@ import { PackArtworkDialog } from './PackArtworkDialog';
 import type { GpkPack } from '@/hooks/useGpkPacks';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import type { RevealResult } from '@/lib/packReveal';
-// Geepeekay versions (current) — old originals kept in assets with original filenames
+// Official Topps/WAX IPFS pack renders, bundled locally — old scans kept in assets with original filenames
 import gpkSeries1Img from '@/assets/gpk_pack_series_1.jpg';
 import gpkSeries1MegaImg from '@/assets/gpk_pack_series_1_mega.jpg';
 import gpkSeries2aImg from '@/assets/gpk_pack_series_2a.jpg';
