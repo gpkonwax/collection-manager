@@ -117,6 +117,10 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
   const [flyTarget, setFlyTarget] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const hasCompletedRef = useRef(false);
   const isFirstCardRef = useRef(true);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+  const finishTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => { finishTimersRef.current.forEach(clearTimeout); }, []);
 
   // Soft scroll lock: block user wheel/touch/key scrolling ONLY during flight.
   useEffect(() => {
@@ -189,9 +193,11 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
       if (!hasCompletedRef.current && orderedReadyRef.current) {
         hasCompletedRef.current = true;
         // Celebrate one second after the last card lands in the collection.
-        const yay = setTimeout(playPackYay, DEAL_YAY_DELAY_MS);
-        const done = setTimeout(onComplete, DEAL_YAY_DELAY_MS + 400);
-        return () => { clearTimeout(yay); clearTimeout(done); };
+        // Timers live in a ref so a re-render can't cancel them; unmount clears them.
+        finishTimersRef.current.push(
+          setTimeout(playPackYay, DEAL_YAY_DELAY_MS),
+          setTimeout(() => onCompleteRef.current(), DEAL_YAY_DELAY_MS + 400),
+        );
       }
       return;
     }
