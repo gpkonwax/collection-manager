@@ -42,6 +42,11 @@ class FakeIntersectionObserver {
 
 const realObserver = (globalThis as unknown as { IntersectionObserver?: unknown }).IntersectionObserver;
 
+// jsdom only runs animation frames when something drives them; route them
+// through timers so the fake clock advances the deal animation's layout waits.
+const realRaf = globalThis.requestAnimationFrame;
+const rafStub = (cb: FrameRequestCallback) => setTimeout(() => cb(Date.now()), 16) as unknown as number;
+
 const CARD = { id: 'asset-1', name: 'Card One', category: 'series1' } as never;
 
 // A grid cell sitting comfortably inside the viewport, so no scrolling is needed.
@@ -76,11 +81,13 @@ beforeEach(() => {
   FakeAudio.log = [];
   (globalThis as unknown as { Audio: unknown }).Audio = FakeAudio;
   (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = FakeIntersectionObserver;
+  globalThis.requestAnimationFrame = rafStub;
 });
 
 afterEach(() => {
   (globalThis as unknown as { Audio: unknown }).Audio = realAudio;
   (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = realObserver;
+  globalThis.requestAnimationFrame = realRaf;
 });
 
 describe('deal animation celebration', () => {
