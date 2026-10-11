@@ -2931,7 +2931,7 @@ export default function SimpleAssetsPage() {
                   <li><strong>Public IPFS gateway rotation</strong> — multiple public gateways are raced in parallel; the fastest healthy one wins. Strict timeouts (cards ~6s, detail view ~3.5s, max 8s) prevent dead gateways from hanging the UI.</li>
                   <li><strong>Primary mirror</strong> — a frozen snapshot of every card/pack/puzzle image is hosted on GitHub Pages. It mirrors IPFS paths exactly, so the same image URL resolves identically and is used automatically when public gateways fail.</li>
                   <li><strong>Backup mirrors</strong> — Backup A is Netlify; Backup B is Cloudflare Pages. You can manually switch to a backup mirror from the Offline backup panel.</li>
-                  <li><strong>Data mirror</strong> — a separate Cloudflare-hosted backup of the puzzle scans, pack artwork and the holders manifest. These load from the mirror first, with geepeekay.com only as a fallback, so the Puzzle Builder and wallet dropdown keep working even if the original host disappears.</li>
+                  <li><strong>Data mirror</strong> — a separate Cloudflare-hosted backup of the puzzle scans, pack artwork and the holders manifest. These load from the mirror first, so the Puzzle Builder and wallet dropdown keep working even if the original hosts disappear.</li>
                   <li><strong>Hash verification</strong> — every mirrored file is recorded in a pinned manifest with its SHA-256 hash. The app verifies bytes before using them, so you don't have to trust the host — only the math.</li>
                   <li><strong>Local ZIP / fully offline backup</strong> — download split ZIP parts from the GitHub Release and load them into the browser on demand for a fully local session with no reliance on IPFS or mirrors. ZIPs stay loaded for the browser session.</li>
                   <li><strong>Live image-source indicator</strong> — the header pill shows which layer is currently healthy: IPFS → Primary mirror → Backup A → Local ZIP → None. Background canary checks run every 60 seconds and on tab focus.</li>
@@ -2959,7 +2959,7 @@ export default function SimpleAssetsPage() {
                   <li>Variant descriptions appear in the filter dropdown, so you always know what a Prism, Sketch, VHS or Slime card actually is.</li>
                   <li>Multiple sort options: natural order, mint number, name, variant rarity, and recently received.</li>
                   <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
-                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme inspired by geepeekay.com, set on a candyland background with clearly framed soft-blue windows — switch any time from the header.</li>
+                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme set on a candyland background with clearly framed soft-blue windows — switch any time from the header.</li>
                 </ul>
               </div>
               <div>
@@ -3771,7 +3771,7 @@ export default function SimpleAssetsPage() {
             </p>
             <p className="text-cheese/80">This was peak WAX.</p>
             <p>
-              Original pack artwork for <strong className="text-cheese/80">Series 1, Series 2, and Tiger King</strong> packs, plus the classic puzzle card-back scans and reference images used in the Puzzle Builder, are displayed courtesy of <a href="https://geepeekay.com" target="_blank" rel="noopener noreferrer" className="text-cheese hover:underline">geepeekay.com</a>.
+              Original pack artwork for <strong className="text-cheese/80">Series 1, Series 2, and Tiger King</strong> packs comes from the official Topps/WAX IPFS releases. The classic puzzle card-back scans and reference images used in the Puzzle Builder are displayed courtesy of <a href="https://geepeekay.com" target="_blank" rel="noopener noreferrer" className="text-cheese hover:underline">geepeekay.com</a>.
             </p>
             <p>
               No fees are charged by this tool. Use at your own risk — blockchain transactions are irreversible. Nothing here constitutes financial, legal, or investment advice. Rights holders with concerns or takedown requests may contact us at{' '}
