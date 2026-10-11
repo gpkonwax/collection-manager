@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
-import { compareNaturalCards, compareByOriginalMint } from '@/lib/cardGridSort';
+import { compareNaturalCards, compareByOriginalMint, compareByMintAscending } from '@/lib/cardGridSort';
 
 const card = (id: string, mintNumber?: number, overrides: Partial<SimpleAsset> = {}): SimpleAsset => ({
   id, owner: 'collector', author: 'gpk.topps', category: 'series2', name: 'Card',
@@ -97,5 +97,33 @@ describe('binder stack ordering by original mint', () => {
       card('sa', 7),
     ];
     expect(cards.sort(compareByOriginalMint).map((asset) => asset.id)).toEqual(['sa', 'aa']);
+  });
+});
+
+describe('mint number sort (low → high)', () => {
+  it('sorts by original mint across both contracts, unresolved last', () => {
+    const cards = [
+      card('1', 300, { cardid: '9' }),
+      card('2', undefined, { cardid: '1', source: 'atomicassets', idata: { bridge_mint: '1' } }),
+      card('3', 5, { cardid: '4' }),
+      card('4', 24, { cardid: '2' }),
+    ];
+    expect(cards.sort(compareByMintAscending).map((asset) => asset.id)).toEqual(['3', '4', '1', '2']);
+  });
+
+  it('uses the original mint, never the bridge mint', () => {
+    const cards = [
+      card('aa', undefined, { source: 'atomicassets', idata: { bridge_mint: '1' } }),
+      card('sa', 900),
+    ];
+    expect(cards.sort(compareByMintAscending).map((asset) => asset.id)).toEqual(['sa', 'aa']);
+  });
+
+  it('keeps natural card order for cards sharing the same mint number', () => {
+    const cards = [
+      card('1', 12, { cardid: '5', quality: 'prism' }),
+      card('2', 12, { cardid: '3' }),
+    ];
+    expect(cards.sort(compareByMintAscending).map((asset) => asset.id)).toEqual(['2', '1']);
   });
 });
