@@ -29,6 +29,19 @@ class FakeAudio {
 
 const realAudio = globalThis.Audio;
 
+// The card artwork inside the deal animation watches the viewport before
+// loading; jsdom has no such observer, so give it one that simply never fires.
+class FakeIntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+}
+
+const realObserver = (globalThis as unknown as { IntersectionObserver?: unknown }).IntersectionObserver;
+
 const CARD = { id: 'asset-1', name: 'Card One', category: 'series1' } as never;
 
 // A grid cell sitting comfortably inside the viewport, so no scrolling is needed.
