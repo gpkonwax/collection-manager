@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { IpfsMedia } from '@/components/simpleassets/IpfsMedia';
 import shuffleSfx from '@/assets/card-shuffle.mp3';
 import landSfx from '@/assets/card-land.mp3';
-import { playPackYay } from '@/lib/packYay';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 
 interface CardDealAnimationProps {
@@ -19,7 +18,10 @@ const LAND_PAUSE = 700;
 const INITIAL_SHUFFLE_DELAY = 2200;
 const FLY_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const SCROLL_TIMEOUT = 1500;
-export const DEAL_YAY_DELAY_MS = 2000;
+// Breathing room after the final card lands before the deal closes and the
+// success dialog opens. There is deliberately no celebration sound here — the
+// yay belongs to the reveal window (see usePackRevealAudio), not the deal.
+export const DEAL_FINISH_PAUSE_MS = 400;
 
 // Wait for window scroll to settle. Uses `scrollend` when available; otherwise
 // polls for stability. Resolves immediately if already at target (±2 px).
@@ -153,7 +155,6 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     }
     orderedCards.slice(dealIndex).forEach(c => onCardDealt(c.id));
     hasCompletedRef.current = true;
-    playPackYay();
     onComplete();
   }, [orderedCards, dealIndex, onCardDealt, onComplete]);
 
@@ -192,11 +193,10 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     if (dealIndex >= orderedCards.length) {
       if (!hasCompletedRef.current && orderedReadyRef.current) {
         hasCompletedRef.current = true;
-        // Celebrate two seconds after the last card lands in the collection.
-        // Timers live in a ref so a re-render can't cancel them; unmount clears them.
+        // Let the final landing settle before the deal closes. Timers live in a
+        // ref so a re-render can't cancel them; unmount clears them.
         finishTimersRef.current.push(
-          setTimeout(playPackYay, DEAL_YAY_DELAY_MS),
-          setTimeout(() => onCompleteRef.current(), DEAL_YAY_DELAY_MS + 400),
+          setTimeout(() => onCompleteRef.current(), DEAL_FINISH_PAUSE_MS),
         );
       }
       return;

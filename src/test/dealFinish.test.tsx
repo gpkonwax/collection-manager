@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/react';
-import { CardDealAnimation, DEAL_YAY_DELAY_MS } from '@/components/simpleassets/CardDealAnimation';
+import { CardDealAnimation, DEAL_FINISH_PAUSE_MS } from '@/components/simpleassets/CardDealAnimation';
 
 // Records every sound the deal animation creates, tagged with the fake-clock
-// time of its creation, so we can measure the gap between the final landing
-// thud and the celebration.
+// time of its creation, so we can prove the celebration clip is never played
+// here and measure the gap between the final landing thud and the deal closing.
 interface LoggedAudio {
   src: string;
   t: number;
@@ -64,16 +64,30 @@ const cell = {
   scrollIntoView: () => {},
 } as unknown as HTMLElement;
 
-function renderDeal() {
+function renderDeal(onComplete = () => {}) {
   const gridCellRefs = { current: new Map<string, HTMLElement | null>([['asset-1', cell]]) };
   return render(
     <CardDealAnimation
       cards={[CARD]}
       gridCellRefs={gridCellRefs as never}
       onCardDealt={() => {}}
-      onComplete={() => {}}
+      onComplete={onComplete}
     />,
   );
+}
+
+async function dealOneCard(onComplete = () => {}) {
+  // React flushes queued work at await boundaries, so the clock has to move
+  // in small steps: one big jump would leave the finish timer unscheduled
+  // until long after the card actually landed.
+  await act(async () => {
+    renderDeal(onComplete);
+  });
+  for (let slice = 0; slice < 400; slice++) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20);
+    });
+  }
 }
 
 beforeEach(() => {
@@ -89,21 +103,11 @@ afterEach(() => {
   globalThis.requestAnimationFrame = realRaf;
 });
 
-describe('deal animation celebration', () => {
-  it('plays the yay two seconds after the final card lands', async () => {
+describe('deal animation finish', () => {
+  it('never plays the celebration yay after the last card lands', async () => {
     vi.useFakeTimers();
     try {
-      // React flushes queued work at await boundaries, so the clock has to move
-      // in small steps: one big jump would leave the celebration timer unscheduled
-      // until long after the card actually landed.
-      await act(async () => {
-        renderDeal();
-      });
-      for (let slice = 0; slice < 600; slice++) {
-        await act(async () => {
-          await vi.advanceTimersByTimeAsync(20);
-        });
-      }
+      await dealOneCard();
     } finally {
       vi.useRealTimers();
     }
@@ -111,14 +115,31 @@ describe('deal animation celebration', () => {
     const lands = FakeAudio.log.filter(a => a.src.includes('card-land'));
     const yays = FakeAudio.log.filter(a => a.src.includes('pack-reveal-complete'));
 
-    // The card is dealt with exactly one landing thud and celebrated exactly once.
+    // The card is dealt with exactly one landing thud...
     expect(lands).toHaveLength(1);
-    expect(yays).toHaveLength(1);
+    // ...and the deal stays silent: no yay, from this component or anywhere else.
+    expect(yays).toHaveLength(0);
+  });
 
-    const gap = yays[0].t - lands[0].t;
-    expect(gap).toBeGreaterThanOrEqual(DEAL_YAY_DELAY_MS);
+  it('closes the deal shortly after the final card lands', async () => {
+    vi.useFakeTimers();
+    let completedAt = -1;
+    try {
+      await dealOneCard(() => {
+        completedAt = Date.now();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const lands = FakeAudio.log.filter(a => a.src.includes('card-land'));
+    expect(lands).toHaveLength(1);
+    expect(completedAt).toBeGreaterThanOrEqual(0);
+
+    const gap = completedAt - lands[0].t;
+    expect(gap).toBeGreaterThanOrEqual(DEAL_FINISH_PAUSE_MS);
     // Allow the slop of one 20 ms clock step plus React's flush at the boundary.
-    expect(gap).toBeLessThan(DEAL_YAY_DELAY_MS + 100);
-    expect(DEAL_YAY_DELAY_MS).toBe(2000);
+    expect(gap).toBeLessThan(DEAL_FINISH_PAUSE_MS + 100);
+    expect(DEAL_FINISH_PAUSE_MS).toBe(400);
   });
 });
