@@ -27,8 +27,6 @@ class FakeAudio {
   addEventListener() {}
 }
 
-const realAudio = globalThis.Audio;
-
 // The card artwork inside the deal animation watches the viewport before
 // loading; jsdom has no such observer, so give it one that simply never fires.
 class FakeIntersectionObserver {
@@ -40,12 +38,15 @@ class FakeIntersectionObserver {
   }
 }
 
+const realAudio = globalThis.Audio;
 const realObserver = (globalThis as unknown as { IntersectionObserver?: unknown }).IntersectionObserver;
+const realRaf = globalThis.requestAnimationFrame;
 
 // jsdom only runs animation frames when something drives them; route them
 // through timers so the fake clock advances the deal animation's layout waits.
-const realRaf = globalThis.requestAnimationFrame;
 const rafStub = (cb: FrameRequestCallback) => setTimeout(() => cb(Date.now()), 16) as unknown as number;
+
+const probes: string[] = [];
 
 const CARD = { id: 'asset-1', name: 'Card One', category: 'series1' } as never;
 
@@ -54,21 +55,21 @@ const cell = {
   getBoundingClientRect: () => {
     probes.push('rect');
     return {
-    top: 300,
-    left: 100,
-    width: 160,
-    height: 224,
-    right: 260,
-    bottom: 524,
-    x: 100,
-    y: 300,
-    toJSON: () => ({}),
+      top: 300,
+      left: 100,
+      width: 160,
+      height: 224,
+      right: 260,
+      bottom: 524,
+      x: 100,
+      y: 300,
+      toJSON: () => ({}),
     };
-  }),
-  scrollIntoView: () => { probes.push('scrollIntoView'); },
+  },
+  scrollIntoView: () => {
+    probes.push('scrollIntoView');
+  },
 } as unknown as HTMLElement;
-
-const probes: string[] = [];
 
 function renderDeal() {
   const gridCellRefs = { current: new Map<string, HTMLElement | null>([['asset-1', cell]]) };
@@ -84,11 +85,6 @@ function renderDeal() {
 
 beforeEach(() => {
   probes.length = 0;
-  const realScrollTo = window.scrollTo;
-  (window as unknown as { scrollTo: unknown }).scrollTo = (...args: unknown[]) => {
-    probes.push('scrollTo:' + JSON.stringify(args[0]));
-    (realScrollTo as (...a: unknown[]) => void)(...args);
-  };
   FakeAudio.log = [];
   (globalThis as unknown as { Audio: unknown }).Audio = FakeAudio;
   (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = FakeIntersectionObserver;
@@ -106,22 +102,19 @@ describe('deal animation celebration', () => {
     vi.useFakeTimers();
     try {
       renderDeal();
-      // Shuffle settle + sit + fly + land pause leaves well under 10s; the yay
-      // lands two seconds after that, so 20s of fake time covers the whole run.
       await vi.advanceTimersByTimeAsync(20_000);
     } finally {
       vi.useRealTimers();
     }
 
-    console.log('PROBES', probes.length, JSON.stringify(probes.slice(0, 8)));
-    console.log('AUDIO_LOG', JSON.stringify(FakeAudio.log.map(a => ({src: String(a.src).slice(0,60), t: a.t}))));
+    console.log('PROBES', probes.length, JSON.stringify(probes.slice(0, 10)));
+    console.log('AUDIO_LOG', JSON.stringify(FakeAudio.log.map(a => ({ src: String(a.src).slice(0, 40), t: a.t }))));
+
     const lands = FakeAudio.log.filter(a => a.src.includes('card-land'));
     const yays = FakeAudio.log.filter(a => a.src.includes('pack-reveal-complete'));
 
-    // The card must have been dealt (one landing thud) and celebrated exactly once.
     expect(lands).toHaveLength(1);
     expect(yays).toHaveLength(1);
-
     expect(yays[0].t - lands[0].t).toBe(DEAL_YAY_DELAY_MS);
     expect(DEAL_YAY_DELAY_MS).toBe(2000);
   });
