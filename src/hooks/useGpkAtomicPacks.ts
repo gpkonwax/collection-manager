@@ -58,7 +58,7 @@ export const PACK_CONFIG: Record<string, PackConfig> = {
   '48479':  { contract: 'burnieunpack', cards: 2, openMode: 'transfer', disabled: true, disabledReason: BURNIE_FROZEN },
   '51437':  { contract: 'burnieunpack', cards: 5, openMode: 'transfer', disabled: true, disabledReason: BURNIE_FROZEN },
   '53187':  { contract: 'gpkpoolunbox', cards: 3, openMode: 'pool_claim', transferMemo: 'gamestonk', poolAccount: 'gpkpools1111' },
-  '59072':  { contract: 'atomicpacksx', cards: 3, openMode: 'transfer' },
+  '59072':  { contract: 'gpkpoolunbox', cards: 3, openMode: 'pool_claim', transferMemo: 'foodfight', poolAccount: 'gpkpools1111' },
   '59489':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
   '59490':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
   '59491':  { contract: 'unbox.nft', cards: 3, openMode: 'unbox_nft', transferTo: 'unbox.nft', transferMemo: 'open pack', collectionName: 'gpk.topps' },
