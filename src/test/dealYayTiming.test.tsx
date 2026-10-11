@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render } from '@testing-library/react';
+import { act, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render } from '@testing-library/react';
 import { CardDealAnimation, DEAL_YAY_DELAY_MS } from '@/components/simpleassets/CardDealAnimation';
 
 // Records every sound the deal animation creates, tagged with the fake-clock
@@ -46,29 +46,22 @@ const realRaf = globalThis.requestAnimationFrame;
 // through timers so the fake clock advances the deal animation's layout waits.
 const rafStub = (cb: FrameRequestCallback) => setTimeout(() => cb(Date.now()), 16) as unknown as number;
 
-const probes: string[] = [];
-
 const CARD = { id: 'asset-1', name: 'Card One', category: 'series1' } as never;
 
 // A grid cell sitting comfortably inside the viewport, so no scrolling is needed.
 const cell = {
-  getBoundingClientRect: () => {
-    probes.push('rect');
-    return {
-      top: 300,
-      left: 100,
-      width: 160,
-      height: 224,
-      right: 260,
-      bottom: 524,
-      x: 100,
-      y: 300,
-      toJSON: () => ({}),
-    };
-  },
-  scrollIntoView: () => {
-    probes.push('scrollIntoView');
-  },
+  getBoundingClientRect: () => ({
+    top: 300,
+    left: 100,
+    width: 160,
+    height: 224,
+    right: 260,
+    bottom: 524,
+    x: 100,
+    y: 300,
+    toJSON: () => ({}),
+  }),
+  scrollIntoView: () => {},
 } as unknown as HTMLElement;
 
 function renderDeal() {
@@ -84,7 +77,6 @@ function renderDeal() {
 }
 
 beforeEach(() => {
-  probes.length = 0;
   FakeAudio.log = [];
   (globalThis as unknown as { Audio: unknown }).Audio = FakeAudio;
   (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = FakeIntersectionObserver;
@@ -101,30 +93,32 @@ describe('deal animation celebration', () => {
   it('plays the yay two seconds after the final card lands', async () => {
     vi.useFakeTimers();
     try {
-      // React schedules its work through the scheduler queue, so give it a
-      // chance to flush after every slice of the fake clock rather than
-      // jumping 20 seconds in one go.
+      // React flushes queued work at await boundaries, so the clock has to move
+      // in small steps: one big jump would leave the celebration timer unscheduled
+      // until long after the card actually landed.
       await act(async () => {
         renderDeal();
       });
-      for (let slice = 0; slice < 40; slice++) {
+      for (let slice = 0; slice < 600; slice++) {
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(500);
+          await vi.advanceTimersByTimeAsync(20);
         });
       }
     } finally {
       vi.useRealTimers();
     }
 
-    console.log('PROBES', probes.length, JSON.stringify(probes.slice(0, 10)));
-    console.log('AUDIO_LOG', JSON.stringify(FakeAudio.log.map(a => ({ src: String(a.src).slice(0, 40), t: a.t }))));
-
     const lands = FakeAudio.log.filter(a => a.src.includes('card-land'));
     const yays = FakeAudio.log.filter(a => a.src.includes('pack-reveal-complete'));
 
+    // The card is dealt with exactly one landing thud and celebrated exactly once.
     expect(lands).toHaveLength(1);
     expect(yays).toHaveLength(1);
-    expect(yays[0].t - lands[0].t).toBe(DEAL_YAY_DELAY_MS);
+
+    const gap = yays[0].t - lands[0].t;
+    expect(gap).toBeGreaterThanOrEqual(DEAL_YAY_DELAY_MS);
+    // Allow the slop of one 20 ms clock step plus React's flush at the boundary.
+    expect(gap).toBeLessThan(DEAL_YAY_DELAY_MS + 100);
     expect(DEAL_YAY_DELAY_MS).toBe(2000);
   });
 });
