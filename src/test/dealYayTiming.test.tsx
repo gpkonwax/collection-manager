@@ -75,10 +75,12 @@ function renderDeal() {
 beforeEach(() => {
   FakeAudio.log = [];
   (globalThis as unknown as { Audio: unknown }).Audio = FakeAudio;
+  (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = FakeIntersectionObserver;
 });
 
 afterEach(() => {
   (globalThis as unknown as { Audio: unknown }).Audio = realAudio;
+  (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = realObserver;
 });
 
 describe('deal animation celebration', () => {
