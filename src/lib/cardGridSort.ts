@@ -14,6 +14,17 @@ export function compareByOriginalMint(a: SimpleAsset, b: SimpleAsset): number {
   return 0;
 }
 
+/** Mint-number sort: lowest original mint first, unresolved last; ties keep natural card order. */
+export function compareByMintAscending(a: SimpleAsset, b: SimpleAsset): number {
+  const mintA = Number(getMintLabel(a).slice(1));
+  const mintB = Number(getMintLabel(b).slice(1));
+  const validA = Number.isFinite(mintA) && mintA > 0;
+  const validB = Number.isFinite(mintB) && mintB > 0;
+  if (validA && validB && mintA !== mintB) return mintA - mintB;
+  if (validA !== validB) return validA ? -1 : 1;
+  return compareNaturalCards(a, b);
+}
+
 /** Natural grid order: card number, side, variant, then original mint for copies of one card. */
 export function compareNaturalCards(a: SimpleAsset, b: SimpleAsset): number {
   // Match card identity before parsing its number: some collections use

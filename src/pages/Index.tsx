@@ -104,7 +104,7 @@ import { toast } from 'sonner';
 import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
-import { compareNaturalCards, compareByOriginalMint } from '@/lib/cardGridSort';
+import { compareNaturalCards, compareByOriginalMint, compareByMintAscending } from '@/lib/cardGridSort';
 import { parseSlotIds, encodeStackSlot, areDuplicateCards, mergeStackIds } from '@/lib/savedLayoutStacks';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
@@ -372,7 +372,7 @@ export default function SimpleAssetsPage() {
   const [retroOn, setRetroOn] = useState(false);
   useEffect(() => { if (!retroEligible) setRetroOn(false); }, [retroEligible]);
   const retroActive = retroEligible && retroOn;
-  type SortMode = 'natural' | 'name' | 'variant' | 'newest';
+  type SortMode = 'natural' | 'name' | 'variant' | 'newest' | 'mint';
   const [sortMode, setSortMode] = useState<SortMode>('natural');
   const [viewMode, setViewMode] = useState<ViewMode>('classic');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
@@ -1516,6 +1516,7 @@ export default function SimpleAssetsPage() {
   const sortedFiltered = useMemo(() => {
     if (sortMode === 'natural') return filtered;
     const arr = [...filtered];
+    if (sortMode === 'mint') { arr.sort(compareByMintAscending); return arr; }
     if (sortMode === 'newest') {
       arr.sort((a, b) => {
         const aT = typeof a.transferredAt === 'number' ? a.transferredAt : undefined;
@@ -2956,7 +2957,7 @@ export default function SimpleAssetsPage() {
                   <li>Filter by any GPK sub-collection (Series 1, Series 2, Crash Gordon, Tiger King, etc.).</li>
                   <li>Drill down by variant — Base, Prism, Sketch, VHS, Slime, Tiger Stripe, Gold, and more.</li>
                   <li>Variant descriptions appear in the filter dropdown, so you always know what a Prism, Sketch, VHS or Slime card actually is.</li>
-                  <li>Multiple sort options: natural order, name, variant rarity, and recently received.</li>
+                  <li>Multiple sort options: natural order, mint number, name, variant rarity, and recently received.</li>
                   <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
                   <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme inspired by geepeekay.com, set on a candyland background with clearly framed soft-blue windows — switch any time from the header.</li>
                 </ul>
@@ -3472,6 +3473,7 @@ export default function SimpleAssetsPage() {
                   <SelectContent>
                     <SelectItem value="natural">Natural (Card ID)</SelectItem>
                     <SelectItem value="newest">Recently received</SelectItem>
+                    <SelectItem value="mint">Mint Number (Low → High)</SelectItem>
                     <SelectItem value="name">Name (A–Z)</SelectItem>
                     <SelectItem value="variant">Variant Rarity</SelectItem>
                   </SelectContent>
