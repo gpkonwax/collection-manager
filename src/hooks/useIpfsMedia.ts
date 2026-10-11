@@ -235,6 +235,16 @@ function setCachedLoadedUrl(hash: string, url: string) {
 }
 
 /**
+ * Record a URL that a background preloader already fetched successfully, so
+ * grid tiles mounting later render straight from the browser cache.
+ */
+export function primeLoadedUrl(hash: string, url: string) {
+  if (!hash || !url || url.startsWith('blob:') || url.startsWith('data:')) return;
+  if (loadedUrlCache.has(hash)) return;
+  setCachedLoadedUrl(hash, url);
+}
+
+/**
  * Race the first N gateways in parallel for a given hash.
  * Resolves with the winning gateway index (relative to IPFS_GATEWAYS) as soon
  * as one Image finishes loading, or null if all N time out / error.
