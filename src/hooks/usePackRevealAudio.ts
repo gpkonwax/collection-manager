@@ -93,17 +93,22 @@ export function usePackRevealAudio({ open, phase, isShaking, revealedCount, tota
     }
   }, [open, phase, isShaking, revealedCount]);
 
-  // Play the celebration sound once per opening, when the final card is revealed.
+  // Both reveal dialogs flip for 600ms. Celebrate one second after that finishes.
+  // Keep this true through collection so the phase change cannot cancel the timer.
+  const allRevealed = open && ['revealing', 'collect', 'collecting', 'done'].includes(phase)
+    && totalCards > 0 && revealedCount >= totalCards;
   useEffect(() => {
     const completeAudio = completeAudioRef.current;
     if (!completeAudio) return;
     if (completePlayedRef.current) return;
 
-    const allRevealed = open && phase === 'revealing' && totalCards > 0 && revealedCount >= totalCards;
     if (allRevealed) {
-      completePlayedRef.current = true;
-      completeAudio.currentTime = 0;
-      completeAudio.play().catch(() => {});
+      const timer = setTimeout(() => {
+        completePlayedRef.current = true;
+        completeAudio.currentTime = 0;
+        completeAudio.play().catch(() => {});
+      }, 600 + 1000);
+      return () => clearTimeout(timer);
     }
-  }, [open, phase, revealedCount, totalCards]);
+  }, [allRevealed]);
 }
