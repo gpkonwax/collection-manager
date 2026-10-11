@@ -36,6 +36,7 @@ import { IPFS_GATEWAYS, extractIpfsHash } from '@/lib/ipfsGateways';
 import { preloadRevealImage } from '@/lib/revealImageSources';
 import { loadPinnedManifest } from '@/lib/remoteMirror';
 import { recordFreshMints, getFreshMintIds } from '@/lib/freshMints';
+import { setCollectionPreloadProvider } from '@/lib/collectionPreload';
 
 /**
  * Preload one image URL mirror-first: local ZIP → configured mirrors (raced
@@ -672,6 +673,15 @@ export default function SimpleAssetsPage() {
   const preCollectIdsRef = useRef<Set<string>>(new Set());
   const pendingAnimationRef = useRef<{ txId: string | null } | null>(null);
   const assetsRef = useRef<SimpleAsset[]>([]);
+  // While a pack is revealed, warm this category's grid images (bottom of the
+  // grid first — that's where the deal animation scrolls to).
+  useEffect(() => {
+    setCollectionPreloadProvider((category) => {
+      const inCat = assetsRef.current.filter((a) => (SCHEMA_TO_CATEGORY[a.category] || a.category) === category);
+      return [...inCat].sort(compareNaturalCards).reverse().map((a) => a.image);
+    });
+    return () => setCollectionPreloadProvider(null);
+  }, []);
   const [dealingCards, setDealingCards] = useState<SimpleAsset[]>([]);
   const [dealtIds, setDealtIds] = useState<Set<string>>(new Set());
   const [pendingSuccessInfo, setPendingSuccessInfo] = useState<{ txId: string | null; count: number } | null>(null);

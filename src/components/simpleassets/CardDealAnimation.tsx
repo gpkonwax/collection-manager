@@ -19,6 +19,7 @@ const LAND_PAUSE = 700;
 const INITIAL_SHUFFLE_DELAY = 2200;
 const FLY_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const SCROLL_TIMEOUT = 1500;
+export const DEAL_YAY_DELAY_MS = 1000;
 
 // Wait for window scroll to settle. Uses `scrollend` when available; otherwise
 // polls for stability. Resolves immediately if already at target (±2 px).
@@ -116,6 +117,10 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
   const [flyTarget, setFlyTarget] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const hasCompletedRef = useRef(false);
   const isFirstCardRef = useRef(true);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+  const finishTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => { finishTimersRef.current.forEach(clearTimeout); }, []);
 
   // Soft scroll lock: block user wheel/touch/key scrolling ONLY during flight.
   useEffect(() => {
@@ -187,9 +192,12 @@ export function CardDealAnimation({ cards, gridCellRefs, onCardDealt, onComplete
     if (dealIndex >= orderedCards.length) {
       if (!hasCompletedRef.current && orderedReadyRef.current) {
         hasCompletedRef.current = true;
-        playPackYay();
-        const t = setTimeout(onComplete, 400);
-        return () => clearTimeout(t);
+        // Celebrate one second after the last card lands in the collection.
+        // Timers live in a ref so a re-render can't cancel them; unmount clears them.
+        finishTimersRef.current.push(
+          setTimeout(playPackYay, DEAL_YAY_DELAY_MS),
+          setTimeout(() => onCompleteRef.current(), DEAL_YAY_DELAY_MS + 400),
+        );
       }
       return;
     }
