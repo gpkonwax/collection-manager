@@ -101,8 +101,17 @@ describe('deal animation celebration', () => {
   it('plays the yay two seconds after the final card lands', async () => {
     vi.useFakeTimers();
     try {
-      renderDeal();
-      await vi.advanceTimersByTimeAsync(20_000);
+      // React schedules its work through the scheduler queue, so give it a
+      // chance to flush after every slice of the fake clock rather than
+      // jumping 20 seconds in one go.
+      await act(async () => {
+        renderDeal();
+      });
+      for (let slice = 0; slice < 40; slice++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(500);
+        });
+      }
     } finally {
       vi.useRealTimers();
     }
