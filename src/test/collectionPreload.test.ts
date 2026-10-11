@@ -22,8 +22,8 @@ describe('collection preload during reveal', () => {
     expect(pendingPreloadUrls([a, b, null, undefined])).toEqual([a]);
   });
 
-  it('keeps preloading gentle and celebrates 1s after the last card lands', () => {
+  it('keeps preloading gentle and celebrates 2s after the last card lands', () => {
     expect(PRELOAD_CONCURRENCY).toBe(6);
-    expect(DEAL_YAY_DELAY_MS).toBe(1000);
+    expect(DEAL_YAY_DELAY_MS).toBe(2000);
   });
 });
