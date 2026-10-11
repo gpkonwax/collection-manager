@@ -24,3 +24,5 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Bridge and transfer window rules live in src/components/simpleassets/AGENTS.md.
 - Pack transfers: token packs via packs.topps::transfer by quantity, AtomicAssets packs via atomicassets::transfer by asset ID; pack and card selections are mutually exclusive (details in src/components/simpleassets/AGENTS.md).
 - Encode saved-layout stacks as comma-joined asset IDs in savedOrder; merge duplicates by card identity or sassets_id bridged twins, never by name (keeps old JSON exports readable).
+
+- Pack reveal windows start src/lib/collectionPreload.ts for the dealt collection (mirror-first, 6 at a time, bottom of grid first) and never cancel it on close, because the deal animation scrolls through that grid right after the window closes.
