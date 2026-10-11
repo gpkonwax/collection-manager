@@ -47,6 +47,18 @@ export function buildOpenPackActions(
     ];
   }
 
+  if (config.openMode === 'pool_claim') {
+    // Single transfer with the pool's memo; the pool delivers cards itself.
+    return [
+      {
+        account: 'atomicassets',
+        name: 'transfer',
+        authorization: auth,
+        data: { from: actor, to: config.contract, asset_ids: [assetId], memo: config.transferMemo || '' },
+      },
+    ];
+  }
+
   // Default: single transfer action (gpkcrashpack, burnieunpack, atomicpacksx)
   return [
     {

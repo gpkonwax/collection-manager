@@ -12,6 +12,7 @@ import { closeWharfkitModals, getTransactPlugins } from '@/lib/wharfKit';
 import { getCachedTemplate, setCachedTemplate } from '@/lib/templateCache';
 import { usePackRevealAudio } from '@/hooks/usePackRevealAudio';
 import { findRandnotifyForPack } from '@/lib/stuckPackDetect';
+import { findPoolDelivery } from '@/lib/poolPackDelivery';
 import { recordStuckPack, buildStuckPackReportText } from '@/lib/stuckPackStorage';
 import type { PackOpenMode } from '@/hooks/useGpkAtomicPacks';
 import type { RevealResult, RevealMatcher } from '@/lib/packReveal';
@@ -46,6 +47,8 @@ interface AtomicPackRevealDialogProps {
   onDemoCollect?: () => void;
   /** Optional tx id of the transfer-to-contract that started the open. Used in stuck-pack reports. */
   transferTxId?: string | null;
+  /** pool_claim mode: account that delivers the cards. */
+  poolAccount?: string;
 }
 /** Result row from unbox.nft's results table */
 interface UnboxNftResultRow {
@@ -212,7 +215,7 @@ async function fetchUnboxResults(contract: string, packAssetId: string, accountN
 export function AtomicPackRevealDialog({
   open, onOpenChange, packName, packImage, packAssetId,
   unpackContract, expectedCards, accountName, session, onComplete, openMode = 'transfer',
-  demoCards, onDemoCollect, transferTxId,
+  demoCards, onDemoCollect, transferTxId, poolAccount = 'gpkpools1111',
 }: AtomicPackRevealDialogProps) {
   const isDemo = !!(demoCards && demoCards.length > 0);
   const [phase, setPhase] = useState<'waiting' | 'revealing' | 'collect' | 'collecting' | 'done' | 'stalled'>('waiting');
@@ -258,7 +261,7 @@ export function AtomicPackRevealDialog({
   // RNG callback — the pack is burned with no recovery path from the client.
   useEffect(() => {
     if (!open || phase !== 'waiting' || isDemo || !packAssetId) return;
-    if (openMode === 'unbox_nft') return; // unbox.nft uses a different flow
+    if (openMode === 'unbox_nft' || openMode === 'pool_claim') return; // no RNG callback in these flows
     let cancelled = false;
     let stalledTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -297,6 +300,13 @@ export function AtomicPackRevealDialog({
       if (stalledTimer) clearTimeout(stalledTimer);
     };
   }, [open, phase, isDemo, openMode, unpackContract, packAssetId, packName, accountName, transferTxId]);
+
+  // Pool delivery: if nothing arrives in ~3 minutes, explain instead of spinning.
+  useEffect(() => {
+    if (!open || phase !== 'waiting' || isDemo || openMode !== 'pool_claim') return;
+    const t = setTimeout(() => setPhase((p) => (p === 'waiting' ? 'stalled' : p)), 180000);
+    return () => clearTimeout(t);
+  }, [open, phase, isDemo, openMode]);
 
   // Demo mode: skip polling, show cards after shake
   useEffect(() => {
@@ -348,7 +358,25 @@ export function AtomicPackRevealDialog({
         else if (elapsed > 60000) setWaitMessage('Almost there — the blockchain is a little busy right now. Your cards are safe and will appear shortly.');
         else if (elapsed > 30000) setWaitMessage('Still working... the indexer is processing your cards. Sit tight!');
 
-        if (openMode === 'unbox_nft') {
+        if (openMode === 'pool_claim') {
+          const ids = await findPoolDelivery(accountName, packAssetId, poolAccount);
+          if (cancelled || !ids || ids.length === 0) return;
+          const results = await Promise.all(ids.map(async (id) => {
+            const res = await fetchWithFallback(ATOMIC_API.baseUrls, `${ATOMIC_API.paths.assets}/${id}`, undefined, 10000);
+            const j = await res.json();
+            return j.success ? j.data : null;
+          }));
+          if (cancelled || results.some((a) => !a)) return; // indexer behind — retry next poll
+          clearInterval(interval);
+          const cards: RevealCard[] = results.map((a: any) => {
+            const idata = { ...(a.template?.immutable_data || {}), ...(a.data || {}) };
+            return { asset_id: a.asset_id, name: idata.name || a.name || 'Card', image: resolveImage(idata.img || idata.image), rarity: '' };
+          });
+          setNewCards(cards);
+          setRollIds([]);
+          revealMatchersRef.current = cards.map((c) => ({ kind: 'aa-asset' as const, assetId: c.asset_id }));
+          setPhase('revealing');
+        } else if (openMode === 'unbox_nft') {
           // For unbox.nft: poll the atomic assets API for new assets
           const params = new URLSearchParams({
             owner: accountName, collection_name: 'gpk.topps',
@@ -403,7 +431,7 @@ export function AtomicPackRevealDialog({
       interval = setInterval(poll, POLL_INTERVAL);
     }, 4000);
     return () => { cancelled = true; clearTimeout(startDelay); clearInterval(interval); };
-  }, [open, phase, packAssetId, unpackContract, expectedCards, openMode, accountName]);
+  }, [open, phase, packAssetId, unpackContract, expectedCards, openMode, accountName, poolAccount]);
 
   useEffect(() => {
     if (phase !== 'revealing' || newCards.length === 0 || revealedCount >= newCards.length) return;
@@ -418,7 +446,7 @@ export function AtomicPackRevealDialog({
     if (phase === 'revealing' && revealedCount >= newCards.length && newCards.length > 0) {
       if (isDemo) {
         setPhase('collect');
-      } else if (openMode === 'unbox_nft') {
+      } else if (openMode === 'unbox_nft' || openMode === 'pool_claim') {
         setPhase('collect');
       } else if (rollIds.length > 0) {
         setPhase('collect');
@@ -444,8 +472,8 @@ export function AtomicPackRevealDialog({
       onDemoCollect?.();
       return;
     }
-    // For unbox_nft: no blockchain claim needed, just close with a marker
-    if (openMode === 'unbox_nft') {
+    // unbox_nft / pool_claim: cards already delivered, just close with a marker
+    if (openMode === 'unbox_nft' || openMode === 'pool_claim') {
       setPhase('done');
       const revealPack = { id: packAssetId ?? null, name: packName, image: packImage ?? null };
       const revealCardSnapshots = newCards.map((c, i) => {
@@ -507,7 +535,7 @@ export function AtomicPackRevealDialog({
             <div className="text-center space-y-2">
               <p className="text-lg font-bold text-foreground">Opening {packName}...</p>
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" /><span>Waiting for cards to be minted...</span>
+                <Loader2 className="h-4 w-4 animate-spin" /><span>{openMode === 'pool_claim' ? 'Waiting for the GameStonk pool to deliver your cards…' : 'Waiting for cards to be minted...'}</span>
               </div>
               <p className="text-xs text-muted-foreground/60 max-w-sm text-center">{waitMessage || 'This can take a few seconds to 2–3 minutes depending on the indexer. Don\'t worry — your cards are on their way! You\'ll hear bell rings when they\'re revealed.'}</p>
             </div>
@@ -523,7 +551,24 @@ export function AtomicPackRevealDialog({
             )}
           </div>
         )}
-        {phase === 'stalled' && packAssetId && (
+        {phase === 'stalled' && packAssetId && openMode === 'pool_claim' && (
+          <div className="flex flex-col items-center py-8 px-2 space-y-4 max-w-xl mx-auto">
+            <AlertTriangle className="h-8 w-8 text-cheese" />
+            <h2 className="text-xl font-bold text-foreground text-center">Cards not delivered yet</h2>
+            <p className="text-sm text-muted-foreground text-center">
+              Your <strong className="text-foreground">{packName}</strong> was sent and burned. The cards are delivered by
+              an automated account (<code className="px-1 rounded bg-muted text-xs">{poolAccount}</code>) and will arrive in your
+              wallet automatically when it runs — there is nothing to retry, so don't send another pack for this one.
+            </p>
+            <div className="w-full rounded-md border border-border bg-muted/40 p-3 text-xs font-mono space-y-1">
+              <StalledRow label="Pack asset id" value={packAssetId} />
+              <StalledRow label="Account" value={accountName} href={`https://waxblock.io/account/${accountName}`} />
+              {transferTxId && <StalledRow label="Transfer tx" value={transferTxId} href={`https://waxblock.io/transaction/${transferTxId}`} />}
+            </div>
+            <Button size="sm" variant="outline" onClick={handleClose}>Close &amp; check later</Button>
+          </div>
+        )}
+        {phase === 'stalled' && packAssetId && openMode !== 'pool_claim' && (
           <div className="flex flex-col items-center py-8 px-2 space-y-4 max-w-xl mx-auto">
             <div className="rounded-full bg-destructive/10 p-3">
               <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -621,7 +666,7 @@ export function AtomicPackRevealDialog({
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">Click to see your cards added to the collection</p>
                   </>
-                ) : openMode === 'unbox_nft' ? (
+                ) : openMode === 'unbox_nft' || openMode === 'pool_claim' ? (
                   <>
                     <Button onClick={handleCollect} className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Sparkles className="h-4 w-4 mr-2" />View in Collection

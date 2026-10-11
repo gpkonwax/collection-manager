@@ -2934,17 +2934,19 @@ export default function SimpleAssetsPage() {
                   <li><strong>Hash verification</strong> — every mirrored file is recorded in a pinned manifest with its SHA-256 hash. The app verifies bytes before using them, so you don't have to trust the host — only the math.</li>
                   <li><strong>Local ZIP / fully offline backup</strong> — download split ZIP parts from the GitHub Release and load them into the browser on demand for a fully local session with no reliance on IPFS or mirrors. ZIPs stay loaded for the browser session.</li>
                   <li><strong>Live image-source indicator</strong> — the header pill shows which layer is currently healthy: IPFS → Primary mirror → Backup A → Local ZIP → None. Background canary checks run every 60 seconds and on tab focus.</li>
+                  <li><strong>Records ZIP</strong> — one optional download holding the holders list, original mint numbers and pack-opening provenance. Once loaded it is read before any network source, so mint numbers and card origins still show if AtomicHub or GitHub are unreachable.</li>
                   <li><strong>Offline app bundle</strong> — the manager itself is downloadable as a ZIP and runs locally via <span className="font-mono">open-me.html</span>. Wallet and live chain features still need internet, but image viewing and collection management keep working without any hosted site or mirror.</li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> Collection Views</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li><strong>Classic View</strong> — A clean, read-only grid of your cards in natural sort order. No clutter, just your collection as it is. Supports pagination for large collections and instant search across all card names.</li>
-                  <li><strong>Collector Binder</strong> — Template-based completionist view with real-time completion percentage tracking. Owned cards appear in full color with checkmarks; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need. Duplicate cards are stacked and accessible via a stack dialog showing all copies. Completion stats update live as you open packs or receive transfers.</li>
-                  <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards into any order you like, insert empty spacer slots for custom layouts, and build the perfect display of your collection. Layouts persist across sessions via localStorage, and can be exported as JSON to back up or share with other collectors. Import layouts to restore previous arrangements instantly.</li>
+                  <li><strong>Classic View</strong> — A clean grid of your cards in natural sort order, with endless scrolling for large collections and instant search across all card names. The <strong>Select</strong> function works here: pick any cards and transfer, bridge or burn them without leaving the grid.</li>
+                  <li><strong>Collector Binder</strong> — Template-based completionist view with real-time completion percentage tracking. Owned cards appear in full color with checkmarks; missing cards are greyscale placeholders linked directly to AtomicHub so you can buy what you need. Duplicate cards are stacked into one slot; clicking the stack shows every copy, sorted by lowest original mint. Binder is for browsing only, so selection actions are switched off here. Completion stats update live as you open packs or receive transfers.</li>
+                  <li><strong>Saved Collection</strong> — Your personal workspace. Drag-and-drop to rearrange cards into any order you like, insert empty spacer slots for custom layouts, and build the perfect display of your collection. Layouts persist across sessions via localStorage, and can be exported as JSON to back up or share with other collectors. Import layouts to restore previous arrangements instantly. Drop a card onto an exact duplicate and a quick prompt asks whether to <strong>Stack</strong> the copies together or <strong>Swap</strong> their positions.</li>
                 </ul>
                 <p className="text-foreground mt-2">All three views persist simultaneously — your Classic filters, Binder progress, and Saved layouts are all maintained at once. Switch seamlessly between them using a simple tab interface for unprecedented control over how you manage and view your collection.</p>
+                <p className="text-foreground mt-2">Every card ribbon shows the card's <strong>original mint number</strong> only. Circulating and burned counts live in the tooltip and card details, because bridge order and surviving supply are not the original mint.</p>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🎛️</span> Flexibility</h4>
@@ -2956,20 +2958,21 @@ export default function SimpleAssetsPage() {
                   <li>Variant descriptions appear in the filter dropdown, so you always know what a Prism, Sketch, VHS or Slime card actually is.</li>
                   <li>Multiple sort options: natural order, name, variant rarity, and recently received.</li>
                   <li>Source filter to view SimpleAssets only, AtomicAssets only, or both together.</li>
-                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme inspired by geepeekay.com — switch any time from the header.</li>
+                  <li>Two skins: the original <strong>Dark Cheese</strong> theme and a <strong>Bright</strong> bubblegum theme inspired by geepeekay.com, set on a candyland background with clearly framed soft-blue windows — switch any time from the header.</li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📦</span> Pack Openings</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Most Topps pack types supported — Series 1, Series 2, Tiger King (Exotic), Food Fight, Crash Gordon and Bernventures — with Mittens, GameStonk and more likely soon</li>
+                  <li>Supported now: Series 1, Series 2, Tiger King (Exotic), all Food Fight packs, Crash Gordon and <strong>GameStonk!</strong> GameStonk cards are delivered automatically by the GameStonk pool a few seconds after the pack is sent, so there is no extra claim step.</li>
+                  <li>Bernventures and Mittens are shown but can't be opened: their original opening contract currently burns the pack without minting cards.</li>
                   <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                   <li>Card-by-card reveal animation</li>
                   <li>Choreographed card-deal sequence animates revealed cards into their sorted collection positions with an option to skip animation</li>
-                  <li>Immersive sound design — packs shake, packs rip, and card reveal noises synchronized to the animations. When the cards are dealt listen to your new cards fuse to your collection</li>
+                  <li>Immersive sound design — packs shake, packs rip, and card reveal noises synchronized to the animations. When the cards are dealt listen to your new cards fuse to your collection, and a cheerful <strong>yay</strong> marks both the last card revealed and the last card landing.</li>
                   <li><strong>Pack info popups</strong> — hover any pack to see the original Topps spec sheet: release date, original price, contents, print run and the published odds for each hit.</li>
-                  
-                  <li>View your SimpleAssets packs using the original placeholder artwork.</li>
+                  <li>Pack fronts are the official watermark-free Topps renders, bundled into the app so they show instantly and work offline.</li>
+                  <li>Send packs to other accounts: SimpleAssets token packs by quantity, AtomicAssets packs by individual pack.</li>
                 </ul>
               </div>
               <div>
@@ -2991,6 +2994,9 @@ export default function SimpleAssetsPage() {
                   <li>See both SimpleAssets and AtomicAssets items together.</li>
                   <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
                   <li><strong>Holders dropdown</strong> — the View Wallet box lists every GPK holder, largest to smallest, so you can browse any collection without typing an account name — perfect for finding accounts to trade with.</li>
+                  <li><strong>Active traders</strong> — a live list of accounts that traded GPK in the last 90 days.</li>
+                  <li><strong>Favourites</strong> — star accounts you visit often; export and import the list as JSON.</li>
+                  <li>Account names are always shown in full in every list.</li>
                 </ul>
                 <p className="text-foreground mt-2"><strong>You cannot</strong> see their saved layout, Puzzle Builder, or completion percentage.</p>
                 <p className="text-foreground mt-2">This same read-only browse powers the <strong>trading</strong> flow below — you find the wallet you want to trade with, then propose a swap from there.</p>
@@ -3004,7 +3010,8 @@ export default function SimpleAssetsPage() {
                   <li>Consistent wording throughout: the left side is <strong>You send</strong>, the right side is <strong>They send back</strong>.</li>
                   <li>The trade composer has the same filtering as the homepage — series, variant (including <strong>Packs</strong>), sort and search — and every card shows its mint-number ribbon, card ID, variant and series.</li>
                   <li>The Trades dialog merges both protocols into <strong>Received</strong> and <strong>Sent</strong> tabs, with protocol badges, stale-offer flags, and accept / decline / cancel / counter.</li>
-                  <li>A green number badge on the Trades button counts unread incoming offers from both protocols; opening the dialog clears it.</li>
+                  <li>A green number badge on the Trades button counts unread incoming offers from both protocols, plus <strong>replies</strong> to offers you sent (accepted, declined or countered). Opening the dialog shows each outcome in a <strong>Replies to your offers</strong> panel and clears the badge.</li>
+                  <li>When viewing another wallet's binder, clicking Trade on a stacked duplicate opens every copy with its full details and its own Trade button, so you pick the exact mint you want.</li>
                 </ul>
               </div>
               <div>
@@ -3025,6 +3032,10 @@ export default function SimpleAssetsPage() {
                   <li>Click any card to open a full-detail view with front/back both visible.</li>
                   <li>Cards respond to your cursor with a realistic 3D tilt by default; switch to the magnifying lens to zoom into every line and detail.</li>
                   <li>IPFS-sourced high-resolution images with automatic gateway and mirror fallback.</li>
+                  <li>Details show the <strong>original mint</strong>, the creation date of bridged copies, and pack-opening provenance — who opened it, from which pack and when.</li>
+                  <li><strong>Full on-chain history</strong> for SimpleAssets cards, including early market sales and transfers that public APIs no longer list.</li>
+                  <li>Native AtomicAssets cards show accurate supply (circulating = minted minus burned).</li>
+                  <li>Explorer links go to AtomicHub for AtomicAssets and WAX Explorer for SimpleAssets, always behind the outbound-link warning.</li>
                 </ul>
               </div>
               <div>
@@ -3034,6 +3045,7 @@ export default function SimpleAssetsPage() {
                   <li>Reward your friends and family members with the <strong>'Spaz Award'</strong>, permit them the right to stay up late and watch the <strong>Late Late Late Show</strong>.</li>
                   <li>After taking a screenshot just press the erase button or close the modal and your cards are as good as new!</li>
                   <li>Pick from multiple colors and draw on both front and back images.</li>
+                  <li><strong>Type text</strong> — write a name neatly in one of six bundled handwriting styles, in your chosen ink colour and size, with undo. Works fully offline on cards and packs.</li>
                 </ul>
               </div>
               <div>
@@ -3043,6 +3055,14 @@ export default function SimpleAssetsPage() {
                   <li>Bulk selection mode for transferring or burning multiple cards at once.</li>
                   <li>Burn unwanted NFTs permanently with a "type BURN to confirm" safety check.</li>
                   <li>Mixed selections work seamlessly — select SimpleAssets and AtomicAssets together and the correct contract actions are built automatically.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">🌉</span> Bridge</h4>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  <li>Bridge cards both ways between <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> through the existing atomicbridge — start from the selection bar, beside Transfer and Burn.</li>
+                  <li>Up to 20 cards per transaction. Cards are never burned; the bridge simply holds the original.</li>
+                  <li>Only AtomicAssets cards that began life as SimpleAssets can be bridged back.</li>
                 </ul>
               </div>
               <div>
@@ -3057,7 +3077,7 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">📂</span> Import / Export &amp; Multi-File Load</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Save your Saved Collection layouts, Puzzle Builder progress, Price Alerts, and <strong>Pack Opening History</strong> as JSON files.</li>
+                  <li>Save your Saved Collection layouts, Puzzle Builder progress, Price Alerts, <strong>favourite accounts</strong> and <strong>Pack Opening History</strong> as JSON files.</li>
                   <li><strong>Multi-file import:</strong> drop or select multiple JSON files at once — load every saved category layout, your price alerts, and your puzzle formation in one easy step.</li>
                   <li>Each file is auto-routed to the correct category, alert store, or puzzle layout — no manual sorting required.</li>
                   <li>Recent imports are remembered for quick re-apply, and the unified JSON menu is available in both the main collection view and the Puzzle Builder.</li>
@@ -3164,7 +3184,7 @@ export default function SimpleAssetsPage() {
                 <div className="min-w-0 text-center lg:text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">Pack Openings</h3>
                   <ul className="list-disc pl-5 space-y-1 text-foreground text-sm theme-bright-text">
-                    <li><strong>Supported now:</strong> Series 1, Series 2, Tiger King (Exotic), all Food Fight packs and Crash Gordon</li>
+                    <li><strong>Supported now:</strong> Series 1, Series 2, Tiger King (Exotic), all Food Fight packs, Crash Gordon and GameStonk!</li>
                     <li>Both <strong>SimpleAssets</strong> and <strong>AtomicAssets</strong> packs open natively.</li>
                     <li>Card-by-card reveal animation.</li>
                     <li>Immersive sound design.</li>
