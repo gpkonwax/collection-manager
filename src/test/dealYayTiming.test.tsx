@@ -51,7 +51,9 @@ const CARD = { id: 'asset-1', name: 'Card One', category: 'series1' } as never;
 
 // A grid cell sitting comfortably inside the viewport, so no scrolling is needed.
 const cell = {
-  getBoundingClientRect: () => ({
+  getBoundingClientRect: () => {
+    probes.push('rect');
+    return {
     top: 300,
     left: 100,
     width: 160,
@@ -61,9 +63,12 @@ const cell = {
     x: 100,
     y: 300,
     toJSON: () => ({}),
+    };
   }),
-  scrollIntoView: () => {},
+  scrollIntoView: () => { probes.push('scrollIntoView'); },
 } as unknown as HTMLElement;
+
+const probes: string[] = [];
 
 function renderDeal() {
   const gridCellRefs = { current: new Map<string, HTMLElement | null>([['asset-1', cell]]) };
@@ -78,6 +83,12 @@ function renderDeal() {
 }
 
 beforeEach(() => {
+  probes.length = 0;
+  const realScrollTo = window.scrollTo;
+  (window as unknown as { scrollTo: unknown }).scrollTo = (...args: unknown[]) => {
+    probes.push('scrollTo:' + JSON.stringify(args[0]));
+    (realScrollTo as (...a: unknown[]) => void)(...args);
+  };
   FakeAudio.log = [];
   (globalThis as unknown as { Audio: unknown }).Audio = FakeAudio;
   (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = FakeIntersectionObserver;
@@ -102,6 +113,7 @@ describe('deal animation celebration', () => {
       vi.useRealTimers();
     }
 
+    console.log('PROBES', probes.length, JSON.stringify(probes.slice(0, 8)));
     console.log('AUDIO_LOG', JSON.stringify(FakeAudio.log.map(a => ({src: String(a.src).slice(0,60), t: a.t}))));
     const lands = FakeAudio.log.filter(a => a.src.includes('card-land'));
     const yays = FakeAudio.log.filter(a => a.src.includes('pack-reveal-complete'));
