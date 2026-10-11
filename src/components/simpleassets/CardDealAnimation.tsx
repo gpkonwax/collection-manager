@@ -21,7 +21,7 @@ const SCROLL_TIMEOUT = 1500;
 // Breathing room after the final card lands before the deal closes and the
 // success dialog opens. There is deliberately no celebration sound here — the
 // yay belongs to the reveal window (see usePackRevealAudio), not the deal.
-const DEAL_FINISH_PAUSE_MS = 400;
+export const DEAL_FINISH_PAUSE_MS = 400;
 
 // Wait for window scroll to settle. Uses `scrollend` when available; otherwise
 // polls for stability. Resolves immediately if already at target (±2 px).

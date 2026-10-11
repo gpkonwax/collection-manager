@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { categoryForSaPack, categoryForAtomicPack, pendingPreloadUrls, PRELOAD_CONCURRENCY } from '@/lib/collectionPreload';
-import { DEAL_YAY_DELAY_MS } from '@/components/simpleassets/CardDealAnimation';
 
 describe('collection preload during reveal', () => {
   it('maps SA pack symbols to the collection that gets dealt', () => {
@@ -22,8 +21,7 @@ describe('collection preload during reveal', () => {
     expect(pendingPreloadUrls([a, b, null, undefined])).toEqual([a]);
   });
 
-  it('keeps preloading gentle and celebrates 2s after the last card lands', () => {
+  it('keeps preloading gentle', () => {
     expect(PRELOAD_CONCURRENCY).toBe(6);
-    expect(DEAL_YAY_DELAY_MS).toBe(2000);
   });
 });
