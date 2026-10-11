@@ -95,6 +95,7 @@ describe('deal animation celebration', () => {
       vi.useRealTimers();
     }
 
+    console.log('AUDIO_LOG', JSON.stringify(FakeAudio.log.map(a => ({src: String(a.src).slice(0,60), t: a.t}))));
     const lands = FakeAudio.log.filter(a => a.src.includes('card-land'));
     const yays = FakeAudio.log.filter(a => a.src.includes('pack-reveal-complete'));
 
