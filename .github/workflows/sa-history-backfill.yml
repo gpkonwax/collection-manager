@@ -17,7 +17,11 @@ permissions:
   actions: write # lets a run start the next chunk
 
 concurrency:
-  group: gpk-manifests # never alongside the mint/holders workflows
+  # Own group, not gpk-manifests: this job only force-pushes the sa-history
+  # branch and uploads gpk-sa-history.zip, so it can never collide with the
+  # mint/holders jobs that commit to main. Sharing the group meant a 5-hour
+  # chunk crowded out every queued "Refresh GPK mint numbers" run.
+  group: gpk-sa-history
   cancel-in-progress: false
 
 jobs:
