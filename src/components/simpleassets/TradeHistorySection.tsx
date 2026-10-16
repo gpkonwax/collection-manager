@@ -90,7 +90,7 @@ function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
       {(e.from || e.to) && (
         <p className={`font-mono break-all leading-snug flex flex-wrap gap-x-1 ${rtl ? 'flex-row-reverse' : ''}`}>
           <span>{e.from || '—'}</span>
-          {e.to && <><span className="text-muted-foreground">{rtl ? '←' : '→'}</span><span>{e.to}</span></>}
+          {e.to && <><span className="font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">{rtl ? '←' : '→'}</span><span>{e.to}</span></>}
         </p>
       )}
     </Milestone>
@@ -154,7 +154,7 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
                 <span className="text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
               </div>
             )}
-            <ol className={`flex items-stretch ${rtl ? 'flex-row-reverse' : ''}`}>
+            <ol className={`flex items-start ${rtl ? 'flex-row-reverse' : ''}`}>
               {row.map((n, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
