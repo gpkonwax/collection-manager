@@ -79,6 +79,20 @@ describe('snake timeline visuals', () => {
     expect(gap.className).toContain('justify-evenly');
   });
 
+  it('keeps the single small arrow on turns with no tall card leaving a gap', () => {
+    // 12 events + opener + owner = 14 milestones → 3 rows; the turn after the
+    // uniform middle row (no torn pack on it) must show one plain ↓ again.
+    const { container } = render(
+      <HistoryTimeline events={Array.from({ length: 12 }, (_, i) => ev(i))} opener="opener.wam" owner="owner.wamxx" packSymbol="GPKFIVE" />,
+    );
+    const gaps = [...container.querySelectorAll('div[aria-hidden]')];
+    expect(gaps.length).toBe(2);
+    expect(gaps[0].textContent).toBe('↓↓');
+    expect(gaps[0].className).toContain('justify-evenly');
+    expect(gaps[1].textContent).toBe('↓');
+    expect(gaps[1].className).not.toContain('justify-evenly');
+  });
+
   it('uses the round SimpleAssets and AtomicAssets logos instead of text tags', () => {
     const { container } = renderSnake();
     const sa = container.querySelectorAll('img[alt="SimpleAssets"]');
