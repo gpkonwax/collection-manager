@@ -65,8 +65,10 @@ const loadFile = async (file: File) => {
 };
 
 describe('pack history sharing', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     clearPackHistory();
+    const { setSharedPackHistory } = await import('@/lib/packHistoryShared');
+    setSharedPackHistory(null);
   });
 
   it("shows another account's loaded JSON as a session-only shared view without saving it", async () => {
