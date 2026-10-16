@@ -9,6 +9,7 @@ import { packImage } from '@/lib/gpkPackMeta';
 import { PACK_DEFAULTS } from '@/hooks/useGpkAtomicPacks';
 import { combineAaHistory, fetchLiveAaOpening, getAaCardHistory, POOL, type AaCardHistory, type AaOpening } from '@/lib/aaHistory';
 import { IpfsMedia } from './IpfsMedia';
+import { counterpartAssets, fetchTradeOffer, type OfferAsset } from '@/lib/tradeOffers';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { fmtUsd, saleUsd } from '@/lib/waxUsd';
@@ -67,6 +68,7 @@ const KIND_TONE: Partial<Record<TimelineEvent['kind'], string>> = {
   burn: 'border-[hsl(var(--tl-burn)/0.6)] bg-[hsl(var(--tl-burn)/0.15)] text-[hsl(var(--tl-burn))]',
 };
 const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.12)] text-muted-foreground';
+const TRADED_TONE = 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]';
 
 
 /** Jagged top edge so the pack thumbnail looks like it was ripped open. */
@@ -99,10 +101,43 @@ function Milestone({ title, date, tone, children, tx, highlight, chain, rtl }: {
   );
 }
 
-function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
-  const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
+/** "Traded for" — the card(s) given in exchange in an accepted P2P trade offer. */
+function TradedFor({ offerId, assetId }: { offerId: string; assetId?: string }) {
+  const [assets, setAssets] = useState<OfferAsset[] | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    setAssets(undefined);
+    fetchTradeOffer(offerId)
+      .then((o) => { if (live) setAssets(o && assetId ? counterpartAssets(o, assetId) : null); })
+      .catch(() => { if (live) setAssets(null); });
+    return () => { live = false; };
+  }, [offerId, assetId]);
+  if (assets === undefined) return <p className="text-[11px] text-muted-foreground">Looking up trade…</p>;
+  if (!assets) return <p className="text-[11px] text-muted-foreground">Trade offer #{offerId}</p>;
+  if (assets.length === 0) return <p className="text-[11px] text-muted-foreground">Traded for nothing in return (gift offer)</p>;
   return (
-    <Milestone title={KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={KIND_TONE[e.kind] ?? QUIET_TONE} tx={e.txid || undefined} chain={e.chain} rtl={rtl}>
+    <div className="space-y-1">
+      <p className="text-[11px] text-muted-foreground">Traded for</p>
+      <ul className="space-y-1">
+        {assets.map((a) => (
+          <li key={a.id} className="flex items-center gap-1.5">
+            {a.image && <IpfsMedia url={a.image} alt={a.name} className="w-8 shrink-0 rounded-sm overflow-hidden" context="detail" loading="eager" mirrorFirst />}
+            <span className="text-[11px] leading-tight">
+              <span className="font-semibold text-cheese">{a.name}</span>
+              {a.mint && <span className="text-muted-foreground"> #{a.mint}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function EventMilestone({ e, rtl, assetId }: { e: TimelineEvent; rtl?: boolean; assetId?: string }) {
+  const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
+  const traded = e.kind === 'transfer' && !!e.offerId;
+  return (
+    <Milestone title={traded ? 'Traded' : KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={(traded ? TRADED_TONE : KIND_TONE[e.kind]) ?? QUIET_TONE} tx={e.txid || undefined} chain={e.chain} rtl={rtl}>
       {price && <p className="font-semibold text-cheese">{price}<SaleUsd e={e as SaEvent} /></p>}
       {e.market && <p className="text-[11px] text-muted-foreground">{MARKET_LABEL[e.market] ?? e.market}</p>}
       {(e.from || e.to) && (
@@ -111,11 +146,12 @@ function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
           {e.to && <><span className="font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">{rtl ? '←' : '→'}</span><span>{e.to}</span></>}
         </p>
       )}
+      {traded && <TradedFor offerId={e.offerId!} assetId={assetId} />}
     </Milestone>
   );
 }
 
-export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, origin, cardImage, originDate, originTx, minted }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string; /** IPFS artwork of an AtomicAssets pack. */ packArt?: string; origin?: 'sa' | 'aa'; cardImage?: string; originDate?: number; originTx?: string; /** Minted outside a pack (no "Pack opened"). */ minted?: boolean }) {
+export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, origin, cardImage, originDate, originTx, minted, assetId }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string; /** IPFS artwork of an AtomicAssets pack. */ packArt?: string; origin?: 'sa' | 'aa'; cardImage?: string; originDate?: number; originTx?: string; /** Minted outside a pack (no "Pack opened"). */ minted?: boolean; /** The card this history belongs to (finds what it was traded for). */ assetId?: string }) {
   const burned = events.at(-1)?.kind === 'burn';
   const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
@@ -123,10 +159,11 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, or
     <Milestone key="origin" title={minted ? 'Minted' : 'Pack opened'} tone={KIND_TONE.sale!} chain={origin} date={originDate ? fmtDate(originDate) : undefined} tx={originTx || undefined}>
       {!minted && packImg && <img src={packImg} alt="Pack this card was pulled from" title="Pack this card was pulled from" className="mx-auto w-16 rounded-sm" style={{ clipPath: TORN_TOP_CLIP }} />}
       {!minted && !packImg && packArt && <IpfsMedia url={packArt} alt="Pack this card was pulled from" className="mx-auto w-16 rounded-sm overflow-hidden" style={{ clipPath: TORN_TOP_CLIP }} context="detail" loading="eager" mirrorFirst />}
+      {!minted && packSymbol && <p className="text-center font-mono text-[11px] font-semibold text-cheese" title="Pack token code">{packSymbol.toUpperCase()}</p>}
       <p>{minted ? 'Minted to' : 'Pulled by'} <span className="font-mono text-cheese break-all">{opener}</span></p>
     </Milestone>,
   );
-  events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.chain}-${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />));
+  events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.chain}-${e.txid}-${e.kind}-${e.time}-${i}`} e={e} assetId={assetId} />));
   if (owner && !burned) nodes.push(
     <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
       <IpfsMedia url={cardImage} alt="Card held by the current owner" className="mx-auto w-16 rounded-sm overflow-hidden" context="detail" loading="eager" mirrorFirst />
@@ -371,7 +408,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
                 {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              <HistoryTimeline events={shown} opener={shownOpener} owner={owner} packSymbol={packSymbol} packArt={packArt} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage}
+              <HistoryTimeline events={shown} opener={shownOpener} owner={owner} packSymbol={packSymbol} packArt={packArt} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage} assetId={isAtomic ? assetId : undefined}
                 originDate={!opener ? opening?.time : undefined} originTx={!opener ? opening?.txid : undefined} minted={!opener && opening?.kind === 'mint'} />
             </div>
           )}
