@@ -6,6 +6,7 @@ import { WAX_EXPLORER } from '@/lib/waxConfig';
 import { getSaCardHistory, MARKET_NAMES, type SaCardHistory, type SaEvent } from '@/lib/saHistory';
 import { fetchIncomingSaTransfer, getSavedSaTransfers, type IncomingResult, type SaTransfer } from '@/lib/saTransfers';
 import { packImage } from '@/lib/gpkPackMeta';
+import { IpfsMedia } from './IpfsMedia';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { fmtUsd, saleUsd } from '@/lib/waxUsd';
@@ -25,7 +26,7 @@ function SaleUsd({ e }: { e: Pick<SaEvent, 'kind' | 'amount' | 'token' | 'time'>
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string; bridgeReceipt?: BridgeReceipt }
+interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; cardImage?: string; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string; bridgeReceipt?: BridgeReceipt }
 
 interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[]; full: SaCardHistory | null }
 
@@ -112,7 +113,7 @@ function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
   );
 }
 
-export function HistoryTimeline({ events, opener, owner, packSymbol, origin }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string; origin?: 'sa' | 'aa' }) {
+export function HistoryTimeline({ events, opener, owner, packSymbol, origin, cardImage }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string; origin?: 'sa' | 'aa'; cardImage?: string }) {
   const burned = events.at(-1)?.kind === 'burn';
   const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
@@ -125,6 +126,7 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, origin }: {
   events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.chain}-${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />));
   if (owner && !burned) nodes.push(
     <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
+      <IpfsMedia url={cardImage} alt="Card held by the current owner" className="mx-auto w-16 rounded-sm overflow-hidden" context="detail" loading="eager" mirrorFirst />
       <p className="font-mono text-cheese break-all">{owner}</p>
     </Milestone>,
   );
@@ -237,7 +239,7 @@ function RetryRow({ text, onRetry }: { text: string; onRetry: () => void }) {
   );
 }
 
-export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt }: Props) {
+export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt, cardImage }: Props) {
   const [open, setOpen] = useState(false);
   const [classic, setClassic] = useState(readClassicPref);
   const [history, setHistory] = useState<TradeHistory | null>(null);
@@ -326,7 +328,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
                 {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              <HistoryTimeline events={shown} opener={opener} owner={owner} packSymbol={packSymbol} origin={originChain(isAtomic, saOriginId)} />
+              <HistoryTimeline events={shown} opener={opener} owner={owner} packSymbol={packSymbol} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage} />
             </div>
           )}
           {classic && saHistory?.full && (
