@@ -208,7 +208,7 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
                         <span className="ml-auto text-muted-foreground">{MESSAGE_TOTAL_QUANTITY} per message</span>
                         <Button size="sm" disabled={busy || !text.trim() || bytes > MAX_PLAINTEXT_BYTES} onClick={send}>Send</Button>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">0.0001 CHEESE to {active} with your encrypted message + 0.0010 CHEESE to eosio.null, together in one transaction.</p>
+                      <p className="text-[11px] text-muted-foreground">0.0010 CHEESE to {active} with your encrypted message + 0.0100 CHEESE to eosio.null, together in one transaction.</p>
                     </div>
                   )}
               </>

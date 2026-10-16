@@ -27,9 +27,9 @@ describe('message payment submission', () => {
     const actions = execute.mock.calls[0][0];
     expect(actions).toHaveLength(2);
     expect(actions[0].data.to).toBe('bob.wam');
-    expect(actions[0].data.quantity).toBe('0.0001 CHEESE');
+    expect(actions[0].data.quantity).toBe('0.0010 CHEESE');
     expect(actions[1].data.to).toBe('eosio.null');
-    expect(actions[1].data.quantity).toBe('0.0010 CHEESE');
+    expect(actions[1].data.quantity).toBe('0.0100 CHEESE');
     expect(decryptMemo(actions[0].data.memo, sender.publicKey, recipient.secretKey)).toBe('hello bob');
     expect(screen.getByPlaceholderText('Message bob.wam')).toHaveValue('hello bob');
   });

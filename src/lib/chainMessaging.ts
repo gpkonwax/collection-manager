@@ -13,9 +13,9 @@ export const KEY_PREFIX = 'GPKMKEY1:';
 export const MEMO_MAX_BYTES = 256;
 export const KEY_PUBLISH_TO = 'eosio.null';
 
-export const MESSAGE_RECIPIENT_QUANTITY = '0.0001 CHEESE';
-export const MESSAGE_BURN_QUANTITY = '0.0010 CHEESE';
-export const MESSAGE_TOTAL_QUANTITY = '0.0011 CHEESE';
+export const MESSAGE_RECIPIENT_QUANTITY = '0.0010 CHEESE';
+export const MESSAGE_BURN_QUANTITY = '0.0100 CHEESE';
+export const MESSAGE_TOTAL_QUANTITY = '0.0110 CHEESE';
 
 export interface MessagingKey {
   type: 'gpk-msg-key';
