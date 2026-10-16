@@ -194,7 +194,7 @@ export function perRowFor(width: number): number {
  * Lays milestones out as a snake: row 1 left→right, row 2 right→left, …,
  * so long histories grow the window downwards instead of sideways.
  */
-function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
+function SnakeRows({ nodes, tall }: { nodes: React.ReactNode[]; /** Indices of taller cards (torn pack / owner thumbnail) that leave gap space on their row. */ tall: Set<number> }) {
   const ref = useRef<HTMLDivElement>(null);
   const [perRow, setPerRow] = useState(1);
   useLayoutEffect(() => {
