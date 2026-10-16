@@ -209,11 +209,6 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
         const rtl = r % 2 === 1;
         return (
           <Fragment key={r}>
-            {r > 0 && (
-              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`}>
-                <span className="text-center text-3xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
-              </div>
-            )}
             <ol className={`flex items-start ${rtl ? 'flex-row-reverse' : ''}`}>
               {row.map((n, i) => (
                 <Fragment key={i}>
@@ -224,8 +219,16 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
                     return (
                       <li className={`list-none shrink-0 ${turn ? 'self-stretch flex flex-col' : ''}`}>
                         {card}
-                        {/* Fills the gap a taller box (e.g. Pack opened) leaves below the turning box. */}
-                        {turn && <span aria-hidden className="flex-1 min-h-0 overflow-hidden flex items-center justify-center text-3xl font-black leading-none text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">↓</span>}
+                        {/* Both ↓ arrows live in the space below the turning box,
+                        evenly spaced between this row's last box and the next
+                        row's first box; min-h keeps the gap roomy even when the
+                        turning box is the tallest on its row. */}
+                        {turn && (
+                          <div aria-hidden className="flex-1 min-h-[96px] flex flex-col justify-evenly items-center leading-none text-3xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">
+                            <span>↓</span>
+                            <span>↓</span>
+                          </div>
+                        )}
                       </li>
                     );
                   })()}
