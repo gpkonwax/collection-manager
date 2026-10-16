@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { mergeHistory, readClassicPref, timelineEvents, writeClassicPref, type TimelineEvent } from '@/lib/historyTimeline';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
@@ -47,13 +47,10 @@ const KIND_TONE: Partial<Record<SaEvent['kind'], string>> = {
 };
 const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.12)] text-muted-foreground';
 
-function Arrow() {
-  return <li aria-hidden className="shrink-0 self-center text-lg text-muted-foreground px-1 list-none">→</li>;
-}
 
 function Milestone({ title, date, tone, children, tx, highlight, chain }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean; chain?: 'sa' | 'aa' }) {
   return (
-    <li className={`shrink-0 w-[196px] snap-start rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
+    <li className={`shrink-0 w-[196px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
       <div className="flex justify-between items-center gap-2 text-[11px] text-muted-foreground">
         <span>{date ?? ''}</span>
         {chain && <span className="ml-auto rounded border border-border px-1 text-[10px] font-semibold" title={chain === 'sa' ? 'SimpleAssets' : 'AtomicAssets'}>{chain === 'sa' ? 'SA' : 'AA'}</span>}
@@ -92,10 +89,58 @@ function HistoryTimeline({ events, opener, owner }: { events: TimelineEvent[]; o
       <p className="font-mono text-cheese break-all">{owner}</p>
     </Milestone>,
   );
+  return <SnakeRows nodes={nodes} />;
+}
+
+const CARD_W = 196;
+const ARROW_W = 28;
+
+/** Pure: how many milestone cards fit on one row of the given width. */
+export function perRowFor(width: number): number {
+  return Math.max(1, Math.floor((width + ARROW_W) / (CARD_W + ARROW_W)));
+}
+
+/**
+ * Lays milestones out as a snake: row 1 left→right, row 2 right→left, …,
+ * so long histories grow the window downwards instead of sideways.
+ */
+function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [perRow, setPerRow] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setPerRow(perRowFor(el.clientWidth));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const rows: React.ReactNode[][] = [];
+  for (let i = 0; i < nodes.length; i += perRow) rows.push(nodes.slice(i, i + perRow));
   return (
-    <ol className="flex items-stretch overflow-x-auto snap-x pb-2 [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] px-3" tabIndex={0} aria-label="Card history, oldest on the left">
-      {nodes.map((n, i) => <Fragment key={i}>{i > 0 && <Arrow />}{n}</Fragment>)}
-    </ol>
+    <div ref={ref} className="w-full min-w-0" aria-label="Card history, oldest first, snaking left to right then right to left">
+      {rows.map((row, r) => {
+        const rtl = r % 2 === 1;
+        return (
+          <Fragment key={r}>
+            {r > 0 && (
+              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} text-lg text-muted-foreground leading-none py-1`}>
+                <span className="text-center" style={{ width: CARD_W }}>↓</span>
+              </div>
+            )}
+            <ol className={`flex items-stretch ${rtl ? 'flex-row-reverse' : ''}`}>
+              {row.map((n, i) => (
+                <Fragment key={i}>
+                  {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-lg text-muted-foreground list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
+                  {n}
+                </Fragment>
+              ))}
+            </ol>
+          </Fragment>
+        );
+      })}
+    </div>
   );
 }
 
