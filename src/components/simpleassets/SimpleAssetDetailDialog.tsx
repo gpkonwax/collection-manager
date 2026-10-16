@@ -11,7 +11,8 @@ import { getProvenance, formatPackLabel, formatProvenanceDate, packSymbol, type 
 import { TradeHistorySection } from './TradeHistorySection';
 import { getRetroFront, getRetroBack } from '@/lib/retroScans';
 import { CATEGORY_LABELS, normalizeAssetCategory } from '@/lib/gpkCategories';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import type { NavDir } from '@/lib/gridNeighbour';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 
 const fmtDate = (ms?: number) => {
@@ -40,13 +41,24 @@ interface Props {
   retro?: boolean;
   /** Called when an account name (opener/bridger) is clicked — opens View Wallet prefilled with it. */
   onViewAccount?: (account: string) => void;
+  /** Which grid neighbours exist; arrows only show for these. */
+  navigable?: Partial<Record<NavDir, boolean>>;
+  onNavigate?: (dir: NavDir) => void;
 }
+
+const NAV_ZONES: { dir: NavDir; zone: string; Icon: typeof ChevronLeft; label: string }[] = [
+  { dir: 'left', zone: 'left-0 top-0 bottom-0 w-14 items-center justify-start pl-1', Icon: ChevronLeft, label: 'Previous card (left)' },
+  { dir: 'right', zone: 'right-0 top-0 bottom-0 w-14 items-center justify-end pr-1', Icon: ChevronRight, label: 'Next card (right)' },
+  { dir: 'up', zone: 'top-0 left-14 right-14 h-14 items-start justify-center pt-1', Icon: ChevronUp, label: 'Card above' },
+  { dir: 'down', zone: 'bottom-0 left-14 right-14 h-14 items-end justify-center pb-1', Icon: ChevronDown, label: 'Card below' },
+];
 
 const MINT_KEYS = ['edition', 'mint', 'serial', 'num', 'mint_num'];
 const IMAGE_LABELS = ['Front', 'Back'];
 const SERIES1_CATEGORIES = new Set(['five', 'series1']);
 
-export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = false, onViewAccount }: Props) {
+export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = false, onViewAccount, navigable, onNavigate }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [showRawJson, setShowRawJson] = useState(false);
   const [mode, setMode] = useState<ViewMode>('tilt');
   const [unifiedColor, setUnifiedColor] = useState(DRAW_COLORS[0].value);
@@ -172,7 +184,29 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent
+        ref={scrollRef}
+        className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto overflow-x-hidden"
+        onKeyDown={(e) => {
+          if (!onNavigate || mode !== 'tilt') return;
+          const t = e.target as HTMLElement;
+          if (t.closest('input, textarea, select, canvas, [contenteditable="true"]')) return;
+          const dir = ({ ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' } as Record<string, NavDir>)[e.key];
+          if (dir && navigable?.[dir]) { e.preventDefault(); onNavigate(dir); }
+        }}
+      >
+        {onNavigate && NAV_ZONES.filter((z) => navigable?.[z.dir]).map(({ dir, zone, Icon, label }) => (
+          <div key={dir} className={`group/nav sticky-nav fixed z-20 flex ${zone}`} style={{ position: 'absolute' }}>
+            <button
+              type="button"
+              aria-label={label}
+              onClick={() => onNavigate(dir)}
+              className="h-11 w-11 rounded-full flex items-center justify-center bg-background/50 backdrop-blur border border-cheese/40 text-cheese shadow-lg opacity-0 group-hover/nav:opacity-100 focus-visible:opacity-100 transition-opacity"
+            >
+              <Icon className="h-6 w-6" />
+            </button>
+          </div>
+        ))}
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">

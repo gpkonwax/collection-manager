@@ -22,6 +22,7 @@ import { MissingCardPlaceholder } from '@/components/simpleassets/MissingCardPla
 import { AlertsManagerPopover } from '@/components/simpleassets/AlertsManagerPopover';
 import { SelectionCheckboxes } from '@/components/simpleassets/SelectionCheckboxes';
 import { useBinderTemplates } from '@/hooks/useBinderTemplates';
+import { findNeighbour, readGridCells, type NavDir } from '@/lib/gridNeighbour';
 import { SimpleAssetDetailDialog } from '@/components/simpleassets/SimpleAssetDetailDialog';
 import { GpkPackCard, SERIES_2_IMAGES } from '@/components/simpleassets/GpkPackCard';
 import { AtomicPackCard } from '@/components/simpleassets/AtomicPackCard';
@@ -378,6 +379,31 @@ export default function SimpleAssetsPage() {
   const [sortMode, setSortMode] = useState<SortMode>('natural');
   const [viewMode, setViewMode] = useState<ViewMode>('classic');
   const [selectedAsset, setSelectedAsset] = useState<SimpleAsset | null>(null);
+  // Neighbouring grid cards of the open detail (picture-viewer style navigation).
+  const [detailNav, setDetailNav] = useState<Record<NavDir, string | null> | null>(null);
+  useEffect(() => {
+    setDetailNav(null);
+    const id = selectedAsset?.id;
+    if (!id) return;
+    let raf = 0;
+    raf = requestAnimationFrame(() => {
+      const el = Array.from(document.querySelectorAll<HTMLElement>('[data-detail-cell]'))
+        .find((n) => n.dataset.detailCell === id && !n.closest('[role="dialog"]'));
+      if (!el) return;
+      // Keep the current card in view so the virtualised rows around it are drawn.
+      el.scrollIntoView({ block: 'nearest' });
+      raf = requestAnimationFrame(() => {
+        const cells = readGridCells();
+        setDetailNav({
+          left: findNeighbour(cells, id, 'left'),
+          right: findNeighbour(cells, id, 'right'),
+          up: findNeighbour(cells, id, 'up'),
+          down: findNeighbour(cells, id, 'down'),
+        });
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [selectedAsset?.id]);
   const [isCollecting, setIsCollecting] = useState(false);
   const [showCollectUnclaimed, setShowCollectUnclaimed] = useState(false);
   const [collectionSyncNotice, setCollectionSyncNotice] = useState<{ category: string | null } | null>(null);
@@ -3940,7 +3966,13 @@ export default function SimpleAssetsPage() {
         </div>
       )}
 
-      <SimpleAssetDetailDialog retro={retroActive} asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} onViewAccount={handleViewAccountFromDetail} />
+      <SimpleAssetDetailDialog retro={retroActive} asset={selectedAsset} open={!!selectedAsset} onOpenChange={(open) => !open && setSelectedAsset(null)} onViewAccount={handleViewAccountFromDetail}
+        navigable={detailNav ? { left: !!detailNav.left, right: !!detailNav.right, up: !!detailNav.up, down: !!detailNav.down } : undefined}
+        onNavigate={(dir) => {
+          const nextId = detailNav?.[dir];
+          const next = nextId ? assets.find((a) => a.id === nextId) : undefined;
+          if (next) setSelectedAsset(next);
+        }} />
       {stackSwapAsk && (
         <div className="fixed inset-0 z-[80]" onMouseDown={() => setStackSwapAsk(null)}>
           <div
