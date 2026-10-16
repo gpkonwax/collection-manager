@@ -22,7 +22,7 @@ describe('message payment submission', () => {
       permission={{ actor: 'alice.wam', permission: 'active' }} execute={execute} />);
     fireEvent.click(screen.getByRole('button', { name: 'bob.wam' }));
     fireEvent.change(screen.getByPlaceholderText('Message bob.wam'), { target: { value: 'hello bob' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Send', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /^Send$/ }));
     await waitFor(() => expect(execute).toHaveBeenCalledTimes(1));
     const actions = execute.mock.calls[0][0];
     expect(actions).toHaveLength(2);
