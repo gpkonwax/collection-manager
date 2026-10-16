@@ -47,8 +47,9 @@ describe('snake timeline visuals', () => {
     expect(lists.length).toBe(2);
     const rtlRow = lists[1];
     expect(rtlRow.className).toContain('flex-row-reverse');
-    // Account lines inside the RTL row read to ← from with a leftward arrow.
-    const accountLines = rtlRow.querySelectorAll('p.font-mono');
+    // from → to lines inside the RTL row read to ← from with a leftward arrow
+    // (single-account cards like "Current owner" are just right-aligned).
+    const accountLines = [...rtlRow.querySelectorAll('p.font-mono')].filter((p) => /[→←]/.test(p.textContent ?? ''));
     expect(accountLines.length).toBeGreaterThan(0);
     accountLines.forEach((p) => {
       expect(p.className).toContain('flex-row-reverse');
