@@ -6,6 +6,8 @@ import { WAX_EXPLORER } from '@/lib/waxConfig';
 import { getSaCardHistory, MARKET_NAMES, type SaCardHistory, type SaEvent } from '@/lib/saHistory';
 import { fetchIncomingSaTransfer, getSavedSaTransfers, type IncomingResult, type SaTransfer } from '@/lib/saTransfers';
 import { packImage } from '@/lib/gpkPackMeta';
+import { PACK_DEFAULTS } from '@/hooks/useGpkAtomicPacks';
+import { combineAaHistory, fetchLiveAaOpening, getAaCardHistory, POOL, type AaCardHistory, type AaOpening } from '@/lib/aaHistory';
 import { IpfsMedia } from './IpfsMedia';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
@@ -26,7 +28,7 @@ function SaleUsd({ e }: { e: Pick<SaEvent, 'kind' | 'amount' | 'token' | 'time'>
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; cardImage?: string; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string; bridgeReceipt?: BridgeReceipt }
+interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; cardImage?: string; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string; bridgeReceipt?: BridgeReceipt; /** AtomicAssets schema (e.g. foodfightb), used to name the pack of native cards. */ schema?: string }
 
 interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[]; full: SaCardHistory | null }
 
@@ -113,14 +115,15 @@ function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
   );
 }
 
-export function HistoryTimeline({ events, opener, owner, packSymbol, origin, cardImage }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string; origin?: 'sa' | 'aa'; cardImage?: string }) {
+export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, origin, cardImage, originDate, originTx, minted }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string; /** IPFS artwork of an AtomicAssets pack. */ packArt?: string; origin?: 'sa' | 'aa'; cardImage?: string; originDate?: number; originTx?: string; /** Minted outside a pack (no "Pack opened"). */ minted?: boolean }) {
   const burned = events.at(-1)?.kind === 'burn';
   const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
   if (opener) nodes.push(
-    <Milestone key="origin" title="Pack opened" tone={KIND_TONE.sale!} chain={origin}>
-      {packImg && <img src={packImg} alt="Pack this card was pulled from" title="Pack this card was pulled from" className="mx-auto w-16 rounded-sm" style={{ clipPath: TORN_TOP_CLIP }} />}
-      <p>Pulled by <span className="font-mono text-cheese break-all">{opener}</span></p>
+    <Milestone key="origin" title={minted ? 'Minted' : 'Pack opened'} tone={KIND_TONE.sale!} chain={origin} date={originDate ? fmtDate(originDate) : undefined} tx={originTx || undefined}>
+      {!minted && packImg && <img src={packImg} alt="Pack this card was pulled from" title="Pack this card was pulled from" className="mx-auto w-16 rounded-sm" style={{ clipPath: TORN_TOP_CLIP }} />}
+      {!minted && !packImg && packArt && <IpfsMedia url={packArt} alt="Pack this card was pulled from" className="mx-auto w-16 rounded-sm overflow-hidden" style={{ clipPath: TORN_TOP_CLIP }} context="detail" loading="eager" mirrorFirst />}
+      <p>{minted ? 'Minted to' : 'Pulled by'} <span className="font-mono text-cheese break-all">{opener}</span></p>
     </Milestone>,
   );
   events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.chain}-${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />));
@@ -193,7 +196,7 @@ function AtomicColumns({ history }: { history: TradeHistory }) {
         <p className="font-semibold text-cheese">Sales ({history.sales.length}{history.sales.length >= HISTORY_LIMIT ? '+' : ''})</p>
         {history.sales.length === 0 && <p className="text-muted-foreground">No market sales recorded.</p>}
         {history.sales.map((s) => (
-          <div key={s.id} className="bg-muted/30 rounded px-2 py-1">
+          <div key={`${s.id}-${s.time}`} className="bg-muted/30 rounded px-2 py-1">
             <div className="flex justify-between gap-2"><span>{fmtDate(s.time)}</span><span className="font-semibold text-cheese">{s.price || '—'}</span></div>
             <p className="font-mono break-all">{s.seller} → {s.buyer ?? 'unknown'}</p>
           </div>
@@ -203,7 +206,7 @@ function AtomicColumns({ history }: { history: TradeHistory }) {
         <p className="font-semibold text-cheese">Transfers ({history.transfers.length}{history.transfers.length >= HISTORY_LIMIT ? '+' : ''})</p>
         {history.transfers.length === 0 && <p className="text-muted-foreground">No transfers recorded.</p>}
         {history.transfers.map((t) => (
-          <div key={t.id} className="bg-muted/30 rounded px-2 py-1">
+          <div key={`${t.id}-${t.txid}-${t.from}-${t.to}-${t.time}`} className="bg-muted/30 rounded px-2 py-1">
             <div className="flex justify-between gap-2">
               <span>{fmtDate(t.time)}</span>
               {t.txid && <a href={`${WAX_EXPLORER}${t.txid}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
@@ -239,7 +242,7 @@ function RetryRow({ text, onRetry }: { text: string; onRetry: () => void }) {
   );
 }
 
-export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt, cardImage }: Props) {
+export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt, cardImage, schema = '' }: Props) {
   const [open, setOpen] = useState(true);
   const [classic, setClassic] = useState(readClassicPref);
   const [history, setHistory] = useState<TradeHistory | null>(null);
@@ -249,11 +252,14 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
   const [saAttempt, setSaAttempt] = useState(0);
   const [saHistory, setSaHistory] = useState<SaHistory | null>(null);
   const [showAll, setShowAll] = useState(false);
+  // Our own AtomicAssets copy: undefined = loading, null = not available.
+  const [aaStored, setAaStored] = useState<AaCardHistory | null | undefined>(undefined);
+  const [liveOpening, setLiveOpening] = useState<AaOpening | null | undefined>(undefined);
   // SimpleAssets id whose history applies: the card itself, or the original of a bridged copy.
   const saId = isAtomic ? (saOriginId && /^\d+$/.test(saOriginId) ? saOriginId : '') : assetId;
   const heldByOpener = !!owner && !!opener && owner === opener;
 
-  useEffect(() => { setOpen(true); setHistory(null); setSaHistory(null); setShowAll(false); setAaError(false); setSaError(false); }, [assetId, owner, saId]);
+  useEffect(() => { setOpen(true); setHistory(null); setSaHistory(null); setShowAll(false); setAaError(false); setSaError(false); setAaStored(undefined); setLiveOpening(undefined); }, [assetId, owner, saId]);
 
   useEffect(() => {
     if (!open || !saId || saHistory) return;
@@ -280,17 +286,51 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
     return () => { cancelled = true; };
   }, [open, isAtomic, assetId, history, aaAttempt]);
 
+  useEffect(() => {
+    if (!open || !isAtomic || aaStored !== undefined) return;
+    let cancelled = false;
+    getAaCardHistory(assetId)
+      .then((h) => { if (!cancelled) setAaStored(h); })
+      .catch((err) => { console.warn('[TradeHistory] saved AtomicAssets history unavailable:', err); if (!cancelled) setAaStored(null); });
+    return () => { cancelled = true; };
+  }, [open, isAtomic, assetId, aaStored]);
+
+  const nativeAa = isAtomic && !saId;
+  const combined = isAtomic ? combineAaHistory(aaStored ?? null, history) : null;
+  // A card our copy doesn't cover yet (or not published) asks AtomicHub for its mint once.
+  const needLiveOpening = open && nativeAa && aaStored !== undefined && !aaStored?.opening && !!history && liveOpening === undefined;
+  useEffect(() => {
+    if (!needLiveOpening) return;
+    let cancelled = false;
+    fetchLiveAaOpening(assetId, schema, combined?.transfers ?? [])
+      .then((o) => { if (!cancelled) setLiveOpening(o); })
+      .catch(() => { if (!cancelled) setLiveOpening(null); });
+    return () => { cancelled = true; };
+  }, [needLiveOpening, assetId, schema]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleClassic = (v: boolean) => { setClassic(v); writeClassicPref(v); };
   const retrySa = () => { setSaError(false); setSaHistory(null); setSaAttempt((n) => n + 1); };
   const retryAa = () => { setAaError(false); setAaAttempt((n) => n + 1); };
 
   const saLoading = !!saId && !saHistory && !saError;
-  const aaLoading = isAtomic && !history && !aaError;
+  const aaLoading = isAtomic && ((!history && !aaError) || aaStored === undefined);
   const saEvents = saHistory?.full?.events ?? [];
-  const merged = mergeHistory(saEvents, history, isAtomic && saId ? bridgeReceipt : undefined);
+  const opening = nativeAa ? (aaStored?.opening ?? liveOpening ?? null) : null;
+  // A pool delivery IS the pack opening; don't show it twice.
+  const aaHistory = combined && opening?.kind === 'open' ? {
+    ...combined,
+    transfers: combined.transfers.filter((t) => !(t.from === POOL && t.to === opening.account && (opening.txid ? t.txid === opening.txid : t.time === opening.time))),
+  } : combined;
+  let merged = mergeHistory(saEvents, aaHistory, isAtomic && saId ? bridgeReceipt : undefined);
+  const burn = isAtomic ? aaStored?.burn : null;
+  if (burn && !merged.some((e) => e.kind === 'burn' && e.chain === 'aa')) {
+    merged = [...merged, { time: burn.time, kind: 'burn' as const, from: burn.owner, to: '', amount: '', token: '', market: '', txid: burn.txid, chain: 'aa' as const }];
+  }
+  const shownOpener = opener ?? opening?.account ?? null;
+  const packArt = opening?.packTemplate ? PACK_DEFAULTS[opening.packTemplate]?.image : undefined;
   const shown = timelineEvents(merged, showAll);
   const hidden = merged.length - timelineEvents(merged, false).length;
-  const aaCapped = !!history && (history.sales.length >= HISTORY_LIMIT || history.transfers.length >= HISTORY_LIMIT);
+  const aaCapped = !!history && !aaStored && (history.sales.length >= HISTORY_LIMIT || history.transfers.length >= HISTORY_LIMIT);
   const ready = !saLoading && !aaLoading;
 
   return (
@@ -306,9 +346,9 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
         </div>
       </div>
       {open && saError && <RetryRow text={isAtomic ? "Couldn't load the SimpleAssets history before bridging right now." : "Couldn't load ownership history right now."} onRetry={retrySa} />}
-      {open && aaError && <RetryRow text="Couldn't load AtomicAssets trading history right now." onRetry={retryAa} />}
+      {open && aaError && !aaStored && <RetryRow text="Couldn't load AtomicAssets trading history right now." onRetry={retryAa} />}
       {open && !ready && <p className="text-xs text-muted-foreground">Loading history…</p>}
-      {open && ready && (saHistory || history) && (
+      {open && ready && (saHistory || history || aaStored) && (
         <div className="space-y-2 text-xs text-foreground">
           {!isAtomic && saHistory && (
             <div className="space-y-1">
@@ -328,7 +368,8 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
                 {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              <HistoryTimeline events={shown} opener={opener} owner={owner} packSymbol={packSymbol} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage} />
+              <HistoryTimeline events={shown} opener={shownOpener} owner={owner} packSymbol={packSymbol} packArt={packArt} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage}
+                originDate={!opener ? opening?.time : undefined} originTx={!opener ? opening?.txid : undefined} minted={!opener && opening?.kind === 'mint'} />
             </div>
           )}
           {classic && saHistory?.full && (
@@ -344,7 +385,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
               {saHistory.saved.map((t) => <TransferRow key={`${t.txid}-${t.from}-${t.to}`} t={t} />)}
             </div>
           )}
-          {classic && history && <AtomicColumns history={history} />}
+          {classic && aaHistory && <AtomicColumns history={aaHistory} />}
           {saHistory && (
             <p className="text-muted-foreground">
               Sale prices of SimpleAssets cards aren't tracked by today's WAX market services. New transfers and trades are recorded twice daily from October 2026.

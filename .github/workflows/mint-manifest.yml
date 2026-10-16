@@ -89,6 +89,23 @@ jobs:
             fi
           } || echo "::warning::SimpleAssets history update failed — previous records kept."
 
+      - name: Record new AtomicAssets mints, openings, transfers, burns and sales
+        # Runs only once the one-time AtomicAssets backfill has finished;
+        # outages keep the old bookmarks. Never fails the run.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HISTORY_BRANCH: aa-history
+        run: |
+          {
+            bash scripts/sa-history-branch.sh restore &&
+            node scripts/backfill-aa-history.mjs --incremental --max-minutes 10 &&
+            if [ -f manifests/aa-history/index.json ] && grep -q '"initialBackfillComplete": true' manifests/aa-history/index.json; then
+              npm install --no-save fflate@0.8.3 &&
+              node scripts/build-aa-history-views.mjs &&
+              bash scripts/sa-history-branch.sh publish
+            fi
+          } || echo "::warning::AtomicAssets history update failed — previous records kept."
+
       - name: Install fflate for the records ZIP
         run: npm install --no-save fflate@0.8.3
 
