@@ -79,3 +79,8 @@ export function readClassicPref(): boolean {
 export function writeClassicPref(v: boolean) {
   try { localStorage.setItem(CLASSIC_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ }
 }
+
+/** Chain a card's pack was opened on: native AtomicAssets copies (no SimpleAssets origin) were opened on AA; everything else on SA. */
+export function originChain(isAtomic: boolean, saOriginId?: string): 'sa' | 'aa' {
+  return isAtomic && !saOriginId ? 'aa' : 'sa';
+}

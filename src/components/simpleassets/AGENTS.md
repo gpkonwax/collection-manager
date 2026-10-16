@@ -9,3 +9,4 @@
 
 - Pair timeline bridge custody with this AA copy’s creation time and verified mint recipient in the shared history merger; show a separate AA receipt, never infer its recipient from a later sale/current owner, because bridge custody is not a gift.
 - Use the shared history comparator for merging and display: same-time AA deposits into AtomicMarket precede sales, because accepted offers escrow and settle in one transaction; never alter timestamps.
+- Price sales in USD by UTC day from the bundled src/data/wax-usd-daily.json (built by scripts/build-wax-usd.mjs) and CheeseHub token-price-data for newer days; omit USD when no day price exists, never estimate.
