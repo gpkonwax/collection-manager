@@ -1,5 +1,5 @@
 import { Fragment, cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { mergeHistory, readClassicPref, timelineEvents, writeClassicPref, type TimelineEvent, type BridgeReceipt } from '@/lib/historyTimeline';
+import { originChain, mergeHistory, readClassicPref, timelineEvents, writeClassicPref, type TimelineEvent, type BridgeReceipt } from '@/lib/historyTimeline';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
 import { WAX_EXPLORER } from '@/lib/waxConfig';
@@ -8,6 +8,19 @@ import { fetchIncomingSaTransfer, getSavedSaTransfers, type IncomingResult, type
 import { packImage } from '@/lib/gpkPackMeta';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
+import { fmtUsd, saleUsd } from '@/lib/waxUsd';
+
+/** "(\$12.34)" — the sale's USD value on its UTC day; nothing when no price is known. */
+function SaleUsd({ e }: { e: Pick<SaEvent, 'kind' | 'amount' | 'token' | 'time'> }) {
+  const [usd, setUsd] = useState<number>();
+  useEffect(() => {
+    let live = true;
+    setUsd(undefined);
+    if (e.kind === 'sale' && e.amount) saleUsd(Number(e.amount), e.token, e.time).then((v) => { if (live) setUsd(v); });
+    return () => { live = false; };
+  }, [e.kind, e.amount, e.token, e.time]);
+  return usd == null ? null : <span className="font-normal text-muted-foreground"> ({fmtUsd(usd)})</span>;
+}
 
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -32,7 +45,7 @@ function EventRow({ e }: { e: SaEvent }) {
       <div className="flex justify-between gap-2">
         <span>{fmtDate(e.time)} · <span className="font-semibold">{KIND_LABEL[e.kind]}</span>{e.market && ` · ${MARKET_NAMES[e.market] ?? e.market}`}</span>
         <span className="flex gap-2">
-          {price && <span className="font-semibold text-cheese">{price}</span>}
+          {price && <span className="font-semibold text-cheese">{price}<SaleUsd e={e} /></span>}
           {e.txid && <a href={`${WAX_EXPLORER}${e.txid}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
         </span>
       </div>
@@ -87,7 +100,7 @@ function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
   const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
   return (
     <Milestone title={KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={KIND_TONE[e.kind] ?? QUIET_TONE} tx={e.txid || undefined} chain={e.chain} rtl={rtl}>
-      {price && <p className="font-semibold text-cheese">{price}</p>}
+      {price && <p className="font-semibold text-cheese">{price}<SaleUsd e={e as SaEvent} /></p>}
       {e.market && <p className="text-[11px] text-muted-foreground">{MARKET_LABEL[e.market] ?? e.market}</p>}
       {(e.from || e.to) && (
         <p className={`font-mono break-all leading-snug flex flex-wrap gap-x-1 ${rtl ? 'flex-row-reverse' : ''}`}>
@@ -99,12 +112,12 @@ function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
   );
 }
 
-export function HistoryTimeline({ events, opener, owner, packSymbol }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string }) {
+export function HistoryTimeline({ events, opener, owner, packSymbol, origin }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string; origin?: 'sa' | 'aa' }) {
   const burned = events.at(-1)?.kind === 'burn';
   const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
   if (opener) nodes.push(
-    <Milestone key="origin" title="Pack opened" tone={KIND_TONE.sale!}>
+    <Milestone key="origin" title="Pack opened" tone={KIND_TONE.sale!} chain={origin}>
       {packImg && <img src={packImg} alt="Pack this card was pulled from" title="Pack this card was pulled from" className="mx-auto w-16 rounded-sm" style={{ clipPath: TORN_TOP_CLIP }} />}
       <p>Pulled by <span className="font-mono text-cheese break-all">{opener}</span></p>
     </Milestone>,
@@ -313,7 +326,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
                 {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              <HistoryTimeline events={shown} opener={opener} owner={owner} packSymbol={packSymbol} />
+              <HistoryTimeline events={shown} opener={opener} owner={owner} packSymbol={packSymbol} origin={originChain(isAtomic, saOriginId)} />
             </div>
           )}
           {classic && saHistory?.full && (
