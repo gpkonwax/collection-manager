@@ -1909,12 +1909,29 @@ export default function SimpleAssetsPage() {
     onLayout: (parsed: DetectedLayout['parsed'], filename: string) => applyLayoutData(parsed, filename),
     onPuzzle: (parsed: PuzzlePieceMap) => applyPuzzleData(parsed),
     onPackHistory: (entries: PackHistoryEntry[]) => {
+      // A pack history exported by another account is not merged into this
+      // device's store — it opens as a session-only shared view in the dialog.
+      if (accountName && !isViewing) {
+        const { own, shared } = splitSharedEntries(entries, accountName);
+        const r = own.length > 0
+          ? mergePackHistory(own)
+          : { added: 0, updated: 0, skipped: entries.length };
+        if (shared) {
+          setSharedPackHistory(shared);
+          setShowPackHistory(true);
+          toast.success(
+            `Viewing ${shared.account}'s shared pack history — ${shared.entries.length} opening${shared.entries.length === 1 ? '' : 's'} loaded. Nothing was saved to this device.`,
+          );
+        }
+        setPackHistoryRefresh((n) => n + 1);
+        return r;
+      }
       const r = mergePackHistory(entries);
       setPackHistoryRefresh((n) => n + 1);
       return r;
     },
     onFavorites: (accounts: FavoriteAccount[]) => importFavorites(accounts),
-  }), [applyAlertsRaw, applyLayoutData, applyPuzzleData]);
+  }), [applyAlertsRaw, applyLayoutData, applyPuzzleData, accountName, isViewing]);
 
   const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
