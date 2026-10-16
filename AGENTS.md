@@ -24,3 +24,4 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - See src/components/simpleassets/AGENTS.md for bridge, transfer, history rules.
 - Pack transfers: token packs via packs.topps::transfer by quantity, AtomicAssets packs via atomicassets::transfer by asset ID; pack and card selections are mutually exclusive (details in src/components/simpleassets/AGENTS.md).
 - Use savedLayoutStacks helpers for comma-joined stacks and unstacking; read rendered grid columns for neighbours to avoid row wrapping and preserve exports.
+- Card-detail neighbour navigation reads rendered [data-detail-cell] rects via src/lib/gridNeighbour.ts, so it follows every view, filter, sort and window width without duplicating layout logic.
