@@ -131,19 +131,44 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
         </DialogHeader>
         <input ref={fileRef} type="file" accept="application/json,.json" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+        {!key ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="max-w-md w-full space-y-5 text-center">
+              <div className="space-y-2">
+                <p className="text-lg font-semibold">Step 1: Unlock your messages</p>
+                <p className="text-sm text-muted-foreground">
+                  Messages for <span className="font-semibold text-foreground">{account}</span> are encrypted. To read or send anything, load your own private key file first.
+                  It stays on this device and is never sent anywhere.
+                </p>
+              </div>
+              <div className="rounded-lg border border-primary p-4 space-y-2 text-left">
+                <p className="font-semibold text-sm">I already have a key</p>
+                <p className="text-xs text-muted-foreground">Look in your Downloads for <span className="font-mono break-all">{account}-gpk-msg-key-PRIVATE.json</span>.</p>
+                <Button className="w-full" onClick={() => fileRef.current?.click()}>Load my private key</Button>
+              </div>
+              <div className="rounded-lg border border-border p-4 space-y-2 text-left">
+                <p className="font-semibold text-sm">I'm new here</p>
+                <p className="text-xs text-muted-foreground">Creates a new key and downloads a private backup file. Keep it safe. If you already made a key before, a new one cannot read your old messages.</p>
+                <Button className="w-full" variant="outline" onClick={makeKey}>Create a new key</Button>
+              </div>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-[240px_1fr] gap-4 flex-1 min-h-0">
           <aside className="flex flex-col gap-3 min-h-0 border-r border-border pr-4">
             <div className="space-y-2 text-sm">
-              <p className="font-semibold">Your key</p>
-              {key ? <p className="text-xs text-muted-foreground break-all">{key.publicKey}</p> : <p className="text-xs text-muted-foreground">No key yet.</p>}
+              <p className="font-semibold">Your key <span className="ml-1 text-xs font-normal text-primary">✓ loaded for {account}</span></p>
+              <p className="text-xs text-muted-foreground break-all">{key.publicKey}</p>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={makeKey}>{key ? 'New key' : 'Create key'}</Button>
-                <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>Load file</Button>
-                {key && <Button size="sm" variant="outline" onClick={() => download(`${account}-gpk-msg-public.json`, toPublicFile(key))}>Share public</Button>}
-                {key && <Button size="sm" variant="outline" onClick={() => download(`${account}-gpk-msg-key-PRIVATE.json`, key)}>Back up private</Button>}
-                {key && <Button size="sm" variant="secondary" disabled={busy} onClick={publish}>Publish to chain</Button>}
+                <Button size="sm" variant="outline" title="Give this file to people you want to talk to" onClick={() => download(`${account}-gpk-msg-public.json`, toPublicFile(key))}>Share public key</Button>
+                <Button size="sm" variant="outline" title="Keep this file yourself, never share it" onClick={() => download(`${account}-gpk-msg-key-PRIVATE.json`, key)}>Back up private key</Button>
+                <Button size="sm" variant="secondary" disabled={busy} title="Let anyone find your key by account name" onClick={publish}>Publish to chain</Button>
+                <Button size="sm" variant="ghost" onClick={() => fileRef.current?.click()}>Load file</Button>
+                <Button size="sm" variant="ghost" onClick={makeKey}>New key</Button>
               </div>
+              <p className="text-[11px] text-muted-foreground">Load file also adds a contact from their public key file.</p>
             </div>
+
             <div className="flex gap-2">
               <Input value={newContact} onChange={(e) => setNewContact(e.target.value)} placeholder="account.wam" onKeyDown={(e) => e.key === 'Enter' && addContact()} />
               <Button size="sm" disabled={busy} onClick={addContact}>Add</Button>
@@ -166,14 +191,13 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
                 <ol className="flex-1 overflow-y-auto space-y-2 pr-2">
                   {thread.map((m) => (
                     <li key={m.txId + m.memo} className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${m.from === account ? 'ml-auto bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                      <p className="whitespace-pre-wrap break-words">{m.text ?? <em className="opacity-70">Can't decrypt (missing or different key)</em>}</p>
+                      <p className="whitespace-pre-wrap break-words">{m.text ?? <em className="opacity-70">{contacts[active] ? "Can't read this one: it was sent with a different key (an older key of yours or theirs)." : `Can't read yet: load ${active}'s public key first.`}</em>}</p>
                       <p className="text-[10px] opacity-70 mt-1">{new Date(m.time).toLocaleString()} · {m.quantity}</p>
                     </li>
                   ))}
                   {!thread.length && <li className="text-sm text-muted-foreground">No messages with {active} yet.</li>}
                 </ol>
-                {!key ? <p className="text-sm text-muted-foreground">Create or load your key to send.</p>
-                  : !contacts[active] ? <p className="text-sm text-muted-foreground">You need {active}'s public key. Add them by name or load their public file.</p>
+                {!contacts[active] ? <p className="text-sm text-muted-foreground">You need {active}'s public key. Add them by name or load their public file.</p>
                   : (
                     <div className="space-y-2 pt-3">
                       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder={`Message ${active}`} />
@@ -192,6 +216,7 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
             )}
           </section>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
