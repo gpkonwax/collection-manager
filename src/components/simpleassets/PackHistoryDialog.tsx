@@ -38,6 +38,12 @@ import {
   type PackHistoryEntry,
 } from '@/lib/packOpenHistory';
 import {
+  getSharedPackHistory,
+  setSharedPackHistory,
+  subscribeSharedPackHistory,
+  splitSharedEntries,
+} from '@/lib/packHistoryShared';
+import {
   exportPackHistoryFromChain,
   HistoryUnavailableError,
   type ChainExportProgress,
@@ -106,15 +112,31 @@ export function PackHistoryDialog({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [chainProgress, setChainProgress] = useState<ChainExportProgress | null>(null);
+  /** A pack history loaded from someone else's JSON — session-only, never saved. */
+  const [sharedView, setSharedViewState] = useState(getSharedPackHistory);
+  useEffect(() => subscribeSharedPackHistory(() => setSharedViewState(getSharedPackHistory())), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
   const refresh = useCallback(() => {
+    if (sharedView) {
+      setEntries(sharedView.entries);
+      setUnsaved(0);
+      setSaveFailed(false);
+      return;
+    }
     if (!account) { setEntries([]); setUnsaved(0); return; }
     setEntries(getPackHistory(account));
     setUnsaved(countUnsavedOpenings(account));
     setSaveFailed(getPackHistorySaveFailed());
-  }, [account]);
+  }, [account, sharedView]);
+
+  const closeSharedView = useCallback(() => setSharedPackHistory(null), []);
+
+  const handleOpenChange = useCallback((o: boolean) => {
+    if (!o) setSharedPackHistory(null);
+    onOpenChange(o);
+  }, [onOpenChange]);
 
   const reload = useCallback(() => {
     setActiveGroup(null);
@@ -254,6 +276,12 @@ export function PackHistoryDialog({
 
 
   const handleDownload = useCallback(async () => {
+    if (sharedView) {
+      // Re-share the loaded file exactly as viewed — no chain rebuild.
+      downloadPackHistory(sharedView.account, sharedView.entries);
+      toast.success(`Downloaded ${sharedView.entries.length} opening${sharedView.entries.length === 1 ? '' : 's'} from the loaded file.`);
+      return;
+    }
     if (!account) {
       toast.info('Connect a wallet first.');
       return;
@@ -299,7 +327,7 @@ export function PackHistoryDialog({
     toast.success(
       `Downloaded ${all.length} opening${all.length === 1 ? '' : 's'}${chainOnly > 0 ? ` (${chainOnly} rebuilt from chain)` : ''}`,
     );
-  }, [account, chainBusy]);
+  }, [account, chainBusy, sharedView]);
 
 
 
@@ -312,26 +340,43 @@ export function PackHistoryDialog({
     let added = 0;
     let updated = 0;
     let bad = 0;
+    // Openings from other accounts are shown as a session-only "shared" view
+    // instead of being merged into this device's store.
+    const allShared: PackHistoryEntry[] = [];
     for (const file of files) {
       try {
         const parsedEntries = parsePackHistoryEnvelope(JSON.parse(await file.text()));
         if (!parsedEntries) { bad++; continue; }
-        const r = mergePackHistory(parsedEntries);
-        added += r.added;
-        updated += r.updated;
+        const { own, shared } = splitSharedEntries(parsedEntries, account);
+        if (own.length > 0) {
+          const r = mergePackHistory(own);
+          added += r.added;
+          updated += r.updated;
+        }
+        if (shared) allShared.push(...shared.entries);
       } catch {
         bad++;
       }
     }
-    reload();
+    if (allShared.length > 0) {
+      const shared = splitSharedEntries(allShared, account).shared!;
+      setSharedPackHistory(shared);
+      toast.success(
+        `Viewing ${shared.account}'s shared pack history — ${shared.entries.length} opening${shared.entries.length === 1 ? '' : 's'} loaded. Nothing was saved to this device.`,
+      );
+    } else {
+      reload();
+    }
     onHistoryChanged?.();
-    if (added || updated) {
-      toast.success(`Loaded pack history — ${added} new, ${updated} updated`);
-    } else if (!bad) {
-      toast.info('Pack history already up to date — nothing new in that file.');
+    if (allShared.length === 0) {
+      if (added || updated) {
+        toast.success(`Loaded pack history — ${added} new, ${updated} updated`);
+      } else if (!bad) {
+        toast.info('Pack history already up to date — nothing new in that file.');
+      }
     }
     if (bad) toast.error(`${bad} file${bad === 1 ? '' : 's'} were not a pack history JSON`);
-  }, [reload, onHistoryChanged]);
+  }, [account, reload, onHistoryChanged]);
 
 
   const handleClear = useCallback(() => {
@@ -347,7 +392,7 @@ export function PackHistoryDialog({
   }, [account, entries.length, reload, onHistoryChanged]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-card border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 theme-bright-text">
@@ -355,11 +400,34 @@ export function PackHistoryDialog({
             Pack History
           </DialogTitle>
           <DialogDescription className="theme-bright-text-muted">
-            Every pack <span className="text-cheese theme-bright-text font-medium">{account || '—'}</span> has opened on this
-            device, plus anything you load from a pack history JSON. Replay any opening to see the reveal and deal again —
-            no wallet signing, nothing is sent on-chain.
+            {sharedView ? (
+              <>
+                Viewing <span className="text-cheese theme-bright-text font-medium">{sharedView.account}</span>'s shared pack
+                history, loaded from a JSON file. Replay any opening to see the reveal and deal again — no wallet signing,
+                nothing is sent on-chain.
+              </>
+            ) : (
+              <>
+                Every pack <span className="text-cheese theme-bright-text font-medium">{account || '—'}</span> has opened on this
+                device, plus anything you load from a pack history JSON. Replay any opening to see the reveal and deal again —
+                no wallet signing, nothing is sent on-chain.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
+
+        {sharedView && (
+          <div className="flex items-center justify-between gap-2 rounded-md border border-cheese/40 bg-cheese/10 px-3 py-2 text-xs text-foreground">
+            <span className="min-w-0 truncate">
+              Shared file from <span className="text-cheese font-medium">{sharedView.account}</span> — session-only, nothing
+              was saved to this device.
+            </span>
+            <Button size="sm" variant="outline" className="h-7 shrink-0" onClick={closeSharedView}>
+              Back to my history
+            </Button>
+          </div>
+        )}
+
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -403,12 +471,12 @@ export function PackHistoryDialog({
           </div>
         </div>
 
-        {chainProgress && (
+        {!sharedView && chainProgress && (
           <p className="text-[11px] text-cheese">{chainProgress.message}</p>
         )}
 
 
-        {saveFailed && (
+        {!sharedView && saveFailed && (
           <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-foreground">
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
             <span>
@@ -418,7 +486,7 @@ export function PackHistoryDialog({
           </div>
         )}
 
-        {unsaved > 0 && (
+        {!sharedView && unsaved > 0 && (
           <div className="flex items-start gap-2 rounded-md border border-cheese/40 bg-cheese/10 px-3 py-2 text-xs text-foreground">
             <AlertTriangle className="h-4 w-4 text-cheese shrink-0 mt-0.5" />
             <span>
@@ -593,18 +661,22 @@ export function PackHistoryDialog({
 
         <div className="border-t border-border pt-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-muted-foreground hover:text-destructive"
-              onClick={handleClear}
-              disabled={entries.length === 0}
-            >
-              <Trash2 className="h-4 w-4 mr-1.5" />
-              Clear on this device
-            </Button>
+            {!sharedView && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={handleClear}
+                disabled={entries.length === 0}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Clear on this device
+              </Button>
+            )}
             <span className="text-[11px] text-muted-foreground ml-auto">
-              {entries.length}/{PACK_HISTORY_CAP} stored
+              {sharedView
+                ? `${sharedView.entries.length} opening${sharedView.entries.length === 1 ? '' : 's'} from the loaded file`
+                : `${entries.length}/${PACK_HISTORY_CAP} stored`}
             </span>
           </div>
         </div>

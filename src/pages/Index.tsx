@@ -121,6 +121,7 @@ import {
   markPackHistoryDownloaded,
   type PackHistoryEntry,
 } from '@/lib/packOpenHistory';
+import { setSharedPackHistory, splitSharedEntries } from '@/lib/packHistoryShared';
 import { storablePackImage, resolvePackArt } from '@/lib/gpkPackMeta';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { loadFavorites, importFavorites, exportFavoritesJson, FAVORITES_CHANGED_EVENT, type FavoriteAccount } from '@/lib/favoriteAccounts';
@@ -1089,7 +1090,11 @@ export default function SimpleAssetsPage() {
     const matchers = cardMatchers.length ? cardMatchers : (entry.matchers ?? []);
     const { matched } = matchRevealedAssets(matchers, assetsRef.current, new Set<string>());
     if (matched.length === 0) {
-      toast.info('None of the cards from this pack are in this wallet any more, so there is nothing to deal.');
+      if (entry.account && entry.account !== accountName) {
+        toast.success(`Replay complete — that's what ${entry.account} pulled. Their cards live in their wallet, so nothing was dealt into yours.`);
+      } else {
+        toast.info('None of the cards from this pack are in this wallet any more, so there is nothing to deal.');
+      }
       return;
     }
     handleDemoCollect(matched);
@@ -1097,7 +1102,7 @@ export default function SimpleAssetsPage() {
     if (gone > 0) {
       toast.info(`${gone} card${gone === 1 ? '' : 's'} from this pack ${gone === 1 ? 'is' : 'are'} no longer in this wallet — only the cards you still own were dealt.`);
     }
-  }, [handleDemoCollect]);
+  }, [handleDemoCollect, accountName]);
 
 
   const handleExportPackHistory = useCallback(() => {
@@ -1877,7 +1882,9 @@ export default function SimpleAssetsPage() {
     if (historyOk.length > 0) {
       const added = historyOk.reduce((n, r) => n + r.packhistory!.added, 0);
       const updated = historyOk.reduce((n, r) => n + r.packhistory!.updated, 0);
-      parts.push(`Pack history: ${added} new, ${updated} updated`);
+      // Shared (other-account) histories open as a view and save nothing — don't
+      // report "0 new, 0 updated" for them; the shared-view toast covers it.
+      if (added > 0 || updated > 0) parts.push(`Pack history: ${added} new, ${updated} updated`);
     }
 
     const favsOk = ok.filter(r => r.kind === 'favorites' && r.favorites);
@@ -1905,12 +1912,29 @@ export default function SimpleAssetsPage() {
     onLayout: (parsed: DetectedLayout['parsed'], filename: string) => applyLayoutData(parsed, filename),
     onPuzzle: (parsed: PuzzlePieceMap) => applyPuzzleData(parsed),
     onPackHistory: (entries: PackHistoryEntry[]) => {
+      // A pack history exported by another account is not merged into this
+      // device's store — it opens as a session-only shared view in the dialog.
+      if (accountName && !isViewing) {
+        const { own, shared } = splitSharedEntries(entries, accountName);
+        const r = own.length > 0
+          ? mergePackHistory(own)
+          : { added: 0, updated: 0, skipped: entries.length };
+        if (shared) {
+          setSharedPackHistory(shared);
+          setShowPackHistory(true);
+          toast.success(
+            `Viewing ${shared.account}'s shared pack history — ${shared.entries.length} opening${shared.entries.length === 1 ? '' : 's'} loaded. Nothing was saved to this device.`,
+          );
+        }
+        setPackHistoryRefresh((n) => n + 1);
+        return r;
+      }
       const r = mergePackHistory(entries);
       setPackHistoryRefresh((n) => n + 1);
       return r;
     },
     onFavorites: (accounts: FavoriteAccount[]) => importFavorites(accounts),
-  }), [applyAlertsRaw, applyLayoutData, applyPuzzleData]);
+  }), [applyAlertsRaw, applyLayoutData, applyPuzzleData, accountName, isViewing]);
 
   const handleImportFiles = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
