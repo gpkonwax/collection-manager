@@ -85,7 +85,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   useEffect(() => {
     if (assetId) {
       setShowRawJson(false);
-      scrollRef.current?.scrollTo({ top: 0 });
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
       setMode('tilt');
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
