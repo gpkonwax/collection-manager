@@ -6,3 +6,5 @@
 - After a successful transfer, burn, bridge or pack donation, hide sent IDs and cap token-pack counts via src/lib/pendingRemovals.ts until refetched data catches up, because indexers lag the chain and a plain refetch can still show what left the wallet.
 - Replies to sent trade offers (accepted/declined/countered) are tracked in src/lib/tradeReplies.ts by diffing pending sent offers only after a successful poll, and offers resolved from this app (cancel, own counter) are marked self-resolved, because an empty list during loading or my own action must never look like a reply.
 - Pack reveal windows start src/lib/collectionPreload.ts for the dealt collection (mirror-first, 6 at a time, grid bottom first) and never cancel it on close, because the deal animation scrolls that grid right after closing.
+
+- Pair timeline bridge custody with this AA copy’s creation time and verified mint recipient in the shared history merger; show a separate AA receipt, never infer its recipient from a later sale/current owner, because bridge custody is not a gift.
