@@ -9,6 +9,7 @@ import { packImage } from '@/lib/gpkPackMeta';
 import { PACK_DEFAULTS } from '@/hooks/useGpkAtomicPacks';
 import { combineAaHistory, fetchLiveAaOpening, getAaCardHistory, POOL, type AaCardHistory, type AaOpening } from '@/lib/aaHistory';
 import { IpfsMedia } from './IpfsMedia';
+import { counterpartAssets, fetchTradeOffer, type OfferAsset } from '@/lib/tradeOffers';
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { fmtUsd, saleUsd } from '@/lib/waxUsd';
@@ -67,6 +68,7 @@ const KIND_TONE: Partial<Record<TimelineEvent['kind'], string>> = {
   burn: 'border-[hsl(var(--tl-burn)/0.6)] bg-[hsl(var(--tl-burn)/0.15)] text-[hsl(var(--tl-burn))]',
 };
 const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.12)] text-muted-foreground';
+const TRADED_TONE = 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]';
 
 
 /** Jagged top edge so the pack thumbnail looks like it was ripped open. */
@@ -406,7 +408,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
                 {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              <HistoryTimeline events={shown} opener={shownOpener} owner={owner} packSymbol={packSymbol} packArt={packArt} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage}
+              <HistoryTimeline events={shown} opener={shownOpener} owner={owner} packSymbol={packSymbol} packArt={packArt} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage} assetId={isAtomic ? assetId : undefined}
                 originDate={!opener ? opening?.time : undefined} originTx={!opener ? opening?.txid : undefined} minted={!opener && opening?.kind === 'mint'} />
             </div>
           )}
