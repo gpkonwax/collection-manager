@@ -32,6 +32,32 @@ describe('history timeline', () => {
     expect(tokenDecimal('300000000', 8)).toBe('3');
   });
 
+  it('places same-transaction AtomicMarket escrow before the sale, preserving actual timestamps', () => {
+    const time = 1664896669500;
+    const aa: TradeHistory = {
+      sales: [{ id: '92217954', time, price: '199 WAX', amount: '199', token: 'WAX', seller: 'guz22.wam', buyer: 'le1qu.wam' }],
+      transfers: [
+        { id: 'delivery', time, from: 'atomicmarket', to: 'le1qu.wam', memo: 'AtomicMarket Purchased Sale - ID # 92217954', txid: 'sale-tx' },
+        { id: 'escrow', time, from: 'guz22.wam', to: 'atomicmarket', memo: 'Accepted Offer ID: 95573477', txid: 'sale-tx' },
+      ],
+    };
+    const result = timelineEvents(mergeHistory([], aa), false);
+    expect(result.map((e) => [e.kind, e.from, e.to, e.time])).toEqual([
+      ['transfer', 'guz22.wam', 'atomicmarket', time],
+      ['sale', 'guz22.wam', 'le1qu.wam', time],
+    ]);
+    expect(result[1].amount).toBe('199');
+    expect(timelineEvents([...result].reverse(), true)).toEqual(result);
+  });
+
+  it('never moves a later escrow transfer ahead of an earlier sale', () => {
+    const result = mergeHistory([], {
+      sales: [{ id: '1', time: 1000, price: '199 WAX', amount: '199', token: 'WAX', seller: 'guz22.wam', buyer: 'le1qu.wam' }],
+      transfers: [{ id: 'next', time: 2000, from: 'le1qu.wam', to: 'atomicmarket', memo: '', txid: 'next-tx' }],
+    });
+    expect(result.map((e) => [e.kind, e.time])).toEqual([['sale', 1000], ['transfer', 2000]]);
+  });
+
   describe('bridge receipt pairing', () => {
     const time = Date.UTC(2021, 0, 16);
     const deposit: SaEvent = { ...ev(time, 'offer'), from: 'ymxqu.wam', to: 'atomicbridge', txid: '5076c492' };

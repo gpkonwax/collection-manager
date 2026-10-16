@@ -8,9 +8,15 @@ export type Chain = 'sa' | 'aa';
 export type TimelineEvent = Omit<SaEvent, 'kind'> & { kind: SaEventKind | 'bridge-receipt'; chain: Chain };
 export interface BridgeReceipt { time: number; account?: string | null }
 
+/** Same-time AA escrow deposits precede the sale they fund; timestamps stay intact. */
+function compareHistoryEvents(a: Omit<SaEvent, 'kind'> & { kind: string; chain?: Chain }, b: Omit<SaEvent, 'kind'> & { kind: string; chain?: Chain }): number {
+  const escrowRank = (e: typeof a) => e.chain === 'aa' && e.kind === 'transfer' && e.to === 'atomicmarket' ? -1 : 0;
+  return a.time - b.time || escrowRank(a) - escrowRank(b);
+}
+
 /** Pure: oldest-first events for the left-to-right timeline. */
 export function timelineEvents<T extends Omit<SaEvent, 'kind'> & { kind: string }>(events: T[], showAll: boolean): T[] {
-  const sorted = [...events].sort((a, b) => a.time - b.time);
+  const sorted = [...events].sort(compareHistoryEvents);
   return showAll ? sorted : sorted.filter((e) => !MARKET_ONLY_KINDS.has(e.kind));
 }
 
@@ -63,7 +69,7 @@ export function mergeHistory(saEvents: SaEvent[], aa: TradeHistory | null, recei
       out.push({ time: t.time, kind: 'transfer', from: t.from, to: t.to, amount: '', token: '', market: '', txid: t.txid, chain: 'aa' });
     }
   }
-  return out.sort((a, b) => a.time - b.time);
+  return out.sort(compareHistoryEvents);
 }
 
 export const CLASSIC_KEY = 'gpk-history-classic';

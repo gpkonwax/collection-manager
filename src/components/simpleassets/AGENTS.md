@@ -8,3 +8,4 @@
 - Pack reveal windows start src/lib/collectionPreload.ts for the dealt collection (mirror-first, 6 at a time, grid bottom first) and never cancel it on close, because the deal animation scrolls that grid right after closing.
 
 - Pair timeline bridge custody with this AA copy’s creation time and verified mint recipient in the shared history merger; show a separate AA receipt, never infer its recipient from a later sale/current owner, because bridge custody is not a gift.
+- Use the shared history comparator for merging and display: same-time AA deposits into AtomicMarket precede sales, because accepted offers escrow and settle in one transaction; never alter timestamps.
