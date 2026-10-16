@@ -176,6 +176,8 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, or
 // Sized so exactly 5 cards fit the 1036px row inside the 1100px detail modal.
 const CARD_W = 180;
 const ARROW_W = 28;
+/** How much longer than tall the row-wrap arrow is, in the same glyph style as the in-row arrows. */
+const WRAP_ARROW_STRETCH = 2.4;
 
 /** Pure: how many milestone cards fit on one row of the given width. */
 export function perRowFor(width: number): number {
@@ -203,6 +205,9 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
   }, []);
   const rows: React.ReactNode[][] = [];
   for (let i = 0; i < nodes.length; i += perRow) rows.push(nodes.slice(i, i + perRow));
+  // Both rows share one band of this exact width, so the column a row turns on
+  // is the same column the next row turns on — and the wrap arrow sits on it.
+  const rowW = perRow * CARD_W + (perRow - 1) * ARROW_W;
   return (
     <div ref={ref} className="w-full min-w-0" aria-label="Card history, oldest first, snaking left to right then right to left">
       {rows.map((row, r) => {
@@ -210,17 +215,15 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
         return (
           <Fragment key={r}>
             {r > 0 && (
-              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`}>
-                {/* Row-wrap connector: a large down arrow, as drawn, centred on the turn card's column. */}
-                <span className="flex justify-center items-center text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>
-                  <svg width="30" height="52" viewBox="0 0 30 52" fill="none" stroke="currentColor">
-                    <path d="M15 2v36" strokeWidth="6" strokeLinecap="round" />
-                    <path d="M3 30 15 49 27 30" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+              <div aria-hidden className={`flex mx-auto ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`} style={{ width: rowW }}>
+                {/* Row-wrap connector: the very same arrow glyph as the in-row ones,
+                    only stretched longer, centred on the column the two rows turn on. */}
+                <span className="flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W, height: 46 }}>
+                  <span className="inline-block" style={{ transform: `scaleY(${WRAP_ARROW_STRETCH})` }}>↓</span>
                 </span>
               </div>
             )}
-            <ol className={`flex items-start ${rtl ? 'flex-row-reverse' : ''}`}>
+            <ol className={`flex items-start mx-auto ${rtl ? 'flex-row-reverse' : ''}`} style={{ width: rowW }}>
               {row.map((n, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
