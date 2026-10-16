@@ -33,6 +33,11 @@ describe('historical marketplaces', () => {
     expect(buildTimelines(rows).get(ID)[1].slice(4, 6)).toEqual(['', '']);
   });
 
+  it('treats market returns as cancellations, never sales', () => {
+    expect(classify(move(1, 'waxstashsale', 'intqi.wam', 'Cancel sale'))[0][2]).toBe('cancel');
+    expect(classify(move(2, 'market.place', 'intqi.wam', 'Marketplace unlisting.'))[0][2]).toBe('cancel');
+  });
+
   it('reconstructs the verified Collectables.io purchase and seller from one transaction', () => {
     const rows = fixtures.filter((a) => a.trx_id === fixtures[0].trx_id).flatMap(classify);
     const timeline = buildTimelines(rows).get('100000004996366');
