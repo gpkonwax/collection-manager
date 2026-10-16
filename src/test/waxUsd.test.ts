@@ -24,7 +24,7 @@ describe('sale USD value', () => {
   });
 
   it('fetches the consolidated index only once per session', async () => {
-    const spy = vi.fn(async () => new Response(JSON.stringify({ '2021-01-16': 0.043, '2021-01-17': 0.05 })));
+    const spy = vi.fn(async (_url: string) => new Response(JSON.stringify({ '2021-01-16': 0.043, '2021-01-17': 0.05 })));
     vi.stubGlobal('fetch', spy);
     const saleUsd = await loadSaleUsd();
     await saleUsd(1, 'WAX', Date.UTC(2021, 0, 16));
