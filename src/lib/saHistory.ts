@@ -6,6 +6,7 @@
  */
 import { GITHUB_RAW_MIRROR_URL } from './dataMirror';
 import { isOfflineBundle } from './offlineBundle';
+import { getLoadedSaHistory, getSaHistoryZipShard } from './saHistoryZip';
 
 export const SA_HISTORY_BASE = GITHUB_RAW_MIRROR_URL.replace(/\/main\/$/, '/sa-history/by-asset/');
 
@@ -60,7 +61,17 @@ const shardCache = new Map<string, Promise<Record<string, unknown[]> | null>>();
  * falls back to older records). Throws on network failure so the UI can offer a retry.
  */
 export async function getSaCardHistory(id: string): Promise<SaCardHistory | null> {
-  if (!/^\d+$/.test(id) || isOfflineBundle()) return null;
+  if (!/^\d+$/.test(id)) return null;
+  // A session-loaded history ZIP is read before any network source.
+  const loaded = getLoadedSaHistory();
+  if (loaded) {
+    const key = id.slice(-3).padStart(3, '0');
+    const meta = { complete: loaded.complete, upTo: loaded.upTo };
+    const rows = getSaHistoryZipShard(key)?.[id];
+    const events = Array.isArray(rows) ? rows.map(parseSaEvent).filter((e): e is SaEvent => !!e).sort((a, b) => a.time - b.time) : [];
+    return { events, ...meta };
+  }
+  if (isOfflineBundle()) return null;
   indexPromise ??= getJson<SaHistoryIndex>(`${SA_HISTORY_BASE}index.json`).catch((e) => { indexPromise = null; throw e; });
   const index = await indexPromise;
   if (!index) return null;

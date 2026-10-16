@@ -36,6 +36,14 @@ import {
   subscribeRecords,
 } from '@/lib/recordsZip';
 import { clearCachedHolders } from '@/lib/gpkHolders';
+import {
+  SA_HISTORY_ZIP_NAME,
+  SA_HISTORY_ZIP_URL,
+  clearSaHistoryZip,
+  getLoadedSaHistory,
+  loadSaHistoryZip,
+  subscribeSaHistoryZip,
+} from '@/lib/saHistoryZip';
 
 import {
   MIRRORS,
@@ -345,6 +353,7 @@ export function BackupPanel({ triggerClassName }: Props) {
               loadSection={loadSection}
             />
             <RecordsZipCard />
+            <HistoryZipCard />
             {!isOfflineBundle() && <OfflineAppCard />}
           </section>
           </div>
@@ -750,7 +759,7 @@ function OfflineAppCard() {
     <section className="rounded-md border border-border bg-background/60 p-3 space-y-2">
       <div className="flex items-center gap-2">
         <HardDrive className="w-4 h-4 text-cheese" />
-        <p className="font-medium">3 · Run the manager itself offline</p>
+        <p className="font-medium">4 · Run the manager itself offline</p>
         <span
           className="ml-auto inline-flex items-center rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-400"
         >
@@ -889,6 +898,110 @@ function RecordsZipCard() {
       <Button size="sm" className={cn('w-full h-8 font-semibold', LOAD_ZIP_BUTTON_CLASSES)} onClick={() => inputRef.current?.click()} disabled={busy}>
         {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
         {busy ? 'Checking ZIP…' : 'Load records ZIP'}
+      </Button>
+      {error && (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">{error}</p>
+      )}
+      <input ref={inputRef} type="file" accept=".zip,application/zip" className="hidden" onChange={onFile} />
+      <p className="text-[10px] text-muted-foreground">Stays loaded for this browser session only.</p>
+    </section>
+  );
+}
+
+function HistoryZipCard() {
+  const loaded = useSyncExternalStore(subscribeSaHistoryZip, getLoadedSaHistory, getLoadedSaHistory);
+  const [remote, setRemote] = useState<RecordsRemoteState>({ kind: 'checking' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    (async () => {
+      try {
+        const res = await fetch(SA_HISTORY_ZIP_URL, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+        if (cancelled) return;
+        if (res.status === 404) { setRemote({ kind: 'missing' }); return; }
+        if (!res.ok) { setRemote({ kind: 'unknown' }); return; }
+        const len = Number(res.headers.get('content-length') ?? '');
+        setRemote({ kind: 'available', bytes: Number.isFinite(len) && len > 0 ? len : 0, lastModified: res.headers.get('last-modified') });
+      } catch {
+        if (!cancelled) setRemote({ kind: 'unknown' });
+      }
+    })();
+    return () => { cancelled = true; clearTimeout(timer); controller.abort(); };
+  }, []);
+
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const rec = await loadSaHistoryZip(file);
+      toast({
+        title: 'History ZIP loaded',
+        description: `${rec.cardCount.toLocaleString()} cards${rec.complete ? '' : ' (partial scan)'}.`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read that ZIP.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const updated = remote.kind === 'available' ? formatRecordsDate(remote.lastModified) : null;
+  const remoteDetail = remote.kind === 'available'
+    ? [remote.bytes ? formatBytes(remote.bytes) : null, updated ? `updated ${updated}` : null].filter(Boolean).join(' — ')
+    : '';
+
+  return (
+    <section className="space-y-2 rounded-md border border-border bg-background/60 p-3">
+      <div className="flex items-center gap-2">
+        <HardDrive className="w-4 h-4 text-cheese" />
+        <p className="font-medium">3 · Card history (sales + transfers)</p>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        A large ZIP with every saved sale, listing and transfer since 2020. Load it here and card
+        history reads from your copy first — handy when GitHub is unreachable.
+      </p>
+
+      {remote.kind === 'missing' ? (
+        <p className="text-xs text-muted-foreground">
+          The history ZIP hasn't been published yet — it appears after the next history refresh as{' '}
+          <span className="font-mono">{SA_HISTORY_ZIP_NAME}</span>.
+        </p>
+      ) : (
+        <Button asChild size="sm" className={cn('w-full h-8 font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
+          <a href={SA_HISTORY_ZIP_URL} target="_blank" rel="noopener noreferrer">
+            {remote.kind === 'checking'
+              ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+              : <Download className="w-3.5 h-3.5 mr-2" />}
+            Download history ZIP
+            {remoteDetail && <span className="ml-1 opacity-70">({remoteDetail})</span>}
+          </a>
+        </Button>
+      )}
+
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {loaded
+            ? `Loaded — snapshot from ${formatRecordsDate(loaded.generatedAt) ?? 'unknown date'}, ${loaded.cardCount.toLocaleString()} cards${loaded.complete ? '' : ' (partial scan)'}`
+            : 'No history ZIP loaded.'}
+        </p>
+        {loaded && (
+          <Button size="sm" variant="ghost" onClick={() => clearSaHistoryZip()} title="Clear loaded history">
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+      <Button size="sm" className={cn('w-full h-8 font-semibold', LOAD_ZIP_BUTTON_CLASSES)} onClick={() => inputRef.current?.click()} disabled={busy}>
+        {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+        {busy ? 'Checking ZIP…' : 'Load history ZIP'}
       </Button>
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">{error}</p>
