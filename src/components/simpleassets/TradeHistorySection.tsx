@@ -155,7 +155,11 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, or
   const burned = events.at(-1)?.kind === 'burn';
   const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
-  if (opener) nodes.push(
+  /** Indices of taller-than-normal cards (torn pack / owner thumbnail) — they leave gap space beside them on their row. */
+  const tall = new Set<number>();
+  if (opener) {
+    if (!minted && (packImg || packArt)) tall.add(nodes.length);
+    nodes.push(
     <Milestone key="origin" title={minted ? 'Minted' : 'Pack opened'} tone={KIND_TONE.sale!} chain={origin} date={originDate ? fmtDate(originDate) : undefined} tx={originTx || undefined}>
       {!minted && packImg && <img src={packImg} alt="Pack this card was pulled from" title="Pack this card was pulled from" className="mx-auto w-16 rounded-sm" style={{ clipPath: TORN_TOP_CLIP }} />}
       {!minted && !packImg && packArt && <IpfsMedia url={packArt} alt="Pack this card was pulled from" className="mx-auto w-16 rounded-sm overflow-hidden" style={{ clipPath: TORN_TOP_CLIP }} context="detail" loading="eager" mirrorFirst />}
