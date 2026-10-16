@@ -97,7 +97,7 @@ function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
   );
 }
 
-function HistoryTimeline({ events, opener, owner, packSymbol }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string }) {
+export function HistoryTimeline({ events, opener, owner, packSymbol }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string }) {
   const burned = events.at(-1)?.kind === 'burn';
   const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
