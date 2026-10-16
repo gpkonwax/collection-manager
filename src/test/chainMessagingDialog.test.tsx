@@ -34,4 +34,24 @@ describe('message payment submission', () => {
     expect(decryptMemo(actions[0].data.memo, sender.publicKey, recipient.secretKey)).toBe('hello bob');
     expect(screen.getByPlaceholderText('Message bob.wam')).toHaveValue('hello bob');
   });
+
+  it('labels every message in a thread with the account that sent it', async () => {
+    const alice = generateKey('alice.wam');
+    const bob = generateKey('bob.wam');
+    saveKey(alice);
+    saveContact('alice.wam', 'bob.wam', bob.publicKey);
+    vi.mocked(fetchMessages).mockResolvedValue([
+      { txId: 't1', time: 1000, from: 'bob.wam', to: 'alice.wam', memo: encryptMemo('hi alice', alice.publicKey, bob.secretKey), quantity: '0.0010 CHEESE' },
+      { txId: 't2', time: 2000, from: 'alice.wam', to: 'bob.wam', memo: encryptMemo('hi bob', bob.publicKey, alice.secretKey), quantity: '0.0010 CHEESE' },
+    ]);
+    render(<ChainMessagingDialog open onOpenChange={() => {}} account="alice.wam"
+      permission={{ actor: 'alice.wam', permission: 'active' }} execute={vi.fn()} />);
+    fireEvent.keyDown(screen.getByRole('button', { name: /Conversations/ }), { key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'bob.wam' }));
+    const theirs = screen.getByText('hi alice').closest('li')!;
+    const mine = screen.getByText('hi bob').closest('li')!;
+    expect(theirs).toHaveTextContent('bob.wam');
+    expect(mine).toHaveTextContent('you · alice.wam');
+    expect(mine).not.toHaveTextContent('bob.wam');
+  });
 });
