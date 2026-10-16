@@ -1882,7 +1882,9 @@ export default function SimpleAssetsPage() {
     if (historyOk.length > 0) {
       const added = historyOk.reduce((n, r) => n + r.packhistory!.added, 0);
       const updated = historyOk.reduce((n, r) => n + r.packhistory!.updated, 0);
-      parts.push(`Pack history: ${added} new, ${updated} updated`);
+      // Shared (other-account) histories open as a view and save nothing — don't
+      // report "0 new, 0 updated" for them; the shared-view toast covers it.
+      if (added > 0 || updated > 0) parts.push(`Pack history: ${added} new, ${updated} updated`);
     }
 
     const favsOk = ok.filter(r => r.kind === 'favorites' && r.favorites);
