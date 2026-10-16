@@ -11,7 +11,8 @@ describe('findNeighbour', () => {
     expect(findNeighbour(cells, 'b', 'left')).toBe('a');
   });
   it('returns nothing at the grid edge', () => {
-    expect(findNeighbour(cells, 'c', 'right')).toBeNull();
+    expect(findNeighbour(cells, 'g', 'right')).toBeNull();
+    expect(findNeighbour(cells, 'a', 'left')).toBeNull();
     expect(findNeighbour(cells, 'a', 'up')).toBeNull();
   });
   it('matches the column when moving up and down', () => {
@@ -21,5 +22,17 @@ describe('findNeighbour', () => {
   it('skips empty slots', () => {
     expect(findNeighbour(cells, 'd', 'right')).toBe('f');
     expect(findNeighbour(cells, 'b', 'down')).toBe('g');
+  });
+  it('wraps left and right across row ends in reading order', () => {
+    expect(findNeighbour(cells, 'c', 'right')).toBe('d');
+    expect(findNeighbour(cells, 'd', 'left')).toBe('c');
+    expect(findNeighbour(cells, 'f', 'right')).toBe('g');
+    expect(findNeighbour(cells, 'g', 'left')).toBe('f');
+  });
+  it('walks every card from first to last with right', () => {
+    const seen = ['a'];
+    let id: string | null = 'a';
+    while ((id = findNeighbour(cells, id, 'right'))) seen.push(id);
+    expect(seen).toEqual(['a', 'b', 'c', 'd', 'f', 'g']);
   });
 });
