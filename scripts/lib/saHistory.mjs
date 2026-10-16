@@ -59,6 +59,10 @@ export const SOURCES = {
   packs: { qs: 'filter=packs.topps:transfer' },
 };
 
+export function canRefreshHistory(index) {
+  return !!(index.complete || index.initialBackfillComplete);
+}
+
 const ACCOUNT_RE = /^[a-z1-5.]{1,12}$/;
 const ID_RE = /^\d+$/;
 const WEEK_MS = 7 * 864e5;
@@ -351,6 +355,16 @@ const SALE_MATCH_MS = 60 * 60_000;
  * Returns Map<id, [[ms, kind, from, to, amount, token, market, tx], ...]> oldest first.
  */
 export function buildTimelines(rows) {
+  // Old broad scans retain the same action as a plain move. Prefer its
+  // reclassified row from a targeted rescan, without duplicating that action.
+  const moves = new Map();
+  for (const r of rows) {
+    if (!['transfer', 'offer', 'sale', 'list', 'cancel'].includes(r[2])) continue;
+    const key = `${r[1]}|${r[3]}`;
+    const old = moves.get(key);
+    if (!old || ['transfer', 'offer'].includes(old[2])) moves.set(key, r);
+  }
+  rows = rows.filter((r) => !['transfer', 'offer', 'sale', 'list', 'cancel'].includes(r[2]) || moves.get(`${r[1]}|${r[3]}`) === r);
   // Only same-transaction evidence links a Collectables purchase to a
   // withdrawal. A later withdrawal alone is not proof of a sale or its price.
   const cioTx = new Map();
@@ -405,7 +419,7 @@ export function buildTimelines(rows) {
         if (!seller && r[8] === 'gpk') {
           let best = null;
           for (const p of pays) {
-            if (used.has(p) || Math.abs(p[0] - r[0]) > SALE_MATCH_MS) continue;
+            if (p[8] !== 'gpk' || used.has(p) || Math.abs(p[0] - r[0]) > SALE_MATCH_MS) continue;
             if (!best || Math.abs(p[0] - r[0]) < Math.abs(best[0] - r[0])) best = p;
           }
           if (best) { used.add(best); seller = best[5]; }
