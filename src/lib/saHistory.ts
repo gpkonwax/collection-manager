@@ -23,7 +23,7 @@ export interface SaCardHistory { events: SaEvent[]; complete: boolean; upTo: str
 const KINDS = new Set<SaEventKind>(['sale', 'list', 'cancel', 'refund', 'reprice', 'transfer', 'offer', 'unoffer', 'claim', 'burn', 'bridge', 'unbridge']);
 const ACCOUNT_RE = /^[a-z1-5.]{0,12}$/;
 const TIMEOUT_MS = 10000;
-export const MARKET_NAMES: Record<string, string> = { gpk: 'GPK market', sm: 'SimpleMarket', myth: 'Myth.Market', cio: 'Collectables.io' };
+export const MARKET_NAMES: Record<string, string> = { gpk: 'GPK market', sm: 'SimpleMarket', myth: 'Myth.Market', cio: 'Collectables.io', waxstash: 'WAXStash', gpkauction: 'GPK Auctions' };
 
 /** Pure: one stored row → event, or null when malformed. */
 export function parseSaEvent(raw: unknown): SaEvent | null {

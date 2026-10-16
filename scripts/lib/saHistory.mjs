@@ -39,7 +39,7 @@ export const GPK_MARKET = 'gpkmarket111';
 export const SIMPLE_MARKET = 'simplemarket';
 export const BRIDGE = 'atomicbridge';
 export const MYTH_MARKET = 'market.myth';
-export const MARKETS = { [GPK_MARKET]: 'gpk', [SIMPLE_MARKET]: 'sm', [MYTH_MARKET]: 'myth', 'market.place': 'cio' };
+export const MARKETS = { [GPK_MARKET]: 'gpk', [SIMPLE_MARKET]: 'sm', [MYTH_MARKET]: 'myth', 'market.place': 'cio', waxstashsale: 'waxstash', 'gpk.market': 'gpkauction' };
 export const BUYLOG_FROM = '2020-07-01T00:00:00.000'; // SimpleMarket buylog exists from 30 Jun 2020
 
 /** Each source is one ascending Hyperion listing with its own bookmark. */
@@ -47,6 +47,10 @@ export const SOURCES = {
   gpkmarket: { qs: `account=${GPK_MARKET}` },
   smbuylog: { qs: 'filter=simplemarket:buylog,simplemarket:updateprice' },
   myth: { qs: `filter=${MYTH_MARKET}:logsale,${MYTH_MARKET}:loglisting,${MYTH_MARKET}:logdropsale` },
+  // Independent bookmarks recover old market activity without rescanning all moves.
+  waxstash: { qs: 'account=waxstashsale' },
+  cio: { qs: 'account=market.place' },
+  gpkauction: { qs: 'account=gpk.market' },
   smpay: { qs: `account=${SIMPLE_MARKET}&filter=eosio.token:transfer`, before: BUYLOG_FROM },
   transfer: { qs: 'filter=simpleassets:transfer' },
   offer: { qs: 'filter=simpleassets:offer,simpleassets:canceloffer' },

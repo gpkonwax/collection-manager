@@ -91,7 +91,9 @@ async function loadGpkIds() {
 }
 
 const index = await loadIndex(OUT);
-if (INCREMENTAL && !index.complete) {
+const initialSources = ['gpkmarket', 'smbuylog', 'myth', 'smpay', 'transfer', 'offer', 'claim', 'burn', 'packs'];
+// Newly added market sources must not lock incremental refresh out forever.
+if (INCREMENTAL && !index.complete && !initialSources.every((name) => index.sources?.[name]?.done)) {
   log('[sa-history] backfill not finished yet — incremental run skipped.');
   process.exit(0);
 }

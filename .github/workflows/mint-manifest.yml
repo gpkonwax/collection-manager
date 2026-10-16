@@ -81,7 +81,8 @@ jobs:
           {
             bash scripts/sa-history-branch.sh restore &&
             node scripts/backfill-sa-history.mjs --incremental --max-minutes 10 &&
-            if grep -q '"complete": true' manifests/sa-history/index.json 2>/dev/null; then
+            # Keep partial market rescans and their bookmarks for the next run.
+            if [ -f manifests/sa-history/index.json ]; then
               npm install --no-save fflate@0.8.3 &&
               node scripts/build-sa-history-views.mjs &&
               bash scripts/sa-history-branch.sh publish
