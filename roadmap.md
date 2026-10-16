@@ -39,3 +39,4 @@
 - [x] Recognise WAXStash, Collectables.io and GPK Auctions with confirmed prices, targeted resumable market rescans, and regression tests; bundle totals and asks are never treated as per-card sale prices.
 - [ ] Publish newly recognised historical sales (blocked: GitHub refresh/backfill must run with updated code).
 - [ ] Per-card price summaries (deferred to analytics page).
+- [x] History ZIP download + load in Offline Backup (card 3); load needs the next backfill run to publish the by-asset shards inside gpk-sa-history.zip.
