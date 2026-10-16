@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { timelineEvents } from '@/lib/historyTimeline';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
 import { WAX_EXPLORER } from '@/lib/waxConfig';
@@ -29,7 +30,7 @@ const KIND_TONE: Partial<Record<SaEvent['kind'], string>> = {
 const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.12)] text-muted-foreground';
 
 function Arrow() {
-  return <div aria-hidden className="shrink-0 self-center text-lg text-muted-foreground px-1">→</div>;
+  return <li aria-hidden className="shrink-0 self-center text-lg text-muted-foreground px-1 list-none">→</li>;
 }
 
 function Milestone({ title, date, tone, children, tx, highlight }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean }) {
@@ -75,7 +76,7 @@ function HistoryTimeline({ events, opener, owner }: { events: SaEvent[]; opener?
   return (
     <div className="relative">
       <ol className="flex items-stretch overflow-x-auto snap-x pb-2 [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] px-3" tabIndex={0} aria-label="Card history, oldest on the left">
-        {nodes.map((n, i) => <div key={i} className="flex items-stretch">{i > 0 && <Arrow />}{n}</div>)}
+        {nodes.map((n, i) => <Fragment key={i}>{i > 0 && <Arrow />}{n}</Fragment>)}
       </ol>
     </div>
   );
@@ -100,6 +101,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props)
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [saHistory, setSaHistory] = useState<SaHistory | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const heldByOpener = !!owner && !!opener && owner === opener;
 
   useEffect(() => { setOpen(false); setHistory(null); setSaHistory(null); setError(false); }, [assetId, owner]);
@@ -150,14 +152,21 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props)
             {saHistory.incoming?.kind === 'none' && <p className="text-muted-foreground">No transfer to the current owner found — it was likely opened by them.</p>}
             {saHistory.incoming?.kind === 'unknown' && !heldByOpener && <p className="text-muted-foreground">Not found among the current owner's 500 most recent transfers.</p>}
           </div>
-          {saHistory.full && (
-            <div className="space-y-1">
-              <p className="font-semibold text-cheese">Full on-chain history ({saHistory.full.events.length})</p>
-              {!saHistory.full.complete && <p className="text-muted-foreground">History scan still in progress{saHistory.full.upTo ? ` — covered up to ${fmtDate(Date.parse(saHistory.full.upTo))}` : ''}.</p>}
-              {saHistory.full.events.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              {[...saHistory.full.events].reverse().map((e, i) => <EventRow key={`${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />)}
-            </div>
-          )}
+          {saHistory.full && (() => {
+            const shown = timelineEvents(saHistory.full.events, showAll);
+            const hidden = saHistory.full.events.length - timelineEvents(saHistory.full.events, false).length;
+            return (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-cheese">Full on-chain history ({shown.length}) <span className="font-normal text-muted-foreground">· oldest left, newest right</span></p>
+                  {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
+                </div>
+                {!saHistory.full.complete && <p className="text-muted-foreground">History scan still in progress{saHistory.full.upTo ? ` — covered up to ${fmtDate(Date.parse(saHistory.full.upTo))}` : ''}.</p>}
+                {saHistory.full.events.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
+                <HistoryTimeline events={shown} opener={opener} owner={owner} />
+              </div>
+            );
+          })()}
           {!saHistory.full && saHistory.saved.length > 0 && (
             <div className="space-y-1">
               <p className="font-semibold text-cheese">Recorded transfers and trades ({saHistory.saved.length})</p>
