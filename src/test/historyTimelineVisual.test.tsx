@@ -60,9 +60,23 @@ describe('snake timeline visuals', () => {
 
   it('highlights the connector arrows in cheese', () => {
     const { container } = renderSnake();
-    const arrows = [...container.querySelectorAll('li[aria-hidden], div[aria-hidden] span')];
+    const arrows = [...container.querySelectorAll('li[aria-hidden]')];
+    const downGap = container.querySelector('div[aria-hidden]');
     expect(arrows.length).toBeGreaterThan(0);
     arrows.forEach((a) => expect(a.className).toContain('text-cheese'));
+    // the down arrows inherit their colour from the shared gap container
+    expect(downGap?.className).toContain('text-cheese');
+  });
+
+  it('spaces the two down arrows evenly in the gap between rows', () => {
+    const { container } = renderSnake();
+    // 9 milestones (opener + 7 events + owner) at 5 per row → 2 rows → 1 row gap.
+    const gaps = [...container.querySelectorAll('div[aria-hidden]')];
+    expect(gaps.length).toBe(1);
+    const [gap] = gaps;
+    expect(gap.textContent).toBe('↓↓');
+    expect(gap.querySelectorAll(':scope > span').length).toBe(2);
+    expect(gap.className).toContain('justify-evenly');
   });
 
   it('uses the round SimpleAssets and AtomicAssets logos instead of text tags', () => {
