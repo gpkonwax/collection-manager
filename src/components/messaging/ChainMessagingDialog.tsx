@@ -210,6 +210,7 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
                 <ol className="flex-1 overflow-y-auto space-y-2 pr-2">
                   {thread.map((m) => (
                     <li key={m.txId + m.memo} className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${m.from === account ? 'ml-auto bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      <p className="text-[10px] font-semibold tracking-wide opacity-80">{m.from === account ? `you · ${account}` : m.from}</p>
                       <p className="whitespace-pre-wrap break-words">{m.text ?? <em className="opacity-70">{contacts[active] ? "Can't read this one: it was sent with a different key (an older key of yours or theirs)." : `Can't read yet: load ${active}'s public key first.`}</em>}</p>
                       <p className="text-[10px] opacity-70 mt-1">{new Date(m.time).toLocaleString()} · {m.quantity}</p>
                     </li>
