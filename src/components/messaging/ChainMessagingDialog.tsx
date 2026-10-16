@@ -191,14 +191,13 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
                 <ol className="flex-1 overflow-y-auto space-y-2 pr-2">
                   {thread.map((m) => (
                     <li key={m.txId + m.memo} className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${m.from === account ? 'ml-auto bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                      <p className="whitespace-pre-wrap break-words">{m.text ?? <em className="opacity-70">Can't decrypt (missing or different key)</em>}</p>
+                      <p className="whitespace-pre-wrap break-words">{m.text ?? <em className="opacity-70">{contacts[active] ? "Can't read this one: it was sent with a different key (an older key of yours or theirs)." : `Can't read yet: load ${active}'s public key first.`}</em>}</p>
                       <p className="text-[10px] opacity-70 mt-1">{new Date(m.time).toLocaleString()} · {m.quantity}</p>
                     </li>
                   ))}
                   {!thread.length && <li className="text-sm text-muted-foreground">No messages with {active} yet.</li>}
                 </ol>
-                {!key ? <p className="text-sm text-muted-foreground">Create or load your key to send.</p>
-                  : !contacts[active] ? <p className="text-sm text-muted-foreground">You need {active}'s public key. Add them by name or load their public file.</p>
+                {!contacts[active] ? <p className="text-sm text-muted-foreground">You need {active}'s public key. Add them by name or load their public file.</p>
                   : (
                     <div className="space-y-2 pt-3">
                       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder={`Message ${active}`} />
@@ -217,6 +216,7 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
             )}
           </section>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
