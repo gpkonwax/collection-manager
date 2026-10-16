@@ -423,7 +423,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             )}
           </div>
         )}
-        <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} owner={asset.owner} opener={openedBy} cardImage={images[0]} saOriginId={isBridgedAsset(asset) ? String(asset.idata?.sassets_id ?? '') : undefined} packSymbol={packSymbol(provenance?.p, provenance?.n)} bridgeReceipt={isBridgedAA && bridgedAt ? { time: bridgedAt.getTime(), account: bridgedBy } : undefined} />
+        <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} owner={asset.owner} opener={openedBy} cardImage={images[0]} saOriginId={isBridgedAsset(asset) ? String(asset.idata?.sassets_id ?? '') : undefined} packSymbol={packSymbol(provenance?.p, provenance?.n)} bridgeReceipt={isBridgedAA && bridgedAt ? { time: bridgedAt.getTime(), account: bridgedBy } : undefined} schema={isAA ? String(asset.category ?? '') : undefined} />
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-xs text-muted-foreground">Owner: {asset.owner}{acquiredOn ? ` · Acquired on ${acquiredOn}` : ''}</span>
           <Button variant="ghost" size="sm" onClick={() => setShowRawJson(!showRawJson)}>{showRawJson ? 'Hide' : 'Show'} Raw JSON</Button>
