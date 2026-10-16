@@ -18,18 +18,65 @@ const KIND_LABEL: Record<SaEvent['kind'], string> = {
   burn: 'Burned', bridge: 'Bridged to AtomicAssets', unbridge: 'Returned from AtomicAssets',
 };
 
-function EventRow({ e }: { e: SaEvent }) {
+const KIND_TONE: Partial<Record<SaEvent['kind'], string>> = {
+  sale: 'border-cheese/60 bg-cheese/15 text-cheese',
+  transfer: 'border-[hsl(var(--tl-transfer)/0.6)] bg-[hsl(var(--tl-transfer)/0.15)] text-[hsl(var(--tl-transfer))]',
+  claim: 'border-[hsl(var(--tl-transfer)/0.6)] bg-[hsl(var(--tl-transfer)/0.15)] text-[hsl(var(--tl-transfer))]',
+  bridge: 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]',
+  unbridge: 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]',
+  burn: 'border-[hsl(var(--tl-burn)/0.6)] bg-[hsl(var(--tl-burn)/0.15)] text-[hsl(var(--tl-burn))]',
+};
+const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.12)] text-muted-foreground';
+
+function Arrow() {
+  return <div aria-hidden className="shrink-0 self-center text-lg text-muted-foreground px-1">→</div>;
+}
+
+function Milestone({ title, date, tone, children, tx, highlight }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean }) {
+  return (
+    <li className={`shrink-0 w-[196px] snap-start rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
+      <div className="flex justify-between items-center gap-2 text-[11px] text-muted-foreground">
+        <span>{date ?? ''}</span>
+        {tx && <a href={`${WAX_EXPLORER}${tx}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
+      </div>
+      <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{title}</span>
+      {children}
+    </li>
+  );
+}
+
+function EventMilestone({ e }: { e: SaEvent }) {
   const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
   return (
-    <div className="bg-muted/30 rounded px-2 py-1">
-      <div className="flex justify-between gap-2">
-        <span>{fmtDate(e.time)} · <span className="font-semibold">{KIND_LABEL[e.kind]}</span>{e.market && ` · ${MARKET_NAMES[e.market] ?? e.market}`}</span>
-        <span className="flex gap-2">
-          {price && <span className="font-semibold text-cheese">{price}</span>}
-          {e.txid && <a href={`${WAX_EXPLORER}${e.txid}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
-        </span>
-      </div>
-      {(e.from || e.to) && <p className="font-mono break-all">{e.from || '—'}{e.to && ` → ${e.to}`}</p>}
+    <Milestone title={KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={KIND_TONE[e.kind] ?? QUIET_TONE} tx={e.txid || undefined}>
+      {price && <p className="font-semibold text-cheese">{price}</p>}
+      {e.market && <p className="text-[11px] text-muted-foreground">{MARKET_NAMES[e.market] ?? e.market}</p>}
+      {(e.from || e.to) && (
+        <p className="font-mono break-all leading-snug">{e.from || '—'}{e.to && <><span className="text-muted-foreground"> → </span>{e.to}</>}</p>
+      )}
+    </Milestone>
+  );
+}
+
+function HistoryTimeline({ events, opener, owner }: { events: SaEvent[]; opener?: string | null; owner?: string }) {
+  const burned = events.at(-1)?.kind === 'burn';
+  const nodes: React.ReactNode[] = [];
+  if (opener) nodes.push(
+    <Milestone key="origin" title="Pack opened" tone={KIND_TONE.sale!}>
+      <p>Pulled by <span className="font-mono text-cheese break-all">{opener}</span></p>
+    </Milestone>,
+  );
+  events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />));
+  if (owner && !burned) nodes.push(
+    <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
+      <p className="font-mono text-cheese break-all">{owner}</p>
+    </Milestone>,
+  );
+  return (
+    <div className="relative">
+      <ol className="flex items-stretch overflow-x-auto snap-x pb-2 [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] px-3" tabIndex={0} aria-label="Card history, oldest on the left">
+        {nodes.map((n, i) => <div key={i} className="flex items-stretch">{i > 0 && <Arrow />}{n}</div>)}
+      </ol>
     </div>
   );
 }
