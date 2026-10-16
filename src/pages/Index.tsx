@@ -3099,7 +3099,7 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> View Any Wallet (Read-Only)</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Enter any valid WAX account name and browse that wallet's collection without logging in.</li>
+                  <li>Enter any valid WAX account name and browse that wallet's collection.</li>
                   <li>View the Classic card grid, Collector Binder view, card detail dialogs, and pack holdings.</li>
                   <li>See both SimpleAssets and AtomicAssets items together.</li>
                   <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
