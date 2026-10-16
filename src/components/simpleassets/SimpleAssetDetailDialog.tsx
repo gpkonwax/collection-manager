@@ -48,7 +48,7 @@ interface Props {
 
 const NAV_ZONES: { dir: NavDir; zone: string; Icon: typeof ChevronLeft; label: string }[] = [
   { dir: 'left', zone: 'left-0 top-0 bottom-0 w-14 items-center justify-start pl-1', Icon: ChevronLeft, label: 'Previous card (left)' },
-  { dir: 'right', zone: 'right-0 top-0 bottom-0 w-14 items-center justify-end pr-1', Icon: ChevronRight, label: 'Next card (right)' },
+  { dir: 'right', zone: 'right-0 top-16 bottom-0 w-14 items-center justify-end pr-1', Icon: ChevronRight, label: 'Next card (right)' },
   { dir: 'up', zone: 'top-0 left-[30%] right-[30%] h-14 items-start justify-center pt-1', Icon: ChevronUp, label: 'Card above' },
   { dir: 'down', zone: 'bottom-0 left-[30%] right-[30%] h-14 items-end justify-center pb-1', Icon: ChevronDown, label: 'Card below' },
 ];
@@ -186,6 +186,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        closeClassName="right-6"
         className="sm:max-w-[1100px] max-h-[90vh] overflow-hidden p-0"
         onKeyDown={(e) => {
           if (!onNavigate || mode !== 'tilt') return;
