@@ -22,6 +22,12 @@ export function findNeighbour(cells: CellRect[], id: string, dir: NavDir): strin
   }
   const beyond = others.filter((c) => (dir === 'down' ? centre(c).y > cy + tol : centre(c).y < cy - tol));
   if (beyond.length === 0) return null;
+  // Same column first (skipping empty slots), nearest in that direction.
+  const col = beyond.filter((c) => Math.abs(centre(c).x - cx) < cur.w / 2);
+  if (col.length) {
+    col.sort((a, b) => Math.abs(centre(a).y - cy) - Math.abs(centre(b).y - cy));
+    return col[0].id;
+  }
   // Nearest row in that direction that holds a card, then the closest column within it.
   const rowY = beyond.reduce((best, c) => {
     const y = centre(c).y;
