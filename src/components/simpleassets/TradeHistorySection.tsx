@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { timelineEvents } from '@/lib/historyTimeline';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
 import { WAX_EXPLORER } from '@/lib/waxConfig';
@@ -18,18 +19,65 @@ const KIND_LABEL: Record<SaEvent['kind'], string> = {
   burn: 'Burned', bridge: 'Bridged to AtomicAssets', unbridge: 'Returned from AtomicAssets',
 };
 
-function EventRow({ e }: { e: SaEvent }) {
+const KIND_TONE: Partial<Record<SaEvent['kind'], string>> = {
+  sale: 'border-cheese/60 bg-cheese/15 text-cheese',
+  transfer: 'border-[hsl(var(--tl-transfer)/0.6)] bg-[hsl(var(--tl-transfer)/0.15)] text-[hsl(var(--tl-transfer))]',
+  claim: 'border-[hsl(var(--tl-transfer)/0.6)] bg-[hsl(var(--tl-transfer)/0.15)] text-[hsl(var(--tl-transfer))]',
+  bridge: 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]',
+  unbridge: 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]',
+  burn: 'border-[hsl(var(--tl-burn)/0.6)] bg-[hsl(var(--tl-burn)/0.15)] text-[hsl(var(--tl-burn))]',
+};
+const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.12)] text-muted-foreground';
+
+function Arrow() {
+  return <li aria-hidden className="shrink-0 self-center text-lg text-muted-foreground px-1 list-none">→</li>;
+}
+
+function Milestone({ title, date, tone, children, tx, highlight }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean }) {
+  return (
+    <li className={`shrink-0 w-[196px] snap-start rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
+      <div className="flex justify-between items-center gap-2 text-[11px] text-muted-foreground">
+        <span>{date ?? ''}</span>
+        {tx && <a href={`${WAX_EXPLORER}${tx}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
+      </div>
+      <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{title}</span>
+      {children}
+    </li>
+  );
+}
+
+function EventMilestone({ e }: { e: SaEvent }) {
   const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
   return (
-    <div className="bg-muted/30 rounded px-2 py-1">
-      <div className="flex justify-between gap-2">
-        <span>{fmtDate(e.time)} · <span className="font-semibold">{KIND_LABEL[e.kind]}</span>{e.market && ` · ${MARKET_NAMES[e.market] ?? e.market}`}</span>
-        <span className="flex gap-2">
-          {price && <span className="font-semibold text-cheese">{price}</span>}
-          {e.txid && <a href={`${WAX_EXPLORER}${e.txid}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
-        </span>
-      </div>
-      {(e.from || e.to) && <p className="font-mono break-all">{e.from || '—'}{e.to && ` → ${e.to}`}</p>}
+    <Milestone title={KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={KIND_TONE[e.kind] ?? QUIET_TONE} tx={e.txid || undefined}>
+      {price && <p className="font-semibold text-cheese">{price}</p>}
+      {e.market && <p className="text-[11px] text-muted-foreground">{MARKET_NAMES[e.market] ?? e.market}</p>}
+      {(e.from || e.to) && (
+        <p className="font-mono break-all leading-snug">{e.from || '—'}{e.to && <><span className="text-muted-foreground"> → </span>{e.to}</>}</p>
+      )}
+    </Milestone>
+  );
+}
+
+function HistoryTimeline({ events, opener, owner }: { events: SaEvent[]; opener?: string | null; owner?: string }) {
+  const burned = events.at(-1)?.kind === 'burn';
+  const nodes: React.ReactNode[] = [];
+  if (opener) nodes.push(
+    <Milestone key="origin" title="Pack opened" tone={KIND_TONE.sale!}>
+      <p>Pulled by <span className="font-mono text-cheese break-all">{opener}</span></p>
+    </Milestone>,
+  );
+  events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />));
+  if (owner && !burned) nodes.push(
+    <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
+      <p className="font-mono text-cheese break-all">{owner}</p>
+    </Milestone>,
+  );
+  return (
+    <div className="relative">
+      <ol className="flex items-stretch overflow-x-auto snap-x pb-2 [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] px-3" tabIndex={0} aria-label="Card history, oldest on the left">
+        {nodes.map((n, i) => <Fragment key={i}>{i > 0 && <Arrow />}{n}</Fragment>)}
+      </ol>
     </div>
   );
 }
@@ -53,9 +101,10 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props)
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [saHistory, setSaHistory] = useState<SaHistory | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const heldByOpener = !!owner && !!opener && owner === opener;
 
-  useEffect(() => { setOpen(false); setHistory(null); setSaHistory(null); setError(false); }, [assetId, owner]);
+  useEffect(() => { setOpen(false); setHistory(null); setSaHistory(null); setShowAll(false); setError(false); }, [assetId, owner]);
 
   useEffect(() => {
     if (!open || isAtomic || saHistory) return;
@@ -103,14 +152,21 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props)
             {saHistory.incoming?.kind === 'none' && <p className="text-muted-foreground">No transfer to the current owner found — it was likely opened by them.</p>}
             {saHistory.incoming?.kind === 'unknown' && !heldByOpener && <p className="text-muted-foreground">Not found among the current owner's 500 most recent transfers.</p>}
           </div>
-          {saHistory.full && (
-            <div className="space-y-1">
-              <p className="font-semibold text-cheese">Full on-chain history ({saHistory.full.events.length})</p>
-              {!saHistory.full.complete && <p className="text-muted-foreground">History scan still in progress{saHistory.full.upTo ? ` — covered up to ${fmtDate(Date.parse(saHistory.full.upTo))}` : ''}.</p>}
-              {saHistory.full.events.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              {[...saHistory.full.events].reverse().map((e, i) => <EventRow key={`${e.txid}-${e.kind}-${e.time}-${i}`} e={e} />)}
-            </div>
-          )}
+          {saHistory.full && (() => {
+            const shown = timelineEvents(saHistory.full.events, showAll);
+            const hidden = saHistory.full.events.length - timelineEvents(saHistory.full.events, false).length;
+            return (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-cheese">Full on-chain history ({shown.length}) <span className="font-normal text-muted-foreground">· oldest left, newest right</span></p>
+                  {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
+                </div>
+                {!saHistory.full.complete && <p className="text-muted-foreground">History scan still in progress{saHistory.full.upTo ? ` — covered up to ${fmtDate(Date.parse(saHistory.full.upTo))}` : ''}.</p>}
+                {saHistory.full.events.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
+                <HistoryTimeline events={shown} opener={opener} owner={owner} />
+              </div>
+            );
+          })()}
           {!saHistory.full && saHistory.saved.length > 0 && (
             <div className="space-y-1">
               <p className="font-semibold text-cheese">Recorded transfers and trades ({saHistory.saved.length})</p>
