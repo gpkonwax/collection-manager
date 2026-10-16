@@ -211,7 +211,13 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
           <Fragment key={r}>
             {r > 0 && (
               <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`}>
-                <span className="text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
+                {/* Row-wrap connector: a large down arrow, as drawn, centred on the turn card's column. */}
+                <span className="flex justify-center items-center text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>
+                  <svg width="30" height="52" viewBox="0 0 30 52" fill="none" stroke="currentColor">
+                    <path d="M15 2v36" strokeWidth="6" strokeLinecap="round" />
+                    <path d="M3 30 15 49 27 30" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
               </div>
             )}
             <ol className={`flex items-start ${rtl ? 'flex-row-reverse' : ''}`}>
