@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Order same-time AtomicMarket escrow before sale and verify the pictured card.
 - [x] Connect bridge custody to the AtomicAssets mint receipt; rename Asset History and verify.
 - [x] Handwriting for card/pack artwork: six offline styles, typed placement, active ink color, undo and clear; the AI recognition path was removed by choice, so no Cloud is needed.
 - [x] Remove Binder selection and transfer/burn/bridge controls; clear selections/dialogs on entry. Six tests passed and browser UI fixture confirmed Classic → Binder → Classic resets selection (no real wallet signing required).
