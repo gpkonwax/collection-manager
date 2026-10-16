@@ -228,7 +228,7 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
                     return (
                       <div className="flex flex-col self-stretch shrink-0" style={{ width: CARD_W }}>
                         {card}
-                        <span aria-hidden data-arrow="wrap" className="flex-1 flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] leading-none" style={{ minHeight: 46 }}>
+                        <span aria-hidden data-arrow="wrap" className="flex-1 flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] leading-none" style={{ minHeight: 46, marginBottom: -ROW_GAP }}>
                           <span className="inline-block" style={{ transform: `scaleY(${WRAP_ARROW_STRETCH})` }}>↓</span>
                         </span>
                       </div>
