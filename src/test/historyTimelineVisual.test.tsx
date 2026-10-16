@@ -60,9 +60,12 @@ describe('snake timeline visuals', () => {
 
   it('highlights the connector arrows in cheese', () => {
     const { container } = renderSnake();
-    const arrows = [...container.querySelectorAll('li[aria-hidden], div[aria-hidden] span')];
+    const arrows = [...container.querySelectorAll('li[aria-hidden]')];
+    const downGap = container.querySelector('div[aria-hidden]');
     expect(arrows.length).toBeGreaterThan(0);
     arrows.forEach((a) => expect(a.className).toContain('text-cheese'));
+    // the down arrows inherit their colour from the shared gap container
+    expect(downGap?.className).toContain('text-cheese');
   });
 
   it('spaces the two down arrows evenly in the gap between rows', () => {
