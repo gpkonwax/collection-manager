@@ -22,5 +22,6 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Gate collection selection by view mode and clear pending selections/dialogs on entering Binder, so actions from another view cannot leak into its browsing-only layout.
 - Native AtomicAssets detail supply comes from template /stats (assets includes burns; circulating = assets minus burned), cached per template; bridged cards retain the SimpleAssets resolver so original and bridged counts never mix.
 - See src/components/simpleassets/AGENTS.md for bridge, transfer, history rules.
-- Pack transfers: token packs via packs.topps::transfer by quantity, AtomicAssets packs via atomicassets::transfer by asset ID; pack and card selections are mutually exclusive (details in src/components/simpleassets/AGENTS.md).
+- Pack transfers: see src/components/simpleassets/AGENTS.md (token vs AtomicAssets packs; pack and card selections mutually exclusive).
 - Use savedLayoutStacks helpers for comma-joined stacks and unstacking; read rendered grid columns for neighbours to avoid row wrapping and preserve exports.
+- Card-detail neighbour navigation uses rendered [data-detail-cell] rects (src/lib/gridNeighbour.ts) to follow any layout.
