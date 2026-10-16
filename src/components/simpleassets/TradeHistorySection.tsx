@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { mergeHistory, readClassicPref, timelineEvents, writeClassicPref, type TimelineEvent } from '@/lib/historyTimeline';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
@@ -12,7 +12,7 @@ import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string }
+interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string }
 
 interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[]; full: SaCardHistory | null }
 
@@ -150,15 +150,15 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
         return (
           <Fragment key={r}>
             {r > 0 && (
-              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} text-lg text-muted-foreground leading-none py-1`}>
-                <span className="text-center" style={{ width: CARD_W }}>↓</span>
+              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`}>
+                <span className="text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
               </div>
             )}
             <ol className={`flex items-stretch ${rtl ? 'flex-row-reverse' : ''}`}>
               {row.map((n, i) => (
                 <Fragment key={i}>
-                  {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-lg text-muted-foreground list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
-                  {n}
+                  {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
+                  {isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n}
                 </Fragment>
               ))}
             </ol>
@@ -222,7 +222,7 @@ function RetryRow({ text, onRetry }: { text: string; onRetry: () => void }) {
   );
 }
 
-export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId }: Props) {
+export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol }: Props) {
   const [open, setOpen] = useState(false);
   const [classic, setClassic] = useState(readClassicPref);
   const [history, setHistory] = useState<TradeHistory | null>(null);
@@ -311,7 +311,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
                 {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              <HistoryTimeline events={shown} opener={opener} owner={owner} />
+              <HistoryTimeline events={shown} opener={opener} owner={owner} packSymbol={packSymbol} />
             </div>
           )}
           {classic && saHistory?.full && (

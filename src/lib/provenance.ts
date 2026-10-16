@@ -101,6 +101,11 @@ const PACK_CODES: Record<string, Record<number, string>> = {
   exotic: { 5: 'EXOFIVE', 25: 'EXOMEGA' },
 };
 
+/** Pack token symbol (key into gpkPackMeta.PACK_IMAGES) for a provenance record, when the pack size identifies it. */
+export function packSymbol(p?: string, n?: number): string | undefined {
+  return p && n ? PACK_CODES[p.toLowerCase()]?.[n] : undefined;
+}
+
 export function formatPackLabel(p?: string, n?: number): string | null {
   if (!p) return null;
   const code = n ? PACK_CODES[p.toLowerCase()]?.[n] : undefined;
