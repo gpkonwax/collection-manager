@@ -43,7 +43,16 @@ import {
   getLoadedSaHistory,
   loadSaHistoryZip,
   subscribeSaHistoryZip,
+  type LoadedSaHistory,
 } from '@/lib/saHistoryZip';
+import {
+  AA_HISTORY_ZIP_NAME,
+  AA_HISTORY_ZIP_URL,
+  clearAaHistoryZip,
+  getLoadedAaHistory,
+  loadAaHistoryZip,
+  subscribeAaHistoryZip,
+} from '@/lib/aaHistory';
 
 import {
   MIRRORS,
@@ -759,7 +768,7 @@ function OfflineAppCard() {
     <section className="rounded-md border border-border bg-background/60 p-3 space-y-2">
       <div className="flex items-center gap-2">
         <HardDrive className="w-4 h-4 text-cheese" />
-        <p className="font-medium">4 · Run the manager itself offline</p>
+        <p className="font-medium">5 · Run the manager itself offline</p>
         <span
           className="ml-auto inline-flex items-center rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-400"
         >
@@ -908,8 +917,26 @@ function RecordsZipCard() {
   );
 }
 
-function HistoryZipCard() {
-  const loaded = useSyncExternalStore(subscribeSaHistoryZip, getLoadedSaHistory, getLoadedSaHistory);
+interface HistoryZipConfig {
+  step: string; title: string; blurb: string; url: string; name: string;
+  subscribe: (fn: () => void) => () => void; get: () => LoadedSaHistory | null;
+  load: (f: File) => Promise<LoadedSaHistory>; clear: () => void;
+}
+const SA_HISTORY_CARD: HistoryZipConfig = {
+  step: '3', title: 'Card history (sales + transfers)',
+  blurb: 'A large ZIP with every saved sale, listing and transfer since 2020. Load it here and card history reads from your copy first — handy when GitHub is unreachable.',
+  url: SA_HISTORY_ZIP_URL, name: SA_HISTORY_ZIP_NAME,
+  subscribe: subscribeSaHistoryZip, get: getLoadedSaHistory, load: loadSaHistoryZip, clear: clearSaHistoryZip,
+};
+const AA_HISTORY_CARD: HistoryZipConfig = {
+  step: '4', title: 'Card history (AtomicAssets)',
+  blurb: 'Every GPK AtomicAssets pack opening, mint, transfer, burn and settled sale. Load it here and AtomicAssets card history reads from your copy first — handy when GitHub or AtomicHub is unreachable.',
+  url: AA_HISTORY_ZIP_URL, name: AA_HISTORY_ZIP_NAME,
+  subscribe: subscribeAaHistoryZip, get: getLoadedAaHistory, load: loadAaHistoryZip, clear: clearAaHistoryZip,
+};
+
+function HistoryZipCard({ config }: { config: HistoryZipConfig }) {
+  const loaded = useSyncExternalStore(config.subscribe, config.get, config.get);
   const [remote, setRemote] = useState<RecordsRemoteState>({ kind: 'checking' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -921,7 +948,7 @@ function HistoryZipCard() {
     const timer = setTimeout(() => controller.abort(), 8000);
     (async () => {
       try {
-        const res = await fetch(SA_HISTORY_ZIP_URL, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+        const res = await fetch(config.url, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
         if (cancelled) return;
         if (res.status === 404) { setRemote({ kind: 'missing' }); return; }
         if (!res.ok) { setRemote({ kind: 'unknown' }); return; }
@@ -941,7 +968,7 @@ function HistoryZipCard() {
     setBusy(true);
     setError(null);
     try {
-      const rec = await loadSaHistoryZip(file);
+      const rec = await config.load(file);
       toast({
         title: 'History ZIP loaded',
         description: `${rec.cardCount.toLocaleString()} cards${rec.complete ? '' : ' (partial scan)'}.`,
@@ -962,22 +989,19 @@ function HistoryZipCard() {
     <section className="space-y-2 rounded-md border border-border bg-background/60 p-3">
       <div className="flex items-center gap-2">
         <HardDrive className="w-4 h-4 text-cheese" />
-        <p className="font-medium">3 · Card history (sales + transfers)</p>
+        <p className="font-medium">{config.step} · {config.title}</p>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        A large ZIP with every saved sale, listing and transfer since 2020. Load it here and card
-        history reads from your copy first — handy when GitHub is unreachable.
-      </p>
+      <p className="text-xs text-muted-foreground">{config.blurb}</p>
 
       {remote.kind === 'missing' ? (
         <p className="text-xs text-muted-foreground">
           The history ZIP hasn't been published yet — it appears after the next history refresh as{' '}
-          <span className="font-mono">{SA_HISTORY_ZIP_NAME}</span>.
+          <span className="font-mono">{config.name}</span>.
         </p>
       ) : (
         <Button asChild size="sm" className={cn('w-full h-8 font-semibold', DOWNLOAD_ZIP_BUTTON_CLASSES)}>
-          <a href={SA_HISTORY_ZIP_URL} target="_blank" rel="noopener noreferrer">
+          <a href={config.url} target="_blank" rel="noopener noreferrer">
             {remote.kind === 'checking'
               ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
               : <Download className="w-3.5 h-3.5 mr-2" />}
@@ -994,7 +1018,7 @@ function HistoryZipCard() {
             : 'No history ZIP loaded.'}
         </p>
         {loaded && (
-          <Button size="sm" variant="ghost" onClick={() => clearSaHistoryZip()} title="Clear loaded history">
+          <Button size="sm" variant="ghost" onClick={() => config.clear()} title="Clear loaded history">
             <Trash2 className="w-4 h-4" />
           </Button>
         )}
