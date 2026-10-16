@@ -362,7 +362,8 @@ export function BackupPanel({ triggerClassName }: Props) {
               loadSection={loadSection}
             />
             <RecordsZipCard />
-            <HistoryZipCard />
+            <HistoryZipCard config={SA_HISTORY_CARD} />
+            <HistoryZipCard config={AA_HISTORY_CARD} />
             {!isOfflineBundle() && <OfflineAppCard />}
           </section>
           </div>
