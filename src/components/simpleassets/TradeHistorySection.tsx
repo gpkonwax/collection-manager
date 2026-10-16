@@ -29,7 +29,7 @@ function SaleUsd({ e }: { e: Pick<SaEvent, 'kind' | 'amount' | 'token' | 'time'>
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; cardImage?: string; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string; bridgeReceipt?: BridgeReceipt; /** AtomicAssets schema (e.g. foodfightb), used to name the pack of native cards. */ schema?: string }
+interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; cardImage?: string; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string; /** Epoch ms the pack was opened, from the provenance record. */ openedAt?: number; bridgeReceipt?: BridgeReceipt; /** AtomicAssets schema (e.g. foodfightb), used to name the pack of native cards. */ schema?: string }
 
 interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[]; full: SaCardHistory | null }
 
@@ -297,7 +297,7 @@ function RetryRow({ text, onRetry }: { text: string; onRetry: () => void }) {
   );
 }
 
-export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt, cardImage, schema = '' }: Props) {
+export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt, cardImage, schema = '', openedAt }: Props) {
   const [open, setOpen] = useState(true);
   const [classic, setClassic] = useState(readClassicPref);
   const [history, setHistory] = useState<TradeHistory | null>(null);
@@ -424,7 +424,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
               <HistoryTimeline events={shown} opener={shownOpener} owner={owner} packSymbol={packSymbol} packArt={packArt} origin={originChain(isAtomic, saOriginId)} cardImage={cardImage} assetId={isAtomic ? assetId : undefined}
-                originDate={!opener ? opening?.time : undefined} originTx={!opener ? opening?.txid : undefined} minted={!opener && opening?.kind === 'mint'} />
+                originDate={opener ? openedAt : opening?.time} originTx={!opener ? opening?.txid : undefined} minted={!opener && opening?.kind === 'mint'} />
             </div>
           )}
           {classic && saHistory?.full && (
