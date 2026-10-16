@@ -218,7 +218,7 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
               <div aria-hidden className={`flex mx-auto ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`} style={{ width: rowW }}>
                 {/* Row-wrap connector: the very same arrow glyph as the in-row ones,
                     only stretched longer, centred on the column the two rows turn on. */}
-                <span className="flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W, height: 46 }}>
+                <span data-arrow="wrap" className="flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W, height: 46 }}>
                   <span className="inline-block" style={{ transform: `scaleY(${WRAP_ARROW_STRETCH})` }}>↓</span>
                 </span>
               </div>
@@ -226,7 +226,7 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
             <ol className={`flex items-start mx-auto ${rtl ? 'flex-row-reverse' : ''}`} style={{ width: rowW }}>
               {row.map((n, i) => (
                 <Fragment key={i}>
-                  {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
+                  {i > 0 && <li aria-hidden data-arrow="row" className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
                   {isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n}
                 </Fragment>
               ))}

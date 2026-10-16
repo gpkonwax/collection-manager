@@ -60,9 +60,21 @@ describe('snake timeline visuals', () => {
 
   it('highlights the connector arrows in cheese', () => {
     const { container } = renderSnake();
-    const arrows = [...container.querySelectorAll('li[aria-hidden], div[aria-hidden] span')];
+    const arrows = [...container.querySelectorAll('[data-arrow]')];
+    // one per in-row gap, plus one per row wrap
     expect(arrows.length).toBeGreaterThan(0);
     arrows.forEach((a) => expect(a.className).toContain('text-cheese'));
+    expect(arrows.some((a) => a.getAttribute('data-arrow') === 'wrap')).toBe(true);
+  });
+
+  it('gives both rows the same band so the wrap arrow sits between the two boxes', () => {
+    const { container } = renderSnake();
+    const lists = [...container.querySelectorAll('ol')] as HTMLElement[];
+    expect(lists.length).toBe(2);
+    // 5 cards of 180px + 4 gaps of 28px: one shared band, so the column row 1
+    // turns on is the column row 2 turns on and the arrow can centre on it.
+    expect(lists[0].style.width).toBe('1012px');
+    expect(lists[1].style.width).toBe('1012px');
   });
 
   it('uses the round SimpleAssets and AtomicAssets logos instead of text tags', () => {
