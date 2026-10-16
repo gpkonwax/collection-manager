@@ -391,7 +391,7 @@ export default function SimpleAssetsPage() {
         .find((n) => n.dataset.detailCell === id && !n.closest('[role="dialog"]'));
       if (!el) return;
       // Keep the current card in view so the virtualised rows around it are drawn.
-      el.scrollIntoView({ block: 'nearest' });
+      el.scrollIntoView({ block: 'center' });
       raf = requestAnimationFrame(() => {
         const cells = readGridCells();
         setDetailNav({
