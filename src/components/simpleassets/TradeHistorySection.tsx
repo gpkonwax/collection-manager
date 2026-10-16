@@ -240,7 +240,7 @@ function RetryRow({ text, onRetry }: { text: string; onRetry: () => void }) {
 }
 
 export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt, cardImage }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [classic, setClassic] = useState(readClassicPref);
   const [history, setHistory] = useState<TradeHistory | null>(null);
   const [aaError, setAaError] = useState(false);
@@ -253,7 +253,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
   const saId = isAtomic ? (saOriginId && /^\d+$/.test(saOriginId) ? saOriginId : '') : assetId;
   const heldByOpener = !!owner && !!opener && owner === opener;
 
-  useEffect(() => { setOpen(false); setHistory(null); setSaHistory(null); setShowAll(false); setAaError(false); setSaError(false); }, [assetId, owner, saId]);
+  useEffect(() => { setOpen(true); setHistory(null); setSaHistory(null); setShowAll(false); setAaError(false); setSaError(false); }, [assetId, owner, saId]);
 
   useEffect(() => {
     if (!open || !saId || saHistory) return;

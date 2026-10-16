@@ -42,3 +42,4 @@
 - [ ] Publish newly recognised historical sales (blocked: GitHub refresh/backfill must run with updated code).
 - [ ] Per-card price summaries (deferred to analytics page).
 - [x] History ZIP download + load in Offline Backup (card 3); load needs the next backfill run to publish the by-asset shards inside gpk-sa-history.zip.
+- [x] Asset History expanded by default when a card detail opens (Hide history button kept); 2 new tests, full suite 318 pass.
