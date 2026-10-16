@@ -89,7 +89,7 @@ function ChainLogo({ chain }: { chain: 'sa' | 'aa' }) {
 
 function Milestone({ title, date, tone, children, tx, highlight, chain, rtl }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean; chain?: 'sa' | 'aa'; rtl?: boolean }) {
   return (
-    <div className={`shrink-0 w-[180px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
+    <li className={`shrink-0 w-[180px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
       <div className="flex justify-between items-center gap-2 text-[11px] text-muted-foreground">
         <span>{date ?? ''}</span>
         {chain && <ChainLogo chain={chain} />}
@@ -97,7 +97,7 @@ function Milestone({ title, date, tone, children, tx, highlight, chain, rtl }: {
       </div>
       <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{title}</span>
       <div className={rtl ? 'text-right' : undefined}>{children}</div>
-    </div>
+    </li>
   );
 }
 
@@ -155,11 +155,7 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, or
   const burned = events.at(-1)?.kind === 'burn';
   const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
-  /** Indices of taller-than-normal cards (torn pack / owner thumbnail) — they leave gap space beside them on their row. */
-  const tall = new Set<number>();
-  if (opener) {
-    if (!minted && (packImg || packArt)) tall.add(nodes.length);
-    nodes.push(
+  if (opener) nodes.push(
     <Milestone key="origin" title={minted ? 'Minted' : 'Pack opened'} tone={KIND_TONE.sale!} chain={origin} date={originDate ? fmtDate(originDate) : undefined} tx={originTx || undefined}>
       {!minted && packImg && <img src={packImg} alt="Pack this card was pulled from" title="Pack this card was pulled from" className="mx-auto w-16 rounded-sm" style={{ clipPath: TORN_TOP_CLIP }} />}
       {!minted && !packImg && packArt && <IpfsMedia url={packArt} alt="Pack this card was pulled from" className="mx-auto w-16 rounded-sm overflow-hidden" style={{ clipPath: TORN_TOP_CLIP }} context="detail" loading="eager" mirrorFirst />}
@@ -167,18 +163,14 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, or
       <p>{minted ? 'Minted to' : 'Pulled by'} <span className="font-mono text-cheese break-all">{opener}</span></p>
     </Milestone>,
   );
-  }
   events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.chain}-${e.txid}-${e.kind}-${e.time}-${i}`} e={e} assetId={assetId} />));
-  if (owner && !burned) {
-    tall.add(nodes.length);
-    nodes.push(
-      <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
-        <IpfsMedia url={cardImage} alt="Card held by the current owner" className="mx-auto w-16 rounded-sm overflow-hidden" context="detail" loading="eager" mirrorFirst />
-        <p className="font-mono text-cheese break-all">{owner}</p>
-      </Milestone>,
-    );
-  }
-  return <SnakeRows nodes={nodes} tall={tall} />;
+  if (owner && !burned) nodes.push(
+    <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
+      <IpfsMedia url={cardImage} alt="Card held by the current owner" className="mx-auto w-16 rounded-sm overflow-hidden" context="detail" loading="eager" mirrorFirst />
+      <p className="font-mono text-cheese break-all">{owner}</p>
+    </Milestone>,
+  );
+  return <SnakeRows nodes={nodes} />;
 }
 
 // Sized so exactly 5 cards fit the 1036px row inside the 1100px detail modal.
@@ -194,7 +186,7 @@ export function perRowFor(width: number): number {
  * Lays milestones out as a snake: row 1 left→right, row 2 right→left, …,
  * so long histories grow the window downwards instead of sideways.
  */
-function SnakeRows({ nodes, tall }: { nodes: React.ReactNode[]; /** Indices of taller cards (torn pack / owner thumbnail) that leave gap space on their row. */ tall: Set<number> }) {
+function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [perRow, setPerRow] = useState(1);
   useLayoutEffect(() => {
@@ -209,41 +201,24 @@ function SnakeRows({ nodes, tall }: { nodes: React.ReactNode[]; /** Indices of t
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const rows: { node: React.ReactNode; idx: number }[][] = [];
-  for (let i = 0; i < nodes.length; i += perRow) {
-    rows.push(nodes.slice(i, i + perRow).map((node, j) => ({ node, idx: i + j })));
-  }
+  const rows: React.ReactNode[][] = [];
+  for (let i = 0; i < nodes.length; i += perRow) rows.push(nodes.slice(i, i + perRow));
   return (
     <div ref={ref} className="w-full min-w-0" aria-label="Card history, oldest first, snaking left to right then right to left">
       {rows.map((row, r) => {
         const rtl = r % 2 === 1;
-        // The two evenly-spaced ↓ arrows only belong where a taller card on the
-        // row (torn pack, owner thumbnail) leaves real gap space below the
-        // turning box; uniform rows go back to the single small arrow.
-        const gap = row.slice(0, -1).some(({ idx }) => tall.has(idx));
         return (
           <Fragment key={r}>
+            {r > 0 && (
+              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`}>
+                <span className="text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
+              </div>
+            )}
             <ol className={`flex items-start ${rtl ? 'flex-row-reverse' : ''}`}>
-              {row.map(({ node: n }, i) => (
+              {row.map((n, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
-                  {(() => {
-                    const turn = i === row.length - 1 && r < rows.length - 1;
-                    const card = isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n;
-                    return (
-                      <li className={`list-none shrink-0 ${turn ? 'self-stretch flex flex-col' : ''}`}>
-                        {card}
-                        {turn && (gap ? (
-                          <div aria-hidden className="flex-1 min-h-[96px] flex flex-col justify-evenly items-center leading-none text-3xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">
-                            <span>↓</span>
-                            <span>↓</span>
-                          </div>
-                        ) : (
-                          <div aria-hidden className="pt-1 text-center leading-none text-3xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">↓</div>
-                        ))}
-                      </li>
-                    );
-                  })()}
+                  {isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n}
                 </Fragment>
               ))}
             </ol>
