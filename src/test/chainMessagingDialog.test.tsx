@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChainMessagingDialog } from '@/components/messaging/ChainMessagingDialog';
-import { decryptMemo, generateKey, saveContact, saveKey } from '@/lib/chainMessaging';
+import { decryptMemo, encryptMemo, fetchMessages, generateKey, saveContact, saveKey } from '@/lib/chainMessaging';
 
 vi.mock('@/lib/chainMessaging', async (importOriginal) => ({
   ...await importOriginal<typeof import('@/lib/chainMessaging')>(),
@@ -9,7 +9,7 @@ vi.mock('@/lib/chainMessaging', async (importOriginal) => ({
 }));
 
 describe('message payment submission', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => { localStorage.clear(); vi.mocked(fetchMessages).mockResolvedValue([]); });
   afterEach(() => { cleanup(); vi.restoreAllMocks(); localStorage.clear(); });
 
   it('submits both CHEESE transfers in one wallet request and preserves text on rejection', async () => {
