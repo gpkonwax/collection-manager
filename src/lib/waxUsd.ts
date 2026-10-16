@@ -16,14 +16,16 @@ function cheeseDay(d: string) {
   let p = cache.get(d);
   if (!p) {
     p = (async () => {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 6000);
       try {
-        const r = await fetch(`${CHEESEHUB}${d}.json`, { signal: AbortSignal.timeout(6000) });
+        const r = await fetch(`${CHEESEHUB}${d}.json`, { signal: ctl.signal });
         if (!r.ok) return null;
         const j = await r.json();
         const prices: Record<string, number> = { ...(j.prices ?? {}) };
         if (typeof j.waxUsd === 'number') prices.__waxUsd = j.waxUsd;
         return prices;
-      } catch { return null; }
+      } catch { return null; } finally { clearTimeout(timer); }
     })();
     cache.set(d, p);
   }
