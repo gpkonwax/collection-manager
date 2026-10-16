@@ -214,20 +214,24 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
         const rtl = r % 2 === 1;
         return (
           <Fragment key={r}>
-            {r > 0 && (
-              <div aria-hidden className={`flex mx-auto ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`} style={{ width: rowW }}>
-                {/* Row-wrap connector: the very same arrow glyph as the in-row ones,
-                    only stretched longer, centred on the column the two rows turn on. */}
-                <span data-arrow="wrap" className="flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W, height: 46 }}>
-                  <span className="inline-block" style={{ transform: `scaleY(${WRAP_ARROW_STRETCH})` }}>↓</span>
-                </span>
-              </div>
-            )}
             <ol className={`flex items-start mx-auto ${rtl ? 'flex-row-reverse' : ''}`} style={{ width: rowW }}>
               {row.map((n, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden data-arrow="row" className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
-                  {isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n}
+                  {(() => {
+                    const card = isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n;
+                    if (r === rows.length - 1 || i !== row.length - 1) return card;
+                    // Turning card: the wrap arrow fills the space under it, centred
+                    // between this box and the box it bridges to on the next row.
+                    return (
+                      <div className="flex flex-col self-stretch shrink-0" style={{ width: CARD_W }}>
+                        {card}
+                        <span aria-hidden data-arrow="wrap" className="flex-1 flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] leading-none" style={{ minHeight: 46 }}>
+                          <span className="inline-block" style={{ transform: `scaleY(${WRAP_ARROW_STRETCH})` }}>↓</span>
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </Fragment>
               ))}
             </ol>
