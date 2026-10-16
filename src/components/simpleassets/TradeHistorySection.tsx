@@ -178,6 +178,8 @@ const CARD_W = 180;
 const ARROW_W = 28;
 /** How much longer than tall the row-wrap arrow is, in the same glyph style as the in-row arrows. */
 const WRAP_ARROW_STRETCH = 2.4;
+/** Vertical breathing room between snake rows, so the eye follows the snake instead of dropping straight down. */
+const ROW_GAP = 24;
 
 /** Pure: how many milestone cards fit on one row of the given width. */
 export function perRowFor(width: number): number {
@@ -214,7 +216,7 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
         const rtl = r % 2 === 1;
         return (
           <Fragment key={r}>
-            <ol className={`flex items-start mx-auto ${rtl ? 'flex-row-reverse' : ''}`} style={{ width: rowW }}>
+            <ol className={`flex items-start mx-auto ${rtl ? 'flex-row-reverse' : ''}`} style={{ width: rowW, marginBottom: r < rows.length - 1 ? ROW_GAP : undefined }}>
               {row.map((n, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden data-arrow="row" className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
@@ -226,7 +228,7 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
                     return (
                       <div className="flex flex-col self-stretch shrink-0" style={{ width: CARD_W }}>
                         {card}
-                        <span aria-hidden data-arrow="wrap" className="flex-1 flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] leading-none" style={{ minHeight: 46 }}>
+                        <span aria-hidden data-arrow="wrap" className="flex-1 flex items-center justify-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] leading-none" style={{ minHeight: 46, marginBottom: -ROW_GAP }}>
                           <span className="inline-block" style={{ transform: `scaleY(${WRAP_ARROW_STRETCH})` }}>↓</span>
                         </span>
                       </div>
