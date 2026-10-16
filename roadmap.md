@@ -49,3 +49,4 @@
 - [x] Shareable pack histories: loading another account's pack history JSON (dialog or JSON menu) opens a session-only shared view with replay, never merged into the device store; "Back to my history" exits.
 - [x] Asset History wrap arrow: same glyph, colour and glow as the in-row arrows, stretched longer and centred exactly between the two boxes it joins (both rows now share one band so the turn column matches).
 - [x] Asset History: the Pack opened box now carries its opening date at the top like every other box; verified on Nasty Nick (12 May 2020) and 358 tests.
+- [ ] Hidden on-chain encrypted messaging (?devmsg=1 / Ctrl+Alt+M): built, awaiting real-wallet send test and launch decision (blocked: user signing a real transfer).

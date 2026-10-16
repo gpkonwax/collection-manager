@@ -67,6 +67,7 @@ async function warmDealImagesWithoutBlocking(cards: SimpleAsset[], maxWaitMs = 6
   ]);
 }
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
+import { ChainMessagingDialog } from '@/components/messaging/ChainMessagingDialog';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog, type SelectedPacks } from '@/components/simpleassets/TransferDialog';
@@ -363,6 +364,16 @@ export default function SimpleAssetsPage() {
   const [showDonateDialog, setShowDonateDialog] = useState(false);
 
   const { executeRawTransaction, executeTransaction } = useWaxTransaction(session);
+
+  // Hidden while in development: open with ?devmsg=1 or Ctrl/Cmd+Alt+M. No visible link.
+  const [showMessages, setShowMessages] = useState(() => new URLSearchParams(window.location.search).get('devmsg') === '1');
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyM') { e.preventDefault(); setShowMessages(true); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('series1');
@@ -3880,6 +3891,16 @@ export default function SimpleAssetsPage() {
 
         </div>
       </footer>
+
+      {accountName && !isViewing && session && (
+        <ChainMessagingDialog
+          open={showMessages}
+          onOpenChange={setShowMessages}
+          account={accountName}
+          permission={session.permissionLevel}
+          execute={executeTransaction}
+        />
+      )}
 
       {accountName && !isViewing && (
         <PackHistoryDialog
