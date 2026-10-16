@@ -1,15 +1,18 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { mergeHistory, readClassicPref, timelineEvents, writeClassicPref, type TimelineEvent } from '@/lib/historyTimeline';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
 import { WAX_EXPLORER } from '@/lib/waxConfig';
 import { getSaCardHistory, MARKET_NAMES, type SaCardHistory, type SaEvent } from '@/lib/saHistory';
 import { fetchIncomingSaTransfer, getSavedSaTransfers, type IncomingResult, type SaTransfer } from '@/lib/saTransfers';
+import { packImage } from '@/lib/gpkPackMeta';
+import logoSimpleAssets from '@/assets/simpleassets-logo.png';
+import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string }
+interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string }
 
 interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[]; full: SaCardHistory | null }
 
@@ -48,38 +51,59 @@ const KIND_TONE: Partial<Record<SaEvent['kind'], string>> = {
 const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.12)] text-muted-foreground';
 
 
-function Milestone({ title, date, tone, children, tx, highlight, chain }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean; chain?: 'sa' | 'aa' }) {
+/** Jagged top edge so the pack thumbnail looks like it was ripped open. */
+const TORN_TOP_CLIP =
+  'polygon(0 14%, 7% 5%, 16% 11%, 27% 3%, 38% 10%, 50% 4%, 61% 12%, 72% 3%, 83% 10%, 92% 4%, 100% 9%, 100% 100%, 0 100%)';
+
+function ChainLogo({ chain }: { chain: 'sa' | 'aa' }) {
+  const sa = chain === 'sa';
+  return (
+    <img
+      src={sa ? logoSimpleAssets : logoAtomicAssets}
+      alt={sa ? 'SimpleAssets' : 'AtomicAssets'}
+      title={sa ? 'SimpleAssets' : 'AtomicAssets'}
+      className={`ml-auto h-4 w-4 rounded-full ${sa ? 'bg-white p-[1px]' : ''}`}
+    />
+  );
+}
+
+function Milestone({ title, date, tone, children, tx, highlight, chain, rtl }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean; chain?: 'sa' | 'aa'; rtl?: boolean }) {
   return (
     <li className={`shrink-0 w-[180px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
       <div className="flex justify-between items-center gap-2 text-[11px] text-muted-foreground">
         <span>{date ?? ''}</span>
-        {chain && <span className="ml-auto rounded border border-border px-1 text-[10px] font-semibold" title={chain === 'sa' ? 'SimpleAssets' : 'AtomicAssets'}>{chain === 'sa' ? 'SA' : 'AA'}</span>}
+        {chain && <ChainLogo chain={chain} />}
         {tx && <a href={`${WAX_EXPLORER}${tx}`} target="_blank" rel="noopener noreferrer" className="text-cheese underline">tx</a>}
       </div>
       <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{title}</span>
-      {children}
+      <div className={rtl ? 'text-right' : undefined}>{children}</div>
     </li>
   );
 }
 
-function EventMilestone({ e }: { e: TimelineEvent }) {
+function EventMilestone({ e, rtl }: { e: TimelineEvent; rtl?: boolean }) {
   const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
   return (
-    <Milestone title={KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={KIND_TONE[e.kind] ?? QUIET_TONE} tx={e.txid || undefined} chain={e.chain}>
+    <Milestone title={KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={KIND_TONE[e.kind] ?? QUIET_TONE} tx={e.txid || undefined} chain={e.chain} rtl={rtl}>
       {price && <p className="font-semibold text-cheese">{price}</p>}
       {e.market && <p className="text-[11px] text-muted-foreground">{MARKET_LABEL[e.market] ?? e.market}</p>}
       {(e.from || e.to) && (
-        <p className="font-mono break-all leading-snug">{e.from || '—'}{e.to && <><span className="text-muted-foreground"> → </span>{e.to}</>}</p>
+        <p className={`font-mono break-all leading-snug flex flex-wrap gap-x-1 ${rtl ? 'flex-row-reverse' : ''}`}>
+          <span>{e.from || '—'}</span>
+          {e.to && <><span className="text-muted-foreground">{rtl ? '←' : '→'}</span><span>{e.to}</span></>}
+        </p>
       )}
     </Milestone>
   );
 }
 
-function HistoryTimeline({ events, opener, owner }: { events: TimelineEvent[]; opener?: string | null; owner?: string }) {
+export function HistoryTimeline({ events, opener, owner, packSymbol }: { events: TimelineEvent[]; opener?: string | null; owner?: string; packSymbol?: string }) {
   const burned = events.at(-1)?.kind === 'burn';
+  const packImg = packSymbol ? packImage(packSymbol) : undefined;
   const nodes: React.ReactNode[] = [];
   if (opener) nodes.push(
     <Milestone key="origin" title="Pack opened" tone={KIND_TONE.sale!}>
+      {packImg && <img src={packImg} alt="Pack this card was pulled from" title="Pack this card was pulled from" className="mx-auto w-16 rounded-sm" style={{ clipPath: TORN_TOP_CLIP }} />}
       <p>Pulled by <span className="font-mono text-cheese break-all">{opener}</span></p>
     </Milestone>,
   );
@@ -126,15 +150,15 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
         return (
           <Fragment key={r}>
             {r > 0 && (
-              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} text-lg text-muted-foreground leading-none py-1`}>
-                <span className="text-center" style={{ width: CARD_W }}>↓</span>
+              <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`}>
+                <span className="text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
               </div>
             )}
             <ol className={`flex items-stretch ${rtl ? 'flex-row-reverse' : ''}`}>
               {row.map((n, i) => (
                 <Fragment key={i}>
-                  {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-lg text-muted-foreground list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
-                  {n}
+                  {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
+                  {isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n}
                 </Fragment>
               ))}
             </ol>
@@ -198,7 +222,7 @@ function RetryRow({ text, onRetry }: { text: string; onRetry: () => void }) {
   );
 }
 
-export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId }: Props) {
+export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol }: Props) {
   const [open, setOpen] = useState(false);
   const [classic, setClassic] = useState(readClassicPref);
   const [history, setHistory] = useState<TradeHistory | null>(null);
@@ -287,7 +311,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
                 {hidden > 0 && <Button variant="outline" size="sm" className="h-7 text-xs" aria-pressed={showAll} onClick={() => setShowAll((v) => !v)}>{showAll ? 'Milestones only' : `Show listings & cancellations (${hidden})`}</Button>}
               </div>
               {merged.length === 0 && <p className="text-muted-foreground">No recorded sales, listings or transfers.</p>}
-              <HistoryTimeline events={shown} opener={opener} owner={owner} />
+              <HistoryTimeline events={shown} opener={opener} owner={owner} packSymbol={packSymbol} />
             </div>
           )}
           {classic && saHistory?.full && (

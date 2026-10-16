@@ -7,7 +7,7 @@ import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getMintLabel, getMintSupplyLines, isBridgedAsset } from '@/lib/mintPresentation';
 import { getAtomicTemplateSupply, type AtomicTemplateSupply } from '@/lib/atomicTemplateSupply';
 import { fetchBridgeAccount, getCachedBridgeAccount } from '@/lib/bridgeAccount';
-import { getProvenance, formatPackLabel, formatProvenanceDate, type ProvenanceEntry } from '@/lib/provenance';
+import { getProvenance, formatPackLabel, formatProvenanceDate, packSymbol, type ProvenanceEntry } from '@/lib/provenance';
 import { TradeHistorySection } from './TradeHistorySection';
 import { getRetroFront, getRetroBack } from '@/lib/retroScans';
 import { CATEGORY_LABELS, normalizeAssetCategory } from '@/lib/gpkCategories';
@@ -423,7 +423,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             )}
           </div>
         )}
-        <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} owner={asset.owner} opener={openedBy} saOriginId={isBridgedAsset(asset) ? String(asset.idata?.sassets_id ?? '') : undefined} />
+        <TradeHistorySection assetId={String(asset.id)} isAtomic={asset.source === 'atomicassets'} owner={asset.owner} opener={openedBy} saOriginId={isBridgedAsset(asset) ? String(asset.idata?.sassets_id ?? '') : undefined} packSymbol={packSymbol(provenance?.p, provenance?.n)} />
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-xs text-muted-foreground">Owner: {asset.owner}{acquiredOn ? ` · Acquired on ${acquiredOn}` : ''}</span>
           <Button variant="ghost" size="sm" onClick={() => setShowRawJson(!showRawJson)}>{showRawJson ? 'Hide' : 'Show'} Raw JSON</Button>
