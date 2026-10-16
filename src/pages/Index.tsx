@@ -3319,7 +3319,7 @@ export default function SimpleAssetsPage() {
                 <div className="min-w-0 text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">View Any Wallet</h3>
                   <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1">
-                    <li>Browse any WAX account's collection — no login needed.</li>
+                    <li>Browse any WAX account's collection.</li>
                     <li>Full access to their Classic grid, Collector Binder, card details and packs.</li>
                     <li>Holders dropdown ranks every GPK holder, largest to smallest.</li>
                     <li>One click returns you to your own collection.</li>
