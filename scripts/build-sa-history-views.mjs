@@ -50,6 +50,10 @@ if (args.includes('--zip')) {
   const ev = path.join(DIR, 'events');
   for (const f of (await fs.readdir(ev)).filter((n) => n.endsWith('.json'))) files[`sa-history/events/${f}`] = new Uint8Array(await fs.readFile(path.join(ev, f)));
   for (const f of ['index.json', 'summary.json']) files[`sa-history/${f}`] = new Uint8Array(await fs.readFile(path.join(DIR, f)));
+  // Per-card shards too: the app's "Load history ZIP" reads only these, so a
+  // loaded copy serves card history with no network.
+  const byAsset = path.join(DIR, 'by-asset');
+  for (const f of (await fs.readdir(byAsset)).filter((n) => n.endsWith('.json'))) files[`sa-history/by-asset/${f}`] = new Uint8Array(await fs.readFile(path.join(byAsset, f)));
   const zipped = zipSync(files, { level: 9 });
   await fs.mkdir(path.join(ROOT, 'dist-sa-history'), { recursive: true });
   await fs.writeFile(path.join(ROOT, 'dist-sa-history', 'gpk-sa-history.zip'), zipped);
