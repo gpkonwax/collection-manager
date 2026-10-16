@@ -85,6 +85,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   useEffect(() => {
     if (assetId) {
       setShowRawJson(false);
+      scrollRef.current?.scrollTo({ top: 0 });
       setMode('tilt');
       setUnifiedColor(DRAW_COLORS[0].value);
       canvasRefs.current = [];
@@ -185,8 +186,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        ref={scrollRef}
-        className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto overflow-x-hidden"
+        className="sm:max-w-[1100px] max-h-[90vh] overflow-hidden p-0"
         onKeyDown={(e) => {
           if (!onNavigate || mode !== 'tilt') return;
           const t = e.target as HTMLElement;
@@ -196,7 +196,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
         }}
       >
         {onNavigate && NAV_ZONES.filter((z) => navigable?.[z.dir]).map(({ dir, zone, Icon, label }) => (
-          <div key={dir} className={`group/nav sticky-nav fixed z-20 flex ${zone}`} style={{ position: 'absolute' }}>
+          <div key={dir} className={`group/nav absolute z-20 flex ${zone}`}>
             <button
               type="button"
               aria-label={label}
@@ -207,6 +207,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             </button>
           </div>
         ))}
+        <div ref={scrollRef} className="grid gap-4 p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -474,6 +475,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             </div>
           </div>
         )}
+        </div>
       </DialogContent>
       <ExternalLinkWarningDialog url={link.pendingUrl} onConfirm={link.confirm} onCancel={link.cancel} />
     </Dialog>
