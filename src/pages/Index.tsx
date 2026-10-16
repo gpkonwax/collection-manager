@@ -121,6 +121,7 @@ import {
   markPackHistoryDownloaded,
   type PackHistoryEntry,
 } from '@/lib/packOpenHistory';
+import { setSharedPackHistory, splitSharedEntries } from '@/lib/packHistoryShared';
 import { storablePackImage, resolvePackArt } from '@/lib/gpkPackMeta';
 import { routeOne, parseAndDetect, addRecentJson, type RecentJsonEntry, type DetectedLayout } from '@/lib/jsonRouter';
 import { loadFavorites, importFavorites, exportFavoritesJson, FAVORITES_CHANGED_EVENT, type FavoriteAccount } from '@/lib/favoriteAccounts';
