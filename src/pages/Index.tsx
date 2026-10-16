@@ -3099,7 +3099,7 @@ export default function SimpleAssetsPage() {
               <div>
                 <h4 className="font-semibold text-cheese mb-1 flex items-center gap-2"><span className="text-base">👁️</span> View Any Wallet (Read-Only)</h4>
                 <ul className="list-disc pl-5 space-y-1 text-foreground">
-                  <li>Enter any valid WAX account name and browse that wallet's collection without logging in.</li>
+                  <li>Enter any valid WAX account name and browse that wallet's collection.</li>
                   <li>View the Classic card grid, Collector Binder view, card detail dialogs, and pack holdings.</li>
                   <li>See both SimpleAssets and AtomicAssets items together.</li>
                   <li>Switch back to your own collection at any time with the <strong>Return to my collection</strong> button.</li>
@@ -3319,7 +3319,7 @@ export default function SimpleAssetsPage() {
                 <div className="min-w-0 text-left">
                   <h3 className="text-xl font-bold text-cheese mb-2">View Any Wallet</h3>
                   <ul className="text-foreground text-sm theme-bright-text list-disc list-outside pl-4 space-y-1">
-                    <li>Browse any WAX account's collection — no login needed.</li>
+                    <li>Browse any WAX account's collection.</li>
                     <li>Full access to their Classic grid, Collector Binder, card details and packs.</li>
                     <li>Holders dropdown ranks every GPK holder, largest to smallest.</li>
                     <li>One click returns you to your own collection.</li>
