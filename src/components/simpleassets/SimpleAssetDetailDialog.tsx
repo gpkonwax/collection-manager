@@ -207,7 +207,7 @@ export function SimpleAssetDetailDialog({ asset, open, onOpenChange, retro = fal
             </button>
           </div>
         ))}
-        <div ref={scrollRef} className="grid gap-4 p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
+        <div ref={scrollRef} className="grid auto-rows-max gap-4 p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="text-cheese">{asset.name}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
