@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import {
-  ChainMemo, MAX_PLAINTEXT_BYTES, MESSAGE_TOKENS, MessageToken, MessagingKey, KEY_PUBLISH_TO,
-  decryptMemo, encryptMemo, fetchMessages, generateKey, keyMemo, loadContacts, loadKey,
-  lookupPublishedKey, parseKeyFile, plaintextBytes, saveContact, saveKey, toPublicFile, transferAction,
+  ChainMemo, MAX_PLAINTEXT_BYTES, MESSAGE_TOTAL_QUANTITY, MESSAGE_BURN_QUANTITY, MessagingKey,
+  buildSendMessageActions, buildPublishKeyActions, decryptMemo, encryptMemo, fetchMessages, generateKey, loadContacts, loadKey,
+  lookupPublishedKey, parseKeyFile, plaintextBytes, saveContact, saveKey, toPublicFile,
 } from '@/lib/chainMessaging';
 
 interface Props {
@@ -36,7 +36,6 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
   const [memos, setMemos] = useState<ChainMemo[]>([]);
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
-  const [token, setToken] = useState<MessageToken>('WAX');
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -105,8 +104,10 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
   const publish = async () => {
     if (!key) return;
     setBusy(true);
-    await execute([transferAction(token, account, KEY_PUBLISH_TO, keyMemo(key.publicKey), [permission])], { successTitle: 'Public key published' });
-    setBusy(false);
+    try {
+      await execute(buildPublishKeyActions(account, key.publicKey, [permission]), { successTitle: 'Public key published' });
+    } catch (e) { toast({ title: 'Could not publish', description: (e as Error).message, variant: 'destructive' }); }
+    finally { setBusy(false); }
   };
 
   const send = async () => {
@@ -114,7 +115,7 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
     setBusy(true);
     try {
       const memo = encryptMemo(text, contacts[active], key.secretKey);
-      const r = await execute([transferAction(token, account, active, memo, [permission])], { successTitle: 'Message sent' });
+      const r = await execute(buildSendMessageActions(account, active, memo, [permission]), { successTitle: 'Message sent' });
       if (r.success) { setText(''); setTimeout(refresh, 3000); }
     } catch (e) { toast({ title: 'Could not send', description: (e as Error).message, variant: 'destructive' }); }
     finally { setBusy(false); }
@@ -127,7 +128,7 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
       <DialogContent className="max-w-4xl h-[85dvh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Messages (preview)</DialogTitle>
-          <DialogDescription>Encrypted notes sent as tiny WAX or CHEESE transfers. Anyone can see that a message was sent, only you and the other person can read it.</DialogDescription>
+          <DialogDescription>Encrypted notes sent with CHEESE. Anyone can see that a message was sent, only you and the other person can read it.</DialogDescription>
         </DialogHeader>
         <input ref={fileRef} type="file" accept="application/json,.json" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
@@ -162,11 +163,12 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" title="Give this file to people you want to talk to" onClick={() => download(`${account}-gpk-msg-public.json`, toPublicFile(key))}>Share public key</Button>
                 <Button size="sm" variant="outline" title="Keep this file yourself, never share it" onClick={() => download(`${account}-gpk-msg-key-PRIVATE.json`, key)}>Back up private key</Button>
-                <Button size="sm" variant="secondary" disabled={busy} title="Let anyone find your key by account name" onClick={publish}>Publish to chain</Button>
+                <Button size="sm" variant="secondary" disabled={busy} title={`Let anyone find your key by account name. Costs ${MESSAGE_BURN_QUANTITY} sent to eosio.null.`} onClick={publish}>Publish to chain</Button>
                 <Button size="sm" variant="ghost" onClick={() => fileRef.current?.click()}>Load file</Button>
                 <Button size="sm" variant="ghost" onClick={makeKey}>New key</Button>
               </div>
               <p className="text-[11px] text-muted-foreground">Load file also adds a contact from their public key file.</p>
+              <p className="text-[11px] text-muted-foreground">Publishing is optional and sends {MESSAGE_BURN_QUANTITY} to eosio.null.</p>
             </div>
 
             <div className="flex gap-2">
@@ -203,13 +205,10 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
                       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder={`Message ${active}`} />
                       <div className="flex items-center gap-2 text-xs">
                         <span className={bytes > MAX_PLAINTEXT_BYTES ? 'text-destructive' : 'text-muted-foreground'}>{bytes}/{MAX_PLAINTEXT_BYTES}</span>
-                        <div className="ml-auto flex gap-1">
-                          {(Object.keys(MESSAGE_TOKENS) as MessageToken[]).map((t) => (
-                            <Button key={t} size="sm" variant={token === t ? 'default' : 'outline'} onClick={() => setToken(t)}>{MESSAGE_TOKENS[t].quantity}</Button>
-                          ))}
-                        </div>
+                        <span className="ml-auto text-muted-foreground">{MESSAGE_TOTAL_QUANTITY} per message</span>
                         <Button size="sm" disabled={busy || !text.trim() || bytes > MAX_PLAINTEXT_BYTES} onClick={send}>Send</Button>
                       </div>
+                      <p className="text-[11px] text-muted-foreground">0.0001 CHEESE to {active} with your encrypted message + 0.0010 CHEESE to eosio.null, together in one transaction.</p>
                     </div>
                   )}
               </>
