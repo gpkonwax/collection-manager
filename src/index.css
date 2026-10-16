@@ -56,6 +56,12 @@
     --cheese-glow: 45 100% 60%;
     --cheese-foreground: 30 20% 10%;
 
+    /* History timeline event colours (shared by both skins) */
+    --tl-transfer: 152 60% 42%;
+    --tl-bridge: 262 65% 62%;
+    --tl-burn: 350 75% 55%;
+    --tl-quiet: 30 10% 55%;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
