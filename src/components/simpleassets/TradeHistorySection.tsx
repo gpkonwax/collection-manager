@@ -50,7 +50,7 @@ const QUIET_TONE = 'border-[hsl(var(--tl-quiet)/0.5)] bg-[hsl(var(--tl-quiet)/0.
 
 function Milestone({ title, date, tone, children, tx, highlight, chain }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean; chain?: 'sa' | 'aa' }) {
   return (
-    <li className={`shrink-0 w-[196px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
+    <li className={`shrink-0 w-[180px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
       <div className="flex justify-between items-center gap-2 text-[11px] text-muted-foreground">
         <span>{date ?? ''}</span>
         {chain && <span className="ml-auto rounded border border-border px-1 text-[10px] font-semibold" title={chain === 'sa' ? 'SimpleAssets' : 'AtomicAssets'}>{chain === 'sa' ? 'SA' : 'AA'}</span>}
@@ -92,7 +92,8 @@ function HistoryTimeline({ events, opener, owner }: { events: TimelineEvent[]; o
   return <SnakeRows nodes={nodes} />;
 }
 
-const CARD_W = 196;
+// Sized so exactly 5 cards fit the 1036px row inside the 1100px detail modal.
+const CARD_W = 180;
 const ARROW_W = 28;
 
 /** Pure: how many milestone cards fit on one row of the given width. */
