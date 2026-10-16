@@ -157,6 +157,9 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
     if (!el) return;
     const update = () => setPerRow(perRowFor(el.clientWidth));
     update();
+    // ResizeObserver is missing in some environments (older WebViews, jsdom) —
+    // fall back to a one-shot measure rather than crashing the detail dialog.
+    if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
