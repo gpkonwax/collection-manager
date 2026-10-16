@@ -169,13 +169,16 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, or
   );
   }
   events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.chain}-${e.txid}-${e.kind}-${e.time}-${i}`} e={e} assetId={assetId} />));
-  if (owner && !burned) nodes.push(
-    <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
-      <IpfsMedia url={cardImage} alt="Card held by the current owner" className="mx-auto w-16 rounded-sm overflow-hidden" context="detail" loading="eager" mirrorFirst />
-      <p className="font-mono text-cheese break-all">{owner}</p>
-    </Milestone>,
-  );
-  return <SnakeRows nodes={nodes} />;
+  if (owner && !burned) {
+    tall.add(nodes.length);
+    nodes.push(
+      <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
+        <IpfsMedia url={cardImage} alt="Card held by the current owner" className="mx-auto w-16 rounded-sm overflow-hidden" context="detail" loading="eager" mirrorFirst />
+        <p className="font-mono text-cheese break-all">{owner}</p>
+      </Milestone>,
+    );
+  }
+  return <SnakeRows nodes={nodes} tall={tall} />;
 }
 
 // Sized so exactly 5 cards fit the 1036px row inside the 1100px detail modal.
