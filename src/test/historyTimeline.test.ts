@@ -41,3 +41,12 @@ describe('history timeline', () => {
     });
   });
 });
+
+import { perRowFor } from '@/components/simpleassets/TradeHistorySection';
+describe('snake layout', () => {
+  it('fits as many 196px cards (with 28px arrows) as the width allows, at least one', () => {
+    expect(perRowFor(1036)).toBe(4);
+    expect(perRowFor(196)).toBe(1);
+    expect(perRowFor(100)).toBe(1);
+  });
+});
