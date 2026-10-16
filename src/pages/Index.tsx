@@ -1089,7 +1089,11 @@ export default function SimpleAssetsPage() {
     const matchers = cardMatchers.length ? cardMatchers : (entry.matchers ?? []);
     const { matched } = matchRevealedAssets(matchers, assetsRef.current, new Set<string>());
     if (matched.length === 0) {
-      toast.info('None of the cards from this pack are in this wallet any more, so there is nothing to deal.');
+      if (entry.account && entry.account !== accountName) {
+        toast.success(`Replay complete — that's what ${entry.account} pulled. Their cards live in their wallet, so nothing was dealt into yours.`);
+      } else {
+        toast.info('None of the cards from this pack are in this wallet any more, so there is nothing to deal.');
+      }
       return;
     }
     handleDemoCollect(matched);
@@ -1097,7 +1101,7 @@ export default function SimpleAssetsPage() {
     if (gone > 0) {
       toast.info(`${gone} card${gone === 1 ? '' : 's'} from this pack ${gone === 1 ? 'is' : 'are'} no longer in this wallet — only the cards you still own were dealt.`);
     }
-  }, [handleDemoCollect]);
+  }, [handleDemoCollect, accountName]);
 
 
   const handleExportPackHistory = useCallback(() => {
