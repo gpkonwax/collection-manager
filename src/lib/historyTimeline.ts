@@ -29,7 +29,7 @@ export function mergeHistory(saEvents: SaEvent[], aa: TradeHistory | null): Time
     }
     for (const t of aa.transfers) {
       const settles = sales.some((s) =>
-        (s.id && t.memo.includes(`#${s.id}`)) ||
+        (s.id && new RegExp(`#\\s*${s.id}\\b`).test(t.memo)) ||
         (s.seller === t.from && s.buyer === t.to && Math.abs(s.time - t.time) <= SETTLE_WINDOW_MS));
       if (settles) continue;
       out.push({ time: t.time, kind: 'transfer', from: t.from, to: t.to, amount: '', token: '', market: '', txid: t.txid, chain: 'aa' });
