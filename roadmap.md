@@ -43,3 +43,5 @@
 - [ ] Per-card price summaries (deferred to analytics page).
 - [x] History ZIP download + load in Offline Backup (card 3); load needs the next backfill run to publish the by-asset shards inside gpk-sa-history.zip.
 - [x] Asset History expanded by default when a card detail opens (Hide history button kept); 2 new tests, full suite 318 pass.
+- [x] AtomicAssets history backup: one-time backfill workflow, aa-history branch, gpk-aa-history.zip + Offline backup card, 8×/day refresh; Pack opened box + pack art for native AA cards (live fallback verified on Barbecue Billy #972).
+- [ ] Run "Backfill AtomicAssets card history" on GitHub once (blocked: needs the user to start it in the Actions tab).
