@@ -15,10 +15,19 @@ export function findNeighbour(cells: CellRect[], id: string, dir: NavDir): strin
   const others = cells.filter((c) => c !== cur);
   const centre = (c: CellRect) => ({ x: c.x + c.w / 2, y: c.y + c.h / 2 });
   if (dir === 'left' || dir === 'right') {
-    const row = others.filter((c) => Math.abs(centre(c).y - cy) < tol)
-      .filter((c) => (dir === 'right' ? centre(c).x > cx : centre(c).x < cx));
-    row.sort((a, b) => Math.abs(centre(a).x - cx) - Math.abs(centre(b).x - cx));
-    return row[0]?.id ?? null;
+    // Reading order: rows top to bottom (grouped by centre-Y), then left to right,
+    // so left/right wrap across row ends and walk the whole collection.
+    const sortedY = [...cells].sort((a, b) => centre(a).y - centre(b).y);
+    const rowOf = new Map<CellRect, number>();
+    let row = -1; let rowY = -Infinity;
+    for (const c of sortedY) {
+      const y = centre(c).y;
+      if (y - rowY >= c.h / 2) { row += 1; rowY = y; }
+      rowOf.set(c, row);
+    }
+    const ordered = [...cells].sort((a, b) => (rowOf.get(a)! - rowOf.get(b)!) || (centre(a).x - centre(b).x));
+    const i = ordered.indexOf(cur);
+    return ordered[dir === 'right' ? i + 1 : i - 1]?.id ?? null;
   }
   const beyond = others.filter((c) => (dir === 'down' ? centre(c).y > cy + tol : centre(c).y < cy - tol));
   if (beyond.length === 0) return null;
