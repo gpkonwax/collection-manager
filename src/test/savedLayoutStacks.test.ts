@@ -5,6 +5,8 @@ import {
   encodeStackSlot,
   areDuplicateCards,
   mergeStackIds,
+  findUnstackDestination,
+  unstackSavedSlot,
 } from '@/lib/savedLayoutStacks';
 
 function sa(overrides: Partial<SimpleAsset> & { id: string }): SimpleAsset {
@@ -106,5 +108,44 @@ describe('mergeStackIds', () => {
     const assets = { '10': sa({ id: '10' }) };
     const merged = mergeStackIds(['10'], ['999'], resolve(assets));
     expect(new Set(merged)).toEqual(new Set(['10', '999']));
+  });
+});
+
+describe('saved collection unstack', () => {
+  const E = '__empty__';
+  it('prefers right, then left, then below, then above', () => {
+    const order = [E, E, E, E, '10,22', E, E, E, E];
+    expect(findUnstackDestination(order, 4, 3)).toBe(5);
+    order[5] = '5';
+    expect(findUnstackDestination(order, 4, 3)).toBe(3);
+    order[3] = '3';
+    expect(findUnstackDestination(order, 4, 3)).toBe(7);
+    order[7] = '7';
+    expect(findUnstackDestination(order, 4, 3)).toBe(1);
+  });
+  it('never wraps from a right or left edge into the next row', () => {
+    expect(findUnstackDestination(['0', '1', '10,22', E, '4', '5'], 2, 3)).toBeNull();
+    expect(findUnstackDestination(['0', '1', E, '10,22', '4', '5'], 3, 3)).toBeNull();
+  });
+  it('requires an existing empty orthogonal space, not a diagonal or new slot', () => {
+    expect(unstackSavedSlot([E, '1', '2', '3', '10,22', '5', '6', '7', E], 4, 3, '22')).toBeNull();
+    expect(unstackSavedSlot(['0', '10,22'], 1, 3, '22')).toBeNull();
+  });
+  it('separates one copy while preserving the top card and other slots', () => {
+    const order = ['0', '10,22,33', E, '4', '5', '6'];
+    expect(unstackSavedSlot(order, 1, 3, '33')).toEqual(['0', '10,22', '33', '4', '5', '6']);
+    expect(order).toEqual(['0', '10,22,33', E, '4', '5', '6']);
+  });
+  it('turns a two-copy stack into two individual cards', () => {
+    expect(unstackSavedSlot(['10,22', E], 0, 2, '22')).toEqual(['10', '22']);
+  });
+  it('uses the actual column count after resizing', () => {
+    const order = ['0', '1', '10,22', E, '4', E];
+    expect(findUnstackDestination(order, 2, 3)).toBe(5);
+    expect(findUnstackDestination(order, 2, 2)).toBe(3);
+  });
+  it('does not move a missing copy or an unstacked card', () => {
+    expect(unstackSavedSlot(['10,22', E], 0, 2, '999')).toBeNull();
+    expect(unstackSavedSlot(['10', E], 0, 2, '10')).toBeNull();
   });
 });

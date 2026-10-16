@@ -24,6 +24,26 @@ export function encodeStackSlot(ids: string[]): string {
   return ids.join(STACK_SEPARATOR);
 }
 
+/** Only existing orthogonally adjacent empty slots qualify; never wrap rows. */
+export function findUnstackDestination(order: readonly string[], index: number, columns: number, empty = '__empty__'): number | null {
+  if (!Number.isInteger(columns) || columns < 1 || index < 0 || index >= order.length) return null;
+  const column = index % columns;
+  const neighbours = [column < columns - 1 ? index + 1 : -1, column > 0 ? index - 1 : -1, index + columns, index - columns];
+  return neighbours.find(i => i >= 0 && i < order.length && order[i] === empty) ?? null;
+}
+
+/** Move exactly one selected copy without changing the order of the rest. */
+export function unstackSavedSlot(order: readonly string[], index: number, columns: number, assetId: string, empty = '__empty__'): string[] | null {
+  const destination = findUnstackDestination(order, index, columns, empty);
+  if (destination === null) return null;
+  const ids = parseSlotIds(order[index]);
+  if (ids.length < 2 || !ids.includes(assetId)) return null;
+  const next = [...order];
+  next[index] = encodeStackSlot(ids.filter(id => id !== assetId));
+  next[destination] = assetId;
+  return next;
+}
+
 function cardIdentity(a: SimpleAsset): string {
   return `${a.cardid.toLowerCase()}|${(a.side || '').toLowerCase()}|${a.quality.toLowerCase()}`;
 }

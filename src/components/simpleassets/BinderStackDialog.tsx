@@ -1,6 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { SimpleAssetCard } from '@/components/simpleassets/SimpleAssetCard';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
+import { Button } from '@/components/ui/button';
+import { Layers } from 'lucide-react';
 
 interface BinderStackDialogProps {
   assets: SimpleAsset[];
@@ -9,9 +11,11 @@ interface BinderStackDialogProps {
   onSelectAsset: (asset: SimpleAsset) => void;
   /** When set (viewing another wallet), each copy gets its own Trade button. */
   onTradeAsset?: (asset: SimpleAsset) => void;
+  onUnstack?: () => void;
+  canUnstack?: boolean;
 }
 
-export function BinderStackDialog({ assets, open, onOpenChange, onSelectAsset, onTradeAsset }: BinderStackDialogProps) {
+export function BinderStackDialog({ assets, open, onOpenChange, onSelectAsset, onTradeAsset, onUnstack, canUnstack = false }: BinderStackDialogProps) {
   if (assets.length === 0) return null;
 
   const name = assets[0].name;
@@ -40,6 +44,14 @@ export function BinderStackDialog({ assets, open, onOpenChange, onSelectAsset, o
             />
           ))}
         </div>
+        {onUnstack && (
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Button variant="outline" onClick={onUnstack} disabled={!canUnstack}>
+              <Layers className="h-4 w-4 mr-2" />Unstack
+            </Button>
+            {!canUnstack && <p className="text-sm text-muted-foreground">No empty space beside, above or below this stack.</p>}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

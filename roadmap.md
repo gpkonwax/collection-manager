@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Saved Collection: Unstack one copy into an existing adjacent empty slot from the stack window and close it; 33 related tests pass, live drag/stack/unstack confirms persistence, occupied-neighbour blocking and responsive column handling.
 - [x] Order same-time AtomicMarket escrow before sale; verified on pictured asset 1099795623168 and regression tests.
 - [x] Connect bridge custody to the AtomicAssets mint receipt; rename Asset History and verify.
 - [x] Handwriting for card/pack artwork: six offline styles, typed placement, active ink color, undo and clear; the AI recognition path was removed by choice, so no Cloud is needed.

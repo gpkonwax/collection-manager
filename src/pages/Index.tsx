@@ -106,7 +106,7 @@ import cheesehubLogo from '@/assets/cheesehub-logo.png';
 import type { SimpleAsset } from '@/hooks/useSimpleAssets';
 import { getGpkVariantRank, normalizeGpkVariant } from '@/lib/gpkVariant';
 import { compareNaturalCards, compareByOriginalMint, compareByMintAscending } from '@/lib/cardGridSort';
-import { parseSlotIds, encodeStackSlot, areDuplicateCards, mergeStackIds } from '@/lib/savedLayoutStacks';
+import { parseSlotIds, encodeStackSlot, areDuplicateCards, mergeStackIds, findUnstackDestination, unstackSavedSlot } from '@/lib/savedLayoutStacks';
 import { useCollectionCompletion } from '@/hooks/useCollectionCompletion';
 import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
@@ -408,6 +408,9 @@ export default function SimpleAssetsPage() {
   const [stackedAssets, setStackedAssets] = useState<SimpleAsset[] | null>(null);
   const [stackTradeMode, setStackTradeMode] = useState(false);
   const [stackDialogOpen, setStackDialogOpen] = useState(false);
+  const [savedStackContext, setSavedStackContext] = useState<{ index: number; slot: string; layoutKey: string | null } | null>(null);
+  const savedGridRef = useRef<HTMLDivElement>(null);
+  const [savedGridColumns, setSavedGridColumns] = useState(2);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [showTradesDialog, setShowTradesDialog] = useState(false);
   const [viewWalletSignal, setViewWalletSignal] = useState(0);
@@ -1317,6 +1320,16 @@ export default function SimpleAssetsPage() {
   });
   const dragSourceIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      const grid = savedGridRef.current;
+      if (grid) setSavedGridColumns(getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [viewMode, savedOrder === null]);
   
   const [recentRefreshKey, setRecentRefreshKey] = useState(0);
   const { alerts: priceAlerts, maxAlerts, lastManualCheckAt, manualCooldownMs, checkNow: checkAlertsNow, exportJson: exportAlertsJson, importJson: importAlertsJson, clearAll: clearAllAlerts } = usePriceAlerts();
@@ -2069,6 +2082,24 @@ export default function SimpleAssetsPage() {
     setSavedOrder(padded);
   }, [stackSwapAsk, savedOrder, allAssetMap]);
 
+  const unstackContextValid = viewMode === 'saved' && !isViewing && !stackTradeMode
+    && savedStackContext !== null && savedStackContext.layoutKey === savedLayoutKey
+    && savedOrder?.[savedStackContext.index] === savedStackContext.slot;
+  const unstackAsset = stackedAssets?.[stackedAssets.length - 1];
+  const canUnstack = Boolean(unstackContextValid && savedOrder && savedStackContext && unstackAsset
+    && findUnstackDestination(savedOrder, savedStackContext.index, savedGridColumns, EMPTY) !== null);
+  const handleUnstack = () => {
+    if (!unstackContextValid || !savedOrder || !savedStackContext || !unstackAsset) return;
+    const grid = savedGridRef.current;
+    if (!grid) return;
+    const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length;
+    const next = unstackSavedSlot(savedOrder, savedStackContext.index, columns, unstackAsset.id, EMPTY);
+    if (!next) return;
+    setSavedOrder(next);
+    setStackDialogOpen(false);
+    setSavedStackContext(null);
+  };
+
   const handleSnapshotToSaved = useCallback(() => {
     const ids = filtered.map(a => a.id);
     setSavedOrder([...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY), ...ids, ...Array(EXTRA_EMPTY_SLOTS).fill(EMPTY)]);
@@ -2082,6 +2113,7 @@ export default function SimpleAssetsPage() {
       const asset = owned[0];
       const handleClick = () => {
         if (owned.length > 1) {
+          setSavedStackContext(null);
           setStackedAssets(owned);
           setStackTradeMode(false);
           setStackDialogOpen(true);
@@ -2091,6 +2123,7 @@ export default function SimpleAssetsPage() {
       };
       const handleTrade = (clicked: SimpleAsset) => {
         if (owned.length > 1) {
+          setSavedStackContext(null);
           setStackedAssets(owned);
           setStackTradeMode(true);
           setStackDialogOpen(true);
@@ -2630,7 +2663,7 @@ export default function SimpleAssetsPage() {
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div ref={savedGridRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {savedGridSlots.slice(0, visibleCount).map((slotId, idx) => {
             if (slotId === EMPTY) return <EmptySlot key={`empty-${idx}`} onDragOver={handleDragOver(idx)} onDrop={handleDrop(idx)} isOver={dragOverIdx === idx} />;
 
@@ -2648,6 +2681,9 @@ export default function SimpleAssetsPage() {
             const stackCount = visibleStack.length;
             const handleSlotClick = () => {
               if (stackCount > 1) {
+                setSavedStackContext({ index: idx, slot: slotId, layoutKey: savedLayoutKey });
+                const grid = savedGridRef.current;
+                if (grid) setSavedGridColumns(getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length);
                 setStackedAssets([...visibleStack].sort(compareByOriginalMint));
                 setStackTradeMode(false);
                 setStackDialogOpen(true);
@@ -3931,7 +3967,12 @@ export default function SimpleAssetsPage() {
       <BinderStackDialog
         assets={stackedAssets ?? []}
         open={stackDialogOpen}
-        onOpenChange={setStackDialogOpen}
+        onOpenChange={(open) => {
+          setStackDialogOpen(open);
+          if (!open) setSavedStackContext(null);
+        }}
+        onUnstack={unstackContextValid ? handleUnstack : undefined}
+        canUnstack={canUnstack}
         onSelectAsset={(asset) => {
           setStackDialogOpen(false);
           setSelectedAsset(asset);
