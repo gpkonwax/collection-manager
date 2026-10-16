@@ -20,7 +20,8 @@ describe('message payment submission', () => {
     const execute = vi.fn().mockResolvedValue({ success: false });
     render(<ChainMessagingDialog open onOpenChange={() => {}} account="alice.wam"
       permission={{ actor: 'alice.wam', permission: 'active' }} execute={execute} />);
-    fireEvent.click(screen.getByRole('button', { name: 'bob.wam' }));
+    fireEvent.keyDown(screen.getByRole('button', { name: /Conversations/ }), { key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'bob.wam' }));
     fireEvent.change(screen.getByPlaceholderText('Message bob.wam'), { target: { value: 'hello bob' } });
     fireEvent.click(screen.getByRole('button', { name: /^Send$/ }));
     await waitFor(() => expect(execute).toHaveBeenCalledTimes(1));
