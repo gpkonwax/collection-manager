@@ -4,7 +4,7 @@ import { fetchWithFallback } from '@/lib/fetchWithFallback';
 // Live, on-demand trading history for AtomicAssets cards. Not stored in the
 // records ZIP: it changes with every trade, so it is always read fresh.
 
-export interface SaleRecord { id: string; time: number; price: string; seller: string; buyer: string | null }
+export interface SaleRecord { id: string; time: number; price: string; seller: string; buyer: string | null; amount: string; token: string }
 export interface TransferRecord { id: string; time: number; from: string; to: string; memo: string; txid: string }
 export interface TradeHistory { sales: SaleRecord[]; transfers: TransferRecord[] }
 
@@ -29,6 +29,15 @@ export function formatTokenAmount(amount: string, precision: number, symbol: str
   return `${Number(whole).toLocaleString('en-GB')}${frac ? `.${frac}` : ''} ${symbol}`.trim();
 }
 
+/** Raw integer amount → plain decimal string ("6.19"), '' when invalid. */
+export function tokenDecimal(amount: string, precision: number): string {
+  if (!/^\d+$/.test(amount) || !Number.isInteger(precision) || precision < 0) return '';
+  const padded = amount.padStart(precision + 1, '0');
+  const whole = String(BigInt(padded.slice(0, padded.length - precision)));
+  const frac = precision ? padded.slice(-precision).replace(/0+$/, '') : '';
+  return frac ? `${whole}.${frac}` : whole;
+}
+
 export function parseSale(raw: Record<string, unknown>): SaleRecord | null {
   const price = raw.price as Record<string, unknown> | undefined;
   const amount = str(price?.amount) || str(raw.listing_price);
@@ -37,7 +46,7 @@ export function parseSale(raw: Record<string, unknown>): SaleRecord | null {
   const time = Number(raw.updated_at_time);
   const seller = str(raw.seller);
   if (!seller || !Number.isFinite(time) || time <= 0) return null;
-  return { id: str(raw.sale_id), time, price: formatTokenAmount(amount, precision, symbol), seller, buyer: str(raw.buyer) || null };
+  return { id: str(raw.sale_id), time, price: formatTokenAmount(amount, precision, symbol), seller, buyer: str(raw.buyer) || null, amount: tokenDecimal(amount, precision), token: symbol };
 }
 
 export function parseTransfer(raw: Record<string, unknown>): TransferRecord | null {
