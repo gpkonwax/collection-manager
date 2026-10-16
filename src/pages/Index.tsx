@@ -366,7 +366,9 @@ export default function SimpleAssetsPage() {
   const { executeRawTransaction, executeTransaction } = useWaxTransaction(session);
 
   // Hidden while in development: open with ?devmsg=1 or Ctrl/Cmd+Alt+M. No visible link.
-  const [showMessages, setShowMessages] = useState(() => new URLSearchParams(window.location.search).get('devmsg') === '1');
+  const [showMessages, setShowMessages] = useState(() =>
+    new URLSearchParams(window.location.search).get('devmsg') === '1'
+    || /\/devmsg(=1)?\/?$/.test(window.location.pathname));
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyM') { e.preventDefault(); setShowMessages(true); }

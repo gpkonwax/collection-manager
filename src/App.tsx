@@ -36,6 +36,9 @@ const App = () => {
           <Router {...routerProps}>
             <Routes>
               <Route path="/" element={<Index />} />
+              {/* Hidden messaging entry while in development */}
+              <Route path="/devmsg=1" element={<Index />} />
+              <Route path="/devmsg" element={<Index />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>
