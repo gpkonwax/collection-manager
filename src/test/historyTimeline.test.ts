@@ -32,6 +32,50 @@ describe('history timeline', () => {
     expect(tokenDecimal('300000000', 8)).toBe('3');
   });
 
+  describe('bridge receipt pairing', () => {
+    const time = Date.UTC(2021, 0, 16);
+    const deposit: SaEvent = { ...ev(time, 'offer'), from: 'ymxqu.wam', to: 'atomicbridge', txid: '5076c492' };
+    const claim: SaEvent = { ...ev(time, 'claim'), from: '', to: 'atomicbridge', txid: deposit.txid };
+    const aa: TradeHistory = {
+      sales: [{ id: '1', time: time + 86400000, price: '2,350 WAX', amount: '2350', token: 'WAX', seller: 'ymxqu.wam', buyer: 'guydgnjzgage' }],
+      transfers: [],
+    };
+    it('connects the SA deposit to an AA receipt and then the sale, without a gift claim', () => {
+      const result = timelineEvents(mergeHistory([deposit, claim], aa, { time, account: 'ymxqu.wam' }), false);
+      expect(result.map((e) => [e.chain, e.kind, e.from, e.to])).toEqual([
+        ['sa', 'bridge', 'ymxqu.wam', 'atomicbridge'],
+        ['aa', 'bridge-receipt', 'atomicbridge', 'ymxqu.wam'],
+        ['aa', 'sale', 'ymxqu.wam', 'guydgnjzgage'],
+      ]);
+      expect(result[2].amount).toBe('2350');
+    });
+    it('uses a same-transaction bridge claim as offline evidence when the mint recipient is unavailable', () => {
+      expect(mergeHistory([deposit, claim], null, { time })[1]).toMatchObject({ kind: 'bridge-receipt', chain: 'aa', to: 'ymxqu.wam' });
+    });
+    it('never guesses a receipt from a sale or an unpaired deposit', () => {
+      expect(mergeHistory([deposit], aa, { time }).some((e) => e.kind === 'bridge-receipt')).toBe(false);
+    });
+    it('leaves unrelated gift claims and older bridge cycles intact', () => {
+      const older = { ...claim, time: time - 86400000, txid: 'older' };
+      const gift = { ...claim, to: 'other.wam', txid: 'gift' };
+      const result = mergeHistory([older, deposit, claim, gift], aa, { time, account: 'ymxqu.wam' });
+      expect(result.filter((e) => e.kind === 'claim').map((e) => e.txid)).toEqual(['older', 'gift']);
+    });
+    it('does not replace custody with a mismatched mint recipient', () => {
+      const result = mergeHistory([deposit, claim], aa, { time, account: 'other.wam' });
+      expect(result.find((e) => e.kind === 'claim')).toMatchObject({ to: 'atomicbridge' });
+      expect(result.find((e) => e.kind === 'bridge-receipt')).toMatchObject({ to: 'other.wam', txid: '' });
+    });
+    it('deduplicates the AA delivery when it is already indexed as a transfer', () => {
+      const result = mergeHistory([deposit, claim], { sales: [], transfers: [{ id: 'mint', time, from: 'atomicbridge', to: 'ymxqu.wam', memo: '', txid: deposit.txid }] }, { time, account: 'ymxqu.wam' });
+      expect(result.map((e) => e.kind)).toEqual(['bridge', 'bridge-receipt']);
+    });
+    it('does not change ordinary gifts or add a receipt without this copy’s mint time', () => {
+      expect(mergeHistory([deposit, claim], aa).map((e) => e.kind)).toEqual(['offer', 'claim', 'sale']);
+      expect(mergeHistory([deposit, claim], aa, { time: NaN, account: 'ymxqu.wam' }).map((e) => e.kind)).toEqual(['offer', 'claim', 'sale']);
+    });
+  });
+
   describe('classic list preference', () => {
     beforeEach(() => localStorage.clear());
     it('is off by default and remembered when ticked', () => {
