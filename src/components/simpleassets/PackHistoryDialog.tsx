@@ -38,6 +38,12 @@ import {
   type PackHistoryEntry,
 } from '@/lib/packOpenHistory';
 import {
+  getSharedPackHistory,
+  setSharedPackHistory,
+  subscribeSharedPackHistory,
+  splitSharedEntries,
+} from '@/lib/packHistoryShared';
+import {
   exportPackHistoryFromChain,
   HistoryUnavailableError,
   type ChainExportProgress,
