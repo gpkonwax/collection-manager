@@ -1,11 +1,13 @@
 import type { SaEvent, SaEventKind } from './saHistory';
 import type { TradeHistory } from './tradeHistory';
+import { tradeOfferId } from './tradeOffers';
 
 /** Market chatter hidden by default; everything else changes hands or status. */
 export const MARKET_ONLY_KINDS: ReadonlySet<string> = new Set(['list', 'cancel', 'refund', 'reprice', 'offer', 'unoffer']);
 
 export type Chain = 'sa' | 'aa';
-export type TimelineEvent = Omit<SaEvent, 'kind'> & { kind: SaEventKind | 'bridge-receipt'; chain: Chain };
+/** offerId: set on an AtomicAssets transfer that settled an accepted P2P trade offer. */
+export type TimelineEvent = Omit<SaEvent, 'kind'> & { kind: SaEventKind | 'bridge-receipt'; chain: Chain; offerId?: string };
 export interface BridgeReceipt { time: number; account?: string | null }
 
 /** Same-time AA escrow deposits precede the sale they fund; timestamps stay intact. */
@@ -66,7 +68,8 @@ export function mergeHistory(saEvents: SaEvent[], aa: TradeHistory | null, recei
         (s.id && new RegExp(`#\\s*${s.id}\\b`).test(t.memo)) ||
         (s.seller === t.from && s.buyer === t.to && Math.abs(s.time - t.time) <= SETTLE_WINDOW_MS));
       if (settles) continue;
-      out.push({ time: t.time, kind: 'transfer', from: t.from, to: t.to, amount: '', token: '', market: '', txid: t.txid, chain: 'aa' });
+      const offerId = tradeOfferId(t.memo, t.from, t.to);
+      out.push({ time: t.time, kind: 'transfer', from: t.from, to: t.to, amount: '', token: '', market: '', txid: t.txid, chain: 'aa', ...(offerId ? { offerId } : {}) });
     }
   }
   return out.sort(compareHistoryEvents);
