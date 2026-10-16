@@ -209,16 +209,22 @@ function SnakeRows({ nodes, tall }: { nodes: React.ReactNode[]; /** Indices of t
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const rows: React.ReactNode[][] = [];
-  for (let i = 0; i < nodes.length; i += perRow) rows.push(nodes.slice(i, i + perRow));
+  const rows: { node: React.ReactNode; idx: number }[][] = [];
+  for (let i = 0; i < nodes.length; i += perRow) {
+    rows.push(nodes.slice(i, i + perRow).map((node, j) => ({ node, idx: i + j })));
+  }
   return (
     <div ref={ref} className="w-full min-w-0" aria-label="Card history, oldest first, snaking left to right then right to left">
       {rows.map((row, r) => {
         const rtl = r % 2 === 1;
+        // The two evenly-spaced ↓ arrows only belong where a taller card on the
+        // row (torn pack, owner thumbnail) leaves real gap space below the
+        // turning box; uniform rows go back to the single small arrow.
+        const gap = row.slice(0, -1).some(({ idx }) => tall.has(idx));
         return (
           <Fragment key={r}>
             <ol className={`flex items-start ${rtl ? 'flex-row-reverse' : ''}`}>
-              {row.map((n, i) => (
+              {row.map(({ node: n }, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
                   {(() => {
@@ -227,16 +233,14 @@ function SnakeRows({ nodes, tall }: { nodes: React.ReactNode[]; /** Indices of t
                     return (
                       <li className={`list-none shrink-0 ${turn ? 'self-stretch flex flex-col' : ''}`}>
                         {card}
-                        {/* Both ↓ arrows live in the space below the turning box,
-                        evenly spaced between this row's last box and the next
-                        row's first box; min-h keeps the gap roomy even when the
-                        turning box is the tallest on its row. */}
-                        {turn && (
+                        {turn && (gap ? (
                           <div aria-hidden className="flex-1 min-h-[96px] flex flex-col justify-evenly items-center leading-none text-3xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">
                             <span>↓</span>
                             <span>↓</span>
                           </div>
-                        )}
+                        ) : (
+                          <div aria-hidden className="pt-1 text-center leading-none text-3xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">↓</div>
+                        ))}
                       </li>
                     );
                   })()}
