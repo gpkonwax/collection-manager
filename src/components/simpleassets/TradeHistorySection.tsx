@@ -167,6 +167,7 @@ export function HistoryTimeline({ events, opener, owner, packSymbol, packArt, or
       <p>{minted ? 'Minted to' : 'Pulled by'} <span className="font-mono text-cheese break-all">{opener}</span></p>
     </Milestone>,
   );
+  }
   events.forEach((e, i) => nodes.push(<EventMilestone key={`${e.chain}-${e.txid}-${e.kind}-${e.time}-${i}`} e={e} assetId={assetId} />));
   if (owner && !burned) nodes.push(
     <Milestone key="owner" title="Current owner" tone={KIND_TONE.sale!} highlight>
