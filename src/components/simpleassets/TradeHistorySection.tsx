@@ -178,6 +178,8 @@ const CARD_W = 180;
 const ARROW_W = 28;
 /** How much longer than tall the row-wrap arrow is, in the same glyph style as the in-row arrows. */
 const WRAP_ARROW_STRETCH = 2.4;
+/** Vertical breathing room between snake rows, so the eye follows the snake instead of dropping straight down. */
+const ROW_GAP = 24;
 
 /** Pure: how many milestone cards fit on one row of the given width. */
 export function perRowFor(width: number): number {
