@@ -1,6 +1,23 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TradeHistorySection } from '@/components/simpleassets/TradeHistorySection';
+
+// jsdom has no layout and no ResizeObserver; the timeline measures its row to
+// decide how many cards fit. Force the detail modal's width.
+const realWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+class RO {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+beforeAll(() => {
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { value: 1036, configurable: true });
+  (globalThis as Record<string, unknown>).ResizeObserver = RO;
+});
+afterAll(() => {
+  if (realWidth) Object.defineProperty(HTMLElement.prototype, 'clientWidth', realWidth);
+});
+
 
 // Data sources are stubbed: this test is only about whether the section starts
 // open and whether the Hide/Show button still collapses it.
