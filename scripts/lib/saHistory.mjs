@@ -189,15 +189,6 @@ export function classifyAction(a, isGpk) {
     const from = acct(d.from); const to = acct(d.to);
     const [amt, tok] = parseQuantity(d.quantity);
     if (!from || !to || !amt) return [];
-    if (to === 'waxstashsale' || from === 'waxstashsale') {
-      const id = idInMemo(memo);
-      if (!id || !isGpk(id)) return [];
-      if (to === 'waxstashsale' && /^Id:\d+\s+Author:gpk\.topps\b/i.test(memo)) return [row('buy', [id], from, to, amt, tok, 'waxstash')];
-      if (from === 'waxstashsale' && /^SOLD ASSET#/i.test(memo)) return [row('pay', [id], from, to, amt, tok, 'waxstash')];
-      return [];
-    }
-    if (to === 'market.place' && memo === 'Payment for NFTs | collectables.io') return [row('buy', [], from, to, amt, tok, 'cio')];
-    if (from === 'market.place' && /% Seller \| collectables\.io \| commission$/i.test(memo)) return [row('pay', [], from, to, amt, tok, 'cio')];
     return [row('pack', [], from, to, amt, tok, MARKETS[to] || MARKETS[from] || '', memoOf(d))];
   }
   if (key === 'simplemarket:buylog') {
@@ -242,6 +233,15 @@ export function classifyAction(a, isGpk) {
     const memo = memoOf(d);
     const [amt, tok] = parseQuantity(d.quantity);
     if (!from || !to || !amt) return [];
+    if (to === 'waxstashsale' || from === 'waxstashsale') {
+      const id = idInMemo(memo);
+      if (!id || !isGpk(id)) return [];
+      if (to === 'waxstashsale' && /^Id:\d+\s+Author:gpk\.topps\b/i.test(memo)) return [row('buy', [id], from, to, amt, tok, 'waxstash')];
+      if (from === 'waxstashsale' && /^SOLD ASSET#/i.test(memo)) return [row('pay', [id], from, to, amt, tok, 'waxstash')];
+      return [];
+    }
+    if (to === 'market.place' && memo === 'Payment for NFTs | collectables.io') return [row('buy', [], from, to, amt, tok, 'cio')];
+    if (from === 'market.place' && /% Seller \| collectables\.io \| commission$/i.test(memo)) return [row('pay', [], from, to, amt, tok, 'cio')];
     if (from === GPK_MARKET || to === GPK_MARKET) {
       const id = idInMemo(memo);
       // gpkmarket111 only ever sold GPK cards; keep its money rows even for ids we haven't seen.
