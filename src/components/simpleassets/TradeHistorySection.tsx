@@ -1,5 +1,5 @@
 import { Fragment, cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { mergeHistory, readClassicPref, timelineEvents, writeClassicPref, type TimelineEvent } from '@/lib/historyTimeline';
+import { mergeHistory, readClassicPref, timelineEvents, writeClassicPref, type TimelineEvent, type BridgeReceipt } from '@/lib/historyTimeline';
 import { Button } from '@/components/ui/button';
 import { fetchTradeHistory, HISTORY_LIMIT, type TradeHistory } from '@/lib/tradeHistory';
 import { WAX_EXPLORER } from '@/lib/waxConfig';
@@ -12,13 +12,14 @@ import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string }
+interface Props { assetId: string; isAtomic: boolean; owner?: string; opener?: string | null; /** Original SimpleAssets id of a bridged AtomicAssets copy. */ saOriginId?: string; /** Pack token symbol (e.g. GPKFIVE) the card was pulled from, when known. */ packSymbol?: string; bridgeReceipt?: BridgeReceipt }
 
 interface SaHistory { incoming: IncomingResult | null; saved: SaTransfer[]; full: SaCardHistory | null }
 
-const KIND_LABEL: Record<SaEvent['kind'], string> = {
+const KIND_LABEL: Record<TimelineEvent['kind'], string> = {
   sale: 'Sold', list: 'Listed', cancel: 'Listing cancelled', refund: 'Refunded', reprice: 'Repriced',
   transfer: 'Transferred', offer: 'Gift offered', unoffer: 'Gift withdrawn', claim: 'Gift claimed',
+  'bridge-receipt': 'Minted on AtomicAssets',
   burn: 'Burned', bridge: 'Bridged to AtomicAssets', unbridge: 'Returned from AtomicAssets',
 };
 
@@ -40,10 +41,11 @@ function EventRow({ e }: { e: SaEvent }) {
   );
 }
 
-const KIND_TONE: Partial<Record<SaEvent['kind'], string>> = {
+const KIND_TONE: Partial<Record<TimelineEvent['kind'], string>> = {
   sale: 'border-cheese/60 bg-cheese/15 text-cheese',
   transfer: 'border-[hsl(var(--tl-transfer)/0.6)] bg-[hsl(var(--tl-transfer)/0.15)] text-[hsl(var(--tl-transfer))]',
   claim: 'border-[hsl(var(--tl-transfer)/0.6)] bg-[hsl(var(--tl-transfer)/0.15)] text-[hsl(var(--tl-transfer))]',
+  'bridge-receipt': 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]',
   bridge: 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]',
   unbridge: 'border-[hsl(var(--tl-bridge)/0.6)] bg-[hsl(var(--tl-bridge)/0.15)] text-[hsl(var(--tl-bridge))]',
   burn: 'border-[hsl(var(--tl-burn)/0.6)] bg-[hsl(var(--tl-burn)/0.15)] text-[hsl(var(--tl-burn))]',
@@ -222,7 +224,7 @@ function RetryRow({ text, onRetry }: { text: string; onRetry: () => void }) {
   );
 }
 
-export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol }: Props) {
+export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOriginId, packSymbol, bridgeReceipt }: Props) {
   const [open, setOpen] = useState(false);
   const [classic, setClassic] = useState(readClassicPref);
   const [history, setHistory] = useState<TradeHistory | null>(null);
@@ -270,7 +272,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
   const saLoading = !!saId && !saHistory && !saError;
   const aaLoading = isAtomic && !history && !aaError;
   const saEvents = saHistory?.full?.events ?? [];
-  const merged = mergeHistory(saEvents, history);
+  const merged = mergeHistory(saEvents, history, isAtomic && saId ? bridgeReceipt : undefined);
   const shown = timelineEvents(merged, showAll);
   const hidden = merged.length - timelineEvents(merged, false).length;
   const aaCapped = !!history && (history.sales.length >= HISTORY_LIMIT || history.transfers.length >= HISTORY_LIMIT);
@@ -279,7 +281,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener, saOrigin
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-sm font-semibold text-cheese">Trading history</h4>
+        <h4 className="text-sm font-semibold text-cheese">Asset History</h4>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
             <input type="checkbox" className="accent-[hsl(var(--cheese))]" checked={classic} onChange={(e) => toggleClassic(e.target.checked)} />
