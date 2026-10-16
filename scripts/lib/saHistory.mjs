@@ -39,7 +39,7 @@ export const GPK_MARKET = 'gpkmarket111';
 export const SIMPLE_MARKET = 'simplemarket';
 export const BRIDGE = 'atomicbridge';
 export const MYTH_MARKET = 'market.myth';
-export const MARKETS = { [GPK_MARKET]: 'gpk', [SIMPLE_MARKET]: 'sm', [MYTH_MARKET]: 'myth', 'market.place': 'cio' };
+export const MARKETS = { [GPK_MARKET]: 'gpk', [SIMPLE_MARKET]: 'sm', [MYTH_MARKET]: 'myth', 'market.place': 'cio', waxstashsale: 'waxstash', 'gpk.market': 'gpkauction' };
 export const BUYLOG_FROM = '2020-07-01T00:00:00.000'; // SimpleMarket buylog exists from 30 Jun 2020
 
 /** Each source is one ascending Hyperion listing with its own bookmark. */
@@ -47,6 +47,10 @@ export const SOURCES = {
   gpkmarket: { qs: `account=${GPK_MARKET}` },
   smbuylog: { qs: 'filter=simplemarket:buylog,simplemarket:updateprice' },
   myth: { qs: `filter=${MYTH_MARKET}:logsale,${MYTH_MARKET}:loglisting,${MYTH_MARKET}:logdropsale` },
+  // Independent bookmarks recover old market activity without rescanning all moves.
+  waxstash: { qs: 'account=waxstashsale' },
+  cio: { qs: 'account=market.place' },
+  gpkauction: { qs: 'account=gpk.market' },
   smpay: { qs: `account=${SIMPLE_MARKET}&filter=eosio.token:transfer`, before: BUYLOG_FROM },
   transfer: { qs: 'filter=simpleassets:transfer' },
   offer: { qs: 'filter=simpleassets:offer,simpleassets:canceloffer' },
@@ -54,6 +58,10 @@ export const SOURCES = {
   burn: { qs: 'filter=simpleassets:burn' },
   packs: { qs: 'filter=packs.topps:transfer' },
 };
+
+export function canRefreshHistory(index) {
+  return !!(index.complete || index.initialBackfillComplete);
+}
 
 const ACCOUNT_RE = /^[a-z1-5.]{1,12}$/;
 const ID_RE = /^\d+$/;
@@ -100,7 +108,7 @@ export function classifyAction(a, isGpk) {
   const tx = typeof a.trx_id === 'string' ? a.trx_id : '';
   // Fee and payout rows skip the transaction id: nobody opens them, and it is a third of the row.
   const row = (kind, ids, from, to, amount = '', token = '', market = '', memo = '') =>
-    [ms, seq, kind, ids.join(','), from, to, amount, token, market, memo, kind === 'fee' || kind === 'pay' ? '' : tx];
+    [ms, seq, kind, ids.join(','), from, to, amount, token, market, memo, (kind === 'fee' || kind === 'pay') && !['waxstash', 'cio'].includes(market) ? '' : tx];
   const key = `${act.account}:${act.name}`;
 
   if (key === 'simpleassets:transfer' || key === 'simpleassets:offer') {
@@ -134,8 +142,33 @@ export function classifyAction(a, isGpk) {
       return [row(plain, ids, from, to, '', '', 'sm', memo)];
     }
     const market = MARKETS[to] || MARKETS[from] || '';
+    if (to === 'waxstashsale' || to === 'market.place') {
+      const price = trimAmount(memo);
+      if (price) return [row('list', ids, from, to, price, 'WAX', market)];
+    }
+    if (to === 'gpk.market') {
+      const price = /^Create auction at\s+(\d+(?:\.\d+)?)\s+WAX$/i.exec(memo);
+      if (price) return [row('list', ids, from, to, trimAmount(price[1]), 'WAX', market)];
+    }
+    if (from === 'waxstashsale' && /^PURCHASED ASSET#\s*\d+$/i.test(memo)) {
+      return [row('sale', ids, '', to, '', '', market)];
+    }
+    if (from === 'gpk.market') {
+      const price = /^You won an auction for\s+(\d+(?:\.\d+)?)\s+WAX$/i.exec(memo);
+      if (price) return [row('sale', ids, '', to, trimAmount(price[1]), 'WAX', market)];
+      if (/^Auction expired with no bids$/i.test(memo)) return [row('cancel', ids, from, to, '', '', market)];
+    }
+    if (from === 'market.place' && /^Marketplace unlisting\.$/i.test(memo)) return [row('cancel', ids, from, to, '', '', market)];
     if (MARKETS[from] && /cancel/i.test(memo)) return [row('cancel', ids, from, to, '', '', market)];
     return [row(plain, ids, from, to, '', '', market, memo)];
+  }
+  if (key === 'market.place:buy') {
+    return acct(d.account) ? [row('purchase', [], acct(d.account), 'market.place', '', '', 'cio')] : [];
+  }
+  if (key === 'market.place:withdraw') {
+    const assets = Array.isArray(d.assets) ? d.assets : [];
+    const ids = assets.filter((v) => v.contract === 'simpleassets').map((v) => String(v.id)).filter((id) => ID_RE.test(id) && isGpk(id));
+    return ids.length && acct(d.user) ? [row('withdraw', ids, 'market.place', acct(d.user), '', '', 'cio', assets.length === 1 ? 'single' : 'bundle')] : [];
   }
   if (key === 'simpleassets:canceloffer') {
     const ids = idsOf(d.assetids, isGpk);
@@ -200,6 +233,15 @@ export function classifyAction(a, isGpk) {
     const memo = memoOf(d);
     const [amt, tok] = parseQuantity(d.quantity);
     if (!from || !to || !amt) return [];
+    if (to === 'waxstashsale' || from === 'waxstashsale') {
+      const id = idInMemo(memo);
+      if (!id || !isGpk(id)) return [];
+      if (to === 'waxstashsale' && /^Id:\d+\s+Author:gpk\.topps\b/i.test(memo)) return [row('buy', [id], from, to, amt, tok, 'waxstash')];
+      if (from === 'waxstashsale' && /^SOLD ASSET#/i.test(memo)) return [row('pay', [id], from, to, amt, tok, 'waxstash')];
+      return [];
+    }
+    if (to === 'market.place' && memo === 'Payment for NFTs | collectables.io') return [row('buy', [], from, to, amt, tok, 'cio')];
+    if (from === 'market.place' && /% Seller \| collectables\.io \| commission$/i.test(memo)) return [row('pay', [], from, to, amt, tok, 'cio')];
     if (from === GPK_MARKET || to === GPK_MARKET) {
       const id = idInMemo(memo);
       // gpkmarket111 only ever sold GPK cards; keep its money rows even for ids we haven't seen.
@@ -313,6 +355,36 @@ const SALE_MATCH_MS = 60 * 60_000;
  * Returns Map<id, [[ms, kind, from, to, amount, token, market, tx], ...]> oldest first.
  */
 export function buildTimelines(rows) {
+  // Old broad scans retain the same action as a plain move. Prefer its
+  // reclassified row from a targeted rescan, without duplicating that action.
+  const moves = new Map();
+  for (const r of rows) {
+    if (!['transfer', 'offer', 'sale', 'list', 'cancel'].includes(r[2])) continue;
+    const key = `${r[1]}|${r[3]}`;
+    const old = moves.get(key);
+    if (!old || ['transfer', 'offer'].includes(old[2])) moves.set(key, r);
+  }
+  rows = rows.filter((r) => !['transfer', 'offer', 'sale', 'list', 'cancel'].includes(r[2]) || moves.get(`${r[1]}|${r[3]}`) === r);
+  // Only same-transaction evidence links a Collectables purchase to a
+  // withdrawal. A later withdrawal alone is not proof of a sale or its price.
+  const cioTx = new Map();
+  for (const r of rows) {
+    if (r[8] !== 'cio' || !r[10]) continue;
+    let group = cioTx.get(r[10]);
+    if (!group) cioTx.set(r[10], (group = []));
+    group.push(r);
+  }
+  rows = rows.map((r) => {
+    if (r[2] !== 'withdraw') return r;
+    const group = cioTx.get(r[10]) || [];
+    const purchases = group.filter((p) => p[2] === 'purchase');
+    const payments = group.filter((p) => p[2] === 'buy' && p[4] === r[5]);
+    const withdrawals = group.filter((p) => p[2] === 'withdraw');
+    if (purchases.length !== 1 || purchases[0][4] !== r[5]) return r;
+    const single = r[9] === 'single' && withdrawals.length === 1 && payments.length === 1;
+    const sellers = group.filter((p) => p[2] === 'pay');
+    return [r[0], r[1], 'sale', r[3], sellers.length === 1 ? sellers[0][5] : '', r[5], single ? payments[0][6] : '', single ? payments[0][7] : '', 'cio', '', r[10]];
+  });
   const byId = new Map();
   const push = (id, r) => { let l = byId.get(id); if (!l) byId.set(id, (l = [])); l.push(r); };
   for (const r of rows) {
@@ -333,22 +405,33 @@ export function buildTimelines(rows) {
       if (['transfer', 'offer', 'claim'].includes(r[2]) && marketTx.has(r[10])) continue;
       if (r[2] === 'sale') {
         let seller = r[4];
+        let amount = r[6]; let token = r[7];
+        if (['waxstash', 'gpkauction'].includes(r[8])) {
+          const listing = list.filter((p) => p[2] === 'list' && p[8] === r[8] && p[1] < r[1]).at(-1);
+          if (!seller) seller = listing?.[4] || '';
+          if (r[8] === 'waxstash' && r[10]) {
+            const payments = list.filter((p) => p[2] === 'buy' && p[8] === 'waxstash' && p[10] === r[10] && p[4] === r[5]);
+            if (payments.length === 1) { amount = payments[0][6]; token = payments[0][7]; }
+            const sellers = pays.filter((p) => p[8] === 'waxstash' && p[10] === r[10]);
+            if (sellers.length === 1) seller = sellers[0][5];
+          }
+        }
         if (!seller && r[8] === 'gpk') {
           let best = null;
           for (const p of pays) {
-            if (used.has(p) || Math.abs(p[0] - r[0]) > SALE_MATCH_MS) continue;
+            if (p[8] !== 'gpk' || used.has(p) || Math.abs(p[0] - r[0]) > SALE_MATCH_MS) continue;
             if (!best || Math.abs(p[0] - r[0]) < Math.abs(best[0] - r[0])) best = p;
           }
           if (best) { used.add(best); seller = best[5]; }
         }
-        timeline.push([r[0], 'sale', seller, r[5], r[6], r[7], r[8], r[10]]);
+        timeline.push([r[0], 'sale', seller, r[5], amount, token, r[8], r[10]]);
       } else if (r[2] === 'buy' && r[8] === 'sm' && !hasSaleInTx.has(r[10])) {
         // Early SimpleMarket (before buylog): buyer paid; seller = biggest split.
         const near = splits.filter((s) => !used.has(s) && s[0] >= r[0] && s[0] - r[0] <= SALE_MATCH_MS);
         const top = near.sort((a, b) => Number(b[6]) - Number(a[6]))[0];
         if (top) used.add(top);
         timeline.push([r[0], 'sale', top ? top[5] : '', r[4], r[6], r[7], 'sm', r[10]]);
-      } else if (!['pay', 'buy', 'fee', 'split'].includes(r[2])) {
+      } else if (!['pay', 'buy', 'fee', 'split', 'withdraw', 'purchase'].includes(r[2])) {
         timeline.push([r[0], r[2], r[4], r[5], r[6], r[7], r[8], r[10]]);
       }
     }

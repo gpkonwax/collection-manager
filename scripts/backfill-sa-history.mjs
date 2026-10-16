@@ -26,7 +26,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   SOURCES, START, FULL_NODE, PAGE, MonthStore, loadIndex, writeIndex,
-  classifyAction, hyperionMs, weekOf,
+  classifyAction, hyperionMs, weekOf, canRefreshHistory,
 } from './lib/saHistory.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -91,7 +91,9 @@ async function loadGpkIds() {
 }
 
 const index = await loadIndex(OUT);
-if (INCREMENTAL && !index.complete) {
+if (index.complete) index.initialBackfillComplete = true;
+// Newly added market sources must not lock incremental refresh out forever.
+if (INCREMENTAL && !canRefreshHistory(index)) {
   log('[sa-history] backfill not finished yet — incremental run skipped.');
   process.exit(0);
 }
@@ -235,6 +237,7 @@ if (VERIFY && !outOfTime()) {
 
 clearInterval(ticker);
 index.complete = Object.keys(SOURCES).every((n) => index.sources[n]?.done) && !UNTIL;
+if (index.complete) index.initialBackfillComplete = true;
 await save();
 const done = index.complete;
 log(`[sa-history] ${done ? 'backfill complete' : 'more to read'} · ${Object.values(index.months).reduce((n, m) => n + m.count, 0).toLocaleString()} rows stored · gaps: ${index.gaps.length}`);

@@ -35,5 +35,7 @@
 - [x] Favourites backup popup now states the starred account was already added — no re-import needed.
 
 - [x] Full SimpleAssets market history: scan scripts, chained backfill workflow, sa-history branch, card details "Full on-chain history" with sales/listings/gifts/burns/bridging; checks pass.
-- [ ] Start "Backfill SimpleAssets market history" on GitHub once (blocked: needs the user to start it; ~2–3 days of automatic runs).
-- [ ] Collectables.io sale prices (open) and per-card price summaries (deferred to analytics page).
+- [x] Initial SimpleAssets market-history backfill completed; incremental refresh maintains it.
+- [x] Recognise WAXStash, Collectables.io and GPK Auctions with confirmed prices, targeted resumable market rescans, and regression tests; bundle totals and asks are never treated as per-card sale prices.
+- [ ] Publish newly recognised historical sales (blocked: GitHub refresh/backfill must run with updated code).
+- [ ] Per-card price summaries (deferred to analytics page).
