@@ -104,7 +104,7 @@ export function TradeHistorySection({ assetId, isAtomic, owner, opener }: Props)
   const [showAll, setShowAll] = useState(false);
   const heldByOpener = !!owner && !!opener && owner === opener;
 
-  useEffect(() => { setOpen(false); setHistory(null); setSaHistory(null); setError(false); }, [assetId, owner]);
+  useEffect(() => { setOpen(false); setHistory(null); setSaHistory(null); setShowAll(false); setError(false); }, [assetId, owner]);
 
   useEffect(() => {
     if (!open || isAtomic || saHistory) return;
