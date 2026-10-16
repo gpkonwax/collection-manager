@@ -216,7 +216,7 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
         const rtl = r % 2 === 1;
         return (
           <Fragment key={r}>
-            <ol className={`flex items-start mx-auto ${rtl ? 'flex-row-reverse' : ''}`} style={{ width: rowW }}>
+            <ol className={`flex items-start mx-auto ${rtl ? 'flex-row-reverse' : ''}`} style={{ width: rowW, marginBottom: r < rows.length - 1 ? ROW_GAP : undefined }}>
               {row.map((n, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden data-arrow="row" className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
