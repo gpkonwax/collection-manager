@@ -107,7 +107,8 @@ export function PackHistoryDialog({
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [chainProgress, setChainProgress] = useState<ChainExportProgress | null>(null);
   /** A pack history loaded from someone else's JSON — session-only, never saved. */
-  const [sharedView, setSharedView] = useState<{ account: string; entries: PackHistoryEntry[] } | null>(null);
+  const [sharedView, setSharedViewState] = useState(getSharedPackHistory);
+  useEffect(() => subscribeSharedPackHistory(() => setSharedViewState(getSharedPackHistory())), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { pendingUrl, requestNavigation, confirm, cancel } = useExternalLinkWarning();
 
@@ -124,10 +125,10 @@ export function PackHistoryDialog({
     setSaveFailed(getPackHistorySaveFailed());
   }, [account, sharedView]);
 
-  const closeSharedView = useCallback(() => setSharedView(null), []);
+  const closeSharedView = useCallback(() => setSharedPackHistory(null), []);
 
   const handleOpenChange = useCallback((o: boolean) => {
-    if (!o) setSharedView(null);
+    if (!o) setSharedPackHistory(null);
     onOpenChange(o);
   }, [onOpenChange]);
 
@@ -335,45 +336,33 @@ export function PackHistoryDialog({
     let bad = 0;
     // Openings from other accounts are shown as a session-only "shared" view
     // instead of being merged into this device's store.
-    const shared = new Map<string, PackHistoryEntry[]>();
+    const allShared: PackHistoryEntry[] = [];
     for (const file of files) {
       try {
         const parsedEntries = parsePackHistoryEnvelope(JSON.parse(await file.text()));
         if (!parsedEntries) { bad++; continue; }
-        const own = parsedEntries.filter((e) => e.account === account);
-        const others = parsedEntries.filter((e) => e.account !== account);
+        const { own, shared } = splitSharedEntries(parsedEntries, account);
         if (own.length > 0) {
           const r = mergePackHistory(own);
           added += r.added;
           updated += r.updated;
         }
-        for (const e of others) {
-          const list = shared.get(e.account) ?? [];
-          list.push(e);
-          shared.set(e.account, list);
-        }
+        if (shared) allShared.push(...shared.entries);
       } catch {
         bad++;
       }
     }
-    if (shared.size > 0) {
-      const accounts = Array.from(shared.keys());
-      const owner = accounts[0];
-      // De-dupe by txId and show newest first.
-      const seen = new Set<string>();
-      const entries = accounts
-        .flatMap((a) => shared.get(a) ?? [])
-        .filter((e) => (seen.has(e.txId) ? false : (seen.add(e.txId), true)))
-        .sort((a, b) => b.openedAt - a.openedAt);
-      setSharedView({ account: owner, entries });
+    if (allShared.length > 0) {
+      const shared = splitSharedEntries(allShared, account).shared!;
+      setSharedPackHistory(shared);
       toast.success(
-        `Viewing ${owner}'s shared pack history — ${entries.length} opening${entries.length === 1 ? '' : 's'} loaded. Nothing was saved to this device.`,
+        `Viewing ${shared.account}'s shared pack history — ${shared.entries.length} opening${shared.entries.length === 1 ? '' : 's'} loaded. Nothing was saved to this device.`,
       );
     } else {
       reload();
     }
     onHistoryChanged?.();
-    if (shared.size === 0) {
+    if (allShared.length === 0) {
       if (added || updated) {
         toast.success(`Loaded pack history — ${added} new, ${updated} updated`);
       } else if (!bad) {
