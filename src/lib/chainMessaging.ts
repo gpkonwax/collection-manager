@@ -1,6 +1,6 @@
 /**
  * On-chain encrypted messaging (hidden while in development).
- * Messages are memos on tiny WAX / CHEESE transfers, encrypted with
+ * Messages are memos on CHEESE transfers with a same-transaction burn, encrypted with
  * nacl.box (X25519 + XSalsa20-Poly1305). Box keys are symmetric between the
  * pair, so the sender can also read their own sent messages.
  */
@@ -13,11 +13,9 @@ export const KEY_PREFIX = 'GPKMKEY1:';
 export const MEMO_MAX_BYTES = 256;
 export const KEY_PUBLISH_TO = 'eosio.null';
 
-export const MESSAGE_TOKENS = {
-  WAX: { contract: 'eosio.token', symbol: 'WAX', quantity: '0.05000000 WAX' },
-  CHEESE: { contract: 'cheeseburger', symbol: 'CHEESE', quantity: '0.0100 CHEESE' },
-} as const;
-export type MessageToken = keyof typeof MESSAGE_TOKENS;
+export const MESSAGE_RECIPIENT_QUANTITY = '0.0001 CHEESE';
+export const MESSAGE_BURN_QUANTITY = '0.0010 CHEESE';
+export const MESSAGE_TOTAL_QUANTITY = '0.0011 CHEESE';
 
 export interface MessagingKey {
   type: 'gpk-msg-key';
@@ -119,9 +117,21 @@ export function decryptMemo(memo: string, theirPublic: string, mySecret: string)
 
 export const keyMemo = (publicKey: string) => `${KEY_PREFIX}${publicKey}`;
 
-export function transferAction(token: MessageToken, from: string, to: string, memo: string, auth: unknown[]) {
-  const t = MESSAGE_TOKENS[token];
-  return { account: t.contract, name: 'transfer', authorization: auth, data: { from, to, quantity: t.quantity, memo } };
+function cheeseTransfer(from: string, to: string, quantity: string, memo: string, auth: unknown[]) {
+  return { account: 'cheeseburger', name: 'transfer', authorization: auth, data: { from, to, quantity, memo } };
+}
+
+/** Submit both actions together: both succeed or neither does. */
+export function buildSendMessageActions(from: string, to: string, memo: string, auth: unknown[]) {
+  return [
+    cheeseTransfer(from, to, MESSAGE_RECIPIENT_QUANTITY, memo, auth),
+    cheeseTransfer(from, KEY_PUBLISH_TO, MESSAGE_BURN_QUANTITY, 'GPK messaging fee', auth),
+  ];
+}
+
+/** Publishing is a single public-key transfer, not a message. */
+export function buildPublishKeyActions(from: string, publicKey: string, auth: unknown[]) {
+  return [cheeseTransfer(from, KEY_PUBLISH_TO, MESSAGE_BURN_QUANTITY, keyMemo(publicKey), auth)];
 }
 
 export interface ChainMemo { txId: string; time: number; from: string; to: string; memo: string; quantity: string }
@@ -146,6 +156,7 @@ async function hyperionTransfers(query: string): Promise<ChainMemo[]> {
   throw lastErr instanceof Error ? lastErr : new Error('History lookup failed');
 }
 
+// Continue reading legacy WAX messages and published keys.
 const FILTER = 'filter=eosio.token:transfer,cheeseburger:transfer';
 
 /** Newest key the account published on chain, if any. */
