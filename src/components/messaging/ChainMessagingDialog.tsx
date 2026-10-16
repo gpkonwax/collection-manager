@@ -3,6 +3,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   ChainMemo, MAX_PLAINTEXT_BYTES, MESSAGE_TOTAL_QUANTITY, MESSAGE_BURN_QUANTITY, MessagingKey,
@@ -155,39 +159,52 @@ export function ChainMessagingDialog({ open, onOpenChange, account, permission, 
             </div>
           </div>
         ) : (
-        <div className="grid grid-cols-[240px_1fr] gap-4 flex-1 min-h-0">
-          <aside className="flex flex-col gap-3 min-h-0 border-r border-border pr-4">
-            <div className="space-y-2 text-sm">
-              <p className="font-semibold">Your key <span className="ml-1 text-xs font-normal text-primary">✓ loaded for {account}</span></p>
-              <p className="text-xs text-muted-foreground break-all">{key.publicKey}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" title="Give this file to people you want to talk to" onClick={() => download(`${account}-gpk-msg-public.json`, toPublicFile(key))}>Share public key</Button>
-                <Button size="sm" variant="outline" title="Keep this file yourself, never share it" onClick={() => download(`${account}-gpk-msg-key-PRIVATE.json`, key)}>Back up private key</Button>
-                <Button size="sm" variant="secondary" disabled={busy} title={`Let anyone find your key by account name. Costs ${MESSAGE_BURN_QUANTITY} sent to eosio.null.`} onClick={publish}>Publish to chain</Button>
-                <Button size="sm" variant="ghost" onClick={() => fileRef.current?.click()}>Load file</Button>
-                <Button size="sm" variant="ghost" onClick={makeKey}>New key</Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground">Load file also adds a contact from their public key file.</p>
-              <p className="text-[11px] text-muted-foreground">Publishing is optional and sends {MESSAGE_BURN_QUANTITY} to eosio.null.</p>
-            </div>
-
+        <div className="flex flex-col gap-3 flex-1 min-h-0">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="min-w-[180px] justify-between">
+                  {active ?? 'Conversations'} <ChevronDown className="h-4 w-4 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto min-w-[220px]">
+                <DropdownMenuLabel>Conversations</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {partners.map((p) => (
+                  <DropdownMenuItem key={p} onSelect={() => setActive(p)} className={active === p ? 'font-semibold text-primary' : ''}>
+                    {p}{!contacts[p] && <span className="ml-1 text-xs opacity-70">(no key)</span>}
+                  </DropdownMenuItem>
+                ))}
+                {!partners.length && <DropdownMenuItem disabled>{loading ? 'Loading…' : 'No conversations yet.'}</DropdownMenuItem>}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className="flex gap-2">
-              <Input value={newContact} onChange={(e) => setNewContact(e.target.value)} placeholder="account.wam" onKeyDown={(e) => e.key === 'Enter' && addContact()} />
+              <Input className="h-9 w-40" value={newContact} onChange={(e) => setNewContact(e.target.value)} placeholder="account.wam" onKeyDown={(e) => e.key === 'Enter' && addContact()} />
               <Button size="sm" disabled={busy} onClick={addContact}>Add</Button>
             </div>
-            <ul className="flex-1 overflow-y-auto space-y-1">
-              {partners.map((p) => (
-                <li key={p}>
-                  <button onClick={() => setActive(p)} className={`w-full text-left px-2 py-1 rounded text-sm ${active === p ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
-                    {p}{!contacts[p] && <span className="ml-1 text-xs opacity-70">(no key)</span>}
-                  </button>
-                </li>
-              ))}
-              {!partners.length && <li className="text-xs text-muted-foreground">{loading ? 'Loading…' : 'No conversations yet.'}</li>}
-            </ul>
-            <Button size="sm" variant="ghost" disabled={loading} onClick={refresh}>{loading ? 'Loading…' : 'Refresh'}</Button>
-          </aside>
-          <section className="flex flex-col min-h-0">
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" variant="ghost" disabled={loading} onClick={refresh}>{loading ? 'Loading…' : 'Refresh'}</Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">Your key <span className="ml-1 text-xs text-primary">✓</span> <ChevronDown className="h-4 w-4 opacity-70" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuLabel className="space-y-1">
+                    <span className="block text-xs text-primary">✓ loaded for {account}</span>
+                    <span className="block text-[11px] font-normal text-muted-foreground break-all">{key.publicKey}</span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => download(`${account}-gpk-msg-public.json`, toPublicFile(key))}>Share public key</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => download(`${account}-gpk-msg-key-PRIVATE.json`, key)}>Back up private key</DropdownMenuItem>
+                  <DropdownMenuItem disabled={busy} onSelect={publish}>Publish to chain ({MESSAGE_BURN_QUANTITY} to eosio.null)</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => fileRef.current?.click()}>Load file (your key or a contact's)</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={makeKey}>New key</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          <section className="flex flex-col flex-1 min-h-0">
             {!active ? <p className="text-sm text-muted-foreground m-auto">Pick or add a contact.</p> : (
               <>
                 <ol className="flex-1 overflow-y-auto space-y-2 pr-2">
