@@ -89,7 +89,7 @@ function ChainLogo({ chain }: { chain: 'sa' | 'aa' }) {
 
 function Milestone({ title, date, tone, children, tx, highlight, chain, rtl }: { title: string; date?: string; tone: string; children?: React.ReactNode; tx?: string; highlight?: boolean; chain?: 'sa' | 'aa'; rtl?: boolean }) {
   return (
-    <li className={`shrink-0 w-[180px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
+    <div className={`shrink-0 w-[180px] rounded-lg border bg-card/70 p-2 space-y-1 ${highlight ? 'border-cheese ring-1 ring-cheese/40' : 'border-border'}`}>
       <div className="flex justify-between items-center gap-2 text-[11px] text-muted-foreground">
         <span>{date ?? ''}</span>
         {chain && <ChainLogo chain={chain} />}
@@ -97,7 +97,7 @@ function Milestone({ title, date, tone, children, tx, highlight, chain, rtl }: {
       </div>
       <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{title}</span>
       <div className={rtl ? 'text-right' : undefined}>{children}</div>
-    </li>
+    </div>
   );
 }
 
@@ -211,14 +211,24 @@ function SnakeRows({ nodes }: { nodes: React.ReactNode[] }) {
           <Fragment key={r}>
             {r > 0 && (
               <div aria-hidden className={`flex ${rtl ? 'justify-end' : 'justify-start'} leading-none py-1`}>
-                <span className="text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
+                <span className="text-center text-3xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]" style={{ width: CARD_W }}>↓</span>
               </div>
             )}
             <ol className={`flex items-start ${rtl ? 'flex-row-reverse' : ''}`}>
               {row.map((n, i) => (
                 <Fragment key={i}>
                   {i > 0 && <li aria-hidden className="shrink-0 self-center text-center text-xl font-black text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)] list-none" style={{ width: ARROW_W }}>{rtl ? '←' : '→'}</li>}
-                  {isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n}
+                  {(() => {
+                    const turn = i === row.length - 1 && r < rows.length - 1;
+                    const card = isValidElement(n) ? cloneElement(n as React.ReactElement<{ rtl?: boolean }>, { rtl }) : n;
+                    return (
+                      <li className={`list-none shrink-0 ${turn ? 'self-stretch flex flex-col' : ''}`}>
+                        {card}
+                        {/* Fills the gap a taller box (e.g. Pack opened) leaves below the turning box. */}
+                        {turn && <span aria-hidden className="flex-1 min-h-0 overflow-hidden flex items-center justify-center text-3xl font-black leading-none text-cheese drop-shadow-[0_0_6px_hsl(var(--cheese)/0.7)]">↓</span>}
+                      </li>
+                    );
+                  })()}
                 </Fragment>
               ))}
             </ol>
