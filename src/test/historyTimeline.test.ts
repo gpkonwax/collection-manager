@@ -41,13 +41,36 @@ describe('history timeline', () => {
         { id: 'escrow', time, from: 'guz22.wam', to: 'atomicmarket', memo: 'Accepted Offer ID: 95573477', txid: 'sale-tx' },
       ],
     };
-    const result = timelineEvents(mergeHistory([], aa), false);
+    const merged = mergeHistory([], aa);
+    const result = timelineEvents(merged, true);
     expect(result.map((e) => [e.kind, e.from, e.to, e.time])).toEqual([
       ['transfer', 'guz22.wam', 'atomicmarket', time],
       ['sale', 'guz22.wam', 'le1qu.wam', time],
     ]);
     expect(result[1].amount).toBe('199');
     expect(timelineEvents([...result].reverse(), true)).toEqual(result);
+    expect(timelineEvents(merged, false).map((e) => [e.kind, e.from, e.to, e.amount])).toEqual([
+      ['sale', 'guz22.wam', 'le1qu.wam', '199'],
+    ]);
+  });
+
+  it('hides AtomicMarket cancellation returns with listings, but restores them in the expanded timeline', () => {
+    const merged = mergeHistory([], { sales: [], transfers: [
+      { id: 'deposit', time: 1000, from: 'seller.wam', to: 'atomicmarket', memo: '', txid: 'list-tx' },
+      { id: 'return', time: 2000, from: 'atomicmarket', to: 'seller.wam', memo: '', txid: 'cancel-tx' },
+      { id: 'gift', time: 3000, from: 'seller.wam', to: 'friend.wam', memo: '', txid: 'gift-tx' },
+    ] });
+    expect(timelineEvents(merged, false).map((e) => e.txid)).toEqual(['gift-tx']);
+    expect(timelineEvents(merged, true).map((e) => e.txid)).toEqual(['list-tx', 'cancel-tx', 'gift-tx']);
+  });
+
+  it('does not hide SimpleAssets transfers or AtomicAssets bridge and P2P transfers', () => {
+    const merged = mergeHistory([{ ...ev(1, 'transfer'), to: 'atomicmarket' }], { sales: [], transfers: [
+      { id: 'bridge', time: 2, from: 'owner.wam', to: 'atomicbridge', memo: '', txid: 'bridge-tx' },
+      { id: 'trade', time: 3, from: 'owner.wam', to: 'friend.wam', memo: 'Accepted Offer ID: 182562074', txid: 'trade-tx' },
+    ] });
+    expect(timelineEvents(merged, false)).toEqual(merged);
+    expect(merged[2].offerId).toBe('182562074');
   });
 
   it('never moves a later escrow transfer ahead of an earlier sale', () => {
