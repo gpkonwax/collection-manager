@@ -13,6 +13,7 @@ import { counterpartAssets, fetchTradeOffer, type OfferAsset } from '@/lib/trade
 import logoSimpleAssets from '@/assets/simpleassets-logo.png';
 import logoAtomicAssets from '@/assets/atomicassets-logo.png';
 import { fmtUsd, saleUsd } from '@/lib/waxUsd';
+import { EXPRESS_TRADE, fetchExpressTradeGift, isExpressTrade, type ExpressTradeGift } from '@/lib/expressTrade';
 
 /** "(\$12.34)" — the sale's USD value on its UTC day; nothing when no price is known. */
 function SaleUsd({ e }: { e: Pick<SaEvent, 'kind' | 'amount' | 'token' | 'time'> }) {
