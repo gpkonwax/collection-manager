@@ -133,13 +133,35 @@ function TradedFor({ offerId, assetId }: { offerId: string; assetId?: string }) 
   );
 }
 
+/** The ExpressTrade gift memo + intended recipient, read from the deposit transaction. */
+function ExpressTradeNote({ txid }: { txid: string }) {
+  const [gift, setGift] = useState<ExpressTradeGift | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    setGift(undefined);
+    fetchExpressTradeGift(txid).then((g) => { if (live) setGift(g); });
+    return () => { live = false; };
+  }, [txid]);
+  if (!gift) return null;
+  return (
+    <div className="space-y-0.5">
+      {gift.to && <p className="text-[11px] text-muted-foreground">Gift for <span className="font-mono text-cheese">{gift.to}</span></p>}
+      {gift.memo && <p className="text-[11px] italic text-muted-foreground break-words">“{gift.memo}”</p>}
+    </div>
+  );
+}
+
 function EventMilestone({ e, rtl, assetId }: { e: TimelineEvent; rtl?: boolean; assetId?: string }) {
   const price = e.amount ? `${Number(e.amount).toLocaleString('en-GB', { maximumFractionDigits: 8 })} ${e.token || 'WAX'}` : '';
   const traded = e.kind === 'transfer' && !!e.offerId;
+  const xt = isExpressTrade(e);
+  const title = traded ? 'Traded' : xt ? (e.to === EXPRESS_TRADE ? 'ExpressTrade gift' : 'ExpressTrade withdrawal') : KIND_LABEL[e.kind];
   return (
-    <Milestone title={traded ? 'Traded' : KIND_LABEL[e.kind]} date={fmtDate(e.time)} tone={(traded ? TRADED_TONE : KIND_TONE[e.kind]) ?? QUIET_TONE} tx={e.txid || undefined} chain={e.chain} rtl={rtl}>
+    <Milestone title={title} date={fmtDate(e.time)} tone={(traded ? TRADED_TONE : KIND_TONE[e.kind]) ?? QUIET_TONE} tx={e.txid || undefined} chain={e.chain} rtl={rtl}>
       {price && <p className="font-semibold text-cheese">{price}<SaleUsd e={e as SaEvent} /></p>}
-      {e.market && <p className="text-[11px] text-muted-foreground">{MARKET_LABEL[e.market] ?? e.market}</p>}
+      {xt && <p className="text-[11px] text-muted-foreground">WAX ExpressTrade</p>}
+      {!xt && e.market && <p className="text-[11px] text-muted-foreground">{MARKET_LABEL[e.market] ?? e.market}</p>}
+      {xt && e.to === EXPRESS_TRADE && e.txid && <ExpressTradeNote txid={e.txid} />}
       {(e.from || e.to) && (
         <p className={`font-mono break-all leading-snug flex flex-wrap gap-x-1 ${rtl ? 'flex-row-reverse' : ''}`}>
           <span>{e.from || '—'}</span>
