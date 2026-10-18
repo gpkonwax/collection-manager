@@ -17,9 +17,14 @@ function compareHistoryEvents(a: Omit<SaEvent, 'kind'> & { kind: string; chain?:
 }
 
 /** Pure: oldest-first events for the left-to-right timeline. */
-export function timelineEvents<T extends Omit<SaEvent, 'kind'> & { kind: string }>(events: T[], showAll: boolean): T[] {
+export function timelineEvents<T extends Omit<SaEvent, 'kind'> & { kind: string; chain?: Chain }>(events: T[], showAll: boolean): T[] {
   const sorted = [...events].sort(compareHistoryEvents);
-  return showAll ? sorted : sorted.filter((e) => !MARKET_ONLY_KINDS.has(e.kind));
+  return showAll ? sorted : sorted.filter((e) =>
+    !MARKET_ONLY_KINDS.has(e.kind) &&
+    // AtomicMarket escrow deposits and cancellation returns are custody, not
+    // collector milestones. Retain them in the expanded contract audit trail.
+    !(e.chain === 'aa' && e.kind === 'transfer' && (e.to === 'atomicmarket' || e.from === 'atomicmarket'))
+  );
 }
 
 const SETTLE_WINDOW_MS = 120_000;
