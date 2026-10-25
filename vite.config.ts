@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react()],
+  // The offline copy keeps everything in one file (as before on-demand windows
+  // were added), so opening it from a folder never needs extra code files.
+  build: isOfflineBundle ? { rollupOptions: { output: { inlineDynamicImports: true } } } : undefined,
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
