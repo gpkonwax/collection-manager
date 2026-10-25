@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { PuzzleBuilder, type PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
+import type { PuzzlePieceMap } from '@/components/simpleassets/PuzzleBuilder';
+import { PuzzleBuilder, ChainMessagingDialog, BridgeDialog, PackHistoryDialog, CollectionHistoryDialog } from '@/components/LazyWindows';
 import { MissingPuzzlePiecePlaceholder } from '@/components/simpleassets/MissingPuzzlePiecePlaceholder';
 import { PUZZLE_CARD_IDS } from '@/lib/puzzlePieces';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -67,7 +68,6 @@ async function warmDealImagesWithoutBlocking(cards: SimpleAsset[], maxWaitMs = 6
   ]);
 }
 import { useWaxTransaction } from '@/hooks/useWaxTransaction';
-import { ChainMessagingDialog } from '@/components/messaging/ChainMessagingDialog';
 import { TransactionSuccessDialog } from '@/components/wallet/TransactionSuccessDialog';
 import { DonateDialog } from '@/components/wallet/DonateDialog';
 import { TransferDialog, type SelectedPacks } from '@/components/simpleassets/TransferDialog';
@@ -76,7 +76,6 @@ import { canSelect, getSelectionKind } from '@/lib/packTransferActions';
 import { allowsCollectionSelection } from '@/lib/collectionViewActions';
 import { hideRemoved, pruneRemoved, applyPackCaps, prunePackCaps, addPackCap, hideRemovedAtomicPacks, type PackCap } from '@/lib/pendingRemovals';
 import { BurnDialog } from '@/components/simpleassets/BurnDialog';
-import { BridgeDialog } from '@/components/simpleassets/BridgeDialog';
 import { getBridgeEligibility } from '@/lib/bridgeActions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -114,7 +113,6 @@ import { Progress } from '@/components/ui/progress';
 import { useExternalLinkWarning, ExternalLinkWarningDialog } from '@/components/ExternalLinkWarningDialog';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { Bell, BellRing, History } from 'lucide-react';
-import { PackHistoryDialog } from '@/components/simpleassets/PackHistoryDialog';
 import {
   recordPackOpen,
   getPackHistory,
@@ -148,7 +146,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { CATEGORY_LABELS, deriveVariantOptions, hasVariants } from '@/lib/gpkCategories';
 import { VariantFilterPopover } from '@/components/simpleassets/VariantFilterPopover';
 import { getCollectionHistory } from '@/lib/collectionHistory';
-import { CollectionHistoryDialog } from '@/components/simpleassets/CollectionHistoryDialog';
 
 
 const HEADER_BTN_CLASS = 'whitespace-nowrap h-9 px-4 bg-cheese hover:bg-cheese/90 text-cheese-foreground font-semibold theme-bright-fill theme-bright-text';
