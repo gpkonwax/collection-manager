@@ -195,4 +195,3 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export { webRenderer };

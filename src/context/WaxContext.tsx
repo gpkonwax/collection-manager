@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Session, SerializedSession } from '@wharfkit/session';
-import { sessionKit, closeWharfkitModals, setLoginInProgress, getTransactPlugins } from '@/lib/wharfKit';
+import type { Session, SerializedSession } from '@wharfkit/session';
+import { getSessionKit, hasStoredWharfSession, WHARF_SESSIONS_KEY, closeWharfkitModals, setLoginInProgress, getTransactPlugins } from '@/lib/wharfKit';
 import { CHEESE_CONFIG, WAX_CHAIN, NFTHIVE_CONFIG } from '@/lib/waxConfig';
 import { useToast } from '@/hooks/use-toast';
 
@@ -126,7 +126,14 @@ export function WaxProvider({ children }: { children: ReactNode }) {
   // Refresh all stored sessions
   const refreshSessions = useCallback(async () => {
     try {
-      const sessions = await sessionKit.getSessions();
+      // Skip downloading the wallet kit when no accounts were ever saved.
+      let saved: string | null = null;
+      try { saved = localStorage.getItem(WHARF_SESSIONS_KEY); } catch { /* ignore */ }
+      if (!saved) {
+        setAllSessions([]);
+        return;
+      }
+      const sessions = await (await getSessionKit()).getSessions();
       setAllSessions(sessions);
     } catch (error) {
       console.error('Failed to get sessions:', error);
@@ -136,8 +143,10 @@ export function WaxProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const restoreSession = async () => {
+      // Only load the wallet kit at start-up when a session was saved before.
+      if (!hasStoredWharfSession()) return;
       try {
-        const restored = await sessionKit.restore();
+        const restored = await (await getSessionKit()).restore();
         if (restored) {
           setSession(restored);
         }
@@ -170,7 +179,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setLoginInProgress(true);
     try {
-      const response = await sessionKit.login();
+      const response = await (await getSessionKit()).login();
       setSession(response.session);
       await refreshSessions(); // Refresh session list after login
       toast({
@@ -208,7 +217,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
   const switchAccount = async (serializedSession: SerializedSession) => {
     try {
       setIsLoading(true);
-      const restored = await sessionKit.restore(serializedSession);
+      const restored = await (await getSessionKit()).restore(serializedSession);
       if (restored) {
         setSession(restored);
         toast({
@@ -235,7 +244,7 @@ export function WaxProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setLoginInProgress(true);
     try {
-      const response = await sessionKit.login();
+      const response = await (await getSessionKit()).login();
       setSession(response.session);
       await refreshSessions();
       toast({
@@ -259,9 +268,9 @@ export function WaxProvider({ children }: { children: ReactNode }) {
   const removeAccount = async (serializedSession: SerializedSession) => {
     try {
       // Find and restore the session to get a proper Session object for logout
-      const sessionToRemove = await sessionKit.restore(serializedSession);
+      const sessionToRemove = await (await getSessionKit()).restore(serializedSession);
       if (sessionToRemove) {
-        await sessionKit.logout(sessionToRemove);
+        await (await getSessionKit()).logout(sessionToRemove);
         
         // If we removed the active session, clear state
         if (session?.actor?.toString() === serializedSession.actor) {
