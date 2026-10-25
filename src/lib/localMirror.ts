@@ -5,7 +5,11 @@
  * only when a visible card asks for them. This keeps multi-gigabyte backups out
  * of JavaScript memory and makes the archive behave like a read-only drive.
  */
-import { BlobReader, BlobWriter, ZipReader, type Entry, type FileEntry } from '@zip.js/zip.js';
+import type { Entry, FileEntry, ZipReader } from '@zip.js/zip.js';
+
+// The ZIP reader is only fetched when a backup file is loaded, keeping it out
+// of the first page download.
+const loadZip = () => import('@zip.js/zip.js');
 import { del as idbDel } from 'idb-keyval';
 
 const IDB_KEY = 'gpk-local-mirror-v1';
@@ -158,6 +162,7 @@ export async function acquireLocalMirror(key: string | null | undefined): Promis
   }
   const task = (async () => {
     try {
+      const { BlobWriter } = await loadZip();
       const blob = await indexed.entry.getData(new BlobWriter(extToMime(indexed.storedPath)), { checkSignature: true });
       const url = URL.createObjectURL(blob);
       cache.set(canonical, { blob, url, bytes: blob.size, touchedAt: Date.now(), refs: 1 });
@@ -220,6 +225,7 @@ export async function ingestMirrorZipBatch(sources: Array<File | Blob>): Promise
       const name = source instanceof File ? source.name : `ZIP part ${i + 1}`;
       // Main-thread random access also works from file:// offline bundles; web
       // workers can be blocked there by browser origin/CORS rules.
+      const { ZipReader, BlobReader } = await loadZip();
       const reader = new ZipReader(new BlobReader(source), { useWebWorkers: false });
       newReaders.push(reader);
       const entries = await reader.getEntries();
