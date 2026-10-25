@@ -27,3 +27,4 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Card-detail neighbour navigation uses rendered [data-detail-cell] rects (src/lib/gridNeighbour.ts) to follow any layout.
 - Run checks with `bunx vitest run` (two projects: app in jsdom, scripts in node), never plain `bun test`, because Bun's runner lacks the jsdom setup and reports false failures.
 - Load rarely used windows through src/components/LazyWindows.tsx (fetched on first open, then kept mounted) and import the image-backup ZIP reader on demand; the offline bundle inlines these into one file. This trims the first page load without changing window state or folder-opened offline use.
+- Load WharfKit (session kit, wallet plugins, sign-in UI) only via loadWharfKit()/getSessionKit() in src/lib/wharfKit.ts: at start-up only when wharf--session(s) is saved, otherwise on first sign-in, so wallet-less visitors skip ~585 kB; never import src/lib/wharfKitSession.ts statically.
