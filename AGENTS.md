@@ -26,3 +26,4 @@ Keep default grid ordering in a shared natural-card comparator, sorting identica
 - Use savedLayoutStacks helpers for comma-joined stacks and unstacking; read rendered grid columns for neighbours to avoid row wrapping and preserve exports.
 - Card-detail neighbour navigation uses rendered [data-detail-cell] rects (src/lib/gridNeighbour.ts) to follow any layout.
 - Run checks with `bunx vitest run` (two projects: app in jsdom, scripts in node), never plain `bun test`, because Bun's runner lacks the jsdom setup and reports false failures.
+- Load rarely used windows through src/components/LazyWindows.tsx (fetched on first open, then kept mounted), because it trims the first page load without changing window state between openings.
