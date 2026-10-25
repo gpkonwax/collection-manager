@@ -1,27 +1,42 @@
-import { SessionKit, ChainDefinition, Session } from '@wharfkit/session';
-import { WebRenderer } from '@wharfkit/web-renderer';
-import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor';
-import { WalletPluginCloudWallet } from '@wharfkit/wallet-plugin-cloudwallet';
-import { TransactPluginResourceProvider } from '@wharfkit/transact-plugin-resource-provider';
+import type { Session, SessionKit } from '@wharfkit/session';
+import { WAX_CHAIN_ID } from '@/lib/wharfKitConstants';
 
-const webRenderer = new WebRenderer();
+export { WAX_CHAIN_ID };
 
-export const WAX_CHAIN_ID = '1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4';
+type WharfKitModule = typeof import('@/lib/wharfKitSession');
 
-const waxChain = ChainDefinition.from({
-  id: WAX_CHAIN_ID,
-  url: 'https://wax.api.eosnation.io',
-});
+let loadedKit: WharfKitModule | null = null;
+let kitPromise: Promise<WharfKitModule> | null = null;
 
-export const sessionKit = new SessionKit({
-  appName: 'GPK Topps Viewer',
-  chains: [waxChain],
-  ui: webRenderer,
-  walletPlugins: [
-    new WalletPluginAnchor(),
-    new WalletPluginCloudWallet(),
-  ],
-});
+/**
+ * Load the wallet kit (session manager, wallet plugins, sign-in pop-up) on
+ * first need. Cached, so every caller shares one instance.
+ */
+export function loadWharfKit(): Promise<WharfKitModule> {
+  if (!kitPromise) {
+    kitPromise = import('@/lib/wharfKitSession')
+      .then((mod) => { loadedKit = mod; return mod; })
+      .catch((err) => { kitPromise = null; throw err; });
+  }
+  return kitPromise;
+}
+
+export async function getSessionKit(): Promise<SessionKit> {
+  return (await loadWharfKit()).sessionKit;
+}
+
+/** Storage keys WharfKit's default BrowserLocalStorage uses (prefix ''). */
+export const WHARF_SESSION_KEY = 'wharf--session';
+export const WHARF_SESSIONS_KEY = 'wharf--sessions';
+
+/** True when a previous visit left a saved wallet session to restore. */
+export function hasStoredWharfSession(): boolean {
+  try {
+    return !!(localStorage.getItem(WHARF_SESSION_KEY) || localStorage.getItem(WHARF_SESSIONS_KEY));
+  } catch {
+    return false;
+  }
+}
 
 export function isAnchorSession(session: Session): boolean {
   const walletId = session.walletPlugin?.id || '';
@@ -35,12 +50,12 @@ export function isAnchorSession(session: Session): boolean {
 
 export function getTransactPlugins(session: Session) {
   if (isAnchorSession(session)) {
-    return [
-      new TransactPluginResourceProvider({
-        endpoints: { [WAX_CHAIN_ID]: 'https://wax.greymass.com' },
-        allowFees: false,
-      }),
-    ];
+    // A real Session only exists after the kit loaded, so this is set.
+    if (!loadedKit) {
+      console.warn('Wallet kit not loaded; sending without resource provider');
+      return [];
+    }
+    return loadedKit.buildAnchorTransactPlugins(session);
   }
   return [];
 }
@@ -180,4 +195,3 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export { webRenderer };
