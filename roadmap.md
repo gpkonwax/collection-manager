@@ -1,54 +1,18 @@
 # Roadmap
-- [x] Hide AtomicMarket custody transfers in the milestone snake; retain them under Show listings & cancellations and leave sales/prices and classic history unchanged.
-- [x] CHEESE-only messaging: recipient + eosio.null split in one transaction; WAX controls removed; exact amounts and single wallet submission verified by 8 tests. Real-chain signing remains user-only.
-- [x] Saved Collection: Unstack one copy into an existing adjacent empty slot from the stack window and close it; 33 related tests pass, live drag/stack/unstack confirms persistence, occupied-neighbour blocking and responsive column handling.
-- [x] Order same-time AtomicMarket escrow before sale; verified on pictured asset 1099795623168 and regression tests.
-- [x] Connect bridge custody to the AtomicAssets mint receipt; rename Asset History and verify.
-- [x] Handwriting for card/pack artwork: six offline styles, typed placement, active ink color, undo and clear; the AI recognition path was removed by choice, so no Cloud is needed.
-- [x] Remove Binder selection and transfer/burn/bridge controls; clear selections/dialogs on entry. Six tests passed and browser UI fixture confirmed Classic → Binder → Classic resets selection (no real wallet signing required).
-- [x] Native AtomicAssets detail: show live template minted/circulating/burned counts and hide bridged totals; 29 tests passed and real Crash Gordon supply verified in the detail window.
-- [x] Transfer and bridge windows made as tall as the screen allows (92dvh, width unchanged); selected-card tiles doubled to 64px artwork with the original mint number on top of each card.
-- [x] Bridge moved into the grid selection bar (third button, disabled with tooltip for mixed/native/over-20 selections); simple confirm window; Transfer and Bridge windows enlarged.
-- [x] Bridge window card tiles use the same size and spacing as the collection grid (6 columns on wide screens) so more cards fit at once.
-- [x] Enlarge bridge dialog, add Select all in both directions and front-page collection/variant filters; reset to Series 1/all variants on opening; verified with 16 tests and browser interaction (no wallet transaction signed).
 
-- [x] Pack-opening provenance: opener, mint date and pack in card details; one-time backfill workflow + twice-daily updates; bundled in records ZIP.
-- [ ] Confirm the user-started "Backfill pack provenance" workflow finishes on GitHub (blocked: external workflow completion).
-
-- [x] In card details, hide backup-source mint line; show bridged-card bridge mint and dated bridge information beside mint information (stack on narrow screens).
-- [x] Add linked Information column before mint and bridge details for NFT ID, template ID, collection and series.
-
-- [x] Show original mint numbers on pack-history replay cards during reveal, matching the grid; never show bridge-order numbers as originals.
-- [x] Favourite accounts feature: star accounts, Favourites section in View Wallet popover, JSON export/import via JSON menu with bulk multi-file drop — done 2026-09-27
-- [x] Rework only bright-mode backdrop and headings; preserve dark mode, page layout, card grid and behavior.
-- [x] Replace bright-mode yellow box fills with light surfaces; make the background bold spilled paint, preserving header buttons and dark mode.
-- [x] Extend paint across the bright background and use the banner's exact lettering for the bright-mode title.
-- [x] Give dark mode the same banner-lettered title in the existing yellow, cream, and dark brown palette.
-- [x] Make bright-mode card surrounds translucent white and fill the view selector so it stands out over the paint.
-- [x] Improve bright-mode readability for bridge mint badges, backup warning, grid actions, intro and bridge copy, ad link, and footer.
-- [x] Enlarge pack artwork from both pack grids and multiple-pack browsers with card-style tilt, magnifier, and drawing controls.
-- [x] Display pack artwork source details: original geepeekay.com credits for bundled images, IPFS path and available on-chain metadata for AtomicAssets packs.
-- [x] Mint-number backup: builder script, sharded backup (bridged cards, 283,804 mints), app lookup backup-first then live, offline bundle, monthly workflow step.
-- [x] Plain SimpleAssets cards in the mint backup — holders workflow indexed both bridged and unbridged assets.
-- [x] Show only the mint number on card ribbons; keep supply/burn figures in tooltips and details.
-- [x] In the default grid, sort duplicate cards by original mint number ascending, with unresolved copies last.
-- [x] Records ZIP: download + load in Offline Backup, rebuilt and released monthly
-- [x] Card details: live trading history (sales + transfers) for AtomicAssets cards
-- [x] SimpleAssets ownership history: live incoming transfer + twice-daily transfer recorder
-- [x] Stop requesting mint/record files from the 3 image backups (data site + raw GitHub only).
-- [x] NFT detail: AtomicAssets badge uses the new white ATOMICASSETS wordmark SVG (hosted asset, GitHub-Pages-safe URL).
-- [x] Favourites backup popup now states the starred account was already added — no re-import needed.
-
-- [x] Full SimpleAssets market history: scan scripts, chained backfill workflow, sa-history branch, card details "Full on-chain history" with sales/listings/gifts/burns/bridging; checks pass.
-- [x] Initial SimpleAssets market-history backfill completed; incremental refresh maintains it.
-- [x] Recognise WAXStash, Collectables.io and GPK Auctions with confirmed prices, targeted resumable market rescans, and regression tests; bundle totals and asks are never treated as per-card sale prices.
+## Open
+- [ ] Confirm the "Backfill pack provenance" workflow finished on GitHub (blocked: external workflow completion).
 - [ ] Publish newly recognised historical sales (blocked: GitHub refresh/backfill must run with updated code).
 - [ ] Per-card price summaries (deferred to analytics page).
-- [x] History ZIP download + load in Offline Backup (card 3); load needs the next backfill run to publish the by-asset shards inside gpk-sa-history.zip.
-- [x] Asset History expanded by default when a card detail opens (Hide history button kept); 2 new tests, full suite 318 pass.
-- [x] AtomicAssets history backup: one-time backfill workflow, aa-history branch, gpk-aa-history.zip + Offline backup card, 8×/day refresh; Pack opened box + pack art for native AA cards (live fallback verified on Barbecue Billy #972).
-- [ ] Run "Backfill AtomicAssets card history" on GitHub once (blocked: needs the user to start it in the Actions tab).
-- [x] Shareable pack histories: loading another account's pack history JSON (dialog or JSON menu) opens a session-only shared view with replay, never merged into the device store; "Back to my history" exits.
-- [x] Asset History wrap arrow: same glyph, colour and glow as the in-row arrows, stretched longer and centred exactly between the two boxes it joins (both rows now share one band so the turn column matches).
-- [x] Asset History: the Pack opened box now carries its opening date at the top like every other box; verified on Nasty Nick (12 May 2020) and 358 tests.
-- [ ] Hidden on-chain encrypted messaging (?devmsg=1 / Ctrl+Alt+M): built, awaiting real-wallet send test and launch decision (blocked: user signing a real transfer).
+- [ ] Hidden on-chain encrypted messaging (/devmsg): awaiting real-wallet send test and launch decision (blocked: user signing a real transfer).
+- [ ] Staged tidy-up: stages 2–6 (memory tidy, test settings, lazy-loaded windows, main page split, unused code sweep).
+
+## Done (summary)
+- Asset History timeline: SA + AA, bridge receipts, market custody hidden, ExpressTrade, trades, pack-opened box with date/art/code, USD prices.
+- AtomicAssets and SimpleAssets history backfills completed; incremental refresh running.
+- Mint backup, records ZIP, pack provenance, offline backup cards.
+- Bridge, transfer and binder controls; saved-collection stack/unstack.
+- Bright/dark themes, handwriting tool, pack artwork viewer.
+- Shareable pack histories; favourite accounts.
+- CHEESE-only messaging (0.0110 per message).
+- Stage 1 tidy-up: old plan notes removed.
